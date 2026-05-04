@@ -18,6 +18,7 @@ export const DEFAULT_SETTINGS: Settings = {
     cooktop: 150,
     sinkUnder: 100,
     sinkOver: 80,
+    faucetHole: 30,
     sinkSculpted: false,
     sinkSculptedPrice: 800
   },

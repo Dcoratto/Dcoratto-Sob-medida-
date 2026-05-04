@@ -27,8 +27,9 @@ export interface Settings {
     cooktop: number;
     sinkUnder: number;
     sinkOver: number;
-    sinkSculpted: boolean;
-    sinkSculptedPrice: number;
+    faucetHole: number;
+    sinkSculpted?: boolean;
+    sinkSculptedPrice?: number;
   };
   paymentMethods: {
     name: string;
@@ -47,9 +48,13 @@ export interface Material {
   id: string;
   name: string;
   pricePerM2: number;
+  baseCostPerM2?: number;
+  marginPercentage?: number;
   provider: string;
   category: string;
   active: boolean;
+  sourceInventoryId?: string;
+  updatedAt?: any;
 }
 
 export interface Client {
@@ -60,14 +65,14 @@ export interface Client {
   notes: string;
 }
 
-export type QuoteStatus = 
-  | 'Pré-orçamento' 
-  | 'Aguardando medição' 
-  | 'Medido' 
-  | 'Enviado' 
-  | 'Aprovado' 
-  | 'Recusado' 
-  | 'Em produção' 
+export type QuoteStatus =
+  | 'Pré-orçamento'
+  | 'Aguardando medição'
+  | 'Medido'
+  | 'Enviado'
+  | 'Aprovado'
+  | 'Recusado'
+  | 'Em produção'
   | 'Entregue';
 
 export interface PieceSide {
@@ -126,7 +131,8 @@ export interface QuoteCutouts {
   cooktop: number;
   sinkUnder: number;
   sinkOver: number;
-  sinkSculpted: boolean;
+  faucetHole: number;
+  sinkSculpted?: boolean;
 }
 
 export interface Quote {
@@ -140,14 +146,14 @@ export interface Quote {
   materialId: string;
   paymentMethod: string;
   deliveryDays: number;
-  validityDate: any; // Timestamp
+  validityDate: any;
   commercialNotes: string;
   status: QuoteStatus;
   totalArea: number;
   totalPrice: number;
   pieces: QuotePiece[];
   cutouts: QuoteCutouts;
-  createdAt: any; // Timestamp
+  createdAt: any;
   createdBy: string;
 }
 
@@ -157,6 +163,7 @@ export interface InventoryItem {
   materialName: string;
   code: string;
   provider: string;
+  category?: string;
   length: number;
   width: number;
   thickness: number;

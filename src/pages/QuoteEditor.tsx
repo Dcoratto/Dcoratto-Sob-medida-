@@ -28,6 +28,7 @@ export const QuoteEditor: React.FC = () => {
 
   // Form State
   const [clientId, setClientId] = useState('');
+  const [clientSearch, setClientSearch] = useState('');
   const [environment, setEnvironment] = useState('');
   const [responsible, setResponsible] = useState(user?.displayName || '');
   const [materialId, setMaterialId] = useState('');
@@ -37,7 +38,7 @@ export const QuoteEditor: React.FC = () => {
   const [commercialNotes, setCommercialNotes] = useState('');
   const [status, setStatus] = useState<QuoteStatus>('Pré-orçamento');
   const [pieces, setPieces] = useState<QuotePiece[]>([]);
-  const [cutouts, setCutouts] = useState({ cooktop: 0, sinkUnder: 0, sinkOver: 0, sinkSculpted: false });
+  const [cutouts, setCutouts] = useState({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0 });
   const [showDrawing, setShowDrawing] = useState<string | null>(null);
 
   const selectedMaterial = materials.find(m => m.id === materialId);
@@ -46,6 +47,10 @@ export const QuoteEditor: React.FC = () => {
   
   const selectedPaymentAdjustment = settings.paymentMethods.find(m => m.name === paymentMethod)?.adjustment || 0;
   const totalPrice = calculateTotal(pieces, cutouts, selectedPaymentAdjustment);
+  const filteredClients = clients.filter((client) => {
+    const searchText = `${client.name} ${client.phone} ${client.address}`.toLowerCase();
+    return searchText.includes(clientSearch.toLowerCase());
+  });
 
   useEffect(() => {
     // Listen for clients
@@ -75,7 +80,12 @@ export const QuoteEditor: React.FC = () => {
           setCommercialNotes(data.commercialNotes || '');
           setStatus(data.status);
           setPieces(data.pieces || []);
-          setCutouts(data.cutouts || { cooktop: 0, sinkUnder: 0, sinkOver: 0, sinkSculpted: false });
+          setCutouts({
+            cooktop: data.cutouts?.cooktop || 0,
+            sinkUnder: data.cutouts?.sinkUnder || 0,
+            sinkOver: data.cutouts?.sinkOver || 0,
+            faucetHole: data.cutouts?.faucetHole || 0,
+          });
         }
       }
       setLoading(false);
@@ -123,16 +133,27 @@ export const QuoteEditor: React.FC = () => {
     setPieces(pieces.map(p => p.id === id ? { ...p, ...data } : p));
   };
 
-  const addSide = (pieceId: string) => {
+  const sideOptionsForPiece = (piece: QuotePiece) => [
+    { value: 'top', label: `Comprimento superior (${piece.length || 0} cm)`, length: piece.length },
+    { value: 'bottom', label: `Comprimento inferior (${piece.length || 0} cm)`, length: piece.length },
+    { value: 'left', label: `Largura esquerda (${piece.width || 0} cm)`, length: piece.width },
+    { value: 'right', label: `Largura direita (${piece.width || 0} cm)`, length: piece.width },
+  ];
+
+  const addSide = (pieceId: string, type: PieceSide['type']) => {
     setPieces(pieces.map(p => {
       if (p.id !== pieceId) return p;
-      const sideLabels = ['A', 'B', 'C', 'D'] as const;
-      const nextSide = sideLabels[p.sides.length % 4];
+      const firstSide = sideOptionsForPiece(p)[0];
+      const defaultHeight =
+        type === 'frontao' ? settings.defaultFrontonHeight :
+        type === 'saia' ? settings.defaultSkirtHeight :
+        settings.defaultTurnHeight;
       const newSide: PieceSide = {
-        type: 'frontao',
-        side: nextSide,
-        length: p.length,
-        height: settings.defaultFrontonHeight,
+        type,
+        side: firstSide.value,
+        sideLabel: firstSide.label,
+        length: firstSide.length,
+        height: defaultHeight,
         quantity: 1,
         area: 0
       };
@@ -218,13 +239,20 @@ export const QuoteEditor: React.FC = () => {
             <div className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cliente</label>
+                <input
+                  type="text"
+                  value={clientSearch}
+                  onChange={(e) => setClientSearch(e.target.value)}
+                  placeholder="Pesquisar por nome, telefone ou endereço..."
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 mb-2 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
+                />
                 <select 
                   value={clientId} 
                   onChange={(e) => setClientId(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
                 >
                   <option value="">Selecione um cliente</option>
-                  {clients.map(c => (
+                  {filteredClients.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
@@ -255,7 +283,7 @@ export const QuoteEditor: React.FC = () => {
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
                 >
                   <option value="">Selecione um material</option>
-                  {materials.map(m => (
+                  {materials.filter(m => m.active).map(m => (
                     <option key={m.id} value={m.id}>{m.name} ({m.category})</option>
                   ))}
                 </select>
@@ -557,27 +585,48 @@ export const QuoteEditor: React.FC = () => {
 
                   {/* Adicionais - Frontão, Saia, etc */}
                   <div className="space-y-4 pt-4 border-t border-slate-50">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                       <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Adicionais (Frontão/Saia)</h3>
-                      <button 
-                        onClick={() => addSide(piece.id)}
-                        className="text-[10px] font-bold text-brand-primary uppercase tracking-widest hover:underline"
-                      >
-                        + Adicionar Lado
-                      </button>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => addSide(piece.id, 'frontao')}
+                          className="px-3 py-2 rounded-xl bg-brand-primary/10 text-brand-primary text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary/15 transition-all"
+                        >
+                          + Frontão
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => addSide(piece.id, 'saia')}
+                          className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
+                        >
+                          + Saia
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => addSide(piece.id, 'virada')}
+                          className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
+                        >
+                          + Virada
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {piece.sides.map((side, sIdx) => (
                         <div key={sIdx} className="bg-slate-50 border border-slate-100 rounded-[20px] p-4 flex gap-3 items-end group/side">
                           <div className="flex-1 space-y-1">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Tipo / Lado</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Tipo / Medida</span>
                             <div className="flex gap-2">
                               <select 
                                 value={side.type}
                                 onChange={(e) => {
                                   const newSides = [...piece.sides];
                                   newSides[sIdx].type = e.target.value as any;
+                                  newSides[sIdx].height =
+                                    e.target.value === 'frontao' ? settings.defaultFrontonHeight :
+                                    e.target.value === 'saia' ? settings.defaultSkirtHeight :
+                                    settings.defaultTurnHeight;
                                   updatePiece(piece.id, { sides: newSides });
                                 }}
                                 className="bg-white border border-slate-200 rounded-lg text-xs p-1"
@@ -590,15 +639,17 @@ export const QuoteEditor: React.FC = () => {
                                 value={side.side}
                                 onChange={(e) => {
                                   const newSides = [...piece.sides];
-                                  newSides[sIdx].side = e.target.value as any;
+                                  const selectedSide = sideOptionsForPiece(piece).find(option => option.value === e.target.value);
+                                  newSides[sIdx].side = e.target.value;
+                                  newSides[sIdx].sideLabel = selectedSide?.label;
+                                  newSides[sIdx].length = selectedSide?.length || 0;
                                   updatePiece(piece.id, { sides: newSides });
                                 }}
                                 className="bg-white border border-slate-200 rounded-lg text-xs p-1"
                               >
-                                <option value="A">Lado A</option>
-                                <option value="B">Lado B</option>
-                                <option value="C">Lado C</option>
-                                <option value="D">Lado D</option>
+                                {sideOptionsForPiece(piece).map(option => (
+                                  <option key={option.value} value={option.value}>{option.label}</option>
+                                ))}
                               </select>
                             </div>
                           </div>
@@ -667,15 +718,14 @@ export const QuoteEditor: React.FC = () => {
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
                 />
               </div>
-              <div className="flex items-center gap-3 pt-4">
-                <input 
-                  type="checkbox" 
-                  id="sculpted"
-                  checked={cutouts.sinkSculpted}
-                  onChange={(e) => setCutouts({ ...cutouts, sinkSculpted: e.target.checked })}
-                  className="w-5 h-5 rounded-md border-slate-300 text-brand-primary"
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Furação Torneira (Qtd)</label>
+                <input
+                  type="number"
+                  value={cutouts.faucetHole}
+                  onChange={(e) => setCutouts({ ...cutouts, faucetHole: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
                 />
-                <label htmlFor="sculpted" className="font-medium text-slate-700 text-sm">Pia Esculpida</label>
               </div>
             </div>
           </section>

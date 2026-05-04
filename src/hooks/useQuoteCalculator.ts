@@ -102,7 +102,7 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
     total += cutouts.cooktop * (settings.cutoutPrices?.cooktop || 0);
     total += cutouts.sinkUnder * (settings.cutoutPrices?.sinkUnder || 0);
     total += cutouts.sinkOver * (settings.cutoutPrices?.sinkOver || 0);
-    if (cutouts.sinkSculpted) total += (settings.cutoutPrices?.sinkSculptedPrice || 0);
+    total += (cutouts.faucetHole || 0) * (settings.cutoutPrices?.faucetHole || 0);
     return total;
   };
 
@@ -123,7 +123,7 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
         p.cutouts.forEach(c => {
           if (c.type === 'cooktop') totalCutoutsCost += (settings.cutoutPrices?.cooktop || 0);
           if (c.type === 'cuba') totalCutoutsCost += (settings.cutoutPrices?.sinkUnder || 0); // Assuming under-mount for drawn sinks
-          // Torneira is usually free or small fee, adding if exists in settings
+          if (c.type === 'torneira') totalCutoutsCost += (settings.cutoutPrices?.faucetHole || 0);
         });
       }
     });

@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Outfit", sans-serif;
+  
+  --color-brand-primary: #8C6A48; /* Brown/Gold detail */
+  --color-brand-secondary: #D4AF37; /* Gold detail */
+  --color-bg-light: #FBFBFD; /* Apple neutral bg */
+  
+  --radius-apple: 12px;
+}
+
+@layer base {
+  body {
+    @apply font-sans bg-bg-light text-slate-900;
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "entities": {
+    "Profile": {
+      "title": "Profile",
+      "description": "User profile with role and contact info",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "blocked": { "type": "boolean" },
+        "phone": { "type": "string" }
+      },
+      "required": ["name", "email", "role", "blocked"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Global application settings and pricing",
+      "type": "object",
+      "properties": {
+        "companyName": { "type": "string" },
+        "logoUrl": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "defaultValidity": { "type": "number" },
+        "defaultNotes": { "type": "string" },
+        "laborRatePerLinearMeter": { "type": "number" },
+        "defaultFrontonHeight": { "type": "number" },
+        "defaultSkirtHeight": { "type": "number" },
+        "defaultTurnHeight": { "type": "number" },
+        "cutoutPrices": {
+          "type": "object",
+          "properties": {
+            "cooktop": { "type": "number" },
+            "sinkUnder": { "type": "number" },
+            "sinkOver": { "type": "number" },
+            "sinkSculpted": { "type": "number" }
+          }
+        },
+        "paymentMethods": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": { "type": "string" },
+              "adjustment": { "type": "number" }
+            }
+          }
+        }
+      }
+    },
+    "Material": {
+      "title": "Material",
+      "description": "Stone material with pricing",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "pricePerM2": { "type": "number" },
+        "provider": { "type": "string" },
+        "category": { "type": "string" },
+        "active": { "type": "boolean" }
+      },
+      "required": ["name", "pricePerM2", "active"]
+    },
+    "Client": {
+      "title": "Client",
+      "description": "Customer information",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "required": ["name"]
+    },
+    "Quote": {
+      "title": "Quote",
+      "description": "Budget/Order document",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string" },
+        "clientName": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "environment": { "type": "string" },
+        "responsible": { "type": "string" },
+        "materialId": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "deliveryDays": { "type": "number" },
+        "validityDate": { "type": "string", "format": "date-time" },
+        "commercialNotes": { "type": "string" },
+        "status": { "type": "string" },
+        "totalArea": { "type": "number" },
+        "totalPrice": { "type": "number" },
+        "pieces": { "type": "array" },
+        "cutouts": { "type": "object" },
+        "drawingJson": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["clientId", "clientName", "status", "totalPrice"]
+    },
+    "InventoryItem": {
+      "title": "Inventory Item",
+      "description": "Stock of stone slabs",
+      "type": "object",
+      "properties": {
+        "materialId": { "type": "string" },
+        "materialName": { "type": "string" },
+        "code": { "type": "string" },
+        "provider": { "type": "string" },
+        "length": { "type": "number" },
+        "width": { "type": "number" },
+        "thickness": { "type": "number" },
+        "area": { "type": "number" },
+        "cost": { "type": "number" },
+        "status": { "type": "string" },
+        "notes": { "type": "string" },
+        "photoUrl": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "profiles": {
+      "schema": "Profile",
+      "description": "User profiles"
+    },
+    "settings": {
+      "schema": "Setting",
+      "description": "Application settings"
+    },
+    "materials": {
+      "schema": "Material",
+      "description": "Material catalog"
+    },
+    "clients": {
+      "schema": "Client",
+      "description": "Customer database"
+    },
+    "quotes": {
+      "schema": "Quote",
+      "description": "Budgets and orders"
+    },
+    "inventory": {
+      "schema": "InventoryItem",
+      "description": "Stock management"
+    }
+  }
+}

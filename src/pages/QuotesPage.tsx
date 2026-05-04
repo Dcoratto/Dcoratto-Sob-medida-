@@ -1,0 +1,165 @@
+import React, { useState, useEffect } from 'react';
+import { collection, onSnapshot, query, orderBy, addDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { deleteFirestoreDoc } from '../lib/firestore-helpers';
+import { Quote } from '../types';
+import { Plus, Search, FileText, MoreVertical, Edit2, Copy, Trash2, Printer, Eye } from 'lucide-react';
+import { formatCurrency, cn } from '../lib/utils';
+import { useNavigate } from 'react-router-dom';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { useSettings } from '../hooks/useSettings';
+import { generateQuotePDF } from '../lib/pdfGenerator';
+
+export const QuotesPage: React.FC = () => {
+  const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { settings } = useSettings();
+
+  useEffect(() => {
+    const q = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setQuotes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Quote)));
+      setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  const handleDuplicate = async (quote: Quote) => {
+    const { id, ...data } = quote;
+    const newData = {
+      ...data,
+      createdAt: new Date(),
+      status: 'Pré-orçamento',
+      clientName: `${data.clientName} (Cópia)`
+    };
+    await addDoc(collection(db, 'quotes'), newData);
+  };
+
+  const handleDelete = async (id: string) => {
+    const confirmed = window.confirm("Tem certeza que deseja excluir este orçamento?");
+    if (!confirmed) return;
+
+    const ok = await deleteFirestoreDoc('quotes', id);
+    if (!ok) return;
+
+    setQuotes(prev => prev.filter(q => q.id !== id));
+  };
+
+  const filteredQuotes = quotes.filter(q => 
+    q.clientName.toLowerCase().includes(search.toLowerCase()) ||
+    q.environment.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'Aprovado': return 'bg-green-50 text-green-600';
+      case 'Recusado': return 'bg-red-50 text-red-600';
+      case 'Em produção': return 'bg-blue-50 text-blue-600';
+      case 'Entregue': return 'bg-slate-100 text-slate-500';
+      case 'Aguardando medição': return 'bg-amber-50 text-amber-600';
+      default: return 'bg-slate-100 text-slate-500';
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Orçamentos</h1>
+          <p className="text-slate-500 mt-1">Crie e gerencie orçamentos e pedidos.</p>
+        </div>
+        <button 
+          onClick={() => navigate('/quotes/new')}
+          className="flex items-center gap-2 bg-brand-primary text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95"
+        >
+          <Plus className="w-5 h-5" />
+          Novo Orçamento
+        </button>
+      </header>
+
+      <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
+        <div className="p-4 border-b border-slate-50">
+          <div className="relative max-w-md">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Buscar por cliente ou projeto..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
+            />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="border-b border-slate-50">
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Orçamento / Cliente</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Data</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Total</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {loading ? (
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Carregando orçamentos...</td></tr>
+              ) : filteredQuotes.length === 0 ? (
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Nenhum orçamento encontrado.</td></tr>
+              ) : (
+                filteredQuotes.map((q) => (
+                  <tr key={q.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-slate-900">{q.clientName}</div>
+                      <div className="text-xs text-brand-primary font-medium">{q.environment}</div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-500">
+                      {q.createdAt?.toDate ? format(q.createdAt.toDate(), 'dd/MM/yyyy', { locale: ptBR }) : '-'}
+                    </td>
+                    <td className="px-6 py-4 font-mono font-bold text-slate-900">
+                      {formatCurrency(q.totalPrice)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={cn(
+                        "inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase",
+                        getStatusColor(q.status)
+                      )}>
+                        {q.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button 
+                          title="Imprimir" 
+                          onClick={() => generateQuotePDF(q, settings)}
+                          className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg"
+                        >
+                          <Printer className="w-4 h-4" />
+                        </button>
+                        <button title="Editar" onClick={() => navigate(`/quotes/edit/${q.id}`)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg"><Edit2 className="w-4 h-4" /></button>
+                        <button title="Duplicar" onClick={() => handleDuplicate(q)} className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg"><Copy className="w-4 h-4" /></button>
+                        <button 
+                          type="button"
+                          aria-label="Excluir"
+                          title="Excluir" 
+                          onClick={() => handleDelete(q.id)} 
+                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+};

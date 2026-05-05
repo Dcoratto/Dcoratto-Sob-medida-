@@ -3,7 +3,7 @@ import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDo
 import {CheckCircle2, ClipboardList, Edit2, MapPin, Phone, Plus, Search, Trash2, User, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
-import {Client, Employee, EmployeeAssignment, ProductionStep, Quote, QuoteStatus} from '../types';
+import {Client, Employee, EmployeeAssignment, EmployeeEvaluation, ProductionStep, Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
@@ -236,6 +236,36 @@ export const ClientsPage: React.FC = () => {
     });
   };
 
+  const updateEvaluation = async (quote: Quote, assignment: EmployeeAssignment, rating: number, notes?: string) => {
+    const currentEvaluation = quote.employeeEvaluations?.find((item) => item.step === assignment.step && item.employeeId === assignment.employeeId);
+    const nextEvaluation: EmployeeEvaluation = {
+      step: assignment.step,
+      employeeId: assignment.employeeId,
+      employeeName: assignment.employeeName,
+      rating,
+      notes: notes ?? currentEvaluation?.notes ?? '',
+      createdAt: Timestamp.now(),
+    };
+    const nextEvaluations = (quote.employeeEvaluations || [])
+      .filter((item) => item.step !== assignment.step || item.employeeId !== assignment.employeeId)
+      .concat(nextEvaluation);
+
+    await updateDoc(doc(db, 'quotes', quote.id), {
+      employeeEvaluations: nextEvaluations,
+      statusHistory: [
+        ...(quote.statusHistory || []),
+        {
+          status: quote.status,
+          changedAt: Timestamp.now(),
+          responsibleEmployeeId: assignment.employeeId,
+          responsibleEmployeeName: assignment.employeeName,
+          step: assignment.step,
+          note: `${assignment.employeeName} avaliado com ${rating} ponto(s) em ${productionSteps.find((item) => item.key === assignment.step)?.label}`,
+        },
+      ],
+    });
+  };
+
   const filteredClients = clients.filter((client) => {
     const stage = quoteStage(latestQuoteByClient.get(client.id));
     const matchesStatus = statusFilter === 'all' || stage === statusFilter;
@@ -429,6 +459,9 @@ export const ClientsPage: React.FC = () => {
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                           {productionSteps.map((step) => {
                             const assignment = selectedQuote.employeeAssignments?.find((item) => item.step === step.key);
+                            const evaluation = assignment
+                              ? selectedQuote.employeeEvaluations?.find((item) => item.step === step.key && item.employeeId === assignment.employeeId)
+                              : undefined;
                             return (
                               <div key={step.key} className="rounded-2xl bg-slate-50 p-4 space-y-3">
                                 <div className="flex items-center justify-between gap-3">
@@ -451,15 +484,45 @@ export const ClientsPage: React.FC = () => {
                                   ))}
                                 </select>
                                 {assignment && (
-                                  <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-600">
-                                    <input
-                                      type="checkbox"
-                                      checked={Boolean(assignment.finishedAt)}
-                                      onChange={() => toggleStepDone(selectedQuote, assignment)}
-                                      className="h-4 w-4 accent-brand-primary"
-                                    />
-                                    {assignment.finishedAt ? `Finalizado em ${stepDate(assignment.finishedAt)}` : 'Marcar etapa finalizada'}
-                                  </label>
+                                  <div className="space-y-3">
+                                    <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-600">
+                                      <input
+                                        type="checkbox"
+                                        checked={Boolean(assignment.finishedAt)}
+                                        onChange={() => toggleStepDone(selectedQuote, assignment)}
+                                        className="h-4 w-4 accent-brand-primary"
+                                      />
+                                      {assignment.finishedAt ? `Finalizado em ${stepDate(assignment.finishedAt)}` : 'Marcar etapa finalizada'}
+                                    </label>
+
+                                    <div className="rounded-xl bg-white p-3 space-y-2">
+                                      <div className="flex items-center justify-between gap-2">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Avaliação</span>
+                                        <div className="flex gap-1">
+                                          {[1, 2, 3, 4, 5].map((rating) => (
+                                            <button
+                                              key={rating}
+                                              type="button"
+                                              onClick={() => updateEvaluation(selectedQuote, assignment, rating)}
+                                              className={cn(
+                                                'h-8 w-8 rounded-full text-sm transition-all',
+                                                (evaluation?.rating || 0) >= rating ? 'bg-green-500 text-white shadow-sm' : 'bg-slate-50 text-slate-300 hover:text-brand-primary',
+                                              )}
+                                              title={`${rating} ponto(s)`}
+                                            >
+                                              {rating <= 2 ? '☹' : rating === 3 ? '○' : '☺'}
+                                            </button>
+                                          ))}
+                                        </div>
+                                      </div>
+                                      <input
+                                        value={evaluation?.notes || ''}
+                                        onChange={(event) => updateEvaluation(selectedQuote, assignment, evaluation?.rating || 3, event.target.value)}
+                                        placeholder="Observação da etapa"
+                                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-primary/20"
+                                      />
+                                    </div>
+                                  </div>
                                 )}
                               </div>
                             );

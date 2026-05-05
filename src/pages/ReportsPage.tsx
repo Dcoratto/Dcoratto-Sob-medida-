@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {collection, doc, onSnapshot, Timestamp, updateDoc} from 'firebase/firestore';
+import {collection, onSnapshot} from 'firebase/firestore';
 import {AlertCircle, BarChart3, Boxes, FileDown, Gauge, TrendingUp, Users} from 'lucide-react';
-import {Client, Employee, EmployeeEvaluation, InventoryItem, Material, ProductionStep, Quote} from '../types';
+import {Client, Employee, InventoryItem, Material, ProductionStep, Quote} from '../types';
 import {db} from '../lib/firebase';
 import {cn, formatCurrency} from '../lib/utils';
 
@@ -58,8 +58,6 @@ export const ReportsPage: React.FC = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [period, setPeriod] = useState<Period>('month');
-  const [evaluationQuoteId, setEvaluationQuoteId] = useState('');
-  const [evaluationStep, setEvaluationStep] = useState<ProductionStep>('medicao');
 
   useEffect(() => {
     const unsubQuotes = onSnapshot(collection(db, 'quotes'), (snapshot) => setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote))));
@@ -133,29 +131,6 @@ export const ReportsPage: React.FC = () => {
     .flatMap((quote) => (quote.statusHistory || []).map((item) => ({quote, item})))
     .sort((a, b) => (toDate(b.item.changedAt)?.getTime() || 0) - (toDate(a.item.changedAt)?.getTime() || 0))
     .slice(0, 20);
-
-  const evaluableQuotes = filteredQuotes.filter((quote) => (quote.employeeAssignments || []).length > 0);
-  const selectedEvaluationQuote = quotes.find((quote) => quote.id === evaluationQuoteId) || evaluableQuotes[0];
-  const selectedAssignment = selectedEvaluationQuote?.employeeAssignments?.find((item) => item.step === evaluationStep);
-  const selectedEvaluation = selectedEvaluationQuote && selectedAssignment
-    ? selectedEvaluationQuote.employeeEvaluations?.find((item) => item.step === evaluationStep && item.employeeId === selectedAssignment.employeeId)
-    : undefined;
-
-  const saveEvaluation = async (rating: number, notes = selectedEvaluation?.notes || '') => {
-    if (!selectedEvaluationQuote || !selectedAssignment) return;
-    const nextEvaluation: EmployeeEvaluation = {
-      step: evaluationStep,
-      employeeId: selectedAssignment.employeeId,
-      employeeName: selectedAssignment.employeeName,
-      rating,
-      notes,
-      createdAt: Timestamp.now(),
-    };
-    const evaluations = (selectedEvaluationQuote.employeeEvaluations || [])
-      .filter((item) => item.step !== evaluationStep || item.employeeId !== selectedAssignment.employeeId)
-      .concat(nextEvaluation);
-    await updateDoc(doc(db, 'quotes', selectedEvaluationQuote.id), {employeeEvaluations: evaluations});
-  };
 
   const exportReport = () => window.print();
 
@@ -252,70 +227,6 @@ export const ReportsPage: React.FC = () => {
             {deadlineAlerts.length === 0 && <EmptyText>Nenhum prazo crítico no período.</EmptyText>}
           </div>
         </div>
-      </section>
-
-      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
-        <div className="mb-5 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="font-display text-xl font-bold text-slate-900">Avaliação de funcionário</h2>
-            <p className="text-sm text-slate-400">Escolha um projeto e avalie o profissional responsável por cada etapa.</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_220px] gap-4">
-          <select
-            value={selectedEvaluationQuote?.id || ''}
-            onChange={(event) => setEvaluationQuoteId(event.target.value)}
-            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
-          >
-            {evaluableQuotes.map((quote) => (
-              <option key={quote.id} value={quote.id}>{quote.clientName} · {quote.environment || 'Projeto'}</option>
-            ))}
-          </select>
-          <select
-            value={evaluationStep}
-            onChange={(event) => setEvaluationStep(event.target.value as ProductionStep)}
-            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
-          >
-            {Object.entries(productionStepLabels).map(([key, label]) => (
-              <option key={key} value={key}>{label}</option>
-            ))}
-          </select>
-        </div>
-
-        {selectedEvaluationQuote && selectedAssignment ? (
-          <div className="mt-4 rounded-3xl bg-slate-50 p-5">
-            <div className="mb-4 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-              <div>
-                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{productionStepLabels[evaluationStep]}</div>
-                <div className="font-display text-xl font-bold text-slate-900">{selectedAssignment.employeeName}</div>
-              </div>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((rating) => (
-                  <button
-                    key={rating}
-                    type="button"
-                    onClick={() => saveEvaluation(rating)}
-                    className={cn(
-                      'h-11 w-11 rounded-full text-lg transition-all',
-                      (selectedEvaluation?.rating || 0) >= rating ? 'bg-green-500 text-white shadow-sm' : 'bg-white text-slate-300 hover:text-brand-primary',
-                    )}
-                    title={`${rating} ponto(s)`}
-                  >
-                    {rating <= 2 ? '☹' : rating === 3 ? '○' : '☺'}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <input
-              value={selectedEvaluation?.notes || ''}
-              onChange={(event) => saveEvaluation(selectedEvaluation?.rating || 3, event.target.value)}
-              placeholder="Observação interna da avaliação"
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
-            />
-          </div>
-        ) : (
-          <EmptyText>Selecione um projeto com responsável nessa etapa para avaliar.</EmptyText>
-        )}
       </section>
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">

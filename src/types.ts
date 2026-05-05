@@ -175,6 +175,21 @@ export interface QuotePiece {
   previewUrl?: string;
   cutouts?: DrawingCutout[];
   sculptedSink?: SculptedSink;
+  purchasedFixtures?: {
+    sink?: FixtureInfo;
+    faucet?: FixtureInfo;
+    cooktop?: FixtureInfo;
+  };
+}
+
+export interface FixtureInfo {
+  model?: string;
+  brand?: string;
+  width?: number;
+  depth?: number;
+  height?: number;
+  diameter?: number;
+  notes?: string;
 }
 
 export interface QuoteCutouts {

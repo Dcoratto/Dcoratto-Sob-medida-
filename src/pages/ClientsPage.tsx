@@ -3,7 +3,7 @@ import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDo
 import {CheckCircle2, ClipboardList, Edit2, MapPin, Phone, Plus, Search, Trash2, User, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
-import {Client, Employee, EmployeeAssignment, EmployeeEvaluation, ProductionStep, Quote, QuoteStatus} from '../types';
+import {Client, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureInfo, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
@@ -266,6 +266,43 @@ export const ClientsPage: React.FC = () => {
     });
   };
 
+  const updatePieceFixture = async (
+    quote: Quote,
+    pieceId: string,
+    fixtureType: 'sink' | 'faucet' | 'cooktop',
+    field: keyof FixtureInfo,
+    value: string,
+  ) => {
+    const numericFields: Array<keyof FixtureInfo> = ['width', 'depth', 'height', 'diameter'];
+    const nextPieces = (quote.pieces || []).map((piece) => {
+      if (piece.id !== pieceId) return piece;
+      const currentFixture = piece.purchasedFixtures?.[fixtureType] || {};
+      const nextFixture = {
+        ...currentFixture,
+        [field]: numericFields.includes(field) ? Number(value || 0) : value,
+      };
+      return {
+        ...piece,
+        purchasedFixtures: {
+          ...(piece.purchasedFixtures || {}),
+          [fixtureType]: nextFixture,
+        },
+      };
+    });
+
+    await updateDoc(doc(db, 'quotes', quote.id), {
+      pieces: nextPieces,
+      statusHistory: [
+        ...(quote.statusHistory || []),
+        {
+          status: quote.status,
+          changedAt: Timestamp.now(),
+          note: `Dados de ${fixtureType === 'sink' ? 'cuba' : fixtureType === 'faucet' ? 'torneira' : 'cooktop'} atualizados`,
+        },
+      ],
+    });
+  };
+
   const filteredClients = clients.filter((client) => {
     const stage = quoteStage(latestQuoteByClient.get(client.id));
     const matchesStatus = statusFilter === 'all' || stage === statusFilter;
@@ -455,6 +492,27 @@ export const ClientsPage: React.FC = () => {
                       </section>
 
                       <section className="rounded-3xl border border-slate-100 p-5">
+                        <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Itens comprados para projeto</h3>
+                        <div className="space-y-4">
+                          {(selectedQuote.pieces || []).map((piece) => (
+                            <div key={piece.id} className="rounded-2xl bg-slate-50 p-4">
+                              <div className="mb-4 flex items-center justify-between gap-3">
+                                <div>
+                                  <div className="font-bold text-slate-900">{piece.name}</div>
+                                  <div className="text-xs text-slate-400">Informe modelos e medidas reais para projeto e produção.</div>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+                                <FixtureFields quote={selectedQuote} piece={piece} type="sink" title="Cuba" onChange={updatePieceFixture} />
+                                <FixtureFields quote={selectedQuote} piece={piece} type="faucet" title="Torneira" onChange={updatePieceFixture} />
+                                <FixtureFields quote={selectedQuote} piece={piece} type="cooktop" title="Cooktop" onChange={updatePieceFixture} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className="rounded-3xl border border-slate-100 p-5">
                         <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Etapas e responsáveis</h3>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                           {productionSteps.map((step) => {
@@ -618,3 +676,59 @@ const FormField = ({label, value, onChange, required}: {label: string; value: st
     />
   </div>
 );
+
+const FixtureFields = ({
+  quote,
+  piece,
+  type,
+  title,
+  onChange,
+}: {
+  quote: Quote;
+  piece: QuotePiece;
+  type: 'sink' | 'faucet' | 'cooktop';
+  title: string;
+  onChange: (quote: Quote, pieceId: string, fixtureType: 'sink' | 'faucet' | 'cooktop', field: keyof FixtureInfo, value: string) => void;
+}) => {
+  const fixture = piece.purchasedFixtures?.[type] || {};
+  const showDiameter = type === 'faucet';
+
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-white p-4 space-y-3">
+      <div className="text-sm font-bold text-slate-900">{title}</div>
+      <FixtureInput label="Modelo" value={fixture.model || ''} onBlur={(value) => onChange(quote, piece.id, type, 'model', value)} />
+      <FixtureInput label="Marca" value={fixture.brand || ''} onBlur={(value) => onChange(quote, piece.id, type, 'brand', value)} />
+      {showDiameter ? (
+        <FixtureInput label="Diâmetro/furo (cm)" type="number" value={String(fixture.diameter || '')} onBlur={(value) => onChange(quote, piece.id, type, 'diameter', value)} />
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          <FixtureInput label="Largura (cm)" type="number" value={String(fixture.width || '')} onBlur={(value) => onChange(quote, piece.id, type, 'width', value)} />
+          <FixtureInput label="Profundidade (cm)" type="number" value={String(fixture.depth || '')} onBlur={(value) => onChange(quote, piece.id, type, 'depth', value)} />
+        </div>
+      )}
+      <FixtureInput label="Altura (cm)" type="number" value={String(fixture.height || '')} onBlur={(value) => onChange(quote, piece.id, type, 'height', value)} />
+      <FixtureInput label="Observações" value={fixture.notes || ''} onBlur={(value) => onChange(quote, piece.id, type, 'notes', value)} />
+    </div>
+  );
+};
+
+const FixtureInput = ({label, value, type = 'text', onBlur}: {label: string; value: string; type?: string; onBlur: (value: string) => void}) => {
+  const [localValue, setLocalValue] = useState(value);
+
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+
+  return (
+    <label className="block space-y-1">
+      <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</span>
+      <input
+        type={type}
+        value={localValue}
+        onChange={(event) => setLocalValue(event.target.value)}
+        onBlur={() => onBlur(localValue)}
+        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
+      />
+    </label>
+  );
+};

@@ -100,6 +100,8 @@ export interface QuoteStatusHistory {
   changedAt: any;
   responsibleEmployeeId?: string;
   responsibleEmployeeName?: string;
+  step?: ProductionStep;
+  note?: string;
 }
 
 export type QuoteStatus =

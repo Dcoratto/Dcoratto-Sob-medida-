@@ -1,12 +1,32 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {addDoc, collection, doc, onSnapshot, orderBy, query, updateDoc} from 'firebase/firestore';
-import {Edit2, MapPin, Phone, Plus, Search, Trash2, User, X} from 'lucide-react';
+import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from 'firebase/firestore';
+import {CheckCircle2, ClipboardList, Edit2, MapPin, Phone, Plus, Search, Trash2, User, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
-import {Client, Quote} from '../types';
-import {cn} from '../lib/utils';
+import {Client, Employee, EmployeeAssignment, ProductionStep, Quote, QuoteStatus} from '../types';
+import {cn, formatCurrency} from '../lib/utils';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
+
+const productionSteps: Array<{key: ProductionStep; label: string}> = [
+  {key: 'medicao', label: 'Medição'},
+  {key: 'corte', label: 'Corte'},
+  {key: 'acabamento', label: 'Acabamento'},
+  {key: 'instalacao', label: 'Instalação'},
+  {key: 'entrega', label: 'Entrega'},
+];
+
+const quoteStatuses: QuoteStatus[] = [
+  'Pré-orçamento',
+  'Aguardando medição',
+  'Medido',
+  'Enviado',
+  'Aprovado',
+  'Recusado',
+  'Em produção',
+  'Pronto para entrega',
+  'Entregue',
+];
 
 const normalize = (value: unknown) =>
   String(value || '')
@@ -41,12 +61,23 @@ const quoteTime = (quote?: Quote) => {
   return 0;
 };
 
+const stepDate = (value: any) => {
+  if (!value) return '';
+  const date = typeof value.toDate === 'function' ? value.toDate() : value;
+  if (!(date instanceof Date)) return '';
+  return date.toLocaleDateString('pt-BR');
+};
+
 export const ClientsPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ClientStage | 'all'>('all');
   const [showModal, setShowModal] = useState(false);
+  const [showProduction, setShowProduction] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [selectedQuoteId, setSelectedQuoteId] = useState('');
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -66,9 +97,14 @@ export const ClientsPage: React.FC = () => {
       setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
     });
 
+    const unsubEmployees = onSnapshot(collection(db, 'employees'), (snapshot) => {
+      setEmployees(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Employee)));
+    });
+
     return () => {
       unsubClients();
       unsubQuotes();
+      unsubEmployees();
     };
   }, []);
 
@@ -76,12 +112,19 @@ export const ClientsPage: React.FC = () => {
     const map = new Map<string, Quote>();
     quotes.forEach((quote) => {
       const current = map.get(quote.clientId);
-      if (!current || quoteTime(quote) > quoteTime(current)) {
-        map.set(quote.clientId, quote);
-      }
+      if (!current || quoteTime(quote) > quoteTime(current)) map.set(quote.clientId, quote);
     });
     return map;
   }, [quotes]);
+
+  const selectedClientQuotes = useMemo(() => {
+    if (!selectedClient) return [];
+    return quotes
+      .filter((quote) => quote.clientId === selectedClient.id)
+      .sort((a, b) => quoteTime(b) - quoteTime(a));
+  }, [quotes, selectedClient]);
+
+  const selectedQuote = selectedClientQuotes.find((quote) => quote.id === selectedQuoteId) || selectedClientQuotes[0];
 
   const resetForm = () => {
     setName('');
@@ -89,6 +132,13 @@ export const ClientsPage: React.FC = () => {
     setAddress('');
     setNotes('');
     setEditingClient(null);
+  };
+
+  const openProduction = (client: Client) => {
+    const latest = latestQuoteByClient.get(client.id);
+    setSelectedClient(client);
+    setSelectedQuoteId(latest?.id || '');
+    setShowProduction(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -122,6 +172,68 @@ export const ClientsPage: React.FC = () => {
     if (!ok) return;
 
     setClients((prev) => prev.filter((client) => client.id !== id));
+  };
+
+  const updateQuoteStatus = async (quote: Quote, status: QuoteStatus) => {
+    await updateDoc(doc(db, 'quotes', quote.id), {
+      status,
+      statusHistory: [
+        ...(quote.statusHistory || []),
+        {status, changedAt: Timestamp.now(), note: `Status alterado para ${status}`},
+      ],
+    });
+  };
+
+  const updateAssignment = async (quote: Quote, step: ProductionStep, employeeId: string) => {
+    const employee = employees.find((item) => item.id === employeeId);
+    const nextAssignments = (quote.employeeAssignments || []).filter((item) => item.step !== step);
+    if (employee) {
+      nextAssignments.push({
+        step,
+        employeeId: employee.id,
+        employeeName: employee.name,
+        startedAt: Timestamp.now(),
+      });
+    }
+
+    await updateDoc(doc(db, 'quotes', quote.id), {
+      employeeAssignments: nextAssignments,
+      statusHistory: [
+        ...(quote.statusHistory || []),
+        {
+          status: quote.status,
+          changedAt: Timestamp.now(),
+          responsibleEmployeeId: employee?.id || '',
+          responsibleEmployeeName: employee?.name || '',
+          step,
+          note: employee ? `${employee.name} assumiu ${productionSteps.find((item) => item.key === step)?.label}` : `Responsável removido de ${step}`,
+        },
+      ],
+    });
+  };
+
+  const toggleStepDone = async (quote: Quote, assignment: EmployeeAssignment) => {
+    const finished = Boolean(assignment.finishedAt);
+    const nextAssignments = (quote.employeeAssignments || []).map((item) => (
+      item.step === assignment.step && item.employeeId === assignment.employeeId
+        ? {...item, finishedAt: finished ? null : Timestamp.now()}
+        : item
+    ));
+
+    await updateDoc(doc(db, 'quotes', quote.id), {
+      employeeAssignments: nextAssignments,
+      statusHistory: [
+        ...(quote.statusHistory || []),
+        {
+          status: quote.status,
+          changedAt: Timestamp.now(),
+          responsibleEmployeeId: assignment.employeeId,
+          responsibleEmployeeName: assignment.employeeName,
+          step: assignment.step,
+          note: `${productionSteps.find((item) => item.key === assignment.step)?.label} ${finished ? 'reaberta' : 'finalizada'} por ${assignment.employeeName}`,
+        },
+      ],
+    });
   };
 
   const filteredClients = clients.filter((client) => {
@@ -181,13 +293,18 @@ export const ClientsPage: React.FC = () => {
               const meta = stageMeta[stage];
 
               return (
-                <div key={client.id} className="group relative bg-slate-50 border border-slate-100 p-6 rounded-[24px] hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300">
+                <button
+                  key={client.id}
+                  type="button"
+                  onClick={() => openProduction(client)}
+                  className="group relative bg-slate-50 border border-slate-100 p-6 rounded-[24px] hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 text-left"
+                >
                   <div className={cn('absolute top-4 right-4 w-3 h-3 rounded-full ring-4 ring-white', meta.dot)} title={meta.label} />
                   <div className="absolute top-4 right-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button type="button" onClick={() => handleEdit(client)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-all">
+                    <button type="button" onClick={(event) => { event.stopPropagation(); handleEdit(client); }} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-all">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button type="button" aria-label="Excluir" title="Excluir" onClick={() => handleDelete(client.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                    <button type="button" aria-label="Excluir" title="Excluir" onClick={(event) => { event.stopPropagation(); handleDelete(client.id); }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -213,13 +330,173 @@ export const ClientsPage: React.FC = () => {
                       <MapPin className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
                       <span className="line-clamp-2">{client.address || 'Sem endereço cadastrado'}</span>
                     </div>
+                    {latestQuote && (
+                      <div className="text-xs font-bold text-brand-primary">
+                        {latestQuote.pieces?.length || 0} peça(s) · {formatCurrency(latestQuote.totalPrice || 0)}
+                      </div>
+                    )}
                   </div>
-                </div>
+                </button>
               );
             })
           )}
         </div>
       </div>
+
+      {showProduction && selectedClient && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-6xl max-h-[92vh] rounded-[36px] shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-slate-100 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-display font-bold text-slate-900">{selectedClient.name}</h2>
+                <p className="text-sm text-slate-400">Controle de produção do contrato fechado.</p>
+              </div>
+              <button type="button" onClick={() => setShowProduction(false)} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full transition-all text-slate-400">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="overflow-auto p-6 space-y-6">
+              {selectedClientQuotes.length > 0 ? (
+                <>
+                  <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_220px] gap-4">
+                    <select
+                      value={selectedQuote?.id || ''}
+                      onChange={(event) => setSelectedQuoteId(event.target.value)}
+                      className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
+                    >
+                      {selectedClientQuotes.map((quote) => (
+                        <option key={quote.id} value={quote.id}>{quote.environment || 'Projeto'} · {formatCurrency(quote.totalPrice || 0)}</option>
+                      ))}
+                    </select>
+                    {selectedQuote && (
+                      <select
+                        value={selectedQuote.status}
+                        onChange={(event) => updateQuoteStatus(selectedQuote, event.target.value as QuoteStatus)}
+                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
+                      >
+                        {quoteStatuses.map((status) => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {selectedQuote && (
+                    <>
+                      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        <div className="rounded-3xl bg-slate-50 p-5">
+                          <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Valor fechado</div>
+                          <div className="mt-2 text-2xl font-display font-bold text-slate-900">{formatCurrency(selectedQuote.totalPrice || 0)}</div>
+                        </div>
+                        <div className="rounded-3xl bg-slate-50 p-5">
+                          <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Área total</div>
+                          <div className="mt-2 text-2xl font-display font-bold text-slate-900">{(selectedQuote.totalArea || 0).toFixed(4)} m²</div>
+                        </div>
+                        <div className="rounded-3xl bg-slate-50 p-5">
+                          <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Status</div>
+                          <div className="mt-2 text-2xl font-display font-bold text-brand-primary">{selectedQuote.status}</div>
+                        </div>
+                      </section>
+
+                      <section className="rounded-3xl border border-slate-100 p-5">
+                        <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Peças fechadas</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {(selectedQuote.pieces || []).map((piece) => (
+                            <div key={piece.id} className="rounded-2xl bg-slate-50 p-4 flex gap-4">
+                              {piece.previewUrl ? (
+                                <img src={piece.previewUrl} alt={piece.name} className="h-24 w-24 rounded-xl border border-slate-100 bg-white object-contain p-2" />
+                              ) : (
+                                <div className="h-24 w-24 rounded-xl border border-slate-100 bg-white flex items-center justify-center text-slate-300">
+                                  <ClipboardList className="w-8 h-8" />
+                                </div>
+                              )}
+                              <div className="min-w-0">
+                                <div className="font-bold text-slate-900">{piece.name}</div>
+                                <div className="text-xs text-slate-400">{piece.length || 0} x {piece.width || 0} cm</div>
+                                <div className="mt-2 text-sm font-bold text-brand-primary">{((piece.totalArea || piece.manualArea || piece.area || 0)).toFixed(4)} m²</div>
+                                {piece.sides?.length > 0 && (
+                                  <div className="mt-1 text-xs text-slate-500">{piece.sides.length} adicional(is)</div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className="rounded-3xl border border-slate-100 p-5">
+                        <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Etapas e responsáveis</h3>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          {productionSteps.map((step) => {
+                            const assignment = selectedQuote.employeeAssignments?.find((item) => item.step === step.key);
+                            return (
+                              <div key={step.key} className="rounded-2xl bg-slate-50 p-4 space-y-3">
+                                <div className="flex items-center justify-between gap-3">
+                                  <div>
+                                    <div className="font-bold text-slate-900">{step.label}</div>
+                                    <div className="text-xs text-slate-400">
+                                      {assignment?.startedAt ? `Iniciado em ${stepDate(assignment.startedAt)}` : 'Sem início registrado'}
+                                    </div>
+                                  </div>
+                                  {assignment?.finishedAt && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                                </div>
+                                <select
+                                  value={assignment?.employeeId || ''}
+                                  onChange={(event) => updateAssignment(selectedQuote, step.key, event.target.value)}
+                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
+                                >
+                                  <option value="">Selecionar profissional</option>
+                                  {employees.filter((employee) => employee.active).map((employee) => (
+                                    <option key={employee.id} value={employee.id}>{employee.name} · {employee.role}</option>
+                                  ))}
+                                </select>
+                                {assignment && (
+                                  <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-600">
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(assignment.finishedAt)}
+                                      onChange={() => toggleStepDone(selectedQuote, assignment)}
+                                      className="h-4 w-4 accent-brand-primary"
+                                    />
+                                    {assignment.finishedAt ? `Finalizado em ${stepDate(assignment.finishedAt)}` : 'Marcar etapa finalizada'}
+                                  </label>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </section>
+
+                      <section className="rounded-3xl border border-slate-100 p-5">
+                        <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Histórico automático</h3>
+                        <div className="space-y-2">
+                          {(selectedQuote.statusHistory || []).slice().reverse().slice(0, 8).map((item, index) => (
+                            <div key={`${item.changedAt}-${index}`} className="rounded-2xl bg-slate-50 px-4 py-3">
+                              <div className="text-sm font-bold text-slate-800">{(item as any).note || item.status}</div>
+                              <div className="text-xs text-slate-400">
+                                {stepDate(item.changedAt)}{item.responsibleEmployeeName ? ` · ${item.responsibleEmployeeName}` : ''}
+                              </div>
+                            </div>
+                          ))}
+                          {(!selectedQuote.statusHistory || selectedQuote.statusHistory.length === 0) && (
+                            <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhuma movimentação registrada ainda.</div>
+                          )}
+                        </div>
+                      </section>
+                    </>
+                  )}
+                </>
+              ) : (
+                <div className="rounded-3xl bg-slate-50 p-10 text-center">
+                  <ClipboardList className="mx-auto mb-4 w-10 h-10 text-slate-300" />
+                  <div className="font-display text-xl font-bold text-slate-900">Nenhum orçamento vinculado</div>
+                  <p className="mt-2 text-sm text-slate-400">Quando um orçamento for fechado para este cliente, as peças e etapas aparecerão aqui.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">

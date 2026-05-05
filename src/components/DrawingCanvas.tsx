@@ -4,11 +4,12 @@ import {
   CircleDot,
   Eraser,
   Hand,
+  HelpCircle,
   LocateFixed,
   MousePointer2,
   Move3D,
+  PanelRightOpen,
   Pencil,
-  Plus,
   Redo2,
   Ruler,
   Scissors,
@@ -172,6 +173,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const [cutoutType, setCutoutType] = useState<CutoutType>('cuba');
   const [cutoutWidth, setCutoutWidth] = useState('0,50');
   const [cutoutHeight, setCutoutHeight] = useState('0,40');
+  const [showHelp, setShowHelp] = useState(false);
+  const [showPiecesPanel, setShowPiecesPanel] = useState(false);
 
   const scale = (BASE_SCALE * zoom) / 100;
 
@@ -501,6 +504,10 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     });
   };
 
+  const removeComplement = (sideKey: string, type: ComplementType) => {
+    setComplementos((current) => current.filter((item) => !(item.side === sideKey && item.type === type)));
+  };
+
   const removeSegment = (index: number) => {
     if (drawPoints.length <= 2) {
       setDrawPoints([]);
@@ -822,6 +829,10 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <button type="button" onClick={redoPoint} className="rounded-xl bg-slate-100 p-2 text-slate-500 hover:text-brand-primary" title="Refazer ponto"><Redo2 className="h-4 w-4" /></button>
         <button type="button" onClick={clearDrawing} className="rounded-xl bg-red-50 p-2 text-red-500" title="Limpar desenho"><Eraser className="h-4 w-4" /></button>
         <button type="button" onClick={closeGeometry} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold uppercase text-white">Fechar geometria</button>
+        <button type="button" onClick={() => setShowPiecesPanel(true)} className="inline-flex items-center gap-2 rounded-xl bg-brand-primary/10 px-3 py-2 text-xs font-bold uppercase text-brand-primary hover:bg-brand-primary/15">
+          <PanelRightOpen className="h-4 w-4" />
+          Adicionar peças
+        </button>
 
         <select onChange={(e) => e.target.value && applyTemplate(e.target.value as any)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600" defaultValue="">
           <option value="" disabled>Formato pronto</option>
@@ -842,6 +853,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <button type="button" onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value * 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomIn className="h-4 w-4" /></button>
         <button type="button" onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value / 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomOut className="h-4 w-4" /></button>
         <button type="button" onClick={centerDrawing} className="rounded-xl bg-slate-100 p-2 text-slate-500"><LocateFixed className="h-4 w-4" /></button>
+        <button type="button" onClick={() => setShowHelp((value) => !value)} className={cn('rounded-xl p-2', showHelp ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')} title="Ajuda">
+          <HelpCircle className="h-4 w-4" />
+        </button>
       </div>
 
       <div ref={wrapRef} className="relative min-h-[420px] flex-1">
@@ -873,6 +887,89 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           <div className="mt-2 text-xs text-slate-500">Adicionais: {additionalArea.toFixed(4)} m²</div>
           <div className="text-xs font-bold text-slate-700">Total: {totalArea.toFixed(4)} m²</div>
         </div>
+        {showHelp && (
+          <div className="absolute left-4 top-4 w-56 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl">
+            <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-700">
+              <HelpCircle className="h-4 w-4 text-brand-primary" />
+              Como usar
+            </div>
+            <div className="space-y-2 text-xs font-semibold text-slate-500">
+              <div>Scroll: zoom</div>
+              <div>Botão do meio: pan</div>
+              <div>Enter: confirmar medida</div>
+              <div>Esc ou Espaço: parar desenho</div>
+            </div>
+          </div>
+        )}
+        {showPiecesPanel && (
+          <div className="absolute right-4 top-28 z-20 w-[360px] max-w-[calc(100%-32px)] rounded-3xl border border-slate-100 bg-white p-5 shadow-2xl">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-display text-lg font-bold text-slate-900">Adicionar peças</h3>
+                <p className="text-xs text-slate-400">Escolha frontão, saia ou virada para cada lado criado.</p>
+              </div>
+              <button type="button" onClick={() => setShowPiecesPanel(false)} className="rounded-xl bg-slate-50 p-2 text-slate-400 hover:text-slate-700">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="max-h-[360px] space-y-3 overflow-auto pr-1">
+              {technicalSides.map((side) => {
+                const sideComplements = complementos.filter((item) => item.side === side.key);
+                const quantity = sideComplements[0]?.quantity || 1;
+                return (
+                  <div key={side.key} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-bold text-slate-900">{side.name}</div>
+                        <div className="text-xs font-mono text-slate-400">{side.lengthM.toFixed(2).replace('.', ',')} m</div>
+                      </div>
+                      <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                        Qtd
+                        <input
+                          type="number"
+                          min={1}
+                          value={quantity}
+                          onChange={(event) => {
+                            const nextQuantity = Math.max(1, Number(event.target.value));
+                            setComplementos((current) => current.map((item) => item.side === side.key ? {
+                              ...item,
+                              quantity: nextQuantity,
+                              areaTotal: (item.area || 0) * nextQuantity,
+                            } : item));
+                          }}
+                          className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-1 text-center font-mono text-xs text-slate-700"
+                        />
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(['frontao', 'saia', 'virada'] as ComplementType[]).map((type) => {
+                        const selected = sideComplements.some((item) => item.type === type);
+                        return (
+                          <button
+                            key={type}
+                            type="button"
+                            onClick={() => selected ? removeComplement(side.key, type) : updateComplement(side, type, quantity)}
+                            className={cn(
+                              'rounded-xl px-2 py-2 text-[10px] font-bold uppercase transition-all',
+                              selected ? 'bg-green-600 text-white shadow-sm' : 'bg-white text-slate-500 hover:text-brand-primary',
+                            )}
+                          >
+                            {type === 'frontao' ? 'Frontão' : type === 'saia' ? 'Saia' : 'Virada'}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              {technicalSides.length === 0 && (
+                <div className="rounded-2xl bg-slate-50 p-5 text-center text-sm font-semibold text-slate-400">
+                  Feche a geometria para liberar os lados.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid max-h-[320px] grid-cols-1 border-t border-slate-100 bg-white md:grid-cols-[1fr_320px]">
@@ -914,7 +1011,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                             <button
                               key={type}
                               type="button"
-                              onClick={() => updateComplement(side, type, quantity)}
+                              onClick={() => sideComplements.some((item) => item.type === type) ? removeComplement(side.key, type) : updateComplement(side, type, quantity)}
                               className={cn('rounded-lg px-2 py-1 text-[10px] font-bold uppercase', sideComplements.some((item) => item.type === type) ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-500')}
                             >
                               {type === 'frontao' ? 'Frontão' : type === 'saia' ? 'Saia' : 'Virada'}
@@ -982,7 +1079,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           </div>
           <div className="space-y-2">
             <button type="button" onClick={saveDrawing} disabled={!closed || drawPoints.length < 3} className="w-full rounded-2xl bg-brand-primary py-4 font-bold text-white shadow-lg shadow-brand-primary/20 disabled:opacity-50">
-              Concluir e Salvar
+              Adicionar ao orçamento
             </button>
             <button type="button" onClick={onCancel} className="w-full rounded-2xl bg-white py-3 text-sm font-bold text-slate-500 hover:bg-slate-100">
               Cancelar

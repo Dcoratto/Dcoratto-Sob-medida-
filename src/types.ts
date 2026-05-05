@@ -73,6 +73,7 @@ export type QuoteStatus =
   | 'Aprovado'
   | 'Recusado'
   | 'Em produção'
+  | 'Pronto para entrega'
   | 'Entregue';
 
 export interface PieceSide {

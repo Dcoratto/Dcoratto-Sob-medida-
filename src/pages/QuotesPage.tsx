@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {addDoc, collection, onSnapshot, orderBy, query, Timestamp} from 'firebase/firestore';
+import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from 'firebase/firestore';
 import {useNavigate} from 'react-router-dom';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
@@ -8,8 +8,26 @@ import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {generateQuotePDF} from '../lib/pdfGenerator';
 import {useSettings} from '../hooks/useSettings';
-import {Quote} from '../types';
+import {Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
+
+const quoteStatuses: QuoteStatus[] = [
+  'Pré-orçamento',
+  'Aguardando medição',
+  'Medido',
+  'Enviado',
+  'Aprovado',
+  'Recusado',
+  'Em produção',
+  'Pronto para entrega',
+  'Entregue',
+];
+
+const normalize = (value: unknown) =>
+  String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
 
 export const QuotesPage: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -21,20 +39,13 @@ export const QuotesPage: React.FC = () => {
   useEffect(() => {
     const q = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setQuotes(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as Quote)));
+      setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
       setLoading(false);
     });
 
     return unsubscribe;
   }, []);
 
-  const normalize = (value: unknown) =>
-    String(value || '')
-      .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
-
-  const normalizedSearch = normalize(search);
   const filteredQuotes = quotes.filter((quote) => {
     const searchable = [
       quote.clientName,
@@ -45,8 +56,12 @@ export const QuotesPage: React.FC = () => {
       quote.responsible,
     ].map(normalize).join(' ');
 
-    return searchable.includes(normalizedSearch);
+    return searchable.includes(normalize(search));
   });
+
+  const handleStatusChange = async (quoteId: string, status: QuoteStatus) => {
+    await updateDoc(doc(db, 'quotes', quoteId), {status});
+  };
 
   const handleDuplicate = async (quote: Quote) => {
     const {id, ...data} = quote;
@@ -69,19 +84,24 @@ export const QuotesPage: React.FC = () => {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Aprovado':
-        return 'bg-green-50 text-green-600';
-      case 'Recusado':
-        return 'bg-red-50 text-red-600';
-      case 'Em produção':
-        return 'bg-blue-50 text-blue-600';
-      case 'Entregue':
-        return 'bg-slate-100 text-slate-500';
-      case 'Aguardando medição':
-        return 'bg-amber-50 text-amber-600';
+    switch (normalize(status)) {
+      case 'aprovado':
+        return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+      case 'recusado':
+        return 'bg-red-50 text-red-600 border-red-100';
+      case 'em producao':
+        return 'bg-blue-50 text-blue-700 border-blue-100';
+      case 'pronto para entrega':
+        return 'bg-amber-50 text-amber-700 border-amber-100';
+      case 'entregue':
+        return 'bg-slate-100 text-slate-600 border-slate-200';
+      case 'aguardando medicao':
+        return 'bg-amber-50 text-amber-700 border-amber-100';
+      case 'medido':
+      case 'enviado':
+        return 'bg-violet-50 text-violet-700 border-violet-100';
       default:
-        return 'bg-slate-100 text-slate-500';
+        return 'bg-slate-100 text-slate-600 border-slate-200';
     }
   };
 
@@ -129,13 +149,9 @@ export const QuotesPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400">Carregando orçamentos...</td>
-                </tr>
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Carregando orçamentos...</td></tr>
               ) : filteredQuotes.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-6 py-10 text-center text-slate-400">Nenhum orçamento encontrado.</td>
-                </tr>
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Nenhum orçamento encontrado.</td></tr>
               ) : (
                 filteredQuotes.map((quote) => (
                   <tr key={quote.id} className="hover:bg-slate-50/50 transition-colors group">
@@ -150,46 +166,31 @@ export const QuotesPage: React.FC = () => {
                       {formatCurrency(quote.totalPrice || 0)}
                     </td>
                     <td className="px-6 py-4">
-                      <span className={cn(
-                        'inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase',
-                        getStatusColor(quote.status),
-                      )}>
-                        {quote.status}
-                      </span>
+                      <select
+                        value={quote.status}
+                        onChange={(e) => handleStatusChange(quote.id, e.target.value as QuoteStatus)}
+                        className={cn(
+                          'max-w-[180px] cursor-pointer rounded-full border px-3 py-1 text-[10px] font-bold uppercase outline-none transition-all',
+                          getStatusColor(quote.status),
+                        )}
+                      >
+                        {quoteStatuses.map((status) => (
+                          <option key={status} value={status}>{status}</option>
+                        ))}
+                      </select>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button
-                          type="button"
-                          title="Imprimir"
-                          onClick={() => generateQuotePDF(quote, settings)}
-                          className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg"
-                        >
+                        <button type="button" title="Imprimir" onClick={() => generateQuotePDF(quote, settings)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg">
                           <Printer className="w-4 h-4" />
                         </button>
-                        <button
-                          type="button"
-                          title="Editar"
-                          onClick={() => navigate(`/quotes/edit/${quote.id}`)}
-                          className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg"
-                        >
+                        <button type="button" title="Editar" onClick={() => navigate(`/quotes/edit/${quote.id}`)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg">
                           <Edit2 className="w-4 h-4" />
                         </button>
-                        <button
-                          type="button"
-                          title="Duplicar"
-                          onClick={() => handleDuplicate(quote)}
-                          className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg"
-                        >
+                        <button type="button" title="Duplicar" onClick={() => handleDuplicate(quote)} className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg">
                           <Copy className="w-4 h-4" />
                         </button>
-                        <button
-                          type="button"
-                          aria-label="Excluir"
-                          title="Excluir"
-                          onClick={() => handleDelete(quote.id)}
-                          className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
-                        >
+                        <button type="button" aria-label="Excluir" title="Excluir" onClick={() => handleDelete(quote.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>

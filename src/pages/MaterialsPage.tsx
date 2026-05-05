@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
-import {collection, doc, onSnapshot, orderBy, query, updateDoc} from 'firebase/firestore';
-import {Check, Edit2, Search, X} from 'lucide-react';
+import {collection, deleteDoc, doc, onSnapshot, orderBy, query, updateDoc} from 'firebase/firestore';
+import {Check, Edit2, Search, Trash2, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {Material} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
@@ -17,7 +17,7 @@ export const MaterialsPage: React.FC = () => {
   useEffect(() => {
     const q = query(collection(db, 'materials'), orderBy('name', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      setMaterials(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as Material)));
+      setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material)));
       setLoading(false);
     });
 
@@ -47,6 +47,16 @@ export const MaterialsPage: React.FC = () => {
 
     setShowModal(false);
     setEditingMaterial(null);
+  };
+
+  const handleDelete = async (material: Material) => {
+    const confirmed = window.confirm(`Excluir o material "${material.name}" da lista de venda?`);
+    if (!confirmed) return;
+    await deleteDoc(doc(db, 'materials', material.id));
+  };
+
+  const handleStatusChange = async (material: Material, nextActive: boolean) => {
+    await updateDoc(doc(db, 'materials', material.id), {active: nextActive});
   };
 
   const filteredMaterials = materials.filter((material) => {
@@ -105,24 +115,27 @@ export const MaterialsPage: React.FC = () => {
                     <td className="px-6 py-4 font-mono text-sm text-slate-900">{material.marginPercentage ?? 0}%</td>
                     <td className="px-6 py-4 font-mono font-bold text-brand-primary">{formatCurrency(material.pricePerM2 || 0)}</td>
                     <td className="px-6 py-4">
-                      {material.active ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-600 uppercase">
-                          <Check className="w-3 h-3" /> Ativo
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-red-50 text-red-600 uppercase">
-                          <X className="w-3 h-3" /> Inativo
-                        </span>
-                      )}
+                      <select
+                        value={material.active ? 'active' : 'inactive'}
+                        onChange={(e) => handleStatusChange(material, e.target.value === 'active')}
+                        className={cn(
+                          'cursor-pointer rounded-full border px-3 py-1 text-[10px] font-bold uppercase outline-none',
+                          material.active ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100',
+                        )}
+                      >
+                        <option value="active">Ativo</option>
+                        <option value="inactive">Inativo</option>
+                      </select>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleEdit(material)}
-                        className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-all opacity-0 group-hover:opacity-100"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button type="button" onClick={() => handleEdit(material)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-all">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button type="button" onClick={() => handleDelete(material)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all" title="Excluir material">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))

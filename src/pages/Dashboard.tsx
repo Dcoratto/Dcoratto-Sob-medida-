@@ -1,16 +1,57 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {collection, limit, onSnapshot, orderBy, query} from 'firebase/firestore';
 import {useNavigate} from 'react-router-dom';
 import {AlertCircle, CheckCircle2, Clock, Database, FileText, Package, TrendingUp, Users} from 'lucide-react';
 import {db} from '../lib/firebase';
-import {Client, InventoryItem, Material, Quote} from '../types';
+import {Client, InventoryItem, Material, Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
+
+type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
+
+const statusGroups: Record<ClientStage, {label: string; dot: string; bg: string; statuses: QuoteStatus[]}> = {
+  pre: {label: 'Pré-orçamento', dot: 'bg-slate-400', bg: 'bg-slate-50 text-slate-600', statuses: ['Pré-orçamento', 'Aguardando medição', 'Medido', 'Enviado']},
+  approved: {label: 'Projeto fechado', dot: 'bg-emerald-500', bg: 'bg-emerald-50 text-emerald-700', statuses: ['Aprovado']},
+  production: {label: 'Em produção', dot: 'bg-blue-500', bg: 'bg-blue-50 text-blue-700', statuses: ['Em produção']},
+  ready: {label: 'Pronto para entrega', dot: 'bg-amber-500', bg: 'bg-amber-50 text-amber-700', statuses: ['Pronto para entrega', 'Medido', 'Enviado']},
+  done: {label: 'Concluído', dot: 'bg-violet-500', bg: 'bg-violet-50 text-violet-700', statuses: ['Entregue']},
+  none: {label: 'Sem orçamento', dot: 'bg-slate-300', bg: 'bg-slate-50 text-slate-500', statuses: []},
+};
+
+const normalizeStatus = (status?: string) => {
+  const text = (status || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (text.includes('producao')) return 'Em produção' as QuoteStatus;
+  if (text.includes('aprovado')) return 'Aprovado' as QuoteStatus;
+  if (text.includes('recusado')) return 'Recusado' as QuoteStatus;
+  if (text.includes('entregue') || text.includes('concluido')) return 'Entregue' as QuoteStatus;
+  if (text.includes('pronto')) return 'Pronto para entrega' as QuoteStatus;
+  if (text.includes('medido')) return 'Medido' as QuoteStatus;
+  if (text.includes('enviado')) return 'Enviado' as QuoteStatus;
+  if (text.includes('medicao')) return 'Aguardando medição' as QuoteStatus;
+  return 'Pré-orçamento' as QuoteStatus;
+};
+
+const quoteStage = (quote?: Quote): ClientStage => {
+  if (!quote) return 'none';
+  const status = normalizeStatus(quote.status);
+  if (status === 'Entregue') return 'done';
+  if (status === 'Pronto para entrega' || status === 'Medido' || status === 'Enviado') return 'ready';
+  if (status === 'Em produção') return 'production';
+  if (status === 'Aprovado') return 'approved';
+  return 'pre';
+};
+
+const toDate = (value: any): Date | null => {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value.toDate === 'function') return value.toDate();
+  return null;
+};
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [recentQuotes, setRecentQuotes] = useState<Quote[]>([]);
-  const [clientsCount, setClientsCount] = useState(0);
+  const [clients, setClients] = useState<Client[]>([]);
   const [materialsCount, setMaterialsCount] = useState(0);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -18,26 +59,25 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     const qQuotesAll = query(collection(db, 'quotes'));
     const unsubQuotesAll = onSnapshot(qQuotesAll, (snap) => {
-      setQuotes(snap.docs.map((doc) => ({id: doc.id, ...doc.data()} as Quote)));
+      setQuotes(snap.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
     });
 
     const qQuotesRecent = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'), limit(5));
     const unsubQuotesRecent = onSnapshot(qQuotesRecent, (snap) => {
-      setRecentQuotes(snap.docs.map((doc) => ({id: doc.id, ...doc.data()} as Quote)));
+      setRecentQuotes(snap.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
     });
 
     const unsubClients = onSnapshot(collection(db, 'clients'), (snap) => {
-      const clients = snap.docs.map((doc) => ({id: doc.id, ...doc.data()} as Client));
-      setClientsCount(clients.length);
+      setClients(snap.docs.map((item) => ({id: item.id, ...item.data()} as Client)));
     });
 
     const unsubMaterials = onSnapshot(collection(db, 'materials'), (snap) => {
-      const materials = snap.docs.map((doc) => ({id: doc.id, ...doc.data()} as Material));
+      const materials = snap.docs.map((item) => ({id: item.id, ...item.data()} as Material));
       setMaterialsCount(materials.length);
     });
 
     const unsubInventory = onSnapshot(collection(db, 'inventory'), (snap) => {
-      setInventory(snap.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryItem)));
+      setInventory(snap.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem)));
       setLoading(false);
     });
 
@@ -50,29 +90,58 @@ export const Dashboard: React.FC = () => {
     };
   }, []);
 
+  const latestQuoteByClient = useMemo(() => {
+    const sorted = [...quotes].sort((a, b) => (toDate(b.createdAt)?.getTime() || 0) - (toDate(a.createdAt)?.getTime() || 0));
+    return sorted.reduce<Record<string, Quote>>((acc, quote) => {
+      if (quote.clientId && !acc[quote.clientId]) acc[quote.clientId] = quote;
+      return acc;
+    }, {});
+  }, [quotes]);
+
+  const stageCounts = useMemo(() => {
+    const base: Record<ClientStage, number> = {pre: 0, approved: 0, production: 0, ready: 0, done: 0, none: 0};
+    clients.forEach((client) => {
+      base[quoteStage(latestQuoteByClient[client.id])] += 1;
+    });
+    return base;
+  }, [clients, latestQuoteByClient]);
+
+  const deadlineAlerts = useMemo(() => {
+    const now = new Date();
+    return quotes
+      .filter((quote) => !['Recusado', 'Entregue'].includes(normalizeStatus(quote.status)))
+      .map((quote) => {
+        const createdAt = toDate(quote.createdAt);
+        const deadline = toDate(quote.validityDate) || (createdAt ? new Date(createdAt.getTime() + (quote.deliveryDays || 0) * 86400000) : null);
+        if (!deadline) return null;
+        const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / 86400000);
+        if (daysLeft > 3) return null;
+        return {quote, deadline, daysLeft};
+      })
+      .filter(Boolean)
+      .sort((a, b) => (a!.daysLeft - b!.daysLeft))
+      .slice(0, 5) as Array<{quote: Quote; deadline: Date; daysLeft: number}>;
+  }, [quotes]);
+
   const stats = [
     {label: 'Orçamentos', value: quotes.length, icon: FileText, color: 'text-brand-primary', bg: 'bg-brand-primary/10', path: '/quotes'},
-    {label: 'Clientes', value: clientsCount, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/clients'},
+    {label: 'Clientes', value: clients.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/clients'},
     {label: 'Materiais', value: materialsCount, icon: Package, color: 'text-purple-600', bg: 'bg-purple-50', path: '/materials'},
     {label: 'Itens em Estoque', value: inventory.length, icon: Database, color: 'text-amber-600', bg: 'bg-amber-50', path: '/inventory'},
   ];
 
-  const openQuotes = quotes.filter((quote) => quote.status === 'Pré-orçamento');
+  const openQuotes = quotes.filter((quote) => normalizeStatus(quote.status) === 'Pré-orçamento');
   const totalValue = quotes.reduce((acc, quote) => acc + (quote.totalPrice || 0), 0);
 
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Aprovado':
-        return 'bg-green-50 text-green-600';
-      case 'Recusado':
-        return 'bg-red-50 text-red-600';
-      case 'Em produção':
-        return 'bg-blue-50 text-blue-600';
-      case 'Aguardando medição':
-        return 'bg-amber-50 text-amber-600';
-      default:
-        return 'bg-slate-100 text-slate-500';
-    }
+    const normalized = normalizeStatus(status);
+    if (normalized === 'Aprovado') return 'bg-green-50 text-green-600';
+    if (normalized === 'Recusado') return 'bg-red-50 text-red-600';
+    if (normalized === 'Em produção') return 'bg-blue-50 text-blue-600';
+    if (normalized === 'Aguardando medição') return 'bg-amber-50 text-amber-600';
+    if (normalized === 'Entregue') return 'bg-violet-50 text-violet-600';
+    if (normalized === 'Pronto para entrega') return 'bg-amber-50 text-amber-700';
+    return 'bg-slate-100 text-slate-500';
   };
 
   return (
@@ -100,6 +169,34 @@ export const Dashboard: React.FC = () => {
           </button>
         ))}
       </div>
+
+      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
+        <div className="mb-5 flex items-center justify-between">
+          <div>
+            <h2 className="font-display font-bold text-lg text-slate-800">Controle de clientes</h2>
+            <p className="text-sm text-slate-400">Resumo interno de qualidade, produção e entrega.</p>
+          </div>
+          <button type="button" onClick={() => navigate('/clients')} className="text-xs font-bold uppercase tracking-widest text-brand-primary hover:underline">
+            Abrir clientes
+          </button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {(['pre', 'approved', 'production', 'ready', 'done'] as ClientStage[]).map((stage) => (
+            <button
+              key={stage}
+              type="button"
+              onClick={() => navigate('/clients')}
+              className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4 text-left hover:bg-white hover:shadow-sm transition-all"
+            >
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
+                <span className={cn('h-2.5 w-2.5 rounded-full', statusGroups[stage].dot)} />
+                {statusGroups[stage].label}
+              </div>
+              <div className="mt-3 text-2xl font-display font-bold text-slate-900">{stageCounts[stage]}</div>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
@@ -137,10 +234,7 @@ export const Dashboard: React.FC = () => {
                       <div className="text-xs text-slate-400">{quote.environment}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={cn(
-                        'inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase',
-                        getStatusColor(quote.status),
-                      )}>
+                      <span className={cn('inline-flex px-2 py-0.5 rounded-full text-[10px] font-bold uppercase', getStatusColor(quote.status))}>
                         {quote.status}
                       </span>
                     </td>
@@ -163,6 +257,38 @@ export const Dashboard: React.FC = () => {
         </div>
 
         <div className="space-y-6">
+          <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500">
+                <AlertCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-display font-bold text-lg text-slate-800">Avisos de prazo</h3>
+                <p className="text-xs text-slate-400">Clientes com prazo vencendo ou vencido.</p>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {deadlineAlerts.map(({quote, daysLeft}) => (
+                <button
+                  key={quote.id}
+                  type="button"
+                  onClick={() => navigate(`/quotes/edit/${quote.id}`)}
+                  className="w-full rounded-2xl bg-slate-50 p-3 text-left hover:bg-slate-100 transition-all"
+                >
+                  <div className="font-bold text-sm text-slate-900">{quote.clientName}</div>
+                  <div className={cn('mt-1 text-xs font-bold', daysLeft < 0 ? 'text-red-600' : 'text-amber-600')}>
+                    {daysLeft < 0 ? `${Math.abs(daysLeft)} dia(s) vencido` : `vence em ${daysLeft} dia(s)`}
+                  </div>
+                </button>
+              ))}
+              {deadlineAlerts.length === 0 && (
+                <div className="rounded-2xl bg-green-50 p-4 text-sm font-semibold text-green-700">
+                  Nenhum prazo crítico no momento.
+                </div>
+              )}
+            </div>
+          </div>
+
           <button
             type="button"
             onClick={() => navigate('/quotes')}
@@ -187,7 +313,7 @@ export const Dashboard: React.FC = () => {
             <div className="text-4xl font-display font-bold mb-1">
               {formatCurrency(totalValue)}
             </div>
-            <div className="text-xs opacity-50 mb-6">Total em orçamentos gerados esta semana</div>
+            <div className="text-xs opacity-50 mb-6">Total em orçamentos gerados</div>
             <button
               type="button"
               onClick={() => navigate('/history')}

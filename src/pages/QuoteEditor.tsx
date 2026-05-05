@@ -29,6 +29,7 @@ export const QuoteEditor: React.FC = () => {
   // Form State
   const [clientId, setClientId] = useState('');
   const [clientSearch, setClientSearch] = useState('');
+  const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [environment, setEnvironment] = useState('');
   const [responsible, setResponsible] = useState(user?.displayName || '');
   const [materialId, setMaterialId] = useState('');
@@ -71,6 +72,7 @@ export const QuoteEditor: React.FC = () => {
         if (docSnap.exists()) {
           const data = docSnap.data() as Quote;
           setClientId(data.clientId);
+          setClientSearch(data.clientName || '');
           setEnvironment(data.environment);
           setResponsible(data.responsible);
           setMaterialId(data.materialId);
@@ -239,23 +241,53 @@ export const QuoteEditor: React.FC = () => {
             <div className="space-y-4">
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cliente</label>
-                <input
-                  type="text"
-                  value={clientSearch}
-                  onChange={(e) => setClientSearch(e.target.value)}
-                  placeholder="Pesquisar por nome, telefone ou endereço..."
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 mb-2 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
-                />
-                <select 
-                  value={clientId} 
-                  onChange={(e) => setClientId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
-                >
-                  <option value="">Selecione um cliente</option>
-                  {filteredClients.map(c => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={clientPickerOpen ? clientSearch : selectedClient?.name || clientSearch}
+                    onFocus={() => {
+                      setClientPickerOpen(true);
+                      if (selectedClient && !clientSearch) setClientSearch(selectedClient.name);
+                    }}
+                    onChange={(e) => {
+                      setClientSearch(e.target.value);
+                      setClientPickerOpen(true);
+                      if (clientId && e.target.value !== selectedClient?.name) setClientId('');
+                    }}
+                    onBlur={() => window.setTimeout(() => setClientPickerOpen(false), 140)}
+                    placeholder="Pesquisar e selecionar cliente..."
+                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 pr-10 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
+                  />
+                  <ChevronDown className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                  {clientPickerOpen && (
+                    <div className="absolute z-30 mt-2 max-h-56 w-full overflow-auto rounded-2xl border border-slate-100 bg-white p-2 shadow-xl">
+                      {filteredClients.map((client) => (
+                        <button
+                          key={client.id}
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => {
+                            setClientId(client.id);
+                            setClientSearch(client.name);
+                            setClientPickerOpen(false);
+                          }}
+                          className={cn(
+                            'w-full rounded-xl px-3 py-2 text-left transition-all',
+                            client.id === clientId ? 'bg-brand-primary text-white' : 'hover:bg-slate-50 text-slate-700',
+                          )}
+                        >
+                          <div className="font-bold text-sm">{client.name}</div>
+                          <div className={cn('text-xs', client.id === clientId ? 'text-white/70' : 'text-slate-400')}>
+                            {[client.phone, client.address].filter(Boolean).join(' · ')}
+                          </div>
+                        </button>
+                      ))}
+                      {filteredClients.length === 0 && (
+                        <div className="px-3 py-4 text-center text-sm text-slate-400">Nenhum cliente encontrado.</div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ambiente / Projeto</label>
@@ -321,8 +353,12 @@ export const QuoteEditor: React.FC = () => {
                     <option value="Pré-orçamento">Pré-orçamento</option>
                     <option value="Aguardando medição">Aguardando medição</option>
                     <option value="Medido">Medido</option>
+                    <option value="Enviado">Enviado</option>
                     <option value="Aprovado">Aprovado</option>
+                    <option value="Recusado">Recusado</option>
                     <option value="Em produção">Em produção</option>
+                    <option value="Pronto para entrega">Pronto para entrega</option>
+                    <option value="Entregue">Entregue</option>
                   </select>
                 </div>
               </div>
@@ -614,10 +650,10 @@ export const QuoteEditor: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {piece.sides.map((side, sIdx) => (
-                        <div key={sIdx} className="bg-slate-50 border border-slate-100 rounded-[20px] p-4 flex gap-3 items-end group/side">
-                          <div className="flex-1 space-y-1">
+                        <div key={sIdx} className="bg-slate-50 border border-slate-100 rounded-[20px] p-4 grid grid-cols-[minmax(0,1fr)_72px_36px] gap-3 items-end">
+                          <div className="min-w-0 space-y-1">
                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Tipo / Medida</span>
-                            <div className="flex gap-2">
+                            <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-2">
                               <select 
                                 value={side.type}
                                 onChange={(e) => {
@@ -629,7 +665,7 @@ export const QuoteEditor: React.FC = () => {
                                     settings.defaultTurnHeight;
                                   updatePiece(piece.id, { sides: newSides });
                                 }}
-                                className="bg-white border border-slate-200 rounded-lg text-xs p-1"
+                                className="min-w-0 bg-white border border-slate-200 rounded-lg text-xs p-1"
                               >
                                 <option value="frontao">Frontão</option>
                                 <option value="saia">Saia</option>
@@ -645,7 +681,7 @@ export const QuoteEditor: React.FC = () => {
                                   newSides[sIdx].length = selectedSide?.length || 0;
                                   updatePiece(piece.id, { sides: newSides });
                                 }}
-                                className="bg-white border border-slate-200 rounded-lg text-xs p-1"
+                                className="min-w-0 bg-white border border-slate-200 rounded-lg text-xs p-1"
                               >
                                 {sideOptionsForPiece(piece).map(option => (
                                   <option key={option.value} value={option.value}>{option.label}</option>
@@ -675,7 +711,7 @@ export const QuoteEditor: React.FC = () => {
                               newSides.splice(sIdx, 1);
                               updatePiece(piece.id, { sides: newSides });
                             }}
-                            className="p-2 text-slate-300 hover:text-red-500 transition-all opacity-0 group-hover/side:opacity-100"
+                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>

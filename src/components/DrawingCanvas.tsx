@@ -63,6 +63,7 @@ interface DrawingCanvasProps {
   initialSides?: PieceSide[];
   initialCutouts?: DrawingCutout[];
   className?: string;
+  saveButtonId?: string;
   settings?: {
     defaultFrontonHeight?: number;
     defaultSkirtHeight?: number;
@@ -145,6 +146,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   initialSides,
   initialCutouts,
   className,
+  saveButtonId,
   settings,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -608,6 +610,15 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   };
 
   useEffect(() => {
+    if (!saveButtonId) return;
+    const button = document.getElementById(saveButtonId);
+    if (!button) return;
+    const handler = () => saveDrawing();
+    button.addEventListener('click', handler);
+    return () => button.removeEventListener('click', handler);
+  }, [saveButtonId, saveDrawing]);
+
+  useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
         event.preventDefault();
@@ -981,7 +992,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         )}
       </div>
 
-      <div className="grid max-h-[320px] grid-cols-1 border-t border-slate-100 bg-white md:grid-cols-[1fr_320px]">
+      <div className="hidden">
         <div className="overflow-auto p-4">
           <div className="mb-3 flex items-center justify-between">
             <h3 className="font-display text-lg font-bold text-slate-900">Lados e complementos</h3>

@@ -866,18 +866,29 @@ export const QuoteEditor: React.FC = () => {
                 <h3 className="text-2xl font-display font-bold text-slate-900">Desenho Técnico</h3>
                 <p className="text-slate-400 text-sm">Peça: {pieces.find(p => p.id === showDrawing)?.name}</p>
               </div>
-              <button 
-                onClick={() => setShowDrawing(null)}
-                className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full transition-all text-slate-400"
-              >
-                <X className="w-6 h-6" />
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  id={`save-drawing-${showDrawing}`}
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all"
+                >
+                  <Save className="w-4 h-4" />
+                  Salvar peça
+                </button>
+                <button
+                  onClick={() => setShowDrawing(null)}
+                  className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full transition-all text-slate-400"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-hidden p-8">
               <DrawingCanvas 
                 initialJson={pieces.find(p => p.id === showDrawing)?.drawingJson}
                 initialSides={pieces.find(p => p.id === showDrawing)?.sides}
                 initialCutouts={pieces.find(p => p.id === showDrawing)?.cutouts}
+                saveButtonId={`save-drawing-${showDrawing}`}
                 settings={settings}
                 onSave={({ json, area, previewUrl, sides, largestSide, cutouts: drawingCutouts }) => {
                   updatePiece(showDrawing, { 

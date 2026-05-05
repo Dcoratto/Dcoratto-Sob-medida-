@@ -57,6 +57,16 @@ export interface Material {
   updatedAt?: any;
 }
 
+export interface UserMaterialPrice {
+  id: string;
+  userId: string;
+  materialId: string;
+  baseCostPerM2: number;
+  marginPercentage: number;
+  pricePerM2: number;
+  updatedAt?: any;
+}
+
 export interface Client {
   id: string;
   name: string;

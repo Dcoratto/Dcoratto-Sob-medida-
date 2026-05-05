@@ -1,12 +1,20 @@
 import React, {useEffect, useState} from 'react';
-import {collection, deleteDoc, doc, onSnapshot, orderBy, query, updateDoc} from 'firebase/firestore';
+import {collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, where} from 'firebase/firestore';
 import {Check, Edit2, Search, Trash2, X} from 'lucide-react';
 import {db} from '../lib/firebase';
-import {Material} from '../types';
+import {Material, UserMaterialPrice} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
+import {useAuth} from '../contexts/AuthContext';
+
+type MaterialWithUserPrice = Material & {
+  userMarginPercentage?: number;
+  userPricePerM2?: number;
+};
 
 export const MaterialsPage: React.FC = () => {
+  const {user} = useAuth();
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [userPrices, setUserPrices] = useState<UserMaterialPrice[]>([]);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
@@ -24,9 +32,30 @@ export const MaterialsPage: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  const handleEdit = (material: Material) => {
+  useEffect(() => {
+    if (!user?.uid) {
+      setUserPrices([]);
+      return;
+    }
+    const q = query(collection(db, 'userMaterialPrices'), where('userId', '==', user.uid));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setUserPrices(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as UserMaterialPrice)));
+    });
+    return unsubscribe;
+  }, [user?.uid]);
+
+  const materialRows: MaterialWithUserPrice[] = materials.map((material) => {
+    const userPrice = userPrices.find((price) => price.materialId === material.id);
+    return {
+      ...material,
+      userMarginPercentage: userPrice?.marginPercentage ?? material.marginPercentage ?? 0,
+      userPricePerM2: userPrice?.pricePerM2 ?? material.pricePerM2 ?? 0,
+    };
+  });
+
+  const handleEdit = (material: MaterialWithUserPrice) => {
     setEditingMaterial(material);
-    setMarginPercentage(String(material.marginPercentage ?? 0));
+    setMarginPercentage(String(material.userMarginPercentage ?? 0));
     setActive(material.active);
     setShowModal(true);
   };
@@ -39,11 +68,18 @@ export const MaterialsPage: React.FC = () => {
     const baseCost = editingMaterial.baseCostPerM2 ?? editingMaterial.pricePerM2 ?? 0;
     const pricePerM2 = baseCost * (1 + margin / 100);
 
-    await updateDoc(doc(db, 'materials', editingMaterial.id), {
-      marginPercentage: margin,
-      pricePerM2,
-      active,
-    });
+    if (user?.uid) {
+      await setDoc(doc(db, 'userMaterialPrices', `${user.uid}_${editingMaterial.id}`), {
+        userId: user.uid,
+        materialId: editingMaterial.id,
+        baseCostPerM2: baseCost,
+        marginPercentage: margin,
+        pricePerM2,
+        updatedAt: serverTimestamp(),
+      }, {merge: true});
+    }
+
+    await updateDoc(doc(db, 'materials', editingMaterial.id), {active});
 
     setShowModal(false);
     setEditingMaterial(null);
@@ -59,7 +95,7 @@ export const MaterialsPage: React.FC = () => {
     await updateDoc(doc(db, 'materials', material.id), {active: nextActive});
   };
 
-  const filteredMaterials = materials.filter((material) => {
+  const filteredMaterials = materialRows.filter((material) => {
     const searchText = `${material.name} ${material.provider} ${material.category}`.toLowerCase();
     return searchText.includes(search.toLowerCase());
   });
@@ -112,8 +148,8 @@ export const MaterialsPage: React.FC = () => {
                       <div className="text-xs text-slate-400">{material.category || 'Sem categoria'} · {material.provider || 'Sem fornecedor'}</div>
                     </td>
                     <td className="px-6 py-4 font-mono text-sm text-slate-600">{formatCurrency(material.baseCostPerM2 ?? material.pricePerM2 ?? 0)}</td>
-                    <td className="px-6 py-4 font-mono text-sm text-slate-900">{material.marginPercentage ?? 0}%</td>
-                    <td className="px-6 py-4 font-mono font-bold text-brand-primary">{formatCurrency(material.pricePerM2 || 0)}</td>
+                    <td className="px-6 py-4 font-mono text-sm text-slate-900">{material.userMarginPercentage ?? 0}%</td>
+                    <td className="px-6 py-4 font-mono font-bold text-brand-primary">{formatCurrency(material.userPricePerM2 || 0)}</td>
                     <td className="px-6 py-4">
                       <select
                         value={material.active ? 'active' : 'inactive'}

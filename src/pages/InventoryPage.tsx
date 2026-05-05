@@ -76,16 +76,14 @@ export const InventoryPage: React.FC = () => {
 
     const materialId = existingMaterial?.id || slugify(materialName);
     const baseCostPerM2 = area > 0 ? totalCost / area : 0;
-    const marginPercentage = existingMaterial?.marginPercentage ?? 0;
-    const pricePerM2 = baseCostPerM2 * (1 + marginPercentage / 100);
 
     await setDoc(doc(db, 'materials', materialId), {
       name: materialName.trim(),
       provider: provider.trim(),
       category: category.trim(),
       baseCostPerM2,
-      marginPercentage,
-      pricePerM2,
+      marginPercentage: existingMaterial?.marginPercentage ?? 0,
+      pricePerM2: existingMaterial?.pricePerM2 ?? baseCostPerM2,
       active: existingMaterial?.active ?? true,
       sourceInventoryId: inventoryId,
       updatedAt: serverTimestamp(),

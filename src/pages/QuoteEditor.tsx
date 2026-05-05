@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSettings } from '../hooks/useSettings';
-import { Client, Employee, EmployeeAssignment, Material, PieceSide, ProductionStep, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
+import { Client, Employee, EmployeeAssignment, Material, PieceSide, ProductionStep, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory, UserMaterialPrice } from '../types';
 import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
@@ -30,6 +30,7 @@ export const QuoteEditor: React.FC = () => {
   const { settings, loading: settingsLoading } = useSettings();
   
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [userMaterialPrices, setUserMaterialPrices] = useState<UserMaterialPrice[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +54,11 @@ export const QuoteEditor: React.FC = () => {
   const [employeeAssignments, setEmployeeAssignments] = useState<EmployeeAssignment[]>([]);
   const [statusHistory, setStatusHistory] = useState<QuoteStatusHistory[]>([]);
 
-  const selectedMaterial = materials.find(m => m.id === materialId);
+  const selectedBaseMaterial = materials.find(m => m.id === materialId);
+  const selectedUserPrice = userMaterialPrices.find((price) => price.materialId === materialId);
+  const selectedMaterial = selectedBaseMaterial && selectedUserPrice
+    ? {...selectedBaseMaterial, marginPercentage: selectedUserPrice.marginPercentage, pricePerM2: selectedUserPrice.pricePerM2}
+    : selectedBaseMaterial;
   const selectedClient = clients.find(c => c.id === clientId);
   const { calculatePieceArea, calculateTotal, calculateSculptedSink } = useQuoteCalculator(settings, selectedMaterial);
   
@@ -74,6 +79,12 @@ export const QuoteEditor: React.FC = () => {
     const unsubMaterials = onSnapshot(collection(db, 'materials'), (snap) => {
       setMaterials(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Material)));
     });
+
+    const unsubUserPrices = user?.uid
+      ? onSnapshot(query(collection(db, 'userMaterialPrices'), where('userId', '==', user.uid)), (snap) => {
+        setUserMaterialPrices(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserMaterialPrice)));
+      })
+      : undefined;
 
     const unsubEmployees = onSnapshot(collection(db, 'employees'), (snap) => {
       setEmployees(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee)));
@@ -115,9 +126,10 @@ export const QuoteEditor: React.FC = () => {
     return () => {
       unsubClients();
       unsubMaterials();
+      unsubUserPrices?.();
       unsubEmployees();
     };
-  }, [id]);
+  }, [id, user?.uid]);
 
   const addPiece = () => {
     const newPiece: QuotePiece = {

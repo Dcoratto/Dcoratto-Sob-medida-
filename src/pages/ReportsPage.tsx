@@ -4,6 +4,7 @@ import {AlertCircle, BarChart3, Boxes, FileDown, Gauge, TrendingUp, Users} from 
 import {Client, Employee, InventoryItem, Material, ProductionStep, Quote} from '../types';
 import {db} from '../lib/firebase';
 import {cn, formatCurrency} from '../lib/utils';
+import {generateReportPDF} from '../lib/reportPdfGenerator';
 
 type Period = 'all' | 'today' | 'week' | 'month' | 'year';
 
@@ -36,6 +37,14 @@ const periodStart = (period: Period) => {
   if (period === 'month') return new Date(now.getFullYear(), now.getMonth(), 1);
   if (period === 'year') return new Date(now.getFullYear(), 0, 1);
   return null;
+};
+
+const periodLabel = (period: Period) => {
+  if (period === 'today') return 'Hoje';
+  if (period === 'week') return 'Últimos 7 dias';
+  if (period === 'month') return 'Mês atual';
+  if (period === 'year') return 'Ano atual';
+  return 'Todo o período';
 };
 
 const statusLabel = (status: string) => {
@@ -132,7 +141,22 @@ export const ReportsPage: React.FC = () => {
     .sort((a, b) => (toDate(b.item.changedAt)?.getTime() || 0) - (toDate(a.item.changedAt)?.getTime() || 0))
     .slice(0, 20);
 
-  const exportReport = () => window.print();
+  const exportReport = () => generateReportPDF({
+    periodLabel: periodLabel(period),
+    quotes: filteredQuotes,
+    materials,
+    inventory,
+    totalSold,
+    openValue,
+    refusedValue,
+    conversionRate,
+    statusCounts,
+    materialSales,
+    deadlineAlerts,
+    employeeStats,
+    productionHistory,
+    productionStepLabels,
+  });
 
   return (
     <div className="space-y-8 pb-20">

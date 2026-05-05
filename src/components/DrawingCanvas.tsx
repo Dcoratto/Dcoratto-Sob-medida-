@@ -74,6 +74,8 @@ const SNAP_RADIUS_PX = 12;
 const MIN_ZOOM = 45;
 const MAX_ZOOM = 420;
 const BASE_SCALE = 110;
+const EMPTY_SIDES: PieceSide[] = [];
+const EMPTY_CUTOUTS: DrawingCutout[] = [];
 
 const alphabetName = (index: number) => {
   let value = '';
@@ -140,8 +142,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   onSave,
   onCancel,
   initialJson,
-  initialSides = [],
-  initialCutouts = [],
+  initialSides,
+  initialCutouts,
   className,
   settings,
 }) => {
@@ -168,8 +170,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const [closed, setClosed] = useState(false);
   const [currentMeasure, setCurrentMeasure] = useState('');
   const [lastPiece, setLastPiece] = useState<SavedDrawing | null>(null);
-  const [complementos, setComplementos] = useState<PieceSide[]>(initialSides);
-  const [cutouts, setCutouts] = useState<DrawingCutout[]>(initialCutouts);
+  const [complementos, setComplementos] = useState<PieceSide[]>(initialSides || EMPTY_SIDES);
+  const [cutouts, setCutouts] = useState<DrawingCutout[]>(initialCutouts || EMPTY_CUTOUTS);
   const [cutoutType, setCutoutType] = useState<CutoutType>('cuba');
   const [cutoutWidth, setCutoutWidth] = useState('0,50');
   const [cutoutHeight, setCutoutHeight] = useState('0,40');
@@ -224,7 +226,6 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     setDrawingActive(false);
     requestAnimationFrame(() => {
       canvasRef.current?.focus();
-      measureInputRef.current?.focus();
     });
   }, []);
 
@@ -233,8 +234,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     if (!initialJson) {
       setDrawPoints([]);
       setClosed(false);
-      setCutouts(initialCutouts);
-      setComplementos(initialSides);
+      setCutouts(initialCutouts || EMPTY_CUTOUTS);
+      setComplementos(initialSides || EMPTY_SIDES);
       return;
     }
 
@@ -242,16 +243,16 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       const parsed = JSON.parse(initialJson) as Partial<SavedDrawing> & {closed?: boolean};
       setDrawPoints(parsed.points || []);
       setClosed(Boolean(parsed.closed || (parsed.points && parsed.points.length > 2)));
-      setCutouts(parsed.cutouts || initialCutouts);
-      setComplementos(parsed.sides || initialSides);
+      setCutouts(parsed.cutouts || initialCutouts || EMPTY_CUTOUTS);
+      setComplementos(parsed.sides || initialSides || EMPTY_SIDES);
       setLastPiece(parsed as SavedDrawing);
     } catch {
       setDrawPoints([]);
       setClosed(false);
-      setCutouts(initialCutouts);
-      setComplementos(initialSides);
+      setCutouts(initialCutouts || EMPTY_CUTOUTS);
+      setComplementos(initialSides || EMPTY_SIDES);
     }
-  }, [initialCutouts, initialJson, initialSides, resetTransientState]);
+  }, [initialJson, resetTransientState]);
 
   useEffect(() => {
     if (!closed) return;
@@ -304,15 +305,16 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     setClosed(true);
     setDrawingActive(false);
     setPreviewPoint(null);
+    setDrawTool('select');
   }, [drawPoints]);
 
   const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    event.preventDefault();
     canvasRef.current?.focus();
     const world = getPointerWorld(event);
     lastMouseWorld.current = world;
 
     if (event.button === 1 || drawTool === 'pan') {
-      event.preventDefault();
       setPanStart({x: event.clientX - panX, y: event.clientY - panY});
       return;
     }
@@ -347,6 +349,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     }
 
     addPoint(world);
+    lastMouseWorld.current = world;
   };
 
   const handleCanvasMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -475,9 +478,11 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     setDrawPoints(templates[template]);
     setClosed(true);
     setPreviewPoint(null);
+    setRedoPoints([]);
     setCutouts([]);
     setComplementos([]);
     setDrawingActive(false);
+    setDrawTool('select');
     requestAnimationFrame(centerDrawing);
   };
 
@@ -621,6 +626,10 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         setDrawTool('select');
       }
       if (event.key === 'Enter' && document.activeElement === measureInputRef.current) {
+        event.preventDefault();
+        handleMeasureSubmit();
+      }
+      if (event.key === 'Enter' && document.activeElement === canvasRef.current && measureBuffer.trim()) {
         event.preventDefault();
         handleMeasureSubmit();
       }
@@ -868,7 +877,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           onMouseLeave={stopDrag}
           onWheel={handleWheel}
           onContextMenu={(event) => event.preventDefault()}
-          className={cn('h-full w-full outline-none', drawTool === 'pan' ? 'cursor-grab' : drawTool === 'cutout' ? 'cursor-cell' : 'cursor-crosshair')}
+          className={cn('block h-full w-full touch-none select-none outline-none', drawTool === 'pan' ? 'cursor-grab' : drawTool === 'cutout' ? 'cursor-cell' : 'cursor-crosshair')}
         />
         <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-brand-primary/20 bg-white/95 p-2 shadow-xl">
           <Ruler className="h-5 w-5 text-brand-primary" />

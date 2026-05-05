@@ -10,6 +10,7 @@ import {generateQuotePDF} from '../lib/pdfGenerator';
 import {useSettings} from '../hooks/useSettings';
 import {Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
+import {releaseQuoteReservation, syncQuoteReservation} from '../lib/inventoryReservations';
 
 const quoteStatuses: QuoteStatus[] = [
   'Pré-orçamento',
@@ -59,27 +60,31 @@ export const QuotesPage: React.FC = () => {
     return searchable.includes(normalize(search));
   });
 
-  const handleStatusChange = async (quoteId: string, status: QuoteStatus) => {
-    await updateDoc(doc(db, 'quotes', quoteId), {
+  const handleStatusChange = async (quote: Quote, status: QuoteStatus) => {
+    await updateDoc(doc(db, 'quotes', quote.id), {
       status,
       statusHistory: arrayUnion({status, changedAt: Timestamp.now()}),
     });
+    await syncQuoteReservation(quote.id, {...quote, status});
   };
 
   const handleDuplicate = async (quote: Quote) => {
     const {id, ...data} = quote;
-    await addDoc(collection(db, 'quotes'), {
+    const duplicatedQuote = {
       ...data,
       createdAt: Timestamp.now(),
       status: 'Pré-orçamento',
       clientName: `${data.clientName} (Cópia)`,
-    });
+    } as Omit<Quote, 'id'>;
+    const createdRef = await addDoc(collection(db, 'quotes'), duplicatedQuote);
+    await syncQuoteReservation(createdRef.id, duplicatedQuote);
   };
 
   const handleDelete = async (id: string) => {
     const confirmed = window.confirm('Tem certeza que deseja excluir este orçamento?');
     if (!confirmed) return;
 
+    await releaseQuoteReservation(id);
     const ok = await deleteFirestoreDoc('quotes', id);
     if (!ok) return;
 
@@ -171,7 +176,7 @@ export const QuotesPage: React.FC = () => {
                     <td className="px-6 py-4">
                       <select
                         value={quote.status}
-                        onChange={(e) => handleStatusChange(quote.id, e.target.value as QuoteStatus)}
+                        onChange={(e) => handleStatusChange(quote, e.target.value as QuoteStatus)}
                         className={cn(
                           'max-w-[180px] cursor-pointer rounded-full border px-3 py-1 text-[10px] font-bold uppercase outline-none transition-all',
                           getStatusColor(quote.status),

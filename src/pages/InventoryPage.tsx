@@ -3,7 +3,7 @@ import {addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, se
 import {Edit2, Filter, Plus, Search, Trash2, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
-import {InventoryItem, Material} from '../types';
+import {InventoryItem, InventoryReservation, Material} from '../types';
 import {cn, formatCurrency, formatNumber} from '../lib/utils';
 
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
@@ -17,9 +17,16 @@ const slugify = (value: string) =>
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
 
+const normalizeStatus = (value: unknown) =>
+  String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
 export const InventoryPage: React.FC = () => {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [reservations, setReservations] = useState<InventoryReservation[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -49,9 +56,14 @@ export const InventoryPage: React.FC = () => {
       setMaterials(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as Material)));
     });
 
+    const unsubscribeReservations = onSnapshot(collection(db, 'inventoryReservations'), (snapshot) => {
+      setReservations(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryReservation)));
+    });
+
     return () => {
       unsubscribeItems();
       unsubscribeMaterials();
+      unsubscribeReservations();
     };
   }, []);
 
@@ -157,11 +169,21 @@ export const InventoryPage: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const totalAvailableArea = items
-    .filter((item) => item.status === 'Disponível')
+  const quoteReservedArea = reservations.reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+  const manualReservedArea = items
+    .filter((item) => normalizeStatus(item.status) === 'reservada')
     .reduce((acc, item) => acc + item.area, 0);
+  const totalReservedArea = manualReservedArea + quoteReservedArea;
+  const totalPhysicalArea = items
+    .filter((item) => !['usada', 'descarte'].includes(normalizeStatus(item.status)))
+    .reduce((acc, item) => acc + item.area, 0);
+  const totalAvailableArea = Math.max(0, totalPhysicalArea - totalReservedArea);
 
   const totalInventoryCost = items.reduce((acc, item) => acc + item.cost, 0);
+  const reservedAreaByMaterial = (materialId: string) =>
+    reservations
+      .filter((reservation) => reservation.materialId === materialId)
+      .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -180,7 +202,7 @@ export const InventoryPage: React.FC = () => {
         </button>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total de Itens</div>
           <div className="text-3xl font-display font-bold text-slate-900">{items.length}</div>
@@ -188,6 +210,10 @@ export const InventoryPage: React.FC = () => {
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Área Disponível</div>
           <div className="text-3xl font-display font-bold text-brand-primary">{formatNumber(totalAvailableArea)} m²</div>
+        </div>
+        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Área Reservada</div>
+          <div className="text-3xl font-display font-bold text-amber-600">{formatNumber(totalReservedArea)} m²</div>
         </div>
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Custo em Estoque</div>
@@ -258,6 +284,11 @@ export const InventoryPage: React.FC = () => {
                       )}>
                         {item.status}
                       </span>
+                      {reservedAreaByMaterial(item.materialId) > 0 && (
+                        <div className="mt-1 text-[10px] font-semibold text-amber-600">
+                          {formatNumber(reservedAreaByMaterial(item.materialId))} m² em orçamentos
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

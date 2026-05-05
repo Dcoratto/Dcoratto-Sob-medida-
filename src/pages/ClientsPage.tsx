@@ -5,6 +5,7 @@ import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Client, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureInfo, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
+import {syncQuoteReservation} from '../lib/inventoryReservations';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -182,6 +183,7 @@ export const ClientsPage: React.FC = () => {
         {status, changedAt: Timestamp.now(), note: `Status alterado para ${status}`},
       ],
     });
+    await syncQuoteReservation(quote.id, {...quote, status});
   };
 
   const updateAssignment = async (quote: Quote, step: ProductionStep, employeeId: string) => {

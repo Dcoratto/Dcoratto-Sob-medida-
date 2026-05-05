@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSettings } from '../hooks/useSettings';
-import { Client, Employee, EmployeeAssignment, Material, PieceSide, ProductionStep, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory, UserMaterialPrice } from '../types';
+import { Client, Employee, EmployeeAssignment, InventoryItem, InventoryReservation, Material, PieceSide, ProductionStep, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory, UserMaterialPrice } from '../types';
 import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
@@ -14,6 +14,7 @@ import {
 import { cn, formatCurrency } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
+import {syncQuoteReservation} from '../lib/inventoryReservations';
 
 const productionSteps: Array<{key: ProductionStep; label: string}> = [
   {key: 'medicao', label: 'Medição'},
@@ -23,6 +24,12 @@ const productionSteps: Array<{key: ProductionStep; label: string}> = [
   {key: 'entrega', label: 'Entrega'},
 ];
 
+const normalizeStockStatus = (value: unknown) =>
+  String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
 export const QuoteEditor: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -30,6 +37,8 @@ export const QuoteEditor: React.FC = () => {
   const { settings, loading: settingsLoading } = useSettings();
   
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [reservations, setReservations] = useState<InventoryReservation[]>([]);
   const [userMaterialPrices, setUserMaterialPrices] = useState<UserMaterialPrice[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -64,6 +73,21 @@ export const QuoteEditor: React.FC = () => {
   
   const selectedPaymentAdjustment = settings.paymentMethods.find(m => m.name === paymentMethod)?.adjustment || 0;
   const totalPrice = calculateTotal(pieces, cutouts, selectedPaymentAdjustment);
+  const totalArea = pieces.reduce((acc, p) => acc + calculatePieceArea(p).totalArea, 0);
+  const materialStock = (materialIdToCheck: string) => {
+    const stockItems = inventory.filter((item) => item.materialId === materialIdToCheck);
+    const physicalTotal = stockItems
+      .filter((item) => !['usada', 'descarte'].includes(normalizeStockStatus(item.status)))
+      .reduce((sum, item) => sum + (item.area || 0), 0);
+    const manualReserved = stockItems
+      .filter((item) => normalizeStockStatus(item.status) === 'reservada')
+      .reduce((sum, item) => sum + (item.area || 0), 0);
+    const quoteReserved = reservations
+      .filter((reservation) => reservation.materialId === materialIdToCheck && reservation.quoteId !== id)
+      .reduce((sum, reservation) => sum + (reservation.area || 0), 0);
+    const reserved = manualReserved + quoteReserved;
+    return {total: physicalTotal, reserved, available: Math.max(0, physicalTotal - reserved)};
+  };
   const filteredClients = clients.filter((client) => {
     const searchText = `${client.name} ${client.phone} ${client.address}`.toLowerCase();
     return searchText.includes(clientSearch.toLowerCase());
@@ -88,6 +112,14 @@ export const QuoteEditor: React.FC = () => {
 
     const unsubEmployees = onSnapshot(collection(db, 'employees'), (snap) => {
       setEmployees(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee)));
+    });
+
+    const unsubInventory = onSnapshot(collection(db, 'inventory'), (snap) => {
+      setInventory(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItem)));
+    });
+
+    const unsubReservations = onSnapshot(collection(db, 'inventoryReservations'), (snap) => {
+      setReservations(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryReservation)));
     });
 
     // If editing, fetch initial quote
@@ -128,6 +160,8 @@ export const QuoteEditor: React.FC = () => {
       unsubMaterials();
       unsubUserPrices?.();
       unsubEmployees();
+      unsubInventory();
+      unsubReservations();
     };
   }, [id, user?.uid]);
 
@@ -229,7 +263,7 @@ export const QuoteEditor: React.FC = () => {
       validityDate: Timestamp.fromDate(new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000)),
       commercialNotes,
       status,
-      totalArea: pieces.reduce((acc, p) => acc + calculatePieceArea(p).totalArea, 0),
+      totalArea,
       totalPrice,
       pieces,
       cutouts,
@@ -247,8 +281,10 @@ export const QuoteEditor: React.FC = () => {
     try {
       if (id) {
         await setDoc(doc(db, 'quotes', id), quoteData, { merge: true });
+        await syncQuoteReservation(id, quoteData);
       } else {
-        await addDoc(collection(db, 'quotes'), quoteData);
+        const createdRef = await addDoc(collection(db, 'quotes'), quoteData);
+        await syncQuoteReservation(createdRef.id, quoteData);
       }
       navigate('/quotes');
     } catch (err) {
@@ -368,10 +404,26 @@ export const QuoteEditor: React.FC = () => {
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
                 >
                   <option value="">Selecione um material</option>
-                  {materials.filter(m => m.active).map(m => (
-                    <option key={m.id} value={m.id}>{m.name} ({m.category})</option>
-                  ))}
+                  {materials.filter(m => m.active).map((m) => {
+                    const stock = materialStock(m.id);
+                    const statusText = stock.available > 0
+                      ? `Disponível ${stock.available.toFixed(2)} m²`
+                      : stock.reserved > 0 ? 'Reservado/Sem saldo' : 'Sem estoque';
+                    return (
+                      <option key={m.id} value={m.id}>
+                        {m.name} ({m.category}) - {statusText}
+                      </option>
+                    );
+                  })}
                 </select>
+                {materialId && (
+                  <div className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+                    {(() => {
+                      const stock = materialStock(materialId);
+                      return `Estoque: ${stock.total.toFixed(2)} m² | Reservado: ${stock.reserved.toFixed(2)} m² | Disponível: ${stock.available.toFixed(2)} m² | Este orçamento: ${totalArea.toFixed(2)} m²`;
+                    })()}
+                  </div>
+                )}
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Condição de Pagamento</label>

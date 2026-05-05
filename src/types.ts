@@ -241,3 +241,14 @@ export interface InventoryItem {
   notes: string;
   photoUrl?: string;
 }
+
+export interface InventoryReservation {
+  id: string;
+  quoteId: string;
+  materialId: string;
+  materialName: string;
+  area: number;
+  quoteStatus: QuoteStatus;
+  clientName?: string;
+  updatedAt?: any;
+}

@@ -322,6 +322,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     setRedoPoints([]);
     setPreviewPoint(null);
     setDrawingActive(true);
+    setCurrentMeasure('0.00 m');
     setClosed(false);
   }, []);
 
@@ -452,6 +453,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     lastMouseWorld.current = nextPoint;
     setMeasureBuffer('');
     setPreviewPoint(null);
+    setCurrentMeasure('0.00 m');
     setDrawingActive(true);
     setDrawTool('line');
     requestAnimationFrame(() => canvasRef.current?.focus());
@@ -661,6 +663,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      const isTextEditing = activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement || activeElement instanceof HTMLSelectElement;
+
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
         event.preventDefault();
         undoPoint();
@@ -676,18 +681,26 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         setMeasureBuffer('');
         setDrawTool('select');
       }
+      if (!isTextEditing && drawTool === 'line' && drawPoints.length > 0 && !closed && /^[0-9,.]$/.test(event.key)) {
+        event.preventDefault();
+        setMeasureBuffer((current) => `${current}${event.key}`);
+      }
+      if (!isTextEditing && drawTool === 'line' && drawPoints.length > 0 && !closed && event.key === 'Backspace') {
+        event.preventDefault();
+        setMeasureBuffer((current) => current.slice(0, -1));
+      }
       if (event.key === 'Enter' && document.activeElement === measureInputRef.current) {
         event.preventDefault();
         handleMeasureSubmit();
       }
-      if (event.key === 'Enter' && document.activeElement === canvasRef.current && measureBuffer.trim()) {
+      if (!isTextEditing && event.key === 'Enter' && measureBuffer.trim()) {
         event.preventDefault();
         handleMeasureSubmit();
       }
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [handleMeasureSubmit, redoPoint, undoPoint]);
+  }, [closed, drawPoints.length, drawTool, handleMeasureSubmit, measureBuffer, redoPoint, undoPoint]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -919,8 +932,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       </div>
 
       {showPiecesPanel && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm">
-          <div className="flex max-h-[86vh] w-full max-w-md flex-col rounded-[32px] border border-slate-100 bg-white p-6 shadow-2xl">
+        <div className="fixed right-6 top-1/2 z-[130] flex max-h-[86vh] w-[380px] max-w-[calc(100vw-48px)] -translate-y-1/2 flex-col rounded-[32px] border border-slate-100 bg-white p-6 shadow-2xl">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-display text-xl font-bold text-slate-900">Adicionar peças</h3>
@@ -986,7 +998,6 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                 </div>
               )}
             </div>
-          </div>
         </div>
       )}
 

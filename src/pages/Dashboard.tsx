@@ -30,6 +30,14 @@ const normalizeStatus = (status?: string) => {
   return 'Pré-orçamento' as QuoteStatus;
 };
 
+const isClosedSale = (status?: string) => {
+  const text = (status || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (text.includes('pre') || text.includes('orcamento') || text.includes('aguardando') || text.includes('medido') || text.includes('enviado') || text.includes('recusado')) {
+    return false;
+  }
+  return text.includes('aprovado') || text.includes('fechado') || text.includes('producao') || text.includes('pronto') || text.includes('entregue') || text.includes('concluido');
+};
+
 const quoteStage = (quote?: Quote): ClientStage => {
   if (!quote) return 'none';
   const status = normalizeStatus(quote.status);
@@ -131,8 +139,7 @@ export const Dashboard: React.FC = () => {
   ];
 
   const openQuotes = quotes.filter((quote) => normalizeStatus(quote.status) === 'Pré-orçamento');
-  const closedStatuses: QuoteStatus[] = ['Aprovado', 'Em produção', 'Pronto para entrega', 'Entregue'];
-  const closedQuotes = quotes.filter((quote) => closedStatuses.includes(normalizeStatus(quote.status)));
+  const closedQuotes = quotes.filter((quote) => isClosedSale(quote.status));
   const totalValue = closedQuotes.reduce((acc, quote) => acc + (quote.totalPrice || 0), 0);
 
   const getStatusColor = (status: string) => {

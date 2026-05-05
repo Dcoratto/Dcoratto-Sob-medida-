@@ -216,6 +216,33 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const majorSideM = useMemo(() => Math.max(0, ...technicalSides.map((side) => side.lengthM)), [technicalSides]);
   const additionalArea = useMemo(() => complementos.reduce((total, item) => total + (item.areaTotal || item.area || 0), 0), [complementos]);
   const totalArea = area + additionalArea;
+  const editableSideLabels = useMemo(() => {
+    const screenPoints = drawPoints.map(worldToScreen);
+    const center = screenPoints.length
+      ? {
+        x: screenPoints.reduce((sum, point) => sum + point.x, 0) / screenPoints.length,
+        y: screenPoints.reduce((sum, point) => sum + point.y, 0) / screenPoints.length,
+      }
+      : {x: 0, y: 0};
+
+    return technicalSides.map((side, index) => {
+      const a = worldToScreen(side.start);
+      const b = worldToScreen(side.end);
+      const mid = {x: (a.x + b.x) / 2, y: (a.y + b.y) / 2};
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const normal = {x: -dy / len, y: dx / len};
+      const direction = ((mid.x - center.x) * normal.x + (mid.y - center.y) * normal.y) >= 0 ? 1 : -1;
+      const offset = 34 + (index % 3) * 16;
+      return {
+        side,
+        index,
+        x: mid.x + normal.x * direction * offset,
+        y: mid.y + normal.y * direction * offset,
+      };
+    });
+  }, [drawPoints, technicalSides, worldToScreen]);
 
   const resetTransientState = useCallback(() => {
     setPreviewPoint(null);
@@ -380,6 +407,17 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     }
   };
 
+  useEffect(() => {
+    if (drawTool !== 'line' || drawPoints.length === 0 || closed) {
+      if (!previewPoint) setCurrentMeasure('');
+      return;
+    }
+    const target = previewPoint || lastMouseWorld.current;
+    if (!target) return;
+    const last = drawPoints[drawPoints.length - 1];
+    setCurrentMeasure(`${distance(last, target).toFixed(2)} m`);
+  }, [closed, drawPoints, drawTool, previewPoint]);
+
   const stopDrag = () => {
     setPanStart(null);
     setDragIndex(null);
@@ -409,11 +447,14 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     const dx = directedTarget.x - origin.x;
     const dy = directedTarget.y - origin.y;
     const length = Math.hypot(dx, dy) || 1;
-    addPoint({x: origin.x + (dx / length) * value, y: origin.y + (dy / length) * value});
+    const nextPoint = {x: origin.x + (dx / length) * value, y: origin.y + (dy / length) * value};
+    addPoint(nextPoint);
+    lastMouseWorld.current = nextPoint;
     setMeasureBuffer('');
     setPreviewPoint(null);
     setDrawingActive(true);
-    requestAnimationFrame(() => measureInputRef.current?.focus());
+    setDrawTool('line');
+    requestAnimationFrame(() => canvasRef.current?.focus());
   }, [addPoint, applyOrtho, drawPoints, measureBuffer, previewPoint]);
 
   const undoPoint = useCallback(() => {
@@ -629,7 +670,6 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         redoPoint();
       }
       if (event.key === 'Escape' || event.key === ' ') {
-        if (document.activeElement === measureInputRef.current && event.key !== 'Escape') return;
         event.preventDefault();
         setDrawingActive(false);
         setPreviewPoint(null);
@@ -878,61 +918,19 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         </button>
       </div>
 
-      <div ref={wrapRef} className="relative min-h-[420px] flex-1">
-        <canvas
-          ref={canvasRef}
-          tabIndex={0}
-          onMouseDown={handleCanvasMouseDown}
-          onMouseMove={handleCanvasMouseMove}
-          onMouseUp={stopDrag}
-          onMouseLeave={stopDrag}
-          onWheel={handleWheel}
-          onContextMenu={(event) => event.preventDefault()}
-          className={cn('block h-full w-full touch-none select-none outline-none', drawTool === 'pan' ? 'cursor-grab' : drawTool === 'cutout' ? 'cursor-cell' : 'cursor-crosshair')}
-        />
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-brand-primary/20 bg-white/95 p-2 shadow-xl">
-          <Ruler className="h-5 w-5 text-brand-primary" />
-          <input
-            ref={measureInputRef}
-            value={measureBuffer}
-            onChange={(event) => setMeasureBuffer(event.target.value)}
-            placeholder="Medida em m"
-            className="w-36 bg-transparent text-sm font-bold outline-none"
-          />
-          <button type="button" onClick={handleMeasureSubmit} className="rounded-xl bg-brand-primary p-2 text-white"><Check className="h-4 w-4" /></button>
-        </div>
-        <div className="absolute right-4 top-4 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Área principal</div>
-          <div className="text-2xl font-display font-bold text-brand-primary">{area.toFixed(4)} m²</div>
-          <div className="mt-2 text-xs text-slate-500">Adicionais: {additionalArea.toFixed(4)} m²</div>
-          <div className="text-xs font-bold text-slate-700">Total: {totalArea.toFixed(4)} m²</div>
-        </div>
-        {showHelp && (
-          <div className="absolute left-4 top-4 w-56 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl">
-            <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-700">
-              <HelpCircle className="h-4 w-4 text-brand-primary" />
-              Como usar
-            </div>
-            <div className="space-y-2 text-xs font-semibold text-slate-500">
-              <div>Scroll: zoom</div>
-              <div>Botão do meio: pan</div>
-              <div>Enter: confirmar medida</div>
-              <div>Esc ou Espaço: parar desenho</div>
-            </div>
-          </div>
-        )}
-        {showPiecesPanel && (
-          <div className="absolute right-4 top-28 z-20 w-[360px] max-w-[calc(100%-32px)] rounded-3xl border border-slate-100 bg-white p-5 shadow-2xl">
+      {showPiecesPanel && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-slate-900/35 p-4 backdrop-blur-sm">
+          <div className="flex max-h-[86vh] w-full max-w-md flex-col rounded-[32px] border border-slate-100 bg-white p-6 shadow-2xl">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-display text-lg font-bold text-slate-900">Adicionar peças</h3>
-                <p className="text-xs text-slate-400">Escolha frontão, saia ou virada para cada lado criado.</p>
+                <h3 className="font-display text-xl font-bold text-slate-900">Adicionar peças</h3>
+                <p className="mt-1 text-sm text-slate-400">Escolha frontão, saia ou virada para cada lado criado.</p>
               </div>
               <button type="button" onClick={() => setShowPiecesPanel(false)} className="rounded-xl bg-slate-50 p-2 text-slate-400 hover:text-slate-700">
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="max-h-[360px] space-y-3 overflow-auto pr-1">
+            <div className="space-y-3 overflow-auto pr-1">
               {technicalSides.map((side) => {
                 const sideComplements = complementos.filter((item) => item.side === side.key);
                 const quantity = sideComplements[0]?.quantity || 1;
@@ -989,7 +987,79 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
               )}
             </div>
           </div>
+        </div>
+      )}
+
+      <div ref={wrapRef} className="relative min-h-[420px] flex-1">
+        <canvas
+          ref={canvasRef}
+          tabIndex={0}
+          onMouseDown={handleCanvasMouseDown}
+          onMouseMove={handleCanvasMouseMove}
+          onMouseUp={stopDrag}
+          onMouseLeave={stopDrag}
+          onWheel={handleWheel}
+          onContextMenu={(event) => event.preventDefault()}
+          className={cn('block h-full w-full touch-none select-none outline-none', drawTool === 'pan' ? 'cursor-grab' : drawTool === 'cutout' ? 'cursor-cell' : 'cursor-crosshair')}
+        />
+        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-brand-primary/20 bg-white/95 p-2 shadow-xl">
+          <Ruler className="h-5 w-5 text-brand-primary" />
+          <input
+            ref={measureInputRef}
+            value={measureBuffer}
+            onChange={(event) => setMeasureBuffer(event.target.value)}
+            placeholder="Medida em m"
+            className="w-36 bg-transparent text-sm font-bold outline-none"
+          />
+          <button type="button" onClick={handleMeasureSubmit} className="rounded-xl bg-brand-primary p-2 text-white"><Check className="h-4 w-4" /></button>
+        </div>
+        <div className="absolute right-4 top-4 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl">
+          <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Área principal</div>
+          <div className="text-2xl font-display font-bold text-brand-primary">{area.toFixed(4)} m²</div>
+          <div className="mt-2 text-xs text-slate-500">Adicionais: {additionalArea.toFixed(4)} m²</div>
+          <div className="text-xs font-bold text-slate-700">Total: {totalArea.toFixed(4)} m²</div>
+        </div>
+        {showHelp && (
+          <div className="absolute left-4 top-4 w-56 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl">
+            <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-700">
+              <HelpCircle className="h-4 w-4 text-brand-primary" />
+              Como usar
+            </div>
+            <div className="space-y-2 text-xs font-semibold text-slate-500">
+              <div>Scroll: zoom</div>
+              <div>Botão do meio: pan</div>
+              <div>Enter: confirmar medida</div>
+              <div>Esc ou Espaço: parar desenho</div>
+            </div>
+          </div>
         )}
+        {closed && editableSideLabels.map(({side, index, x, y}) => (
+          <div
+            key={side.key}
+            className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-lg border border-amber-100 bg-white/95 px-2 py-1 shadow-sm"
+            style={{left: x, top: y}}
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <span className="text-[10px] font-bold text-slate-700">{side.name}</span>
+            <input
+              key={`${side.key}-${side.lengthM.toFixed(2)}`}
+              type="number"
+              step="0.01"
+              min="0.01"
+              defaultValue={side.lengthM.toFixed(2)}
+              onBlur={(event) => editSideLength(index, Number(event.target.value))}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.currentTarget.blur();
+                  canvasRef.current?.focus();
+                }
+              }}
+              className="w-14 bg-transparent text-center font-mono text-[11px] font-bold text-slate-900 outline-none"
+            />
+            <span className="text-[10px] font-bold text-slate-500">m</span>
+          </div>
+        ))}
       </div>
 
       <div className="hidden">

@@ -131,7 +131,9 @@ export const Dashboard: React.FC = () => {
   ];
 
   const openQuotes = quotes.filter((quote) => normalizeStatus(quote.status) === 'Pré-orçamento');
-  const totalValue = quotes.reduce((acc, quote) => acc + (quote.totalPrice || 0), 0);
+  const closedStatuses: QuoteStatus[] = ['Aprovado', 'Em produção', 'Pronto para entrega', 'Entregue'];
+  const closedQuotes = quotes.filter((quote) => closedStatuses.includes(normalizeStatus(quote.status)));
+  const totalValue = closedQuotes.reduce((acc, quote) => acc + (quote.totalPrice || 0), 0);
 
   const getStatusColor = (status: string) => {
     const normalized = normalizeStatus(status);
@@ -313,7 +315,7 @@ export const Dashboard: React.FC = () => {
             <div className="text-4xl font-display font-bold mb-1">
               {formatCurrency(totalValue)}
             </div>
-            <div className="text-xs opacity-50 mb-6">Total em orçamentos gerados</div>
+            <div className="text-xs opacity-50 mb-6">Total em orçamentos fechados</div>
             <button
               type="button"
               onClick={() => navigate('/history')}

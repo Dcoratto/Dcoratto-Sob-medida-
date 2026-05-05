@@ -3,17 +3,25 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSettings } from '../hooks/useSettings';
-import { Material, Client, Quote, QuotePiece, QuoteStatus, PieceSide } from '../types';
+import { Client, Employee, EmployeeAssignment, EmployeeEvaluation, Material, PieceSide, ProductionStep, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
 import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
 import { 
   ArrowLeft, Save, Plus, Trash2, Pencil,
   ChevronDown, ChevronUp, Calculator, 
-  MapPin, Phone, User, Calendar, 
+  MapPin, Phone, User, Calendar, Star,
   Layers, Scan, PenTool 
 } from 'lucide-react';
 import { cn, formatCurrency } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
+
+const productionSteps: Array<{key: ProductionStep; label: string}> = [
+  {key: 'medicao', label: 'Medição'},
+  {key: 'corte', label: 'Corte'},
+  {key: 'acabamento', label: 'Acabamento'},
+  {key: 'instalacao', label: 'Instalação'},
+  {key: 'entrega', label: 'Entrega'},
+];
 
 export const QuoteEditor: React.FC = () => {
   const { id } = useParams();
@@ -23,6 +31,7 @@ export const QuoteEditor: React.FC = () => {
   
   const [materials, setMaterials] = useState<Material[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -41,6 +50,9 @@ export const QuoteEditor: React.FC = () => {
   const [pieces, setPieces] = useState<QuotePiece[]>([]);
   const [cutouts, setCutouts] = useState({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0 });
   const [showDrawing, setShowDrawing] = useState<string | null>(null);
+  const [employeeAssignments, setEmployeeAssignments] = useState<EmployeeAssignment[]>([]);
+  const [employeeEvaluations, setEmployeeEvaluations] = useState<EmployeeEvaluation[]>([]);
+  const [statusHistory, setStatusHistory] = useState<QuoteStatusHistory[]>([]);
 
   const selectedMaterial = materials.find(m => m.id === materialId);
   const selectedClient = clients.find(c => c.id === clientId);
@@ -64,6 +76,10 @@ export const QuoteEditor: React.FC = () => {
       setMaterials(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Material)));
     });
 
+    const unsubEmployees = onSnapshot(collection(db, 'employees'), (snap) => {
+      setEmployees(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee)));
+    });
+
     // If editing, fetch initial quote
     const fetchQuote = async () => {
       if (id) {
@@ -82,6 +98,9 @@ export const QuoteEditor: React.FC = () => {
           setCommercialNotes(data.commercialNotes || '');
           setStatus(data.status);
           setPieces(data.pieces || []);
+          setEmployeeAssignments(data.employeeAssignments || []);
+          setEmployeeEvaluations(data.employeeEvaluations || []);
+          setStatusHistory(data.statusHistory || []);
           setCutouts({
             cooktop: data.cutouts?.cooktop || 0,
             sinkUnder: data.cutouts?.sinkUnder || 0,
@@ -98,6 +117,7 @@ export const QuoteEditor: React.FC = () => {
     return () => {
       unsubClients();
       unsubMaterials();
+      unsubEmployees();
     };
   }, [id]);
 
@@ -133,6 +153,55 @@ export const QuoteEditor: React.FC = () => {
 
   const updatePiece = (id: string, data: Partial<QuotePiece>) => {
     setPieces(pieces.map(p => p.id === id ? { ...p, ...data } : p));
+  };
+
+  const setAssignment = (step: ProductionStep, employeeId: string) => {
+    const employee = employees.find((item) => item.id === employeeId);
+    setEmployeeAssignments((current) => {
+      const next = current.filter((item) => item.step !== step);
+      if (!employee) return next;
+      return [...next, {step, employeeId: employee.id, employeeName: employee.name, startedAt: Timestamp.now()}];
+    });
+  };
+
+  const setEvaluation = (step: ProductionStep, rating: number, notes?: string) => {
+    const assignment = employeeAssignments.find((item) => item.step === step);
+    if (!assignment) return;
+    setEmployeeEvaluations((current) => {
+      const next = current.filter((item) => item.step !== step || item.employeeId !== assignment.employeeId);
+      return [...next, {
+        step,
+        employeeId: assignment.employeeId,
+        employeeName: assignment.employeeName,
+        rating,
+        notes: notes ?? current.find((item) => item.step === step && item.employeeId === assignment.employeeId)?.notes ?? '',
+        createdAt: Timestamp.now(),
+      }];
+    });
+  };
+
+  const setEvaluationNotes = (step: ProductionStep, notes: string) => {
+    const assignment = employeeAssignments.find((item) => item.step === step);
+    if (!assignment) return;
+    setEmployeeEvaluations((current) => {
+      const existing = current.find((item) => item.step === step && item.employeeId === assignment.employeeId);
+      const next = current.filter((item) => item.step !== step || item.employeeId !== assignment.employeeId);
+      return [...next, {
+        step,
+        employeeId: assignment.employeeId,
+        employeeName: assignment.employeeName,
+        rating: existing?.rating || 3,
+        notes,
+        createdAt: existing?.createdAt || Timestamp.now(),
+      }];
+    });
+  };
+
+  const toggleStepDone = (step: ProductionStep) => {
+    setEmployeeAssignments((current) => current.map((item) => item.step === step ? {
+      ...item,
+      finishedAt: item.finishedAt ? null : Timestamp.now(),
+    } : item));
   };
 
   const sideOptionsForPiece = (piece: QuotePiece) => [
@@ -187,8 +256,16 @@ export const QuoteEditor: React.FC = () => {
       totalPrice,
       pieces,
       cutouts,
-      createdAt: id ? undefined : Timestamp.now(),
-      createdBy: user?.uid
+      employeeAssignments,
+      employeeEvaluations,
+      statusHistory: [...statusHistory, {
+        status,
+        changedAt: Timestamp.now(),
+        responsibleEmployeeId: employeeAssignments.find((item) => item.employeeId)?.employeeId,
+        responsibleEmployeeName: employeeAssignments.find((item) => item.employeeName)?.employeeName,
+      }],
+      ...(id ? {} : {createdAt: Timestamp.now()}),
+      createdBy: user?.uid || '',
     };
 
     try {
@@ -362,6 +439,73 @@ export const QuoteEditor: React.FC = () => {
                   </select>
                 </div>
               </div>
+            </div>
+          </section>
+
+          <section className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
+            <h2 className="font-display font-bold text-lg text-slate-800 flex items-center gap-2">
+              <Star className="w-5 h-5 text-brand-primary" /> Equipe e Qualidade
+            </h2>
+            <div className="space-y-3">
+              {productionSteps.map((step) => {
+                const assignment = employeeAssignments.find((item) => item.step === step.key);
+                const evaluation = assignment ? employeeEvaluations.find((item) => item.step === step.key && item.employeeId === assignment.employeeId) : undefined;
+                return (
+                  <div key={step.key} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-bold text-slate-800">{step.label}</div>
+                      <select
+                        value={assignment?.employeeId || ''}
+                        onChange={(event) => setAssignment(step.key, event.target.value)}
+                        className="max-w-[170px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold outline-none"
+                      >
+                        <option value="">Responsável</option>
+                        {employees.filter((employee) => employee.active).map((employee) => (
+                          <option key={employee.id} value={employee.id}>{employee.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    {assignment && (
+                      <div className="space-y-2">
+                        <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-600">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(assignment.finishedAt)}
+                            onChange={() => toggleStepDone(step.key)}
+                            className="h-4 w-4 accent-brand-primary"
+                          />
+                          Etapa concluída
+                        </label>
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Avaliação</div>
+                          <div className="flex gap-1">
+                            {[1, 2, 3, 4, 5].map((rating) => (
+                              <button
+                                key={rating}
+                                type="button"
+                                onClick={() => setEvaluation(step.key, rating)}
+                                className={cn(
+                                  'h-8 w-8 rounded-full text-sm transition-all',
+                                  (evaluation?.rating || 0) >= rating ? 'bg-green-500 text-white shadow-sm' : 'bg-white text-slate-300 hover:text-brand-primary',
+                                )}
+                                title={`${rating} ponto(s)`}
+                              >
+                                {rating <= 2 ? '☹' : rating === 3 ? '○' : '☺'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                        <input
+                          value={evaluation?.notes || ''}
+                          onChange={(event) => setEvaluationNotes(step.key, event.target.value)}
+                          placeholder="Observação interna da etapa"
+                          className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-primary/10"
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
 

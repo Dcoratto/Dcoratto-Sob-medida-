@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from 'firebase/firestore';
+import {addDoc, arrayUnion, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from 'firebase/firestore';
 import {useNavigate} from 'react-router-dom';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
@@ -60,7 +60,10 @@ export const QuotesPage: React.FC = () => {
   });
 
   const handleStatusChange = async (quoteId: string, status: QuoteStatus) => {
-    await updateDoc(doc(db, 'quotes', quoteId), {status});
+    await updateDoc(doc(db, 'quotes', quoteId), {
+      status,
+      statusHistory: arrayUnion({status, changedAt: Timestamp.now()}),
+    });
   };
 
   const handleDuplicate = async (quote: Quote) => {

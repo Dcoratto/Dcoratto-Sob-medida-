@@ -65,6 +65,43 @@ export interface Client {
   notes: string;
 }
 
+export type EmployeeRole = 'Vendedor' | 'Medidor' | 'Cortador' | 'Acabador' | 'Instalador' | 'Entregador' | 'Administrativo';
+
+export interface Employee {
+  id: string;
+  name: string;
+  role: EmployeeRole;
+  phone?: string;
+  active: boolean;
+  createdAt?: any;
+}
+
+export type ProductionStep = 'medicao' | 'corte' | 'acabamento' | 'instalacao' | 'entrega';
+
+export interface EmployeeAssignment {
+  step: ProductionStep;
+  employeeId: string;
+  employeeName: string;
+  startedAt?: any;
+  finishedAt?: any;
+}
+
+export interface EmployeeEvaluation {
+  step: ProductionStep;
+  employeeId: string;
+  employeeName: string;
+  rating: number;
+  notes?: string;
+  createdAt?: any;
+}
+
+export interface QuoteStatusHistory {
+  status: QuoteStatus;
+  changedAt: any;
+  responsibleEmployeeId?: string;
+  responsibleEmployeeName?: string;
+}
+
 export type QuoteStatus =
   | 'Pré-orçamento'
   | 'Aguardando medição'
@@ -156,6 +193,9 @@ export interface Quote {
   cutouts: QuoteCutouts;
   createdAt: any;
   createdBy: string;
+  employeeAssignments?: EmployeeAssignment[];
+  employeeEvaluations?: EmployeeEvaluation[];
+  statusHistory?: QuoteStatusHistory[];
 }
 
 export interface InventoryItem {

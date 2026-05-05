@@ -9,7 +9,8 @@ import {
   Settings, 
   ShieldAlert,
   LogOut,
-  LayoutDashboard
+  LayoutDashboard,
+  BarChart3
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { auth } from '../../lib/firebase';
@@ -24,6 +25,7 @@ export const Sidebar: React.FC = () => {
     { icon: FileText, label: 'Orçamentos', path: '/quotes' },
     { icon: Users, label: 'Clientes', path: '/clients' },
     { icon: History, label: 'Histórico', path: '/history' },
+    { icon: BarChart3, label: 'Relatórios', path: '/reports' },
     { icon: Package, label: 'Materiais', path: '/materials' },
     { icon: Database, label: 'Estoque', path: '/inventory' },
     { icon: Settings, label: 'Configurações', path: '/settings' },

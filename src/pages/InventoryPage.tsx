@@ -1,7 +1,8 @@
 import React, {useEffect, useState} from 'react';
 import {addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc} from 'firebase/firestore';
-import {AlertTriangle, CheckCircle2, Edit2, Filter, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
-import {db} from '../lib/firebase';
+import {AlertTriangle, CheckCircle2, Edit2, Filter, ImagePlus, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
+import {getDownloadURL, ref, uploadBytes} from 'firebase/storage';
+import {db, storage} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {InventoryItem, InventoryPurchase, InventoryReservation, Material} from '../types';
 import {cn, formatCurrency, formatNumber} from '../lib/utils';
@@ -53,6 +54,8 @@ export const InventoryPage: React.FC = () => {
   const [cost, setCost] = useState('');
   const [status, setStatus] = useState<InventoryItem['status']>('Disponível');
   const [notes, setNotes] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState('');
   const [purchaseMaterialId, setPurchaseMaterialId] = useState('');
   const [purchaseMaterialName, setPurchaseMaterialName] = useState('');
   const [purchaseCode, setPurchaseCode] = useState('');
@@ -104,6 +107,8 @@ export const InventoryPage: React.FC = () => {
     setCost('');
     setStatus('Disponível');
     setNotes('');
+    setPhotoFile(null);
+    setPhotoPreview('');
     setEditingItem(null);
   };
 
@@ -152,6 +157,13 @@ export const InventoryPage: React.FC = () => {
     const totalCost = Number(cost);
     const inventoryRef = editingItem ? doc(db, 'inventory', editingItem.id) : doc(collection(db, 'inventory'));
     const materialId = await upsertMaterialFromInventory(inventoryRef.id, area, totalCost);
+    let photoUrl = editingItem?.photoUrl || '';
+    if (photoFile) {
+      const extension = photoFile.name.split('.').pop() || 'jpg';
+      const fileRef = ref(storage, `inventory/${inventoryRef.id}/photo-${Date.now()}.${extension}`);
+      await uploadBytes(fileRef, photoFile);
+      photoUrl = await getDownloadURL(fileRef);
+    }
 
     const data = {
       materialId,
@@ -166,6 +178,7 @@ export const InventoryPage: React.FC = () => {
       cost: totalCost,
       status,
       notes,
+      photoUrl,
     };
 
     if (editingItem) {
@@ -214,6 +227,8 @@ export const InventoryPage: React.FC = () => {
     setCost(item.cost.toString());
     setStatus(item.status);
     setNotes(item.notes);
+    setPhotoFile(null);
+    setPhotoPreview(item.photoUrl || '');
     setShowModal(true);
   };
 
@@ -566,9 +581,20 @@ export const InventoryPage: React.FC = () => {
                 filteredItems.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-900">{item.materialName}</div>
-                      <div className="text-xs text-brand-primary font-mono">{item.code}</div>
-                      <div className="text-xs text-slate-400">{item.category}</div>
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 shrink-0 rounded-full border border-slate-200 bg-slate-100 overflow-hidden flex items-center justify-center">
+                          {item.photoUrl ? (
+                            <img src={item.photoUrl} alt={item.materialName} className="h-full w-full object-cover" />
+                          ) : (
+                            <PackageCheck className="w-5 h-5 text-slate-400" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-semibold text-slate-900">{item.materialName}</div>
+                          <div className="text-xs text-brand-primary font-mono">{item.code}</div>
+                          <div className="text-xs text-slate-400">{item.category}</div>
+                        </div>
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">{item.length} x {item.width} x {item.thickness}</td>
                     <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(item.area)} m²</td>
@@ -772,6 +798,37 @@ export const InventoryPage: React.FC = () => {
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Custo Total da Pedra</label>
                   <input type="number" step="0.01" required value={cost} onChange={(e) => setCost(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-slate-500 font-medium text-sm">Imagem da pedra</label>
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="flex items-center gap-4">
+                      <div className="h-16 w-16 shrink-0 rounded-full border border-slate-200 bg-white overflow-hidden flex items-center justify-center">
+                        {photoPreview ? (
+                          <img src={photoPreview} alt="Prévia da pedra" className="h-full w-full object-cover" />
+                        ) : (
+                          <ImagePlus className="w-6 h-6 text-slate-400" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            setPhotoFile(file);
+                            if (file) {
+                              setPhotoPreview(URL.createObjectURL(file));
+                            } else {
+                              setPhotoPreview(editingItem?.photoUrl || '');
+                            }
+                          }}
+                          className="w-full text-sm text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-brand-primary file:px-3 file:py-2 file:text-white file:font-semibold hover:file:bg-brand-primary/90"
+                        />
+                        <p className="mt-1 text-xs text-slate-400">A imagem será salva e exibida em círculo na lista.</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
                   <label className="text-slate-500 font-medium text-sm">Observações</label>

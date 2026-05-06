@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc} from 'firebase/firestore';
-import {Edit2, Filter, Plus, Search, Trash2, X} from 'lucide-react';
+import {AlertTriangle, Edit2, Filter, Plus, Search, Trash2, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {InventoryItem, InventoryReservation, Material} from '../types';
@@ -22,6 +22,11 @@ const normalizeStatus = (value: unknown) =>
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
+
+const isPurchaseRelevantReservation = (reservation: InventoryReservation) => {
+  const status = normalizeStatus(reservation.quoteStatus);
+  return ['aprovado', 'em producao', 'pronto para entrega', 'entregue'].includes(status);
+};
 
 export const InventoryPage: React.FC = () => {
   const [items, setItems] = useState<InventoryItem[]>([]);
@@ -184,6 +189,32 @@ export const InventoryPage: React.FC = () => {
     reservations
       .filter((reservation) => reservation.materialId === materialId)
       .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+  const purchaseRelevantReservedAreaByMaterial = (materialId: string) =>
+    reservations
+      .filter((reservation) => reservation.materialId === materialId && isPurchaseRelevantReservation(reservation))
+      .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+  const physicalAreaByMaterial = (materialId: string) =>
+    items
+      .filter((item) => item.materialId === materialId && !['usada', 'descarte'].includes(normalizeStatus(item.status)))
+      .reduce((acc, item) => acc + item.area, 0);
+  const pendingPurchases = Array.from(new Set([
+    ...items.map((item) => item.materialId),
+    ...reservations.map((reservation) => reservation.materialId),
+  ])).map((materialId) => {
+    const reserved = purchaseRelevantReservedAreaByMaterial(materialId);
+    const available = physicalAreaByMaterial(materialId);
+    const missing = Math.max(0, reserved - available);
+    const inventoryItem = items.find((item) => item.materialId === materialId);
+    const material = materials.find((item) => item.id === materialId);
+    return {
+      materialId,
+      materialName: inventoryItem?.materialName || material?.name || reservations.find((reservation) => reservation.materialId === materialId)?.materialName || materialId,
+      reserved,
+      available,
+      missing,
+    };
+  }).filter((item) => item.missing > 0);
+  const totalPendingPurchaseArea = pendingPurchases.reduce((acc, item) => acc + item.missing, 0);
 
   return (
     <div className="space-y-6">
@@ -202,7 +233,7 @@ export const InventoryPage: React.FC = () => {
         </button>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Total de Itens</div>
           <div className="text-3xl font-display font-bold text-slate-900">{items.length}</div>
@@ -219,7 +250,51 @@ export const InventoryPage: React.FC = () => {
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Custo em Estoque</div>
           <div className="text-3xl font-display font-bold text-slate-900">{formatCurrency(totalInventoryCost)}</div>
         </div>
+        <div className={cn(
+          'p-6 rounded-[32px] border shadow-sm',
+          pendingPurchases.length > 0 ? 'bg-amber-50 border-amber-100' : 'bg-white border-slate-100',
+        )}>
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Compra Pendente</div>
+          <div className={cn('text-3xl font-display font-bold', pendingPurchases.length > 0 ? 'text-amber-700' : 'text-slate-900')}>
+            {formatNumber(totalPendingPurchaseArea)} m²
+          </div>
+        </div>
       </div>
+
+      {pendingPurchases.length > 0 && (
+        <div className="rounded-[28px] border border-amber-100 bg-amber-50 p-5 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-2xl bg-amber-100 p-2 text-amber-700">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-lg font-bold text-amber-900">Compra pendente para orçamento aprovado</h2>
+              <p className="mt-1 text-sm text-amber-700">As pedras abaixo têm mais m² vendidos/reservados em orçamentos aprovados do que área disponível no estoque.</p>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {pendingPurchases.map((item) => (
+                  <div key={item.materialId} className="rounded-2xl border border-amber-100 bg-white/70 p-4">
+                    <div className="font-bold text-slate-900">{item.materialName}</div>
+                    <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <span className="block font-bold uppercase tracking-widest text-slate-400">Disponível</span>
+                        <strong className="text-slate-700">{formatNumber(item.available)} m²</strong>
+                      </div>
+                      <div>
+                        <span className="block font-bold uppercase tracking-widest text-slate-400">Vendido</span>
+                        <strong className="text-amber-700">{formatNumber(item.reserved)} m²</strong>
+                      </div>
+                      <div>
+                        <span className="block font-bold uppercase tracking-widest text-slate-400">Comprar</span>
+                        <strong className="text-red-600">{formatNumber(item.missing)} m²</strong>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
         <div className="p-4 border-b border-slate-50 flex flex-col md:flex-row gap-4">

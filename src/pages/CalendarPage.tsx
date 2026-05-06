@@ -1,6 +1,6 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {collection, onSnapshot} from 'firebase/firestore';
-import {AlertTriangle, ChevronLeft, ChevronRight} from 'lucide-react';
+import {AlertTriangle, ChevronLeft, ChevronRight, MapPin, Phone, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {Client, CondominiumRule, Quote} from '../types';
 import {cn} from '../lib/utils';
@@ -28,12 +28,6 @@ const toDate = (value: any) => {
   return null;
 };
 
-const normalize = (value: unknown) =>
-  String(value || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
-
 const keyOf = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 const startOfMonthGrid = (date: Date) => {
@@ -49,6 +43,7 @@ export const CalendarPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [condominiums, setCondominiums] = useState<CondominiumRule[]>([]);
   const [baseDate, setBaseDate] = useState(new Date());
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   useEffect(() => {
     const unsubQuotes = onSnapshot(collection(db, 'quotes'), (snapshot) => setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote))));
@@ -67,6 +62,7 @@ export const CalendarPage: React.FC = () => {
       const client = clients.find((item) => item.id === quote.clientId);
       const medicao = toDate(quote.measurementDate);
       const entrega = toDate(quote.deliveryDate);
+
       if (medicao) {
         list.push({
           id: `${quote.id}-medicao`,
@@ -81,6 +77,7 @@ export const CalendarPage: React.FC = () => {
           condominiumName: client?.condominiumName,
         });
       }
+
       if (entrega) {
         list.push({
           id: `${quote.id}-entrega`,
@@ -130,13 +127,9 @@ export const CalendarPage: React.FC = () => {
         const holidayBlocked = (holiday.national && condominium.blockNationalHolidays) || (holiday.city && condominium.blockCityHolidays);
         if (!dayBlocked && !holidayBlocked) return null;
         const reason = dayBlocked
-          ? `dia não permitido (${['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'][weekday]})`
+          ? `dia nao permitido (${['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'][weekday]})`
           : `feriado bloqueado (${holiday.national || holiday.city})`;
-        return {
-          event,
-          condominium,
-          reason,
-        };
+        return {event, condominium, reason};
       })
       .filter(Boolean) as Array<{event: CalendarEvent; condominium: CondominiumRule; reason: string}>;
   }, [condominiums, events]);
@@ -160,12 +153,14 @@ export const CalendarPage: React.FC = () => {
       .slice(0, 12);
   }, [events, today]);
 
+  const selectedClient = selectedEvent ? clients.find((item) => item.id === selectedEvent.clientId) : null;
+
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Calendário operacional</h1>
-          <p className="text-slate-500 mt-1">Medições e entregas ligadas aos orçamentos e projetos.</p>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Calendario operacional</h1>
+          <p className="text-slate-500 mt-1">Medicoes e entregas ligadas aos orcamentos e projetos.</p>
         </div>
         <div className="flex items-center gap-2">
           <button type="button" onClick={() => setBaseDate(new Date(baseDate.getFullYear(), baseDate.getMonth() - 1, 1))} className="rounded-xl border border-slate-200 bg-white p-2">
@@ -184,12 +179,12 @@ export const CalendarPage: React.FC = () => {
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-center gap-2 text-amber-800 font-bold">
             <AlertTriangle className="w-5 h-5" />
-            Alertas de restrição (condomínio/feriado)
+            Alertas de restricao (condominio/feriado)
           </div>
           <div className="mt-3 space-y-2">
             {restrictions.slice(0, 8).map(({event, condominium, reason}) => (
               <div key={`${event.id}-${reason}`} className="text-sm text-amber-900">
-                {event.type === 'entrega' ? 'Entrega' : 'Medição'} de {event.clientName} em {event.date.toLocaleDateString('pt-BR')} no {condominium.name}: {reason}.
+                {event.type === 'entrega' ? 'Entrega' : 'Medicao'} de {event.clientName} em {event.date.toLocaleDateString('pt-BR')} no {condominium.name}: {reason}.
               </div>
             ))}
           </div>
@@ -201,19 +196,24 @@ export const CalendarPage: React.FC = () => {
         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
           {upcomingEvents.length === 0 && (
             <div className="rounded-xl bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-400">
-              Nenhuma medição ou entrega futura cadastrada.
+              Nenhuma medicao ou entrega futura cadastrada.
             </div>
           )}
           {upcomingEvents.map(({event, daysLeft}) => (
-            <div key={`${event.id}-countdown`} className="rounded-xl bg-slate-50 px-3 py-2">
+            <button
+              key={`${event.id}-countdown`}
+              type="button"
+              onClick={() => setSelectedEvent(event)}
+              className="rounded-xl bg-slate-50 px-3 py-2 text-left hover:bg-slate-100 transition-all"
+            >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                {event.type === 'entrega' ? 'Entrega' : 'Medição'} · {event.clientName}
+                {event.type === 'entrega' ? 'Entrega' : 'Medicao'} · {event.clientName}
               </div>
               <div className="mt-1 text-sm font-bold text-slate-800">
-                {daysLeft === 0 ? 'É hoje' : `Daqui a ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`}
+                {daysLeft === 0 ? 'E hoje' : `Daqui a ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`}
               </div>
               <div className="text-xs text-slate-500">{event.date.toLocaleDateString('pt-BR')}</div>
-            </div>
+            </button>
           ))}
         </div>
       </section>
@@ -246,15 +246,17 @@ export const CalendarPage: React.FC = () => {
                 {holiday.national && <div className="mt-1 rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">{holiday.national}</div>}
                 <div className="mt-2 space-y-1">
                   {dayEvents.slice(0, 3).map((event) => (
-                    <div
+                    <button
                       key={event.id}
+                      type="button"
+                      onClick={() => setSelectedEvent(event)}
                       className={cn(
-                        'rounded px-1.5 py-1 text-[10px] font-semibold leading-tight',
+                        'w-full text-left rounded px-1.5 py-1 text-[10px] font-semibold leading-tight hover:brightness-95 transition-all',
                         event.type === 'entrega' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700',
                       )}
                     >
-                      {event.type === 'entrega' ? 'Entrega' : 'Medição'} · {event.clientName}
-                    </div>
+                      {event.type === 'entrega' ? 'Entrega' : 'Medicao'} · {event.clientName}
+                    </button>
                   ))}
                   {dayEvents.length > 3 && <div className="text-[10px] font-bold text-slate-400">+{dayEvents.length - 3} mais</div>}
                 </div>
@@ -263,6 +265,44 @@ export const CalendarPage: React.FC = () => {
           })}
         </div>
       </section>
+
+      {selectedEvent && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white border border-slate-100 shadow-2xl p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                  {selectedEvent.type === 'entrega' ? 'Entrega' : 'Medicao'}
+                </div>
+                <h3 className="mt-1 text-xl font-display font-bold text-slate-900">{selectedEvent.clientName}</h3>
+                <div className="mt-1 text-sm font-semibold text-slate-500">
+                  {selectedEvent.date.toLocaleDateString('pt-BR')} · {selectedEvent.status}
+                </div>
+              </div>
+              <button type="button" onClick={() => setSelectedEvent(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
+                  <Phone className="w-4 h-4" />
+                  Telefone
+                </div>
+                <div className="mt-1 text-sm font-semibold text-slate-800">{selectedClient?.phone || 'Nao informado'}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
+                  <MapPin className="w-4 h-4" />
+                  Endereco
+                </div>
+                <div className="mt-1 text-sm font-semibold text-slate-800">{selectedClient?.address || 'Nao informado'}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

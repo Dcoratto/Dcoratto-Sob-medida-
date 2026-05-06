@@ -3,7 +3,7 @@ import {collection, limit, onSnapshot, orderBy, query} from 'firebase/firestore'
 import {useNavigate} from 'react-router-dom';
 import {AlertCircle, CheckCircle2, Clock, Database, FileText, FolderKanban, Package, TrendingUp, Users} from 'lucide-react';
 import {db} from '../lib/firebase';
-import {Client, InventoryItem, Material, Quote, QuoteStatus} from '../types';
+import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
@@ -62,6 +62,8 @@ export const Dashboard: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [materialsCount, setMaterialsCount] = useState(0);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [reservations, setReservations] = useState<InventoryReservation[]>([]);
+  const [purchases, setPurchases] = useState<InventoryPurchase[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -88,6 +90,12 @@ export const Dashboard: React.FC = () => {
       setInventory(snap.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem)));
       setLoading(false);
     });
+    const unsubReservations = onSnapshot(collection(db, 'inventoryReservations'), (snap) => {
+      setReservations(snap.docs.map((item) => ({id: item.id, ...item.data()} as InventoryReservation)));
+    });
+    const unsubPurchases = onSnapshot(collection(db, 'inventoryPurchases'), (snap) => {
+      setPurchases(snap.docs.map((item) => ({id: item.id, ...item.data()} as InventoryPurchase)));
+    });
 
     return () => {
       unsubQuotesAll();
@@ -95,6 +103,8 @@ export const Dashboard: React.FC = () => {
       unsubClients();
       unsubMaterials();
       unsubInventory();
+      unsubReservations();
+      unsubPurchases();
     };
   }, []);
 
@@ -142,6 +152,31 @@ export const Dashboard: React.FC = () => {
   const openQuotes = quotes.filter((quote) => statusGroups.pre.statuses.includes(normalizeStatus(quote.status)));
   const closedQuotes = quotes.filter((quote) => isClosedSale(quote.status));
   const totalValue = closedQuotes.reduce((acc, quote) => acc + (quote.totalPrice || 0), 0);
+  const purchaseRelevantReservedAreaByMaterial = (materialId: string) =>
+    reservations
+      .filter((reservation) => reservation.materialId === materialId && ['aprovado', 'em producao', 'pronto para entrega', 'entregue'].includes((reservation.quoteStatus || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()))
+      .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+  const physicalAreaByMaterial = (materialId: string) =>
+    inventory
+      .filter((item) => item.materialId === materialId && !['usada', 'descarte'].includes((item.status || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()))
+      .reduce((acc, item) => acc + (item.area || 0), 0);
+  const orderedAreaByMaterial = (materialId: string) =>
+    purchases
+      .filter((purchase) => purchase.materialId === materialId && purchase.status === 'Pedido')
+      .reduce((acc, purchase) => acc + (purchase.area || 0), 0);
+  const pendingPurchases = Array.from(new Set([
+    ...inventory.map((item) => item.materialId),
+    ...reservations.map((reservation) => reservation.materialId),
+    ...purchases.map((purchase) => purchase.materialId),
+  ])).map((materialId) => {
+    const reserved = purchaseRelevantReservedAreaByMaterial(materialId);
+    const available = physicalAreaByMaterial(materialId);
+    const ordered = orderedAreaByMaterial(materialId);
+    const missing = Math.max(0, reserved - available - ordered);
+    const material = inventory.find((item) => item.materialId === materialId)?.materialName || materialId;
+    return {materialId, material, missing};
+  }).filter((item) => item.missing > 0);
+  const totalPendingPurchaseArea = pendingPurchases.reduce((acc, item) => acc + item.missing, 0);
 
   const getStatusColor = (status: string) => {
     const normalized = normalizeStatus(status);
@@ -267,6 +302,27 @@ export const Dashboard: React.FC = () => {
         </div>
 
         <div className="space-y-6">
+          <button
+            type="button"
+            onClick={() => navigate('/inventory')}
+            className={cn(
+              'w-full p-6 rounded-[32px] border shadow-sm text-left transition-all',
+              pendingPurchases.length > 0 ? 'bg-amber-50 border-amber-100 hover:bg-amber-100/70' : 'bg-white border-slate-100 hover:shadow-xl hover:shadow-slate-200/40',
+            )}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="font-display font-bold text-lg text-slate-800">Compra pendente para orçamento aprovado</h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  {pendingPurchases.length > 0
+                    ? `${pendingPurchases.length} material(is) com falta de área · ${totalPendingPurchaseArea.toFixed(2)} m²`
+                    : 'Nenhuma compra pendente no momento.'}
+                </p>
+              </div>
+              {pendingPurchases.length > 0 && <AlertCircle className="w-6 h-6 text-amber-600" />}
+            </div>
+          </button>
+
           <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
             <div className="mb-5 flex items-center gap-3">
               <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500">

@@ -1,10 +1,11 @@
 import React, {useEffect, useState} from 'react';
 import {addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc} from 'firebase/firestore';
-import {AlertTriangle, Edit2, Filter, Plus, Search, Trash2, X} from 'lucide-react';
+import {AlertTriangle, CheckCircle2, Edit2, Filter, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
-import {InventoryItem, InventoryReservation, Material} from '../types';
+import {InventoryItem, InventoryPurchase, InventoryReservation, Material} from '../types';
 import {cn, formatCurrency, formatNumber} from '../lib/utils';
+import {useAuth} from '../contexts/AuthContext';
 
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
@@ -29,12 +30,15 @@ const isPurchaseRelevantReservation = (reservation: InventoryReservation) => {
 };
 
 export const InventoryPage: React.FC = () => {
+  const {user, profile} = useAuth();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [reservations, setReservations] = useState<InventoryReservation[]>([]);
+  const [purchases, setPurchases] = useState<InventoryPurchase[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -48,6 +52,16 @@ export const InventoryPage: React.FC = () => {
   const [cost, setCost] = useState('');
   const [status, setStatus] = useState<InventoryItem['status']>('Disponível');
   const [notes, setNotes] = useState('');
+  const [purchaseMaterialId, setPurchaseMaterialId] = useState('');
+  const [purchaseMaterialName, setPurchaseMaterialName] = useState('');
+  const [purchaseCode, setPurchaseCode] = useState('');
+  const [purchaseProvider, setPurchaseProvider] = useState('');
+  const [purchaseCategory, setPurchaseCategory] = useState('');
+  const [purchaseLength, setPurchaseLength] = useState('');
+  const [purchaseWidth, setPurchaseWidth] = useState('');
+  const [purchaseThickness, setPurchaseThickness] = useState('');
+  const [purchaseCost, setPurchaseCost] = useState('');
+  const [purchaseNotes, setPurchaseNotes] = useState('');
 
   useEffect(() => {
     const qItems = query(collection(db, 'inventory'), orderBy('code', 'asc'));
@@ -65,10 +79,16 @@ export const InventoryPage: React.FC = () => {
       setReservations(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryReservation)));
     });
 
+    const qPurchases = query(collection(db, 'inventoryPurchases'), orderBy('purchasedAt', 'desc'));
+    const unsubscribePurchases = onSnapshot(qPurchases, (snapshot) => {
+      setPurchases(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryPurchase)));
+    });
+
     return () => {
       unsubscribeItems();
       unsubscribeMaterials();
       unsubscribeReservations();
+      unsubscribePurchases();
     };
   }, []);
 
@@ -84,6 +104,21 @@ export const InventoryPage: React.FC = () => {
     setStatus('Disponível');
     setNotes('');
     setEditingItem(null);
+  };
+
+  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
+
+  const resetPurchaseForm = () => {
+    setPurchaseMaterialId('');
+    setPurchaseMaterialName('');
+    setPurchaseCode('');
+    setPurchaseProvider('');
+    setPurchaseCategory('');
+    setPurchaseLength('');
+    setPurchaseWidth('');
+    setPurchaseThickness('');
+    setPurchaseCost('');
+    setPurchaseNotes('');
   };
 
   const upsertMaterialFromInventory = async (inventoryId: string, area: number, totalCost: number) => {
@@ -167,6 +202,72 @@ export const InventoryPage: React.FC = () => {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const openPurchaseModal = (item: {materialId: string; materialName: string; missing: number}) => {
+    const inventoryItem = items.find((stockItem) => stockItem.materialId === item.materialId);
+    const material = materials.find((stockMaterial) => stockMaterial.id === item.materialId);
+    setPurchaseMaterialId(item.materialId);
+    setPurchaseMaterialName(item.materialName);
+    setPurchaseProvider(inventoryItem?.provider || material?.provider || '');
+    setPurchaseCategory(inventoryItem?.category || material?.category || '');
+    setPurchaseLength('');
+    setPurchaseWidth('');
+    setPurchaseThickness(inventoryItem?.thickness ? String(inventoryItem.thickness) : '');
+    setPurchaseCost('');
+    setPurchaseCode('');
+    setPurchaseNotes(`Compra pendente sugerida: ${formatNumber(item.missing)} m²`);
+    setShowPurchaseModal(true);
+  };
+
+  const handlePurchaseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const area = (Number(purchaseLength) * Number(purchaseWidth)) / 10000;
+    await addDoc(collection(db, 'inventoryPurchases'), {
+      materialId: purchaseMaterialId,
+      materialName: purchaseMaterialName.trim(),
+      provider: purchaseProvider.trim(),
+      code: purchaseCode.trim(),
+      category: purchaseCategory.trim(),
+      length: Number(purchaseLength),
+      width: Number(purchaseWidth),
+      thickness: Number(purchaseThickness),
+      area,
+      cost: Number(purchaseCost),
+      status: 'Pedido',
+      notes: purchaseNotes,
+      purchasedByUid: user?.uid || '',
+      purchasedByName: currentUserName,
+      purchasedAt: serverTimestamp(),
+    });
+    setShowPurchaseModal(false);
+    resetPurchaseForm();
+  };
+
+  const receivePurchase = async (purchase: InventoryPurchase) => {
+    if (purchase.status === 'Entregue') return;
+    const inventoryRef = doc(collection(db, 'inventory'));
+    await setDoc(inventoryRef, {
+      materialId: purchase.materialId,
+      materialName: purchase.materialName,
+      code: purchase.code,
+      provider: purchase.provider || '',
+      category: purchase.category || '',
+      length: purchase.length,
+      width: purchase.width,
+      thickness: purchase.thickness,
+      area: purchase.area,
+      cost: purchase.cost,
+      status: 'Disponível',
+      notes: purchase.notes || '',
+    });
+    await updateDoc(doc(db, 'inventoryPurchases', purchase.id), {
+      status: 'Entregue',
+      receivedByUid: user?.uid || '',
+      receivedByName: currentUserName,
+      receivedAt: serverTimestamp(),
+      inventoryItemId: inventoryRef.id,
+    });
+  };
+
   const filteredItems = items.filter((item) => {
     const searchText = `${item.materialName} ${item.code} ${item.provider} ${item.category || ''}`.toLowerCase();
     const matchesSearch = searchText.includes(search.toLowerCase());
@@ -197,13 +298,19 @@ export const InventoryPage: React.FC = () => {
     items
       .filter((item) => item.materialId === materialId && !['usada', 'descarte'].includes(normalizeStatus(item.status)))
       .reduce((acc, item) => acc + item.area, 0);
+  const orderedAreaByMaterial = (materialId: string) =>
+    purchases
+      .filter((purchase) => purchase.materialId === materialId && purchase.status === 'Pedido')
+      .reduce((acc, purchase) => acc + (purchase.area || 0), 0);
   const pendingPurchases = Array.from(new Set([
     ...items.map((item) => item.materialId),
     ...reservations.map((reservation) => reservation.materialId),
+    ...purchases.map((purchase) => purchase.materialId),
   ])).map((materialId) => {
     const reserved = purchaseRelevantReservedAreaByMaterial(materialId);
     const available = physicalAreaByMaterial(materialId);
-    const missing = Math.max(0, reserved - available);
+    const ordered = orderedAreaByMaterial(materialId);
+    const missing = Math.max(0, reserved - available - ordered);
     const inventoryItem = items.find((item) => item.materialId === materialId);
     const material = materials.find((item) => item.id === materialId);
     return {
@@ -211,10 +318,12 @@ export const InventoryPage: React.FC = () => {
       materialName: inventoryItem?.materialName || material?.name || reservations.find((reservation) => reservation.materialId === materialId)?.materialName || materialId,
       reserved,
       available,
+      ordered,
       missing,
     };
   }).filter((item) => item.missing > 0);
   const totalPendingPurchaseArea = pendingPurchases.reduce((acc, item) => acc + item.missing, 0);
+  const activePurchases = purchases.filter((purchase) => purchase.status === 'Pedido');
 
   return (
     <div className="space-y-6">
@@ -273,8 +382,18 @@ export const InventoryPage: React.FC = () => {
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {pendingPurchases.map((item) => (
                   <div key={item.materialId} className="rounded-2xl border border-amber-100 bg-white/70 p-4">
-                    <div className="font-bold text-slate-900">{item.materialName}</div>
-                    <div className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="font-bold text-slate-900">{item.materialName}</div>
+                      <button
+                        type="button"
+                        onClick={() => openPurchaseModal(item)}
+                        className="inline-flex items-center gap-1 rounded-xl bg-amber-600 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-amber-700 transition-all"
+                      >
+                        <ShoppingCart className="h-3.5 w-3.5" />
+                        Comprar
+                      </button>
+                    </div>
+                    <div className="mt-3 grid grid-cols-4 gap-2 text-xs">
                       <div>
                         <span className="block font-bold uppercase tracking-widest text-slate-400">Disponível</span>
                         <strong className="text-slate-700">{formatNumber(item.available)} m²</strong>
@@ -284,9 +403,50 @@ export const InventoryPage: React.FC = () => {
                         <strong className="text-amber-700">{formatNumber(item.reserved)} m²</strong>
                       </div>
                       <div>
+                        <span className="block font-bold uppercase tracking-widest text-slate-400">Pedido</span>
+                        <strong className="text-blue-700">{formatNumber(item.ordered)} m²</strong>
+                      </div>
+                      <div>
                         <span className="block font-bold uppercase tracking-widest text-slate-400">Comprar</span>
                         <strong className="text-red-600">{formatNumber(item.missing)} m²</strong>
                       </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activePurchases.length > 0 && (
+        <div className="rounded-[28px] border border-blue-100 bg-blue-50 p-5 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-2xl bg-blue-100 p-2 text-blue-700">
+              <PackageCheck className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-lg font-bold text-blue-950">Compras em pedido</h2>
+              <p className="mt-1 text-sm text-blue-700">Quando a pedra chegar, marque como entregue para entrar no estoque e registrar quem recebeu.</p>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                {activePurchases.map((purchase) => (
+                  <div key={purchase.id} className="rounded-2xl border border-blue-100 bg-white/80 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="font-bold text-slate-900">{purchase.materialName}</div>
+                        <div className="mt-1 text-xs text-slate-400">{purchase.code || 'Sem lote'} · {formatNumber(purchase.area)} m²</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => receivePurchase(purchase)}
+                        className="inline-flex items-center gap-1 rounded-xl bg-green-600 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-green-700 transition-all"
+                      >
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Receber
+                      </button>
+                    </div>
+                    <div className="mt-3 text-xs text-slate-500">
+                      Comprado por <strong>{purchase.purchasedByName}</strong>
                     </div>
                   </div>
                 ))}
@@ -382,6 +542,118 @@ export const InventoryPage: React.FC = () => {
           </table>
         </div>
       </div>
+
+      {purchases.length > 0 && (
+        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
+          <div className="p-5 border-b border-slate-50">
+            <h2 className="font-display text-xl font-bold text-slate-900">Histórico de compras</h2>
+            <p className="mt-1 text-sm text-slate-400">Controle de pedidos, entregas e responsáveis.</p>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-50">
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Pedra</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Área</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Comprou</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Recebeu</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {purchases.map((purchase) => (
+                  <tr key={purchase.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-slate-900">{purchase.materialName}</div>
+                      <div className="text-xs text-brand-primary font-mono">{purchase.code || 'Sem lote'}</div>
+                    </td>
+                    <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(purchase.area)} m²</td>
+                    <td className="px-6 py-4">
+                      <span className={cn(
+                        'inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase',
+                        purchase.status === 'Entregue' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600',
+                      )}>
+                        {purchase.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{purchase.purchasedByName || '-'}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{purchase.receivedByName || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {showPurchaseModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl p-8 space-y-6 animate-in fade-in zoom-in duration-300 overflow-y-auto max-h-[90vh]">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-display font-bold text-slate-900">Registrar compra</h2>
+                <p className="mt-1 text-sm text-slate-400">Status inicial: Pedido · Comprado por {currentUserName}</p>
+              </div>
+              <button type="button" onClick={() => { setShowPurchaseModal(false); resetPurchaseForm(); }} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handlePurchaseSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Nome da Pedra</label>
+                  <input type="text" required value={purchaseMaterialName} onChange={(e) => setPurchaseMaterialName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Código / Lote</label>
+                  <input type="text" required value={purchaseCode} onChange={(e) => setPurchaseCode(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Fornecedor</label>
+                  <input type="text" value={purchaseProvider} onChange={(e) => setPurchaseProvider(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Categoria</label>
+                  <input type="text" value={purchaseCategory} onChange={(e) => setPurchaseCategory(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                </div>
+                <div className="grid grid-cols-3 gap-2 md:col-span-2">
+                  <div className="space-y-1.5">
+                    <label className="text-slate-500 font-medium text-xs">Comprimento (cm)</label>
+                    <input type="number" required value={purchaseLength} onChange={(e) => setPurchaseLength(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-slate-500 font-medium text-xs">Largura (cm)</label>
+                    <input type="number" required value={purchaseWidth} onChange={(e) => setPurchaseWidth(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-slate-500 font-medium text-xs">Espessura (cm)</label>
+                    <input type="number" value={purchaseThickness} onChange={(e) => setPurchaseThickness(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Custo Total</label>
+                  <input type="number" step="0.01" required value={purchaseCost} onChange={(e) => setPurchaseCost(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Área calculada</label>
+                  <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 font-mono font-bold text-slate-700">
+                    {formatNumber((Number(purchaseLength) * Number(purchaseWidth)) / 10000)} m²
+                  </div>
+                </div>
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-slate-500 font-medium text-sm">Observações</label>
+                  <textarea value={purchaseNotes} onChange={(e) => setPurchaseNotes(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium min-h-[60px]" />
+                </div>
+              </div>
+
+              <button type="submit" className="w-full bg-amber-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-amber-600/20 hover:bg-amber-700 transition-all active:scale-95">
+                Registrar Pedido de Compra
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">

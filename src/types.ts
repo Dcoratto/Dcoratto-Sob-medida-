@@ -253,3 +253,28 @@ export interface InventoryReservation {
   clientName?: string;
   updatedAt?: any;
 }
+
+export type InventoryPurchaseStatus = 'Pedido' | 'Entregue';
+
+export interface InventoryPurchase {
+  id: string;
+  materialId: string;
+  materialName: string;
+  provider?: string;
+  code: string;
+  category?: string;
+  length: number;
+  width: number;
+  thickness: number;
+  area: number;
+  cost: number;
+  status: InventoryPurchaseStatus;
+  notes?: string;
+  purchasedByUid: string;
+  purchasedByName: string;
+  purchasedAt?: any;
+  receivedByUid?: string;
+  receivedByName?: string;
+  receivedAt?: any;
+  inventoryItemId?: string;
+}

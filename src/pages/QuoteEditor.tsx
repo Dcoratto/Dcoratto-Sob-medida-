@@ -276,6 +276,7 @@ export const QuoteEditor: React.FC = () => {
       return;
     }
     setSaving(true);
+    const firstAssigned = employeeAssignments.find((item) => item.employeeId);
     
     const quoteData: Partial<Quote> = {
       clientId,
@@ -305,8 +306,8 @@ export const QuoteEditor: React.FC = () => {
         changedAt: Timestamp.now(),
         changedByUid: user?.uid || '',
         changedByName: currentUserName,
-        responsibleEmployeeId: employeeAssignments.find((item) => item.employeeId)?.employeeId,
-        responsibleEmployeeName: employeeAssignments.find((item) => item.employeeName)?.employeeName,
+        responsibleEmployeeId: firstAssigned?.employeeId || '',
+        responsibleEmployeeName: firstAssigned?.employeeName || '',
       }],
       ...(id ? {} : {createdAt: Timestamp.now()}),
       createdBy: user?.uid || '',

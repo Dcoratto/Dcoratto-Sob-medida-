@@ -291,16 +291,20 @@ export const Dashboard: React.FC = () => {
                 </button>
               ))}
               {deadlineAlerts.length === 0 && (
-                <div className="rounded-2xl bg-green-50 p-4 text-sm font-semibold text-green-700">
+                <button
+                  type="button"
+                  onClick={() => navigate('/calendar')}
+                  className="w-full rounded-2xl bg-green-50 p-4 text-left text-sm font-semibold text-green-700 hover:bg-green-100 transition-all"
+                >
                   Nenhum prazo crítico no momento.
-                </div>
+                </button>
               )}
             </div>
           </div>
 
           <button
             type="button"
-            onClick={() => navigate('/quotes')}
+            onClick={() => navigate('/quotes?scope=open')}
             className="w-full bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm flex flex-col items-center text-center space-y-4 hover:shadow-xl hover:shadow-slate-200/40 transition-all focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
           >
             <div className="w-16 h-16 bg-brand-primary/10 rounded-3xl flex items-center justify-center text-brand-primary">

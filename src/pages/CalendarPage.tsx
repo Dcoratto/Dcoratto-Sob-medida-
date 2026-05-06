@@ -141,6 +141,25 @@ export const CalendarPage: React.FC = () => {
       .filter(Boolean) as Array<{event: CalendarEvent; condominium: CondominiumRule; reason: string}>;
   }, [condominiums, events]);
 
+  const today = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }, []);
+
+  const upcomingEvents = useMemo(() => {
+    const diffDays = (date: Date) => {
+      const target = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+      const base = today.getTime();
+      return Math.ceil((target - base) / (1000 * 60 * 60 * 24));
+    };
+
+    return events
+      .map((event) => ({event, daysLeft: diffDays(event.date)}))
+      .filter((item) => item.daysLeft >= 0)
+      .sort((a, b) => a.daysLeft - b.daysLeft)
+      .slice(0, 12);
+  }, [events, today]);
+
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between">
@@ -177,6 +196,28 @@ export const CalendarPage: React.FC = () => {
         </section>
       )}
 
+      <section className="rounded-2xl border border-slate-200 bg-white p-4">
+        <div className="text-slate-800 font-bold">Contagem regressiva</div>
+        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+          {upcomingEvents.length === 0 && (
+            <div className="rounded-xl bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-400">
+              Nenhuma medição ou entrega futura cadastrada.
+            </div>
+          )}
+          {upcomingEvents.map(({event, daysLeft}) => (
+            <div key={`${event.id}-countdown`} className="rounded-xl bg-slate-50 px-3 py-2">
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                {event.type === 'entrega' ? 'Entrega' : 'Medição'} · {event.clientName}
+              </div>
+              <div className="mt-1 text-sm font-bold text-slate-800">
+                {daysLeft === 0 ? 'É hoje' : `Daqui a ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`}
+              </div>
+              <div className="text-xs text-slate-500">{event.date.toLocaleDateString('pt-BR')}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
         <div className="grid grid-cols-7 border-b border-slate-100 text-center text-xs font-bold uppercase tracking-widest text-slate-400">
           {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((label) => (
@@ -187,11 +228,21 @@ export const CalendarPage: React.FC = () => {
           {days.map((day) => {
             const key = keyOf(day);
             const isCurrentMonth = day.getMonth() === baseDate.getMonth();
+            const isToday = keyOf(day) === keyOf(today);
             const holiday = getHolidayInfo(day);
             const dayEvents = eventByDay.get(key) || [];
             return (
-              <div key={key} className={cn('min-h-[120px] border-r border-b border-slate-100 p-2', !isCurrentMonth && 'bg-slate-50/70')}>
-                <div className={cn('text-xs font-bold', isCurrentMonth ? 'text-slate-700' : 'text-slate-400')}>{day.getDate()}</div>
+              <div
+                key={key}
+                className={cn(
+                  'min-h-[120px] border-r border-b border-slate-100 p-2',
+                  !isCurrentMonth && 'bg-slate-50/70',
+                  isToday && 'bg-brand-primary/5 ring-1 ring-brand-primary/30',
+                )}
+              >
+                <div className={cn('text-xs font-bold', isToday ? 'text-brand-primary' : isCurrentMonth ? 'text-slate-700' : 'text-slate-400')}>
+                  {day.getDate()}{isToday ? ' · Hoje' : ''}
+                </div>
                 {holiday.national && <div className="mt-1 rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">{holiday.national}</div>}
                 <div className="mt-2 space-y-1">
                   {dayEvents.slice(0, 3).map((event) => (

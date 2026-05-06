@@ -5,7 +5,7 @@ import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureInfo, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
-import {syncQuoteReservation} from '../lib/inventoryReservations';
+import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
 
@@ -270,35 +270,47 @@ export const ClientsPage: React.FC = () => {
   };
 
   const updateQuoteStatus = async (quote: Quote, status: QuoteStatus) => {
-    await updateDoc(doc(db, 'quotes', quote.id), {
-      status,
-      statusHistory: [
-        ...(quote.statusHistory || []),
-        {
-          status,
-          changedAt: Timestamp.now(),
-          changedByUid: user?.uid || '',
-          changedByName: currentUserName,
-          note: `Status alterado para ${status}`,
-        },
-      ],
-    });
-    await syncQuoteReservation(quote.id, {...quote, status});
-    await logSystemEvent({
-      type: 'quote_status_changed',
-      title: 'Status alterado no cliente',
-      description: `${quote.clientName}: ${quote.status} -> ${status}`,
-      entityType: 'quote',
-      entityId: quote.id,
-      quoteId: quote.id,
-      quoteStatus: status,
-      clientId: quote.clientId,
-      clientName: quote.clientName,
-      materialId: quote.materialId,
-      materialName: quote.materialName,
-      userUid: user?.uid || '',
-      userName: currentUserName,
-    });
+    try {
+      if (!isApprovedOrBeyond(quote.status) && isApprovedOrBeyond(status)) {
+        await applyQuoteInventoryByStatusTransition(quote.id, quote.status, status, quote);
+      }
+
+      await updateDoc(doc(db, 'quotes', quote.id), {
+        status,
+        statusHistory: [
+          ...(quote.statusHistory || []),
+          {
+            status,
+            changedAt: Timestamp.now(),
+            changedByUid: user?.uid || '',
+            changedByName: currentUserName,
+            note: `Status alterado para ${status}`,
+          },
+        ],
+      });
+
+      if (isApprovedOrBeyond(quote.status) || !isApprovedOrBeyond(status)) {
+        await syncQuoteReservation(quote.id, {...quote, status});
+      }
+
+      await logSystemEvent({
+        type: 'quote_status_changed',
+        title: 'Status alterado no cliente',
+        description: `${quote.clientName}: ${quote.status} -> ${status}`,
+        entityType: 'quote',
+        entityId: quote.id,
+        quoteId: quote.id,
+        quoteStatus: status,
+        clientId: quote.clientId,
+        clientName: quote.clientName,
+        materialId: quote.materialId,
+        materialName: quote.materialName,
+        userUid: user?.uid || '',
+        userName: currentUserName,
+      });
+    } catch (error: any) {
+      alert(error?.message || 'Não foi possível alterar o status do orçamento.');
+    }
   };
 
   const updateAssignment = async (quote: Quote, step: ProductionStep, employeeId: string) => {

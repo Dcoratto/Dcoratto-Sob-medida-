@@ -1,6 +1,6 @@
 import React, {useEffect, useState} from 'react';
 import {addDoc, arrayUnion, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from 'firebase/firestore';
-import {useNavigate} from 'react-router-dom';
+import {useLocation, useNavigate} from 'react-router-dom';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
 import {Copy, Edit2, FileText, Plus, Search, Trash2} from 'lucide-react';
@@ -8,7 +8,7 @@ import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
-import {releaseQuoteReservation, syncQuoteReservation} from '../lib/inventoryReservations';
+import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, releaseQuoteReservation, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
 
@@ -36,6 +36,8 @@ export const QuotesPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
+  const scope = new URLSearchParams(location.search).get('scope') || 'all';
   const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
 
   useEffect(() => {
@@ -49,6 +51,10 @@ export const QuotesPage: React.FC = () => {
   }, []);
 
   const filteredQuotes = quotes.filter((quote) => {
+    const normalizedStatus = normalize(quote.status);
+    const isOpenScope = ['pre-orcamento', 'aguardando medicao', 'medido', 'enviado'].includes(normalizedStatus);
+    const matchesScope = scope === 'open' ? isOpenScope : true;
+
     const searchable = [
       quote.clientName,
       quote.environment,
@@ -58,36 +64,48 @@ export const QuotesPage: React.FC = () => {
       quote.responsible,
     ].map(normalize).join(' ');
 
-    return searchable.includes(normalize(search));
+    return matchesScope && searchable.includes(normalize(search));
   });
 
   const handleStatusChange = async (quote: Quote, status: QuoteStatus) => {
-    await updateDoc(doc(db, 'quotes', quote.id), {
-      status,
-      statusHistory: arrayUnion({
+    try {
+      if (!isApprovedOrBeyond(quote.status) && isApprovedOrBeyond(status)) {
+        await applyQuoteInventoryByStatusTransition(quote.id, quote.status, status, quote);
+      }
+
+      await updateDoc(doc(db, 'quotes', quote.id), {
         status,
-        changedAt: Timestamp.now(),
-        changedByUid: user?.uid || '',
-        changedByName: currentUserName,
-        note: `Status alterado para ${status}`,
-      }),
-    });
-    await syncQuoteReservation(quote.id, {...quote, status});
-    await logSystemEvent({
-      type: 'quote_status_changed',
-      title: 'Status do orçamento alterado',
-      description: `${quote.clientName}: ${quote.status} -> ${status}`,
-      entityType: 'quote',
-      entityId: quote.id,
-      quoteId: quote.id,
-      quoteStatus: status,
-      clientId: quote.clientId,
-      clientName: quote.clientName,
-      materialId: quote.materialId,
-      materialName: quote.materialName,
-      userUid: user?.uid || '',
-      userName: currentUserName,
-    });
+        statusHistory: arrayUnion({
+          status,
+          changedAt: Timestamp.now(),
+          changedByUid: user?.uid || '',
+          changedByName: currentUserName,
+          note: `Status alterado para ${status}`,
+        }),
+      });
+
+      if (isApprovedOrBeyond(quote.status) || !isApprovedOrBeyond(status)) {
+        await syncQuoteReservation(quote.id, {...quote, status});
+      }
+
+      await logSystemEvent({
+        type: 'quote_status_changed',
+        title: 'Status do orçamento alterado',
+        description: `${quote.clientName}: ${quote.status} -> ${status}`,
+        entityType: 'quote',
+        entityId: quote.id,
+        quoteId: quote.id,
+        quoteStatus: status,
+        clientId: quote.clientId,
+        clientName: quote.clientName,
+        materialId: quote.materialId,
+        materialName: quote.materialName,
+        userUid: user?.uid || '',
+        userName: currentUserName,
+      });
+    } catch (error: any) {
+      alert(error?.message || 'Não foi possível alterar o status do orçamento.');
+    }
   };
 
   const handleDuplicate = async (quote: Quote) => {
@@ -186,6 +204,18 @@ export const QuotesPage: React.FC = () => {
       </header>
 
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
+        {scope === 'open' && (
+          <div className="mx-4 mt-4 mb-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-center justify-between gap-3">
+            <div className="text-xs font-bold uppercase tracking-widest text-amber-800">Filtro ativo: Orçamentos em aberto</div>
+            <button
+              type="button"
+              onClick={() => navigate('/quotes')}
+              className="text-xs font-bold uppercase tracking-widest text-amber-700 hover:underline"
+            >
+              Limpar filtro
+            </button>
+          </div>
+        )}
         <div className="p-4 border-b border-slate-50">
           <div className="relative max-w-md">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />

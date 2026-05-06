@@ -14,7 +14,7 @@ import {
 import { cn, formatCurrency } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
-import {syncQuoteReservation} from '../lib/inventoryReservations';
+import {applyQuoteInventoryByStatusTransition} from '../lib/inventoryReservations';
 import {logSystemEvent} from '../lib/systemEvents';
 import {getHolidayInfo} from '../lib/holidays';
 
@@ -53,6 +53,7 @@ export const QuoteEditor: React.FC = () => {
   const [validityDays, setValidityDays] = useState(15);
   const [commercialNotes, setCommercialNotes] = useState('');
   const [status, setStatus] = useState<QuoteStatus>('Pré-orçamento');
+  const [originalStatus, setOriginalStatus] = useState<QuoteStatus>('Pré-orçamento');
   const [pieces, setPieces] = useState<QuotePiece[]>([]);
   const [cutouts, setCutouts] = useState({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0 });
   const [showDrawing, setShowDrawing] = useState<string | null>(null);
@@ -172,6 +173,7 @@ export const QuoteEditor: React.FC = () => {
           setValidityDays(15); // Adjust if needed
           setCommercialNotes(data.commercialNotes || '');
           setStatus(data.status);
+          setOriginalStatus(data.status);
           setPieces(data.pieces || []);
           setEmployeeAssignments(data.employeeAssignments || []);
           setStatusHistory(data.statusHistory || []);
@@ -316,7 +318,7 @@ export const QuoteEditor: React.FC = () => {
     try {
       if (id) {
         await setDoc(doc(db, 'quotes', id), quoteData, { merge: true });
-        await syncQuoteReservation(id, quoteData);
+        await applyQuoteInventoryByStatusTransition(id, originalStatus, status, quoteData);
         await logSystemEvent({
           type: 'quote_updated',
           title: 'Orçamento atualizado',
@@ -335,7 +337,7 @@ export const QuoteEditor: React.FC = () => {
         });
       } else {
         const createdRef = await addDoc(collection(db, 'quotes'), quoteData);
-        await syncQuoteReservation(createdRef.id, quoteData);
+        await applyQuoteInventoryByStatusTransition(createdRef.id, 'Pré-orçamento', status, quoteData);
         await logSystemEvent({
           type: 'quote_created',
           title: 'Orçamento criado',
@@ -353,6 +355,7 @@ export const QuoteEditor: React.FC = () => {
           metadata: {totalArea, totalPrice, pieces: pieces.length},
         });
       }
+      setOriginalStatus(status);
       navigate('/quotes');
     } catch (err) {
       console.error(err);

@@ -3,26 +3,18 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSettings } from '../hooks/useSettings';
-import { Client, Employee, EmployeeAssignment, InventoryItem, InventoryReservation, Material, PieceSide, ProductionStep, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory, UserMaterialPrice } from '../types';
+import { Client, EmployeeAssignment, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory, UserMaterialPrice } from '../types';
 import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
   ChevronDown, ChevronUp, Calculator,
   MapPin, Phone, User, Calendar,
-  Layers, Scan, PenTool
+  Layers, PenTool
 } from 'lucide-react';
 import { cn, formatCurrency } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
 import {syncQuoteReservation} from '../lib/inventoryReservations';
-
-const productionSteps: Array<{key: ProductionStep; label: string}> = [
-  {key: 'medicao', label: 'Medição'},
-  {key: 'corte', label: 'Corte'},
-  {key: 'acabamento', label: 'Acabamento'},
-  {key: 'instalacao', label: 'Instalação'},
-  {key: 'entrega', label: 'Entrega'},
-];
 
 const normalizeStockStatus = (value: unknown) =>
   String(value || '')
@@ -41,7 +33,6 @@ export const QuoteEditor: React.FC = () => {
   const [reservations, setReservations] = useState<InventoryReservation[]>([]);
   const [userMaterialPrices, setUserMaterialPrices] = useState<UserMaterialPrice[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -111,10 +102,6 @@ export const QuoteEditor: React.FC = () => {
       })
       : undefined;
 
-    const unsubEmployees = onSnapshot(collection(db, 'employees'), (snap) => {
-      setEmployees(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Employee)));
-    });
-
     const unsubInventory = onSnapshot(collection(db, 'inventory'), (snap) => {
       setInventory(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItem)));
     });
@@ -160,7 +147,6 @@ export const QuoteEditor: React.FC = () => {
       unsubClients();
       unsubMaterials();
       unsubUserPrices?.();
-      unsubEmployees();
       unsubInventory();
       unsubReservations();
     };
@@ -204,22 +190,6 @@ export const QuoteEditor: React.FC = () => {
 
   const updatePiece = (id: string, data: Partial<QuotePiece>) => {
     setPieces(pieces.map(p => p.id === id ? { ...p, ...data } : p));
-  };
-
-  const setAssignment = (step: ProductionStep, employeeId: string) => {
-    const employee = employees.find((item) => item.id === employeeId);
-    setEmployeeAssignments((current) => {
-      const next = current.filter((item) => item.step !== step);
-      if (!employee) return next;
-      return [...next, {step, employeeId: employee.id, employeeName: employee.name, startedAt: Timestamp.now()}];
-    });
-  };
-
-  const toggleStepDone = (step: ProductionStep) => {
-    setEmployeeAssignments((current) => current.map((item) => item.step === step ? {
-      ...item,
-      finishedAt: item.finishedAt ? null : Timestamp.now(),
-    } : item));
   };
 
   const sideOptionsForPiece = (piece: QuotePiece) => [
@@ -478,45 +448,6 @@ export const QuoteEditor: React.FC = () => {
                   </select>
                 </div>
               </div>
-            </div>
-          </section>
-
-          <section className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
-            <h2 className="font-display font-bold text-lg text-slate-800 flex items-center gap-2">
-              <User className="w-5 h-5 text-brand-primary" /> Responsáveis da Produção
-            </h2>
-            <div className="space-y-3">
-              {productionSteps.map((step) => {
-                const assignment = employeeAssignments.find((item) => item.step === step.key);
-                return (
-                  <div key={step.key} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-3 space-y-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-sm font-bold text-slate-800">{step.label}</div>
-                      <select
-                        value={assignment?.employeeId || ''}
-                        onChange={(event) => setAssignment(step.key, event.target.value)}
-                        className="max-w-[170px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold outline-none"
-                      >
-                        <option value="">Responsável</option>
-                        {employees.filter((employee) => employee.active).map((employee) => (
-                          <option key={employee.id} value={employee.id}>{employee.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    {assignment && (
-                      <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-600">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(assignment.finishedAt)}
-                          onChange={() => toggleStepDone(step.key)}
-                          className="h-4 w-4 accent-brand-primary"
-                        />
-                        Etapa concluída
-                      </label>
-                    )}
-                  </div>
-                );
-              })}
             </div>
           </section>
 

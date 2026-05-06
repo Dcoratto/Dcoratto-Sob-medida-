@@ -63,25 +63,36 @@ export const PremiumProposalPage: React.FC = () => {
   );
 
   const materialCards = useMemo(() => {
-    const cards = new Map<string, {name: string; category: string; image?: string}>();
+    const cards = new Map<string, {name: string; category: string; image?: string; area: number; pieces: string[]}>();
     if (selectedMaterial) {
       cards.set(selectedMaterial.id, {
         name: selectedMaterial.name,
         category: [selectedMaterial.category, selectedMaterial.provider].filter(Boolean).join(' · ') || 'Material principal',
         image: quote?.pieces?.find((piece) => pieceImage(piece)) ? pieceImage(quote.pieces.find((piece) => pieceImage(piece))!) : undefined,
+        area: 0,
+        pieces: [],
       });
     }
     (quote?.pieces || []).forEach((piece) => {
-      if (!cards.has(piece.materialId)) {
-        const material = materials.find((item) => item.id === piece.materialId);
-        cards.set(piece.materialId || piece.id, {
+      const key = piece.materialId || selectedMaterial?.id || piece.id;
+      const material = materials.find((item) => item.id === piece.materialId) || selectedMaterial;
+      if (!cards.has(key)) {
+        cards.set(key, {
           name: material?.name || piece.materialId || piece.name,
           category: material?.category || 'Material do ambiente',
           image: pieceImage(piece) || undefined,
+          area: 0,
+          pieces: [],
         });
       }
+      const card = cards.get(key);
+      if (card) {
+        card.area += pieceArea(piece);
+        card.pieces.push(piece.name);
+        if (!card.image && pieceImage(piece)) card.image = pieceImage(piece);
+      }
     });
-    return Array.from(cards.values()).slice(0, 3);
+    return Array.from(cards.values());
   }, [materials, quote?.pieces, selectedMaterial]);
 
   if (loading) {
@@ -110,6 +121,15 @@ export const PremiumProposalPage: React.FC = () => {
   const quoteNumber = quote.id ? `#${quote.id.slice(0, 8).toUpperCase()}` : '#--------';
   const halfValue = (quote.totalPrice || 0) / 10;
   const cashValue = (quote.totalPrice || 0) * 0.9;
+  const totalAdditionsArea = (quote.pieces || []).reduce(
+    (sum, piece) => sum + (piece.sides || []).reduce((sideSum, side) => sideSum + Number(side.areaTotal || side.area || 0), 0),
+    0,
+  );
+  const navItems = [
+    {label: 'Materiais', href: '#materiais'},
+    ...(quote.pieces || []).slice(0, 5).map((piece, index) => ({label: piece.name || `Ambiente ${index + 1}`, href: `#ambiente-${index + 1}`})),
+    {label: 'Resumo', href: '#resumo'},
+  ];
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#050505] text-white print:bg-white print:text-slate-950">
@@ -119,11 +139,12 @@ export const PremiumProposalPage: React.FC = () => {
             <ArrowLeft className="h-4 w-4" />
             Orçamentos
           </button>
-          <div className="hidden items-center gap-6 md:flex">
-            <a href="#manifesto" className="text-xs font-bold uppercase tracking-widest text-white/45 hover:text-[#D4A853]">Manifesto</a>
-            <a href="#materiais" className="text-xs font-bold uppercase tracking-widest text-white/45 hover:text-[#D4A853]">Materiais</a>
-            <a href="#pecas" className="text-xs font-bold uppercase tracking-widest text-white/45 hover:text-[#D4A853]">Ambientes</a>
-            <a href="#resumo" className="text-xs font-bold uppercase tracking-widest text-[#D4A853]">Resumo</a>
+          <div className="hidden max-w-3xl items-center gap-5 overflow-x-auto md:flex">
+            {navItems.map((item) => (
+              <a key={item.href} href={item.href} className="whitespace-nowrap text-xs font-bold uppercase tracking-widest text-white/45 transition hover:text-[#D4A853]">
+                {item.label}
+              </a>
+            ))}
           </div>
           <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 rounded-full bg-[#D4A853] px-4 py-2 text-xs font-bold uppercase tracking-widest text-black shadow-lg shadow-[#D4A853]/20">
             <Printer className="h-4 w-4" />
@@ -132,7 +153,7 @@ export const PremiumProposalPage: React.FC = () => {
         </div>
       </div>
 
-      <Hero quote={quote} settings={settings} totalPieces={totalPieces} quoteNumber={quoteNumber} />
+      <Hero quote={quote} settings={settings} totalPieces={totalPieces} quoteNumber={quoteNumber} totalAdditionsArea={totalAdditionsArea} />
 
       <section id="manifesto" className="relative px-6 py-28 print:py-12">
         <SectionNumber value="00" />
@@ -148,9 +169,11 @@ export const PremiumProposalPage: React.FC = () => {
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 print:border-slate-200 print:bg-white">
             <InfoRow label="Cliente" value={safe(quote.clientName)} />
+            <InfoRow label="Telefone" value={safe(quote.phone)} />
+            <InfoRow label="Endereço" value={safe(quote.address)} />
             <InfoRow label="Ambiente" value={safe(quote.environment)} />
             <InfoRow label="Status" value={safe(quote.status)} />
-            <InfoRow label="Responsável" value={safe(quote.responsible)} />
+            <InfoRow label="Responsável" value={safe(quote.responsibleUserName || quote.responsible)} />
             <InfoRow label="Validade" value={format(toDate(quote.validityDate), 'dd/MM/yyyy', {locale: ptBR})} />
             <InfoRow label="Emissão" value={format(toDate(quote.createdAt), 'dd/MM/yyyy', {locale: ptBR})} last />
           </div>
@@ -175,14 +198,29 @@ export const PremiumProposalPage: React.FC = () => {
                 <div className="p-5">
                   <h3 className="font-display text-lg font-bold">{material.name}</h3>
                   <p className="mt-2 text-xs text-white/40 print:text-slate-500">{material.category}</p>
+                  <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/5 pt-4 print:border-slate-100">
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-white/28 print:text-slate-400">Área</div>
+                      <div className="mt-1 font-mono text-sm font-bold text-[#D4A853]">{formatNumber(material.area, 4)} m²</div>
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-white/28 print:text-slate-400">Uso</div>
+                      <div className="mt-1 text-xs font-semibold text-white/62 print:text-slate-600">{material.pieces.length} peça(s)</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             ))}
+            {materialCards.length === 0 && (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-8 text-center text-sm font-semibold text-white/42 md:col-span-3">
+                Nenhum material vinculado ao orçamento.
+              </div>
+            )}
           </div>
         </div>
       </section>
 
-      <section id="pecas" className="px-6 py-20 print:py-12">
+      <section id="ambientes" className="px-6 py-20 print:py-12">
         <div className="mx-auto max-w-6xl">
           <div className="space-y-28">
             {(quote.pieces || []).map((piece, index) => (
@@ -192,6 +230,7 @@ export const PremiumProposalPage: React.FC = () => {
                 index={index}
                 materialName={materials.find((material) => material.id === piece.materialId)?.name || selectedMaterial?.name || 'Material'}
                 reverse={index % 2 === 1}
+                quoteCutouts={quote.cutouts}
               />
             ))}
           </div>
@@ -259,14 +298,15 @@ export const PremiumProposalPage: React.FC = () => {
   );
 };
 
-const Hero = ({quote, settings, totalPieces, quoteNumber}: {quote: Quote; settings: any; totalPieces: number; quoteNumber: string}) => (
+const Hero = ({quote, settings, totalPieces, quoteNumber, totalAdditionsArea}: {quote: Quote; settings: any; totalPieces: number; quoteNumber: string; totalAdditionsArea: number}) => (
   <section className="relative isolate min-h-screen overflow-hidden px-6 pt-28 print:min-h-0 print:pt-8">
-    <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,rgba(212,168,83,0.18),transparent_32%),radial-gradient(circle_at_80%_0%,rgba(255,255,255,0.08),transparent_28%),linear-gradient(135deg,#050505,#16110d_48%,#030303)]" />
-    <div className="absolute inset-0 opacity-50 [background-image:linear-gradient(115deg,transparent_0%,transparent_42%,rgba(212,168,83,0.16)_43%,transparent_44%,transparent_100%),linear-gradient(35deg,transparent_0%,transparent_62%,rgba(255,255,255,0.08)_63%,transparent_64%,transparent_100%)]" />
-    <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/35 to-[#050505]" />
+    <div className="absolute inset-0 bg-[#050505]" />
+    <div className="absolute inset-0 opacity-80 [background-image:radial-gradient(ellipse_at_20%_15%,rgba(255,255,255,0.15),transparent_24%),radial-gradient(ellipse_at_70%_20%,rgba(212,168,83,0.12),transparent_22%),linear-gradient(118deg,transparent_0%,transparent_18%,rgba(107,82,54,0.35)_19%,transparent_21%,transparent_43%,rgba(231,196,116,0.24)_44%,transparent_46%,transparent_72%,rgba(255,255,255,0.12)_73%,transparent_75%),linear-gradient(31deg,transparent_0%,transparent_35%,rgba(212,168,83,0.18)_36%,transparent_38%,transparent_100%)]" />
+    <div className="absolute inset-0 [background-image:linear-gradient(135deg,rgba(255,255,255,0.05)_0_1px,transparent_1px_18px),radial-gradient(circle_at_45%_38%,rgba(0,0,0,0),rgba(0,0,0,0.78)_56%,#050505_100%)]" />
+    <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/30 to-[#050505]" />
     <div className="relative z-10 mx-auto flex min-h-[calc(100vh-7rem)] max-w-6xl flex-col items-center justify-center text-center print:min-h-0">
-      {settings.logoUrl ? (
-        <img src={settings.logoUrl} alt={settings.companyName} className="mb-8 h-16 max-w-[220px] object-contain opacity-85" />
+      {settings.logoUrl || '/logo.png' ? (
+        <img src={settings.logoUrl || '/logo.png'} alt={settings.companyName} className="mb-8 h-16 max-w-[220px] object-contain opacity-85" />
       ) : (
         <div className="mb-8 text-sm font-bold uppercase tracking-[0.4em] text-white/35">{settings.companyName || 'D’coratto Sob Medida'}</div>
       )}
@@ -286,12 +326,23 @@ const Hero = ({quote, settings, totalPieces, quoteNumber}: {quote: Quote; settin
         <MetricCard label="Ambientes" value={String(totalPieces)} />
         <MetricCard label="Pedido" value={quoteNumber} />
       </div>
+      <div className="mt-6 grid w-full max-w-3xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
+        <MiniMetric label="Área principal" value={`${formatNumber(quote.totalArea || 0, 4)} m²`} />
+        <MiniMetric label="Adicionais" value={`${formatNumber(totalAdditionsArea, 4)} m²`} />
+        <MiniMetric label="Prazo" value={`${quote.deliveryDays || 0} dias úteis`} />
+      </div>
     </div>
   </section>
 );
 
-const PieceSection = ({piece, index, materialName, reverse}: {key?: React.Key; piece: QuotePiece; index: number; materialName: string; reverse: boolean}) => {
+const PieceSection = ({piece, index, materialName, reverse, quoteCutouts}: {key?: React.Key; piece: QuotePiece; index: number; materialName: string; reverse: boolean; quoteCutouts: Quote['cutouts']}) => {
   const additions = (piece.sides || []).filter((side) => side.type && side.type !== 'none');
+  const projectCutouts = [
+    {label: 'Cooktop', count: quoteCutouts?.cooktop || 0},
+    {label: 'Cuba embutida', count: quoteCutouts?.sinkUnder || 0},
+    {label: 'Cuba sobreposta', count: quoteCutouts?.sinkOver || 0},
+    {label: 'Furação torneira', count: quoteCutouts?.faucetHole || 0},
+  ].filter((item) => item.count > 0);
   const rows = [
     {description: 'Pedra principal', measure: `${piece.length || 0} x ${piece.width || 0} cm`, area: `${formatNumber(pieceArea(piece), 4)} m²`, material: materialName, subtotal: 'Incluído'},
     ...(piece.sculptedSink?.active ? [{
@@ -315,10 +366,17 @@ const PieceSection = ({piece, index, materialName, reverse}: {key?: React.Key; p
       material: 'No desenho',
       subtotal: 'Projeto',
     })),
+    ...(!piece.cutouts?.length && index === 0 ? projectCutouts.map((cutout) => ({
+      description: cutout.label,
+      measure: `${cutout.count} un`,
+      area: '-',
+      material: 'Recorte especial',
+      subtotal: 'Projeto',
+    })) : []),
   ];
 
   return (
-    <article className="relative">
+    <article id={`ambiente-${index + 1}`} className="relative scroll-mt-24">
       <SectionNumber value={String(index + 1).padStart(2, '0')} />
       <Eyebrow>Ambiente {String(index + 1).padStart(2, '0')}</Eyebrow>
       <h2 className="mb-2 mt-3 font-display text-3xl font-bold md:text-4xl">{piece.name}</h2>
@@ -338,6 +396,7 @@ const PieceSection = ({piece, index, materialName, reverse}: {key?: React.Key; p
               )}
             </div>
           </div>
+          <FixtureSummary piece={piece} />
         </div>
         <div className="lg:col-span-7">
           <div className="overflow-hidden rounded-xl border border-white/10 bg-black/35 print:border-slate-200 print:bg-white">
@@ -360,6 +419,42 @@ const PieceSection = ({piece, index, materialName, reverse}: {key?: React.Key; p
   );
 };
 
+const FixtureSummary = ({piece}: {piece: QuotePiece}) => {
+  const fixtureLabels = {
+    sink: 'Cuba',
+    faucet: 'Torneira',
+    cooktop: 'Cooktop',
+  };
+  const fixtures = Object.entries(piece.purchasedFixtures || {})
+    .filter(([, fixture]) => fixture && Object.values(fixture).some(Boolean));
+
+  if (!fixtures.length) return null;
+
+  return (
+    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.035] p-4 print:border-slate-200 print:bg-white">
+      <div className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#D4A853]">Itens comprados pelo cliente</div>
+      <div className="space-y-3">
+        {fixtures.map(([key, fixture]) => (
+          <div key={key} className="rounded-lg bg-black/20 p-3 text-xs print:bg-slate-50">
+            <div className="font-bold text-white/85 print:text-slate-800">{fixtureLabels[key as keyof typeof fixtureLabels]}</div>
+            <div className="mt-1 text-white/45 print:text-slate-500">
+              {[fixture.brand, fixture.model].filter(Boolean).join(' · ') || 'Modelo não informado'}
+            </div>
+            <div className="mt-1 font-mono text-white/40 print:text-slate-500">
+              {[
+                fixture.width ? `L ${fixture.width}` : '',
+                fixture.depth ? `P ${fixture.depth}` : '',
+                fixture.height ? `A ${fixture.height}` : '',
+                fixture.diameter ? `Ø ${fixture.diameter}` : '',
+              ].filter(Boolean).join(' · ') || 'Medidas pendentes'}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const TableRow = ({description, measure, area, material, subtotal}: {key?: React.Key; description: string; measure: string; area: string; material: string; subtotal: string}) => (
   <div className="grid grid-cols-12 gap-2 border-b border-white/[0.035] px-4 py-3 text-xs transition hover:bg-white/[0.025] print:border-slate-100">
     <span className="col-span-4 font-semibold text-white/82 print:text-slate-800">{description}</span>
@@ -374,6 +469,13 @@ const MetricCard = ({label, value, highlight = false}: {label: string; value: st
   <div className={`rounded-xl border p-6 backdrop-blur ${highlight ? 'border-[#D4A853]/45 bg-[#D4A853]/[0.05]' : 'border-white/10 bg-white/[0.035]'}`}>
     <div className="mb-3 text-xs font-bold uppercase tracking-[0.28em] text-white/38">{label}</div>
     <div className={`font-mono text-2xl font-bold ${highlight ? 'text-[#D4A853]' : 'text-white'}`}>{value}</div>
+  </div>
+);
+
+const MiniMetric = ({label, value}: {label: string; value: string}) => (
+  <div className="rounded-xl border border-white/10 bg-black/20 px-5 py-4 backdrop-blur">
+    <div className="text-[10px] font-bold uppercase tracking-[0.28em] text-white/30">{label}</div>
+    <div className="mt-2 font-mono text-sm font-bold text-white/78">{value}</div>
   </div>
 );
 

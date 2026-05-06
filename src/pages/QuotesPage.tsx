@@ -195,7 +195,12 @@ export const QuotesPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button type="button" title="Abrir proposta premium" onClick={() => navigate(`/quotes/proposal/${quote.id}`)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg">
+                        <button
+                          type="button"
+                          title="Abrir proposta premium"
+                          onClick={() => window.open(`/quotes/proposal/${quote.id}`, '_blank', 'noopener,noreferrer')}
+                          className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg"
+                        >
                           <FileText className="w-4 h-4" />
                         </button>
                         <button type="button" title="Editar" onClick={() => navigate(`/quotes/edit/${quote.id}`)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg">

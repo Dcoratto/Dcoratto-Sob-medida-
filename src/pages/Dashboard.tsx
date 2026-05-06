@@ -161,7 +161,7 @@ export const Dashboard: React.FC = () => {
         <p className="text-slate-500 mt-1">Veja um resumo das atividades da D'Coratto.</p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {stats.map((stat) => (
           <button
             key={stat.path}

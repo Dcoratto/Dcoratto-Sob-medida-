@@ -3,11 +3,9 @@ import {addDoc, arrayUnion, collection, doc, onSnapshot, orderBy, query, Timesta
 import {useNavigate} from 'react-router-dom';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
-import {Copy, Edit2, Plus, Printer, Search, Trash2} from 'lucide-react';
+import {Copy, Edit2, FileText, Plus, Search, Trash2} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
-import {generateQuotePDF} from '../lib/pdfGenerator';
-import {useSettings} from '../hooks/useSettings';
 import {Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {releaseQuoteReservation, syncQuoteReservation} from '../lib/inventoryReservations';
@@ -35,7 +33,6 @@ export const QuotesPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const {settings} = useSettings();
 
   useEffect(() => {
     const q = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
@@ -189,8 +186,8 @@ export const QuotesPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button type="button" title="Imprimir" onClick={() => generateQuotePDF(quote, settings)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg">
-                          <Printer className="w-4 h-4" />
+                        <button type="button" title="Abrir proposta premium" onClick={() => navigate(`/quotes/proposal/${quote.id}`)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg">
+                          <FileText className="w-4 h-4" />
                         </button>
                         <button type="button" title="Editar" onClick={() => navigate(`/quotes/edit/${quote.id}`)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg">
                           <Edit2 className="w-4 h-4" />

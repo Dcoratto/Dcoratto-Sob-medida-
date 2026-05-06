@@ -19,8 +19,9 @@ import { SettingsPage } from './pages/SettingsPage';
 import { AdminPage } from './pages/AdminPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ReportsPage } from './pages/ReportsPage';
+import { PremiumProposalPage } from './pages/PremiumProposalPage';
 
-const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) => {
+const ProtectedRoute = ({ children, adminOnly = false, shell = true }: { children: React.ReactNode, adminOnly?: boolean, shell?: boolean }) => {
   const { user, loading, isAdmin } = useAuth();
   
   if (loading) return (
@@ -32,7 +33,7 @@ const ProtectedRoute = ({ children, adminOnly = false }: { children: React.React
   if (!user) return <Navigate to="/login" />;
   if (adminOnly && !isAdmin) return <Navigate to="/" />;
   
-  return <Shell>{children}</Shell>;
+  return shell ? <Shell>{children}</Shell> : <>{children}</>;
 };
 
 export default function App() {
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/quotes" element={<ProtectedRoute><QuotesPage /></ProtectedRoute>} />
           <Route path="/quotes/new" element={<ProtectedRoute><QuoteEditor /></ProtectedRoute>} />
           <Route path="/quotes/edit/:id" element={<ProtectedRoute><QuoteEditor /></ProtectedRoute>} />
+          <Route path="/quotes/proposal/:id" element={<ProtectedRoute shell={false}><PremiumProposalPage /></ProtectedRoute>} />
           
           <Route path="/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><QuotesPage /></ProtectedRoute>} />

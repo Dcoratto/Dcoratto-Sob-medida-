@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {collection, limit, onSnapshot, orderBy, query} from 'firebase/firestore';
 import {useNavigate} from 'react-router-dom';
-import {AlertCircle, CheckCircle2, Clock, Database, FileText, Package, TrendingUp, Users} from 'lucide-react';
+import {AlertCircle, CheckCircle2, Clock, Database, FileText, FolderKanban, Package, TrendingUp, Users} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {Client, InventoryItem, Material, Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
@@ -133,6 +133,7 @@ export const Dashboard: React.FC = () => {
 
   const stats = [
     {label: 'Orçamentos', value: quotes.length, icon: FileText, color: 'text-brand-primary', bg: 'bg-brand-primary/10', path: '/quotes'},
+    {label: 'Projetos', value: quotes.filter((quote) => { const s = normalizeStatus(quote.status); return s === 'Aprovado' || s === 'Em produção' || s === 'Pronto para entrega' || s === 'Entregue'; }).length, icon: FolderKanban, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/projects'},
     {label: 'Clientes', value: clients.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/clients'},
     {label: 'Materiais', value: materialsCount, icon: Package, color: 'text-purple-600', bg: 'bg-purple-50', path: '/materials'},
     {label: 'Itens em Estoque', value: inventory.length, icon: Database, color: 'text-amber-600', bg: 'bg-amber-50', path: '/inventory'},

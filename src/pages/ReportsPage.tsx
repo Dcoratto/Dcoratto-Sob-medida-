@@ -136,6 +136,11 @@ export const ReportsPage: React.FC = () => {
     return {employee, evaluations, assignments, average};
   }).sort((a, b) => b.average - a.average || b.assignments.length - a.assignments.length);
 
+  const evaluationHistory = filteredQuotes
+    .flatMap((quote) => (quote.employeeEvaluations || []).map((item) => ({quote, item})))
+    .sort((a, b) => (toDate(b.item.createdAt)?.getTime() || 0) - (toDate(a.item.createdAt)?.getTime() || 0))
+    .slice(0, 20);
+
   const productionHistory = filteredQuotes
     .flatMap((quote) => (quote.statusHistory || []).map((item) => ({quote, item})))
     .sort((a, b) => (toDate(b.item.changedAt)?.getTime() || 0) - (toDate(a.item.changedAt)?.getTime() || 0))
@@ -154,6 +159,7 @@ export const ReportsPage: React.FC = () => {
     materialSales,
     deadlineAlerts,
     employeeStats,
+    evaluationHistory,
     productionHistory,
     productionStepLabels,
   });
@@ -269,6 +275,9 @@ export const ReportsPage: React.FC = () => {
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">
                       {date ? date.toLocaleDateString('pt-BR') : 'Sem data'}
                     </div>
+                    {item.changedByName && (
+                      <div className="text-xs text-slate-400">Alterado por {item.changedByName}</div>
+                    )}
                     <div className="text-xs text-slate-400">
                       {[item.responsibleEmployeeName, item.step ? productionStepLabels[item.step] : ''].filter(Boolean).join(' · ')}
                     </div>
@@ -311,6 +320,34 @@ export const ReportsPage: React.FC = () => {
             </div>
           ))}
           {employeeStats.length === 0 && <EmptyText>Nenhum funcionário cadastrado.</EmptyText>}
+        </div>
+      </section>
+
+      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
+        <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Avaliacoes registradas</h2>
+        <div className="space-y-3">
+          {evaluationHistory.map(({quote, item}, index) => {
+            const date = toDate(item.createdAt);
+            return (
+              <div key={`${quote.id}-${item.employeeId}-${item.step}-${index}`} className="rounded-2xl bg-slate-50 p-4">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="font-bold text-slate-900">{item.employeeName} - {productionStepLabels[item.step]}</div>
+                    <div className="text-sm text-slate-600">{quote.clientName} - {item.notes || 'Sem observacao'}</div>
+                  </div>
+                  <div className="text-left md:text-right">
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                      {date ? date.toLocaleDateString('pt-BR') : 'Sem data'}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      Nota {item.rating}/5 - Avaliado por {item.evaluatedByName || 'Nao informado'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {evaluationHistory.length === 0 && <EmptyText>Nenhuma avaliacao registrada no periodo.</EmptyText>}
         </div>
       </section>
     </div>

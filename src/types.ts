@@ -103,11 +103,15 @@ export interface EmployeeEvaluation {
   rating: number;
   notes?: string;
   createdAt?: any;
+  evaluatedByUid?: string;
+  evaluatedByName?: string;
 }
 
 export interface QuoteStatusHistory {
   status: QuoteStatus;
   changedAt: any;
+  changedByUid?: string;
+  changedByName?: string;
   responsibleEmployeeId?: string;
   responsibleEmployeeName?: string;
   step?: ProductionStep;
@@ -209,6 +213,8 @@ export interface Quote {
   address: string;
   environment: string;
   responsible: string;
+  responsibleUserUid?: string;
+  responsibleUserName?: string;
   materialId: string;
   paymentMethod: string;
   deliveryDays: number;

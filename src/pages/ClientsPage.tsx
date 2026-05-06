@@ -6,6 +6,7 @@ import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Client, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureInfo, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {syncQuoteReservation} from '../lib/inventoryReservations';
+import {useAuth} from '../contexts/AuthContext';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -70,6 +71,7 @@ const stepDate = (value: any) => {
 };
 
 export const ClientsPage: React.FC = () => {
+  const {user, profile} = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -126,6 +128,7 @@ export const ClientsPage: React.FC = () => {
   }, [quotes, selectedClient]);
 
   const selectedQuote = selectedClientQuotes.find((quote) => quote.id === selectedQuoteId) || selectedClientQuotes[0];
+  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
 
   const resetForm = () => {
     setName('');
@@ -180,7 +183,13 @@ export const ClientsPage: React.FC = () => {
       status,
       statusHistory: [
         ...(quote.statusHistory || []),
-        {status, changedAt: Timestamp.now(), note: `Status alterado para ${status}`},
+        {
+          status,
+          changedAt: Timestamp.now(),
+          changedByUid: user?.uid || '',
+          changedByName: currentUserName,
+          note: `Status alterado para ${status}`,
+        },
       ],
     });
     await syncQuoteReservation(quote.id, {...quote, status});
@@ -205,6 +214,8 @@ export const ClientsPage: React.FC = () => {
         {
           status: quote.status,
           changedAt: Timestamp.now(),
+          changedByUid: user?.uid || '',
+          changedByName: currentUserName,
           responsibleEmployeeId: employee?.id || '',
           responsibleEmployeeName: employee?.name || '',
           step,
@@ -229,6 +240,8 @@ export const ClientsPage: React.FC = () => {
         {
           status: quote.status,
           changedAt: Timestamp.now(),
+          changedByUid: user?.uid || '',
+          changedByName: currentUserName,
           responsibleEmployeeId: assignment.employeeId,
           responsibleEmployeeName: assignment.employeeName,
           step: assignment.step,
@@ -247,6 +260,8 @@ export const ClientsPage: React.FC = () => {
       rating,
       notes: notes ?? currentEvaluation?.notes ?? '',
       createdAt: Timestamp.now(),
+      evaluatedByUid: user?.uid || '',
+      evaluatedByName: currentUserName,
     };
     const nextEvaluations = (quote.employeeEvaluations || [])
       .filter((item) => item.step !== assignment.step || item.employeeId !== assignment.employeeId)
@@ -259,6 +274,8 @@ export const ClientsPage: React.FC = () => {
         {
           status: quote.status,
           changedAt: Timestamp.now(),
+          changedByUid: user?.uid || '',
+          changedByName: currentUserName,
           responsibleEmployeeId: assignment.employeeId,
           responsibleEmployeeName: assignment.employeeName,
           step: assignment.step,
@@ -299,6 +316,8 @@ export const ClientsPage: React.FC = () => {
         {
           status: quote.status,
           changedAt: Timestamp.now(),
+          changedByUid: user?.uid || '',
+          changedByName: currentUserName,
           note: `Dados de ${fixtureType === 'sink' ? 'cuba' : fixtureType === 'faucet' ? 'torneira' : 'cooktop'} atualizados`,
         },
       ],

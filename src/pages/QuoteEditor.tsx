@@ -33,7 +33,7 @@ const normalizeStockStatus = (value: unknown) =>
 export const QuoteEditor: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { settings, loading: settingsLoading } = useSettings();
   
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -70,6 +70,7 @@ export const QuoteEditor: React.FC = () => {
     : selectedBaseMaterial;
   const selectedClient = clients.find(c => c.id === clientId);
   const { calculatePieceArea, calculateTotal, calculateSculptedSink } = useQuoteCalculator(settings, selectedMaterial);
+  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
   
   const selectedPaymentAdjustment = settings.paymentMethods.find(m => m.name === paymentMethod)?.adjustment || 0;
   const totalPrice = calculateTotal(pieces, cutouts, selectedPaymentAdjustment);
@@ -165,6 +166,12 @@ export const QuoteEditor: React.FC = () => {
     };
   }, [id, user?.uid]);
 
+  useEffect(() => {
+    if (!id && !responsible && currentUserName !== 'Usuário') {
+      setResponsible(currentUserName);
+    }
+  }, [currentUserName, id, responsible]);
+
   const addPiece = () => {
     const newPiece: QuotePiece = {
       id: Math.random().toString(36).substr(2, 9),
@@ -257,6 +264,8 @@ export const QuoteEditor: React.FC = () => {
       address: selectedClient?.address || '',
       environment,
       responsible,
+      responsibleUserUid: user?.uid || '',
+      responsibleUserName: currentUserName,
       materialId,
       paymentMethod,
       deliveryDays,
@@ -271,6 +280,8 @@ export const QuoteEditor: React.FC = () => {
       statusHistory: [...statusHistory, {
         status,
         changedAt: Timestamp.now(),
+        changedByUid: user?.uid || '',
+        changedByName: currentUserName,
         responsibleEmployeeId: employeeAssignments.find((item) => item.employeeId)?.employeeId,
         responsibleEmployeeName: employeeAssignments.find((item) => item.employeeName)?.employeeName,
       }],

@@ -9,6 +9,7 @@ import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {releaseQuoteReservation, syncQuoteReservation} from '../lib/inventoryReservations';
+import {useAuth} from '../contexts/AuthContext';
 
 const quoteStatuses: QuoteStatus[] = [
   'Pré-orçamento',
@@ -29,10 +30,12 @@ const normalize = (value: unknown) =>
     .replace(/[\u0300-\u036f]/g, '');
 
 export const QuotesPage: React.FC = () => {
+  const {user, profile} = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
 
   useEffect(() => {
     const q = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
@@ -60,7 +63,13 @@ export const QuotesPage: React.FC = () => {
   const handleStatusChange = async (quote: Quote, status: QuoteStatus) => {
     await updateDoc(doc(db, 'quotes', quote.id), {
       status,
-      statusHistory: arrayUnion({status, changedAt: Timestamp.now()}),
+      statusHistory: arrayUnion({
+        status,
+        changedAt: Timestamp.now(),
+        changedByUid: user?.uid || '',
+        changedByName: currentUserName,
+        note: `Status alterado para ${status}`,
+      }),
     });
     await syncQuoteReservation(quote.id, {...quote, status});
   };

@@ -17,9 +17,22 @@ export interface ReportDeadlineAlert {
 
 export interface ReportEmployeeStat {
   employee: Employee;
-  evaluations: Array<{rating: number}>;
+  evaluations: Array<{rating: number; evaluatedByName?: string}>;
   assignments: unknown[];
   average: number;
+}
+
+export interface ReportEvaluationHistory {
+  quote: Quote;
+  item: {
+    step: ProductionStep;
+    employeeId: string;
+    employeeName: string;
+    rating: number;
+    notes?: string;
+    createdAt?: any;
+    evaluatedByName?: string;
+  };
 }
 
 export interface ReportProductionHistory {
@@ -27,6 +40,7 @@ export interface ReportProductionHistory {
   item: {
     status: string;
     changedAt: any;
+    changedByName?: string;
     responsibleEmployeeName?: string;
     step?: ProductionStep;
     note?: string;
@@ -46,6 +60,7 @@ export interface ReportPdfData {
   materialSales: ReportMaterialSale[];
   deadlineAlerts: ReportDeadlineAlert[];
   employeeStats: ReportEmployeeStat[];
+  evaluationHistory: ReportEvaluationHistory[];
   productionHistory: ReportProductionHistory[];
   productionStepLabels: Record<ProductionStep, string>;
 }
@@ -192,11 +207,12 @@ export const generateReportPDF = (data: ReportPdfData) => {
   sectionTitle(doc, 'Projetos, responsáveis e prazos', y, primary);
   autoTable(doc, {
     startY: y + 6,
-    head: [['Cliente', 'Projeto', 'Status', 'Etapa atual', 'Prazo', 'Valor']],
+    head: [['Cliente', 'Projeto', 'Status', 'Resp. orcamento', 'Etapa atual', 'Prazo', 'Valor']],
     body: data.quotes.slice(0, 30).map((quote) => [
       quote.clientName,
       quote.environment || '-',
       quote.status,
+      quote.responsibleUserName || quote.responsible || '-',
       currentStepText(quote, data.productionStepLabels),
       dateText(quote.validityDate),
       money(quote.totalPrice || 0),
@@ -204,7 +220,7 @@ export const generateReportPDF = (data: ReportPdfData) => {
     headStyles: {fillColor: primary, textColor: [255, 255, 255], fontSize: 7.5},
     styles: {fontSize: 7.3, cellPadding: 2.5, lineColor: [226, 232, 240], lineWidth: 0.2, valign: 'top'},
     alternateRowStyles: {fillColor: [248, 250, 252]},
-    columnStyles: {5: {halign: 'right'}},
+    columnStyles: {6: {halign: 'right'}},
   });
   y = (doc as any).lastAutoTable.finalY + 12;
 
@@ -267,22 +283,53 @@ export const generateReportPDF = (data: ReportPdfData) => {
   });
   y = (doc as any).lastAutoTable.finalY + 12;
 
+  if (y > 210) {
+    doc.addPage();
+    y = 20;
+  }
+  sectionTitle(doc, 'Avaliacoes registradas', y, primary);
+  autoTable(doc, {
+    startY: y + 6,
+    head: [['Data', 'Cliente', 'Funcionario', 'Etapa', 'Nota', 'Avaliador', 'Observacao']],
+    body: data.evaluationHistory.length
+      ? data.evaluationHistory.slice(0, 30).map(({quote, item}) => [
+        dateText(item.createdAt),
+        quote.clientName,
+        item.employeeName,
+        data.productionStepLabels[item.step],
+        `${item.rating}/5`,
+        item.evaluatedByName || '-',
+        item.notes || '-',
+      ])
+      : [['-', 'Sem avaliacoes no periodo', '-', '-', '-', '-', '-']],
+    headStyles: {fillColor: primary, textColor: [255, 255, 255], fontSize: 7.2},
+    styles: {fontSize: 6.8, cellPadding: 2.2, lineColor: [226, 232, 240], lineWidth: 0.2, valign: 'top'},
+    alternateRowStyles: {fillColor: [248, 250, 252]},
+    columnStyles: {0: {cellWidth: 18}, 1: {cellWidth: 28}, 4: {cellWidth: 14, halign: 'center'}, 5: {cellWidth: 26}},
+  });
+  y = (doc as any).lastAutoTable.finalY + 12;
+
+  if (y > 210) {
+    doc.addPage();
+    y = 20;
+  }
   sectionTitle(doc, 'Histórico operacional', y, primary);
   autoTable(doc, {
     startY: y + 6,
-    head: [['Data', 'Cliente', 'Movimentação', 'Responsável', 'Etapa']],
+    head: [['Data', 'Cliente', 'Movimentação', 'Funcionário', 'Alterado por', 'Etapa']],
     body: data.productionHistory.length
       ? data.productionHistory.slice(0, 35).map(({quote, item}) => [
         dateText(item.changedAt),
         quote.clientName,
         item.note || item.status,
         item.responsibleEmployeeName || '-',
+        item.changedByName || '-',
         item.step ? data.productionStepLabels[item.step] : '-',
       ])
-      : [['-', 'Sem movimentações no período', '-', '-', '-']],
+      : [['-', 'Sem movimentações no período', '-', '-', '-', '-']],
     headStyles: {fillColor: dark, textColor: [255, 255, 255], fontSize: 7.5},
     styles: {fontSize: 7.2, cellPadding: 2.5, lineColor: [226, 232, 240], lineWidth: 0.2, valign: 'top'},
-    columnStyles: {0: {cellWidth: 18}, 1: {cellWidth: 32}, 3: {cellWidth: 30}, 4: {cellWidth: 24}},
+    columnStyles: {0: {cellWidth: 18}, 1: {cellWidth: 30}, 3: {cellWidth: 28}, 4: {cellWidth: 28}, 5: {cellWidth: 22}},
   });
 
   addFooter(doc, primary);

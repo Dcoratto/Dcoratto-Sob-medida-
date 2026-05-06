@@ -154,7 +154,10 @@ export const Dashboard: React.FC = () => {
   const totalValue = closedQuotes.reduce((acc, quote) => acc + (quote.totalPrice || 0), 0);
   const purchaseRelevantReservedAreaByMaterial = (materialId: string) =>
     reservations
-      .filter((reservation) => reservation.materialId === materialId && ['aprovado', 'em producao', 'pronto para entrega', 'entregue'].includes((reservation.quoteStatus || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()))
+      .filter((reservation) => {
+        const status = (reservation.quoteStatus || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        return reservation.materialId === materialId && !['recusado', 'cancelado'].includes(status);
+      })
       .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
   const physicalAreaByMaterial = (materialId: string) =>
     inventory

@@ -26,9 +26,14 @@ const normalizeStatus = (value: unknown) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 
-const isPurchaseRelevantReservation = (reservation: InventoryReservation) => {
+const isApprovedReservation = (reservation: InventoryReservation) => {
   const status = normalizeStatus(reservation.quoteStatus);
   return ['aprovado', 'em producao', 'pronto para entrega', 'entregue'].includes(status);
+};
+
+const isActiveReservation = (reservation: InventoryReservation) => {
+  const status = normalizeStatus(reservation.quoteStatus);
+  return !['recusado', 'cancelado'].includes(status);
 };
 
 export const InventoryPage: React.FC = () => {
@@ -369,9 +374,13 @@ export const InventoryPage: React.FC = () => {
     reservations
       .filter((reservation) => reservation.materialId === materialId)
       .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
-  const purchaseRelevantReservedAreaByMaterial = (materialId: string) =>
+  const activeReservedAreaByMaterial = (materialId: string) =>
     reservations
-      .filter((reservation) => reservation.materialId === materialId && isPurchaseRelevantReservation(reservation))
+      .filter((reservation) => reservation.materialId === materialId && isActiveReservation(reservation))
+      .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+  const approvedReservedAreaByMaterial = (materialId: string) =>
+    reservations
+      .filter((reservation) => reservation.materialId === materialId && isApprovedReservation(reservation))
       .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
   const physicalAreaByMaterial = (materialId: string) =>
     items
@@ -386,7 +395,9 @@ export const InventoryPage: React.FC = () => {
     ...reservations.map((reservation) => reservation.materialId),
     ...purchases.map((purchase) => purchase.materialId),
   ])).map((materialId) => {
-    const reserved = purchaseRelevantReservedAreaByMaterial(materialId);
+    const reserved = activeReservedAreaByMaterial(materialId);
+    const sold = approvedReservedAreaByMaterial(materialId);
+    const preReserved = Math.max(0, reserved - sold);
     const available = physicalAreaByMaterial(materialId);
     const ordered = orderedAreaByMaterial(materialId);
     const missing = Math.max(0, reserved - available - ordered);
@@ -396,6 +407,8 @@ export const InventoryPage: React.FC = () => {
       materialId,
       materialName: inventoryItem?.materialName || material?.name || reservations.find((reservation) => reservation.materialId === materialId)?.materialName || materialId,
       reserved,
+      preReserved,
+      sold,
       available,
       ordered,
       missing,
@@ -472,7 +485,7 @@ export const InventoryPage: React.FC = () => {
                         Comprar
                       </button>
                     </div>
-                    <div className="mt-3 grid grid-cols-4 gap-2 text-xs">
+                    <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
                       <div>
                         <span className="block font-bold uppercase tracking-widest text-slate-400">Disponível</span>
                         <strong className="text-slate-700">{formatNumber(item.available)} m²</strong>

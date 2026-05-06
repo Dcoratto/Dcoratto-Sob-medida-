@@ -639,6 +639,17 @@ export const QuoteEditor: React.FC = () => {
                           )}
                         </div>
                       </div>
+                      <div className="space-y-1 md:col-span-3">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Imagem da proposta premium</label>
+                        <input
+                          type="url"
+                          value={piece.proposalImageUrl || ''}
+                          onChange={(e) => updatePiece(piece.id, { proposalImageUrl: e.target.value })}
+                          placeholder="Cole aqui o link da imagem, render ou planta desta peça"
+                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
+                        />
+                        <p className="text-[11px] text-slate-400">Essa imagem aparece na proposta premium. Se ficar vazio, o sistema usa o desenho técnico salvo.</p>
+                      </div>
                     </div>
                   </div>
 

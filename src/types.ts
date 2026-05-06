@@ -216,6 +216,7 @@ export interface Quote {
   responsibleUserUid?: string;
   responsibleUserName?: string;
   materialId: string;
+  materialName?: string;
   paymentMethod: string;
   deliveryDays: number;
   validityDate: any;
@@ -283,4 +284,44 @@ export interface InventoryPurchase {
   receivedByName?: string;
   receivedAt?: any;
   inventoryItemId?: string;
+}
+
+export type SystemEventType =
+  | 'client_created'
+  | 'client_updated'
+  | 'client_deleted'
+  | 'quote_created'
+  | 'quote_updated'
+  | 'quote_deleted'
+  | 'quote_duplicated'
+  | 'quote_status_changed'
+  | 'production_assignment_changed'
+  | 'production_step_changed'
+  | 'employee_evaluated'
+  | 'fixture_updated'
+  | 'inventory_created'
+  | 'inventory_updated'
+  | 'inventory_deleted'
+  | 'purchase_ordered'
+  | 'purchase_received';
+
+export interface SystemEvent {
+  id: string;
+  type: SystemEventType;
+  title: string;
+  description?: string;
+  entityType: 'client' | 'quote' | 'production' | 'employee' | 'inventory' | 'purchase';
+  entityId?: string;
+  clientId?: string;
+  clientName?: string;
+  quoteId?: string;
+  quoteStatus?: QuoteStatus | string;
+  materialId?: string;
+  materialName?: string;
+  employeeId?: string;
+  employeeName?: string;
+  userUid?: string;
+  userName?: string;
+  createdAt?: any;
+  metadata?: Record<string, unknown>;
 }

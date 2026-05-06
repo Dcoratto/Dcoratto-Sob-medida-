@@ -10,6 +10,7 @@ import {Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {releaseQuoteReservation, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
+import {logSystemEvent} from '../lib/systemEvents';
 
 const quoteStatuses: QuoteStatus[] = [
   'Pré-orçamento',
@@ -72,6 +73,21 @@ export const QuotesPage: React.FC = () => {
       }),
     });
     await syncQuoteReservation(quote.id, {...quote, status});
+    await logSystemEvent({
+      type: 'quote_status_changed',
+      title: 'Status do orçamento alterado',
+      description: `${quote.clientName}: ${quote.status} -> ${status}`,
+      entityType: 'quote',
+      entityId: quote.id,
+      quoteId: quote.id,
+      quoteStatus: status,
+      clientId: quote.clientId,
+      clientName: quote.clientName,
+      materialId: quote.materialId,
+      materialName: quote.materialName,
+      userUid: user?.uid || '',
+      userName: currentUserName,
+    });
   };
 
   const handleDuplicate = async (quote: Quote) => {
@@ -84,6 +100,21 @@ export const QuotesPage: React.FC = () => {
     } as Omit<Quote, 'id'>;
     const createdRef = await addDoc(collection(db, 'quotes'), duplicatedQuote);
     await syncQuoteReservation(createdRef.id, duplicatedQuote);
+    await logSystemEvent({
+      type: 'quote_duplicated',
+      title: 'Orçamento duplicado',
+      description: `${quote.clientName} foi duplicado`,
+      entityType: 'quote',
+      entityId: createdRef.id,
+      quoteId: createdRef.id,
+      quoteStatus: duplicatedQuote.status,
+      clientId: quote.clientId,
+      clientName: duplicatedQuote.clientName,
+      materialId: quote.materialId,
+      materialName: quote.materialName,
+      userUid: user?.uid || '',
+      userName: currentUserName,
+    });
   };
 
   const handleDelete = async (id: string) => {
@@ -94,6 +125,24 @@ export const QuotesPage: React.FC = () => {
     const ok = await deleteFirestoreDoc('quotes', id);
     if (!ok) return;
 
+    const deletedQuote = quotes.find((quote) => quote.id === id);
+    if (deletedQuote) {
+      await logSystemEvent({
+        type: 'quote_deleted',
+        title: 'Orçamento excluído',
+        description: deletedQuote.clientName,
+        entityType: 'quote',
+        entityId: id,
+        quoteId: id,
+        quoteStatus: deletedQuote.status,
+        clientId: deletedQuote.clientId,
+        clientName: deletedQuote.clientName,
+        materialId: deletedQuote.materialId,
+        materialName: deletedQuote.materialName,
+        userUid: user?.uid || '',
+        userName: currentUserName,
+      });
+    }
     setQuotes((prev) => prev.filter((quote) => quote.id !== id));
   };
 
@@ -198,7 +247,7 @@ export const QuotesPage: React.FC = () => {
                         <button
                           type="button"
                           title="Abrir proposta premium"
-                          onClick={() => window.open(`/quotes/proposal/${quote.id}`, '_blank', 'noopener,noreferrer')}
+                          onClick={() => window.open(`/#/quotes/proposal/${quote.id}`, '_blank', 'noopener,noreferrer')}
                           className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg"
                         >
                           <FileText className="w-4 h-4" />

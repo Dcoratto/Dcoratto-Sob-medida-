@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {collection, onSnapshot} from 'firebase/firestore';
+import {collection, limit, onSnapshot, orderBy, query} from 'firebase/firestore';
 import {AlertCircle, BarChart3, Boxes, FileDown, Gauge, TrendingUp, Users} from 'lucide-react';
-import {Client, Employee, InventoryItem, Material, ProductionStep, Quote} from '../types';
+import {Client, Employee, InventoryItem, Material, ProductionStep, Quote, SystemEvent} from '../types';
 import {db} from '../lib/firebase';
 import {cn, formatCurrency} from '../lib/utils';
 import {generateReportPDF} from '../lib/reportPdfGenerator';
@@ -60,12 +60,16 @@ const statusLabel = (status: string) => {
   return 'Pré-orçamento';
 };
 
+const isClosedSale = (status: string) =>
+  ['Aprovado', 'Em produção', 'Pronto para entrega', 'Entregue'].includes(statusLabel(status));
+
 export const ReportsPage: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [systemEvents, setSystemEvents] = useState<SystemEvent[]>([]);
   const [period, setPeriod] = useState<Period>('month');
 
   useEffect(() => {
@@ -74,12 +78,16 @@ export const ReportsPage: React.FC = () => {
     const unsubMaterials = onSnapshot(collection(db, 'materials'), (snapshot) => setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material))));
     const unsubInventory = onSnapshot(collection(db, 'inventory'), (snapshot) => setInventory(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem))));
     const unsubEmployees = onSnapshot(collection(db, 'employees'), (snapshot) => setEmployees(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Employee))));
+    const unsubSystemEvents = onSnapshot(query(collection(db, 'systemEvents'), orderBy('createdAt', 'desc'), limit(60)), (snapshot) => {
+      setSystemEvents(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as SystemEvent)));
+    });
     return () => {
       unsubQuotes();
       unsubClients();
       unsubMaterials();
       unsubInventory();
       unsubEmployees();
+      unsubSystemEvents();
     };
   }, []);
 
@@ -92,8 +100,17 @@ export const ReportsPage: React.FC = () => {
     });
   }, [period, quotes]);
 
+  const filteredSystemEvents = useMemo(() => {
+    const start = periodStart(period);
+    if (!start) return systemEvents;
+    return systemEvents.filter((event) => {
+      const createdAt = toDate(event.createdAt);
+      return createdAt ? createdAt >= start : true;
+    });
+  }, [period, systemEvents]);
+
   const totalSold = filteredQuotes
-    .filter((quote) => ['Aprovado', 'Em produção', 'Pronto para entrega', 'Entregue'].includes(statusLabel(quote.status)))
+    .filter((quote) => isClosedSale(quote.status))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
   const openValue = filteredQuotes
     .filter((quote) => ['Pré-orçamento', 'Aguardando medição', 'Medido', 'Enviado'].includes(statusLabel(quote.status)))
@@ -101,7 +118,7 @@ export const ReportsPage: React.FC = () => {
   const refusedValue = filteredQuotes
     .filter((quote) => statusLabel(quote.status) === 'Recusado')
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
-  const approvedCount = filteredQuotes.filter((quote) => ['Aprovado', 'Em produção', 'Pronto para entrega', 'Entregue'].includes(statusLabel(quote.status))).length;
+  const approvedCount = filteredQuotes.filter((quote) => isClosedSale(quote.status)).length;
   const conversionRate = filteredQuotes.length ? Math.round((approvedCount / filteredQuotes.length) * 100) : 0;
 
   const statusCounts = ['Pré-orçamento', 'Aguardando medição', 'Medido', 'Enviado', 'Aprovado', 'Em produção', 'Pronto para entrega', 'Entregue', 'Recusado']
@@ -109,7 +126,7 @@ export const ReportsPage: React.FC = () => {
   const maxStatusCount = Math.max(1, ...statusCounts.map((item) => item.count));
 
   const materialSales = materials.map((material) => {
-    const materialQuotes = filteredQuotes.filter((quote) => quote.materialId === material.id);
+    const materialQuotes = filteredQuotes.filter((quote) => quote.materialId === material.id && isClosedSale(quote.status));
     return {
       name: material.name,
       count: materialQuotes.length,
@@ -287,6 +304,35 @@ export const ReportsPage: React.FC = () => {
             );
           })}
           {productionHistory.length === 0 && <EmptyText>Nenhuma movimentação de produção no período.</EmptyText>}
+        </div>
+      </section>
+
+      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
+        <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Auditoria geral do sistema</h2>
+        <div className="space-y-3">
+          {filteredSystemEvents.slice(0, 25).map((event) => {
+            const date = toDate(event.createdAt);
+            return (
+              <div key={event.id} className="rounded-2xl bg-slate-50 p-4">
+                <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="font-bold text-slate-900">{event.title}</div>
+                    <div className="text-sm text-slate-600">{event.description || event.clientName || event.materialName || '-'}</div>
+                    <div className="mt-1 text-xs text-slate-400">
+                      {[event.clientName, event.materialName, event.employeeName, event.quoteStatus].filter(Boolean).join(' · ')}
+                    </div>
+                  </div>
+                  <div className="text-left md:text-right">
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">
+                      {date ? date.toLocaleDateString('pt-BR') : 'Sem data'}
+                    </div>
+                    <div className="text-xs text-slate-400">Usuário: {event.userName || 'Não informado'}</div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {filteredSystemEvents.length === 0 && <EmptyText>Nenhuma movimentação registrada no período.</EmptyText>}
         </div>
       </section>
 

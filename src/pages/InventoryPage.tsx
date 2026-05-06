@@ -6,6 +6,7 @@ import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {InventoryItem, InventoryPurchase, InventoryReservation, Material} from '../types';
 import {cn, formatCurrency, formatNumber} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
+import {logSystemEvent} from '../lib/systemEvents';
 
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
@@ -169,8 +170,32 @@ export const InventoryPage: React.FC = () => {
 
     if (editingItem) {
       await updateDoc(inventoryRef, data);
+      await logSystemEvent({
+        type: 'inventory_updated',
+        title: 'Item de estoque atualizado',
+        description: `${data.materialName} - ${data.code}`,
+        entityType: 'inventory',
+        entityId: inventoryRef.id,
+        materialId,
+        materialName: data.materialName,
+        userUid: user?.uid || '',
+        userName: currentUserName,
+        metadata: {area, cost: totalCost, status},
+      });
     } else {
       await setDoc(inventoryRef, data);
+      await logSystemEvent({
+        type: 'inventory_created',
+        title: 'Item de estoque cadastrado',
+        description: `${data.materialName} - ${data.code}`,
+        entityType: 'inventory',
+        entityId: inventoryRef.id,
+        materialId,
+        materialName: data.materialName,
+        userUid: user?.uid || '',
+        userName: currentUserName,
+        metadata: {area, cost: totalCost, status},
+      });
     }
 
     setShowModal(false);
@@ -196,9 +221,24 @@ export const InventoryPage: React.FC = () => {
     const confirmed = window.confirm('Tem certeza que deseja excluir este item do estoque?');
     if (!confirmed) return;
 
+    const deletedItem = items.find((item) => item.id === id);
     const ok = await deleteFirestoreDoc('inventory', id);
     if (!ok) return;
 
+    if (deletedItem) {
+      await logSystemEvent({
+        type: 'inventory_deleted',
+        title: 'Item de estoque excluído',
+        description: `${deletedItem.materialName} - ${deletedItem.code}`,
+        entityType: 'inventory',
+        entityId: id,
+        materialId: deletedItem.materialId,
+        materialName: deletedItem.materialName,
+        userUid: user?.uid || '',
+        userName: currentUserName,
+        metadata: {area: deletedItem.area, cost: deletedItem.cost},
+      });
+    }
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
@@ -221,7 +261,7 @@ export const InventoryPage: React.FC = () => {
   const handlePurchaseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const area = (Number(purchaseLength) * Number(purchaseWidth)) / 10000;
-    await addDoc(collection(db, 'inventoryPurchases'), {
+    const purchaseRef = await addDoc(collection(db, 'inventoryPurchases'), {
       materialId: purchaseMaterialId,
       materialName: purchaseMaterialName.trim(),
       provider: purchaseProvider.trim(),
@@ -237,6 +277,18 @@ export const InventoryPage: React.FC = () => {
       purchasedByUid: user?.uid || '',
       purchasedByName: currentUserName,
       purchasedAt: serverTimestamp(),
+    });
+    await logSystemEvent({
+      type: 'purchase_ordered',
+      title: 'Compra de material lançada',
+      description: `${purchaseMaterialName.trim()} - ${formatNumber(area)} m²`,
+      entityType: 'purchase',
+      entityId: purchaseRef.id,
+      materialId: purchaseMaterialId,
+      materialName: purchaseMaterialName.trim(),
+      userUid: user?.uid || '',
+      userName: currentUserName,
+      metadata: {area, cost: Number(purchaseCost), status: 'Pedido'},
     });
     setShowPurchaseModal(false);
     resetPurchaseForm();
@@ -265,6 +317,18 @@ export const InventoryPage: React.FC = () => {
       receivedByName: currentUserName,
       receivedAt: serverTimestamp(),
       inventoryItemId: inventoryRef.id,
+    });
+    await logSystemEvent({
+      type: 'purchase_received',
+      title: 'Compra de material recebida',
+      description: `${purchase.materialName} - ${formatNumber(purchase.area)} m²`,
+      entityType: 'purchase',
+      entityId: purchase.id,
+      materialId: purchase.materialId,
+      materialName: purchase.materialName,
+      userUid: user?.uid || '',
+      userName: currentUserName,
+      metadata: {area: purchase.area, cost: purchase.cost, inventoryItemId: inventoryRef.id, status: 'Entregue'},
     });
   };
 

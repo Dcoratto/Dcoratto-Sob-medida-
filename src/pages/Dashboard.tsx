@@ -12,7 +12,7 @@ const statusGroups: Record<ClientStage, {label: string; dot: string; bg: string;
   pre: {label: 'Pré-orçamento', dot: 'bg-slate-400', bg: 'bg-slate-50 text-slate-600', statuses: ['Pré-orçamento', 'Aguardando medição', 'Medido', 'Enviado']},
   approved: {label: 'Projeto fechado', dot: 'bg-emerald-500', bg: 'bg-emerald-50 text-emerald-700', statuses: ['Aprovado']},
   production: {label: 'Em produção', dot: 'bg-blue-500', bg: 'bg-blue-50 text-blue-700', statuses: ['Em produção']},
-  ready: {label: 'Pronto para entrega', dot: 'bg-amber-500', bg: 'bg-amber-50 text-amber-700', statuses: ['Pronto para entrega', 'Medido', 'Enviado']},
+  ready: {label: 'Pronto para entrega', dot: 'bg-amber-500', bg: 'bg-amber-50 text-amber-700', statuses: ['Pronto para entrega']},
   done: {label: 'Concluído', dot: 'bg-violet-500', bg: 'bg-violet-50 text-violet-700', statuses: ['Entregue']},
   none: {label: 'Sem orçamento', dot: 'bg-slate-300', bg: 'bg-slate-50 text-slate-500', statuses: []},
 };
@@ -42,7 +42,7 @@ const quoteStage = (quote?: Quote): ClientStage => {
   if (!quote) return 'none';
   const status = normalizeStatus(quote.status);
   if (status === 'Entregue') return 'done';
-  if (status === 'Pronto para entrega' || status === 'Medido' || status === 'Enviado') return 'ready';
+  if (status === 'Pronto para entrega') return 'ready';
   if (status === 'Em produção') return 'production';
   if (status === 'Aprovado') return 'approved';
   return 'pre';
@@ -138,7 +138,7 @@ export const Dashboard: React.FC = () => {
     {label: 'Itens em Estoque', value: inventory.length, icon: Database, color: 'text-amber-600', bg: 'bg-amber-50', path: '/inventory'},
   ];
 
-  const openQuotes = quotes.filter((quote) => normalizeStatus(quote.status) === 'Pré-orçamento');
+  const openQuotes = quotes.filter((quote) => statusGroups.pre.statuses.includes(normalizeStatus(quote.status)));
   const closedQuotes = quotes.filter((quote) => isClosedSale(quote.status));
   const totalValue = closedQuotes.reduce((acc, quote) => acc + (quote.totalPrice || 0), 0);
 

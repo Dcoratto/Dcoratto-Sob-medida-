@@ -23,7 +23,7 @@ export const syncQuoteReservation = async (quoteId: string, quote: Partial<Quote
   await setDoc(reservationRef, {
     quoteId,
     materialId: quote.materialId,
-    materialName: quote.pieces?.[0]?.materialId || quote.materialId,
+    materialName: quote.materialName || quote.materialId,
     area,
     quoteStatus: quote.status,
     clientName: quote.clientName || '',

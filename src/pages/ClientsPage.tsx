@@ -7,6 +7,7 @@ import {Client, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureInfo, P
 import {cn, formatCurrency} from '../lib/utils';
 import {syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
+import {logSystemEvent} from '../lib/systemEvents';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -52,7 +53,6 @@ const quoteStage = (quote?: Quote): ClientStage => {
   if (status === 'em producao') return 'production';
   if (status === 'pronto para entrega') return 'ready';
   if (status === 'aprovado') return 'approved';
-  if (status === 'medido' || status === 'enviado') return 'ready';
   return 'pre';
 };
 
@@ -151,8 +151,30 @@ export const ClientsPage: React.FC = () => {
 
     if (editingClient) {
       await updateDoc(doc(db, 'clients', editingClient.id), data);
+      await logSystemEvent({
+        type: 'client_updated',
+        title: 'Cliente atualizado',
+        description: name,
+        entityType: 'client',
+        entityId: editingClient.id,
+        clientId: editingClient.id,
+        clientName: name,
+        userUid: user?.uid || '',
+        userName: currentUserName,
+      });
     } else {
-      await addDoc(collection(db, 'clients'), data);
+      const createdRef = await addDoc(collection(db, 'clients'), data);
+      await logSystemEvent({
+        type: 'client_created',
+        title: 'Cliente criado',
+        description: name,
+        entityType: 'client',
+        entityId: createdRef.id,
+        clientId: createdRef.id,
+        clientName: name,
+        userUid: user?.uid || '',
+        userName: currentUserName,
+      });
     }
 
     setShowModal(false);
@@ -172,9 +194,23 @@ export const ClientsPage: React.FC = () => {
     const confirmed = window.confirm('Tem certeza que deseja excluir este cliente?');
     if (!confirmed) return;
 
+    const deletedClient = clients.find((client) => client.id === id);
     const ok = await deleteFirestoreDoc('clients', id);
     if (!ok) return;
 
+    if (deletedClient) {
+      await logSystemEvent({
+        type: 'client_deleted',
+        title: 'Cliente excluído',
+        description: deletedClient.name,
+        entityType: 'client',
+        entityId: id,
+        clientId: id,
+        clientName: deletedClient.name,
+        userUid: user?.uid || '',
+        userName: currentUserName,
+      });
+    }
     setClients((prev) => prev.filter((client) => client.id !== id));
   };
 
@@ -193,6 +229,21 @@ export const ClientsPage: React.FC = () => {
       ],
     });
     await syncQuoteReservation(quote.id, {...quote, status});
+    await logSystemEvent({
+      type: 'quote_status_changed',
+      title: 'Status alterado no cliente',
+      description: `${quote.clientName}: ${quote.status} -> ${status}`,
+      entityType: 'quote',
+      entityId: quote.id,
+      quoteId: quote.id,
+      quoteStatus: status,
+      clientId: quote.clientId,
+      clientName: quote.clientName,
+      materialId: quote.materialId,
+      materialName: quote.materialName,
+      userUid: user?.uid || '',
+      userName: currentUserName,
+    });
   };
 
   const updateAssignment = async (quote: Quote, step: ProductionStep, employeeId: string) => {
@@ -223,6 +274,22 @@ export const ClientsPage: React.FC = () => {
         },
       ],
     });
+    await logSystemEvent({
+      type: 'production_assignment_changed',
+      title: employee ? 'Responsável de produção definido' : 'Responsável de produção removido',
+      description: employee ? `${employee.name} em ${productionSteps.find((item) => item.key === step)?.label}` : `Etapa ${step}`,
+      entityType: 'production',
+      entityId: quote.id,
+      quoteId: quote.id,
+      quoteStatus: quote.status,
+      clientId: quote.clientId,
+      clientName: quote.clientName,
+      employeeId: employee?.id || '',
+      employeeName: employee?.name || '',
+      userUid: user?.uid || '',
+      userName: currentUserName,
+      metadata: {step},
+    });
   };
 
   const toggleStepDone = async (quote: Quote, assignment: EmployeeAssignment) => {
@@ -248,6 +315,22 @@ export const ClientsPage: React.FC = () => {
           note: `${productionSteps.find((item) => item.key === assignment.step)?.label} ${finished ? 'reaberta' : 'finalizada'} por ${assignment.employeeName}`,
         },
       ],
+    });
+    await logSystemEvent({
+      type: 'production_step_changed',
+      title: finished ? 'Etapa de produção reaberta' : 'Etapa de produção finalizada',
+      description: `${productionSteps.find((item) => item.key === assignment.step)?.label} - ${assignment.employeeName}`,
+      entityType: 'production',
+      entityId: quote.id,
+      quoteId: quote.id,
+      quoteStatus: quote.status,
+      clientId: quote.clientId,
+      clientName: quote.clientName,
+      employeeId: assignment.employeeId,
+      employeeName: assignment.employeeName,
+      userUid: user?.uid || '',
+      userName: currentUserName,
+      metadata: {step: assignment.step, finished: !finished},
     });
   };
 
@@ -282,6 +365,22 @@ export const ClientsPage: React.FC = () => {
           note: `${assignment.employeeName} avaliado com ${rating} ponto(s) em ${productionSteps.find((item) => item.key === assignment.step)?.label}`,
         },
       ],
+    });
+    await logSystemEvent({
+      type: 'employee_evaluated',
+      title: 'Funcionário avaliado',
+      description: `${assignment.employeeName} recebeu ${rating}/5 em ${productionSteps.find((item) => item.key === assignment.step)?.label}`,
+      entityType: 'employee',
+      entityId: assignment.employeeId,
+      quoteId: quote.id,
+      quoteStatus: quote.status,
+      clientId: quote.clientId,
+      clientName: quote.clientName,
+      employeeId: assignment.employeeId,
+      employeeName: assignment.employeeName,
+      userUid: user?.uid || '',
+      userName: currentUserName,
+      metadata: {step: assignment.step, rating, notes: notes ?? currentEvaluation?.notes ?? ''},
     });
   };
 
@@ -321,6 +420,20 @@ export const ClientsPage: React.FC = () => {
           note: `Dados de ${fixtureType === 'sink' ? 'cuba' : fixtureType === 'faucet' ? 'torneira' : 'cooktop'} atualizados`,
         },
       ],
+    });
+    await logSystemEvent({
+      type: 'fixture_updated',
+      title: 'Item comprado pelo cliente atualizado',
+      description: `${fixtureType === 'sink' ? 'Cuba' : fixtureType === 'faucet' ? 'Torneira' : 'Cooktop'} em ${quote.clientName}`,
+      entityType: 'quote',
+      entityId: quote.id,
+      quoteId: quote.id,
+      quoteStatus: quote.status,
+      clientId: quote.clientId,
+      clientName: quote.clientName,
+      userUid: user?.uid || '',
+      userName: currentUserName,
+      metadata: {pieceId, fixtureType, field, value},
     });
   };
 

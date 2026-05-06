@@ -15,6 +15,7 @@ import { cn, formatCurrency } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
 import {syncQuoteReservation} from '../lib/inventoryReservations';
+import {logSystemEvent} from '../lib/systemEvents';
 
 const normalizeStockStatus = (value: unknown) =>
   String(value || '')
@@ -237,6 +238,7 @@ export const QuoteEditor: React.FC = () => {
       responsibleUserUid: user?.uid || '',
       responsibleUserName: currentUserName,
       materialId,
+      materialName: selectedMaterial?.name || '',
       paymentMethod,
       deliveryDays,
       validityDate: Timestamp.fromDate(new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000)),
@@ -263,9 +265,41 @@ export const QuoteEditor: React.FC = () => {
       if (id) {
         await setDoc(doc(db, 'quotes', id), quoteData, { merge: true });
         await syncQuoteReservation(id, quoteData);
+        await logSystemEvent({
+          type: 'quote_updated',
+          title: 'Orçamento atualizado',
+          description: `${selectedClient?.name || 'Cliente'} - ${environment || 'Sem ambiente'}`,
+          entityType: 'quote',
+          entityId: id,
+          quoteId: id,
+          quoteStatus: status,
+          clientId,
+          clientName: selectedClient?.name || '',
+          materialId,
+          materialName: selectedMaterial?.name || '',
+          userUid: user?.uid || '',
+          userName: currentUserName,
+          metadata: {totalArea, totalPrice, pieces: pieces.length},
+        });
       } else {
         const createdRef = await addDoc(collection(db, 'quotes'), quoteData);
         await syncQuoteReservation(createdRef.id, quoteData);
+        await logSystemEvent({
+          type: 'quote_created',
+          title: 'Orçamento criado',
+          description: `${selectedClient?.name || 'Cliente'} - ${environment || 'Sem ambiente'}`,
+          entityType: 'quote',
+          entityId: createdRef.id,
+          quoteId: createdRef.id,
+          quoteStatus: status,
+          clientId,
+          clientName: selectedClient?.name || '',
+          materialId,
+          materialName: selectedMaterial?.name || '',
+          userUid: user?.uid || '',
+          userName: currentUserName,
+          metadata: {totalArea, totalPrice, pieces: pieces.length},
+        });
       }
       navigate('/quotes');
     } catch (err) {

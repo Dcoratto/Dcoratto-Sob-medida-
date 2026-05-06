@@ -73,6 +73,28 @@ export interface Client {
   phone: string;
   address: string;
   notes: string;
+  city?: string;
+  neighborhood?: string;
+  addressType?: 'casa' | 'condominio' | 'apartamento';
+  condominiumId?: string;
+  condominiumName?: string;
+  block?: string;
+  lot?: string;
+  tower?: string;
+  apartmentNumber?: string;
+}
+
+export interface CondominiumRule {
+  id: string;
+  name: string;
+  city: string;
+  allowedWeekdays: number[];
+  workStartHour: string;
+  workEndHour: string;
+  blockNationalHolidays: boolean;
+  blockCityHolidays: boolean;
+  notes?: string;
+  createdAt?: any;
 }
 
 export type EmployeeRole = 'Vendedor' | 'Medidor' | 'Cortador' | 'Acabador' | 'Instalador' | 'Entregador' | 'Administrativo';
@@ -220,6 +242,8 @@ export interface Quote {
   paymentMethod: string;
   deliveryDays: number;
   validityDate: any;
+  measurementDate?: any;
+  deliveryDate?: any;
   commercialNotes: string;
   status: QuoteStatus;
   totalArea: number;

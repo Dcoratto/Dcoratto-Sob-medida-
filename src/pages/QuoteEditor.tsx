@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSettings } from '../hooks/useSettings';
-import { Client, EmployeeAssignment, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory, UserMaterialPrice } from '../types';
+import { Client, CondominiumRule, EmployeeAssignment, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory, UserMaterialPrice } from '../types';
 import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
@@ -16,6 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
 import {syncQuoteReservation} from '../lib/inventoryReservations';
 import {logSystemEvent} from '../lib/systemEvents';
+import {getHolidayInfo} from '../lib/holidays';
 
 const normalizeStockStatus = (value: unknown) =>
   String(value || '')
@@ -34,6 +35,7 @@ export const QuoteEditor: React.FC = () => {
   const [reservations, setReservations] = useState<InventoryReservation[]>([]);
   const [userMaterialPrices, setUserMaterialPrices] = useState<UserMaterialPrice[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [condominiums, setCondominiums] = useState<CondominiumRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -46,6 +48,8 @@ export const QuoteEditor: React.FC = () => {
   const [materialId, setMaterialId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [deliveryDays, setDeliveryDays] = useState(15);
+  const [measurementDate, setMeasurementDate] = useState('');
+  const [deliveryDate, setDeliveryDate] = useState('');
   const [validityDays, setValidityDays] = useState(15);
   const [commercialNotes, setCommercialNotes] = useState('');
   const [status, setStatus] = useState<QuoteStatus>('Pré-orçamento');
@@ -61,6 +65,7 @@ export const QuoteEditor: React.FC = () => {
     ? {...selectedBaseMaterial, marginPercentage: selectedUserPrice.marginPercentage, pricePerM2: selectedUserPrice.pricePerM2}
     : selectedBaseMaterial;
   const selectedClient = clients.find(c => c.id === clientId);
+  const selectedCondominium = condominiums.find((item) => item.id === selectedClient?.condominiumId);
   const { calculatePieceArea, calculateTotal, calculateSculptedSink } = useQuoteCalculator(settings, selectedMaterial);
   const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
   
@@ -86,10 +91,47 @@ export const QuoteEditor: React.FC = () => {
     return searchText.includes(clientSearch.toLowerCase());
   });
 
+  const formatDateInput = (value: any) => {
+    if (!value) return '';
+    const date = typeof value.toDate === 'function' ? value.toDate() : value;
+    if (!(date instanceof Date)) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const scheduleRestrictionMessage = (() => {
+    if (!deliveryDate || !selectedCondominium) return '';
+    const date = new Date(`${deliveryDate}T12:00:00`);
+    if (Number.isNaN(date.getTime())) return '';
+    const weekday = (date.getDay() + 6) % 7;
+    const allowedWeekdays = selectedCondominium.allowedWeekdays || [];
+    const isAllowedWeekday = allowedWeekdays.includes(weekday);
+    const holiday = getHolidayInfo(date, selectedClient?.city);
+    const blockedByHoliday =
+      (Boolean(holiday.national) && Boolean(selectedCondominium.blockNationalHolidays)) ||
+      (Boolean(holiday.city) && Boolean(selectedCondominium.blockCityHolidays));
+
+    if (!isAllowedWeekday) {
+      return `Entrega bloqueada: o condomínio ${selectedCondominium.name} não permite trabalho nesse dia da semana.`;
+    }
+
+    if (blockedByHoliday) {
+      return `Entrega bloqueada: a data escolhida cai em feriado (${holiday.national || holiday.city}) e esse condomínio bloqueia feriados.`;
+    }
+
+    return '';
+  })();
+
   useEffect(() => {
     // Listen for clients
     const unsubClients = onSnapshot(collection(db, 'clients'), (snap) => {
       setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client)));
+    });
+
+    const unsubCondominiums = onSnapshot(collection(db, 'condominiums'), (snap) => {
+      setCondominiums(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CondominiumRule)));
     });
 
     // Listen for materials
@@ -125,6 +167,8 @@ export const QuoteEditor: React.FC = () => {
           setMaterialId(data.materialId);
           setPaymentMethod(data.paymentMethod);
           setDeliveryDays(data.deliveryDays);
+          setMeasurementDate(formatDateInput(data.measurementDate));
+          setDeliveryDate(formatDateInput(data.deliveryDate));
           setValidityDays(15); // Adjust if needed
           setCommercialNotes(data.commercialNotes || '');
           setStatus(data.status);
@@ -146,6 +190,7 @@ export const QuoteEditor: React.FC = () => {
 
     return () => {
       unsubClients();
+      unsubCondominiums();
       unsubMaterials();
       unsubUserPrices?.();
       unsubInventory();
@@ -226,6 +271,10 @@ export const QuoteEditor: React.FC = () => {
       alert('Por favor, selecione um cliente e um material.');
       return;
     }
+    if (scheduleRestrictionMessage) {
+      alert(scheduleRestrictionMessage);
+      return;
+    }
     setSaving(true);
     
     const quoteData: Partial<Quote> = {
@@ -241,6 +290,8 @@ export const QuoteEditor: React.FC = () => {
       materialName: selectedMaterial?.name || '',
       paymentMethod,
       deliveryDays,
+      measurementDate: measurementDate ? Timestamp.fromDate(new Date(`${measurementDate}T12:00:00`)) : null,
+      deliveryDate: deliveryDate ? Timestamp.fromDate(new Date(`${deliveryDate}T12:00:00`)) : null,
       validityDate: Timestamp.fromDate(new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000)),
       commercialNotes,
       status,
@@ -482,6 +533,42 @@ export const QuoteEditor: React.FC = () => {
                   </select>
                 </div>
               </div>
+            </div>
+          </section>
+
+          <section className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
+            <h2 className="font-display font-bold text-lg text-slate-800 flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-brand-primary" /> Agendamento
+            </h2>
+            <div className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Data da medição</label>
+                <input
+                  type="date"
+                  value={measurementDate}
+                  onChange={(e) => setMeasurementDate(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Data da entrega</label>
+                <input
+                  type="date"
+                  value={deliveryDate}
+                  onChange={(e) => setDeliveryDate(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
+                />
+              </div>
+              {selectedCondominium && (
+                <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
+                  Condomínio: {selectedCondominium.name} · Horário permitido {selectedCondominium.workStartHour}-{selectedCondominium.workEndHour}
+                </div>
+              )}
+              {scheduleRestrictionMessage && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
+                  {scheduleRestrictionMessage}
+                </div>
+              )}
             </div>
           </section>
 

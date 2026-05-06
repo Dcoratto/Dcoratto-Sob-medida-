@@ -10,7 +10,9 @@ import {
   ShieldAlert,
   LogOut,
   LayoutDashboard,
-  BarChart3
+  BarChart3,
+  FolderKanban,
+  CalendarDays
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { auth } from '../../lib/firebase';
@@ -23,7 +25,9 @@ export const Sidebar: React.FC = () => {
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
     { icon: FileText, label: 'Orçamentos', path: '/quotes' },
+    { icon: FolderKanban, label: 'Projetos', path: '/projects' },
     { icon: Users, label: 'Clientes', path: '/clients' },
+    { icon: CalendarDays, label: 'Calendário', path: '/calendar' },
     { icon: History, label: 'Histórico', path: '/history' },
     { icon: BarChart3, label: 'Relatórios', path: '/reports' },
     { icon: Package, label: 'Materiais', path: '/materials' },

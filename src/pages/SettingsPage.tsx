@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { doc, setDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSettings, DEFAULT_SETTINGS } from '../hooks/useSettings';
 import { useAuth } from '../contexts/AuthContext';
 import { Save, Plus, Trash2, Building, Phone, Mail, MapPin, Calculator, CreditCard, Scissors } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
+import { CondominiumRule } from '../types';
 
 export const SettingsPage: React.FC = () => {
   const { settings: currentSettings, loading } = useSettings();
@@ -13,12 +14,29 @@ export const SettingsPage: React.FC = () => {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [condominiums, setCondominiums] = useState<CondominiumRule[]>([]);
+  const [editingCondominium, setEditingCondominium] = useState<CondominiumRule | null>(null);
+  const [condoName, setCondoName] = useState('');
+  const [condoCity, setCondoCity] = useState('');
+  const [workStartHour, setWorkStartHour] = useState('08:00');
+  const [workEndHour, setWorkEndHour] = useState('17:00');
+  const [allowedWeekdays, setAllowedWeekdays] = useState<number[]>([0, 1, 2, 3, 4]);
+  const [blockNationalHolidays, setBlockNationalHolidays] = useState(true);
+  const [blockCityHolidays, setBlockCityHolidays] = useState(true);
+  const [condoNotes, setCondoNotes] = useState('');
 
   useEffect(() => {
     if (currentSettings) {
       setSettings(currentSettings);
     }
   }, [currentSettings]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(query(collection(db, 'condominiums'), orderBy('name', 'asc')), (snapshot) => {
+      setCondominiums(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as CondominiumRule)));
+    });
+    return unsubscribe;
+  }, []);
 
   const handleSave = async () => {
     if (!isAdmin) return;
@@ -45,6 +63,51 @@ export const SettingsPage: React.FC = () => {
     const newMethods = [...settings.paymentMethods];
     newMethods.splice(index, 1);
     setSettings({ ...settings, paymentMethods: newMethods });
+  };
+
+  const resetCondoForm = () => {
+    setEditingCondominium(null);
+    setCondoName('');
+    setCondoCity('');
+    setWorkStartHour('08:00');
+    setWorkEndHour('17:00');
+    setAllowedWeekdays([0, 1, 2, 3, 4]);
+    setBlockNationalHolidays(true);
+    setBlockCityHolidays(true);
+    setCondoNotes('');
+  };
+
+  const saveCondominium = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const data = {
+      name: condoName.trim(),
+      city: condoCity.trim(),
+      allowedWeekdays,
+      workStartHour,
+      workEndHour,
+      blockNationalHolidays,
+      blockCityHolidays,
+      notes: condoNotes.trim(),
+    };
+    if (editingCondominium) {
+      await updateDoc(doc(db, 'condominiums', editingCondominium.id), data);
+    } else {
+      await addDoc(collection(db, 'condominiums'), data);
+    }
+    resetCondoForm();
+  };
+
+  const removeCondominium = async (id: string) => {
+    const confirmed = window.confirm('Excluir este condomínio?');
+    if (!confirmed) return;
+    await deleteDoc(doc(db, 'condominiums', id));
+    if (editingCondominium?.id === id) resetCondoForm();
+  };
+
+  const toggleWeekday = (weekday: number) => {
+    setAllowedWeekdays((current) => (
+      current.includes(weekday) ? current.filter((item) => item !== weekday) : [...current, weekday].sort((a, b) => a - b)
+    ));
   };
 
   if (loading) return <div>Carregando...</div>;
@@ -351,6 +414,111 @@ export const SettingsPage: React.FC = () => {
                 </button>
               </div>
             ))}
+          </div>
+        </section>
+
+        <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6 md:col-span-2">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
+                <Building className="w-5 h-5" />
+              </div>
+              <h2 className="font-display font-bold text-lg text-slate-800">Condomínios e regras</h2>
+            </div>
+          </div>
+
+          <form onSubmit={saveCondominium} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-slate-500 font-medium text-sm">Nome do condomínio</label>
+              <input value={condoName} onChange={(e) => setCondoName(e.target.value)} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-slate-500 font-medium text-sm">Cidade</label>
+              <input value={condoCity} onChange={(e) => setCondoCity(e.target.value)} required placeholder="Ex: Arujá" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-slate-500 font-medium text-sm">Início do trabalho</label>
+              <input type="time" value={workStartHour} onChange={(e) => setWorkStartHour(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-slate-500 font-medium text-sm">Fim do trabalho</label>
+              <input type="time" value={workEndHour} onChange={(e) => setWorkEndHour(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
+            </div>
+            <div className="md:col-span-2 space-y-2">
+              <label className="text-slate-500 font-medium text-sm">Dias permitidos</label>
+              <div className="flex flex-wrap gap-2">
+                {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((label, index) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => toggleWeekday(index)}
+                    className={cn('px-3 py-2 rounded-xl text-xs font-bold', allowedWeekdays.includes(index) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-600">
+              <input type="checkbox" checked={blockNationalHolidays} onChange={(e) => setBlockNationalHolidays(e.target.checked)} className="h-4 w-4 accent-brand-primary" />
+              Bloquear feriados nacionais
+            </label>
+            <label className="flex items-center gap-2 text-sm font-medium text-slate-600">
+              <input type="checkbox" checked={blockCityHolidays} onChange={(e) => setBlockCityHolidays(e.target.checked)} className="h-4 w-4 accent-brand-primary" />
+              Bloquear feriados da cidade
+            </label>
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="text-slate-500 font-medium text-sm">Observações</label>
+              <textarea value={condoNotes} onChange={(e) => setCondoNotes(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 min-h-[80px]" />
+            </div>
+            <div className="md:col-span-2 flex items-center gap-3">
+              <button type="submit" className="bg-brand-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold">
+                {editingCondominium ? 'Atualizar condomínio' : 'Cadastrar condomínio'}
+              </button>
+              {editingCondominium && (
+                <button type="button" onClick={resetCondoForm} className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-bold">
+                  Cancelar edição
+                </button>
+              )}
+            </div>
+          </form>
+
+          <div className="space-y-2 pt-4 border-t border-slate-50">
+            {condominiums.map((condo) => (
+              <div key={condo.id} className="rounded-2xl bg-slate-50 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <div className="font-bold text-slate-900">{condo.name}</div>
+                  <div className="text-xs text-slate-500">
+                    {condo.city} · {condo.workStartHour}-{condo.workEndHour} · Dias: {condo.allowedWeekdays.map((item) => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'][item]).join(', ')}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingCondominium(condo);
+                      setCondoName(condo.name);
+                      setCondoCity(condo.city);
+                      setWorkStartHour(condo.workStartHour);
+                      setWorkEndHour(condo.workEndHour);
+                      setAllowedWeekdays(condo.allowedWeekdays || [0, 1, 2, 3, 4]);
+                      setBlockNationalHolidays(Boolean(condo.blockNationalHolidays));
+                      setBlockCityHolidays(Boolean(condo.blockCityHolidays));
+                      setCondoNotes(condo.notes || '');
+                    }}
+                    className="px-3 py-2 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-600"
+                  >
+                    Editar
+                  </button>
+                  <button type="button" onClick={() => removeCondominium(condo.id)} className="px-3 py-2 rounded-lg bg-red-50 text-red-600 text-xs font-bold">
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            ))}
+            {condominiums.length === 0 && (
+              <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">Nenhum condomínio cadastrado.</div>
+            )}
           </div>
         </section>
       </div>

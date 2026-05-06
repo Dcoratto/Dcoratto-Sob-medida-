@@ -20,6 +20,8 @@ import { AdminPage } from './pages/AdminPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { ReportsPage } from './pages/ReportsPage';
 import { PremiumProposalPage } from './pages/PremiumProposalPage';
+import { ProjectsPage } from './pages/ProjectsPage';
+import { CalendarPage } from './pages/CalendarPage';
 
 const ProtectedRoute = ({ children, adminOnly = false, shell = true }: { children: React.ReactNode, adminOnly?: boolean, shell?: boolean }) => {
   const { user, loading, isAdmin } = useAuth();
@@ -49,6 +51,8 @@ export default function App() {
           <Route path="/quotes/new" element={<ProtectedRoute><QuoteEditor /></ProtectedRoute>} />
           <Route path="/quotes/edit/:id" element={<ProtectedRoute><QuoteEditor /></ProtectedRoute>} />
           <Route path="/quotes/proposal/:id" element={<ProtectedRoute shell={false}><PremiumProposalPage /></ProtectedRoute>} />
+          <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
           
           <Route path="/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
           <Route path="/history" element={<ProtectedRoute><QuotesPage /></ProtectedRoute>} />

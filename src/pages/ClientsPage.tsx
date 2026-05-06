@@ -3,7 +3,7 @@ import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDo
 import {CheckCircle2, ClipboardList, Edit2, MapPin, Phone, Plus, Search, Trash2, User, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
-import {Client, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureInfo, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
+import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureInfo, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
@@ -75,6 +75,7 @@ export const ClientsPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [condominiums, setCondominiums] = useState<CondominiumRule[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ClientStage | 'all'>('all');
   const [showModal, setShowModal] = useState(false);
@@ -87,6 +88,14 @@ export const ClientsPage: React.FC = () => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [addressType, setAddressType] = useState<Client['addressType']>('casa');
+  const [condominiumId, setCondominiumId] = useState('');
+  const [block, setBlock] = useState('');
+  const [lot, setLot] = useState('');
+  const [tower, setTower] = useState('');
+  const [apartmentNumber, setApartmentNumber] = useState('');
   const [notes, setNotes] = useState('');
 
   useEffect(() => {
@@ -104,10 +113,15 @@ export const ClientsPage: React.FC = () => {
       setEmployees(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Employee)));
     });
 
+    const unsubCondominiums = onSnapshot(collection(db, 'condominiums'), (snapshot) => {
+      setCondominiums(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as CondominiumRule)));
+    });
+
     return () => {
       unsubClients();
       unsubQuotes();
       unsubEmployees();
+      unsubCondominiums();
     };
   }, []);
 
@@ -134,6 +148,14 @@ export const ClientsPage: React.FC = () => {
     setName('');
     setPhone('');
     setAddress('');
+    setCity('');
+    setNeighborhood('');
+    setAddressType('casa');
+    setCondominiumId('');
+    setBlock('');
+    setLot('');
+    setTower('');
+    setApartmentNumber('');
     setNotes('');
     setEditingClient(null);
   };
@@ -147,7 +169,32 @@ export const ClientsPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = {name, phone, address, notes};
+    const selectedCondominium = condominiums.find((item) => item.id === condominiumId);
+    const fullAddress = [
+      address,
+      neighborhood ? `Bairro ${neighborhood}` : '',
+      city,
+      selectedCondominium?.name ? `Condomínio ${selectedCondominium.name}` : '',
+      block ? `Quadra ${block}` : '',
+      lot ? `Lote ${lot}` : '',
+      tower ? `Torre ${tower}` : '',
+      apartmentNumber ? `Apto ${apartmentNumber}` : '',
+    ].filter(Boolean).join(' · ');
+    const data = {
+      name,
+      phone,
+      address: fullAddress,
+      notes,
+      city: city.trim(),
+      neighborhood: neighborhood.trim(),
+      addressType,
+      condominiumId: selectedCondominium?.id || '',
+      condominiumName: selectedCondominium?.name || '',
+      block: block.trim(),
+      lot: lot.trim(),
+      tower: tower.trim(),
+      apartmentNumber: apartmentNumber.trim(),
+    };
 
     if (editingClient) {
       await updateDoc(doc(db, 'clients', editingClient.id), data);
@@ -185,7 +232,15 @@ export const ClientsPage: React.FC = () => {
     setEditingClient(client);
     setName(client.name);
     setPhone(client.phone);
-    setAddress(client.address);
+    setAddress(client.address || '');
+    setCity(client.city || '');
+    setNeighborhood(client.neighborhood || '');
+    setAddressType(client.addressType || 'casa');
+    setCondominiumId(client.condominiumId || '');
+    setBlock(client.block || '');
+    setLot(client.lot || '');
+    setTower(client.tower || '');
+    setApartmentNumber(client.apartmentNumber || '');
     setNotes(client.notes);
     setShowModal(true);
   };
@@ -766,11 +821,63 @@ export const ClientsPage: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <FormField label="Nome Completo" value={name} onChange={setName} required />
               <FormField label="Telefone" value={phone} onChange={setPhone} required />
-
-              <div className="space-y-1.5">
-                <label className="text-slate-500 font-medium text-sm">Endereço</label>
-                <textarea value={address} onChange={(e) => setAddress(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium min-h-[80px]" />
+              <FormField label="Endereço (rua e número)" value={address} onChange={setAddress} required />
+              <div className="grid grid-cols-2 gap-3">
+                <FormField label="Bairro" value={neighborhood} onChange={setNeighborhood} />
+                <FormField label="Cidade" value={city} onChange={setCity} required />
               </div>
+              <div className="space-y-1.5">
+                <label className="text-slate-500 font-medium text-sm">Tipo de endereço</label>
+                <select
+                  value={addressType}
+                  onChange={(e) => {
+                    const nextType = e.target.value as Client['addressType'];
+                    setAddressType(nextType);
+                    if (nextType === 'casa') {
+                      setCondominiumId('');
+                      setBlock('');
+                      setLot('');
+                      setTower('');
+                      setApartmentNumber('');
+                    }
+                  }}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                >
+                  <option value="casa">Casa</option>
+                  <option value="condominio">Condomínio</option>
+                  <option value="apartamento">Apartamento</option>
+                </select>
+              </div>
+
+              {(addressType === 'condominio' || addressType === 'apartamento') && (
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Condomínio cadastrado</label>
+                  <select
+                    value={condominiumId}
+                    onChange={(e) => setCondominiumId(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                  >
+                    <option value="">Selecione um condomínio</option>
+                    {condominiums.map((condominium) => (
+                      <option key={condominium.id} value={condominium.id}>{condominium.name} · {condominium.city}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {addressType === 'condominio' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="Quadra" value={block} onChange={setBlock} />
+                  <FormField label="Lote" value={lot} onChange={setLot} />
+                </div>
+              )}
+
+              {addressType === 'apartamento' && (
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="Torre" value={tower} onChange={setTower} />
+                  <FormField label="Apartamento" value={apartmentNumber} onChange={setApartmentNumber} />
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="text-slate-500 font-medium text-sm">Observações</label>

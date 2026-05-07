@@ -141,6 +141,29 @@ export const Dashboard: React.FC = () => {
       .slice(0, 5) as Array<{quote: Quote; deadline: Date; daysLeft: number}>;
   }, [quotes]);
 
+  const upcomingSchedule = useMemo(() => {
+    const today = new Date();
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const diffDays = (date: Date) => {
+      const target = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+      return Math.ceil((target - startOfToday) / 86400000);
+    };
+
+    return quotes
+      .flatMap((quote) => {
+        const measurementDate = toDate(quote.measurementDate);
+        const deliveryDate = toDate(quote.deliveryDate);
+        return [
+          measurementDate ? {quote, date: measurementDate, type: 'Medição'} : null,
+          deliveryDate ? {quote, date: deliveryDate, type: 'Entrega'} : null,
+        ].filter(Boolean) as Array<{quote: Quote; date: Date; type: string}>;
+      })
+      .map((event) => ({...event, daysLeft: diffDays(event.date)}))
+      .filter((event) => event.daysLeft >= 0)
+      .sort((a, b) => a.daysLeft - b.daysLeft)
+      .slice(0, 6);
+  }, [quotes]);
+
   const stats = [
     {label: 'Orçamentos', value: quotes.length, icon: FileText, color: 'text-brand-primary', bg: 'bg-brand-primary/10', path: '/quotes'},
     {label: 'Projetos', value: quotes.filter((quote) => { const s = normalizeStatus(quote.status); return s === 'Aprovado' || s === 'Em produção' || s === 'Pronto para entrega' || s === 'Entregue'; }).length, icon: FolderKanban, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/projects'},
@@ -217,6 +240,81 @@ export const Dashboard: React.FC = () => {
           </button>
         ))}
       </div>
+
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500">
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-lg text-slate-800">Avisos de prazo</h3>
+              <p className="text-xs text-slate-400">Clientes com prazo vencendo ou vencido.</p>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {deadlineAlerts.map(({quote, daysLeft}) => (
+              <button
+                key={quote.id}
+                type="button"
+                onClick={() => navigate(`/quotes/edit/${quote.id}`)}
+                className="w-full rounded-2xl bg-slate-50 p-3 text-left hover:bg-slate-100 transition-all"
+              >
+                <div className="font-bold text-sm text-slate-900">{quote.clientName}</div>
+                <div className={cn('mt-1 text-xs font-bold', daysLeft < 0 ? 'text-red-600' : 'text-amber-600')}>
+                  {daysLeft < 0 ? `${Math.abs(daysLeft)} dia(s) vencido` : `vence em ${daysLeft} dia(s)`}
+                </div>
+              </button>
+            ))}
+            {deadlineAlerts.length === 0 && (
+              <button
+                type="button"
+                onClick={() => navigate('/calendar')}
+                className="w-full rounded-2xl bg-green-50 p-4 text-left text-sm font-semibold text-green-700 hover:bg-green-100 transition-all"
+              >
+                Nenhum prazo crítico no momento.
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="w-12 h-12 bg-brand-primary/10 rounded-2xl flex items-center justify-center text-brand-primary">
+              <Clock className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="font-display font-bold text-lg text-slate-800">Contagem regressiva</h3>
+              <p className="text-xs text-slate-400">Próximas medições e entregas do calendário.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {upcomingSchedule.map((event) => (
+              <button
+                key={`${event.quote.id}-${event.type}-${event.date.toISOString()}`}
+                type="button"
+                onClick={() => navigate('/calendar')}
+                className="rounded-2xl bg-slate-50 p-3 text-left hover:bg-slate-100 transition-all"
+              >
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{event.type}</div>
+                <div className="mt-1 font-bold text-sm text-slate-900">{event.quote.clientName}</div>
+                <div className="mt-1 text-xs font-bold text-brand-primary">
+                  {event.daysLeft === 0 ? 'É hoje' : `daqui a ${event.daysLeft} dia${event.daysLeft > 1 ? 's' : ''}`}
+                </div>
+              </button>
+            ))}
+            {upcomingSchedule.length === 0 && (
+              <button
+                type="button"
+                onClick={() => navigate('/calendar')}
+                className="md:col-span-2 rounded-2xl bg-slate-50 p-4 text-left text-sm font-semibold text-slate-400 hover:bg-slate-100 transition-all"
+              >
+                Nenhuma medição ou entrega futura cadastrada.
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
         <div className="mb-5 flex items-center justify-between">
@@ -326,7 +424,7 @@ export const Dashboard: React.FC = () => {
             </div>
           </button>
 
-          <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
+          <div className="hidden">
             <div className="mb-5 flex items-center gap-3">
               <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500">
                 <AlertCircle className="w-6 h-6" />

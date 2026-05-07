@@ -1,10 +1,11 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {collection, limit, onSnapshot, orderBy, query} from 'firebase/firestore';
+import {addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, Timestamp} from 'firebase/firestore';
 import {useNavigate} from 'react-router-dom';
-import {AlertCircle, CheckCircle2, Clock, Database, FileText, FolderKanban, Package, TrendingUp, Users} from 'lucide-react';
+import {AlertCircle, CheckCircle2, Clock, Database, FileText, FolderKanban, Package, Plus, StickyNote, Trash2, TrendingUp, Users} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
+import {useAuth} from '../contexts/AuthContext';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -55,8 +56,17 @@ const toDate = (value: any): Date | null => {
   return null;
 };
 
+interface DashboardNote {
+  id: string;
+  text: string;
+  createdAt?: any;
+  userUid?: string;
+  userName?: string;
+}
+
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+  const {user, profile, isAdmin} = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [recentQuotes, setRecentQuotes] = useState<Quote[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -64,6 +74,9 @@ export const Dashboard: React.FC = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [reservations, setReservations] = useState<InventoryReservation[]>([]);
   const [purchases, setPurchases] = useState<InventoryPurchase[]>([]);
+  const [notes, setNotes] = useState<DashboardNote[]>([]);
+  const [newNote, setNewNote] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -96,6 +109,9 @@ export const Dashboard: React.FC = () => {
     const unsubPurchases = onSnapshot(collection(db, 'inventoryPurchases'), (snap) => {
       setPurchases(snap.docs.map((item) => ({id: item.id, ...item.data()} as InventoryPurchase)));
     });
+    const unsubNotes = onSnapshot(query(collection(db, 'dashboardNotes'), orderBy('createdAt', 'desc'), limit(12)), (snap) => {
+      setNotes(snap.docs.map((item) => ({id: item.id, ...item.data()} as DashboardNote)));
+    });
 
     return () => {
       unsubQuotesAll();
@@ -105,8 +121,33 @@ export const Dashboard: React.FC = () => {
       unsubInventory();
       unsubReservations();
       unsubPurchases();
+      unsubNotes();
     };
   }, []);
+
+  const addDashboardNote = async () => {
+    const text = newNote.trim();
+    if (!text || !user?.uid) return;
+
+    setSavingNote(true);
+    try {
+      await addDoc(collection(db, 'dashboardNotes'), {
+        text,
+        createdAt: Timestamp.now(),
+        userUid: user.uid,
+        userName: profile?.name || user.displayName || user.email || 'Usuario',
+      });
+      setNewNote('');
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const deleteDashboardNote = async (note: DashboardNote) => {
+    if (!note.id || !user?.uid) return;
+    if (!isAdmin && note.userUid !== user.uid) return;
+    await deleteDoc(doc(db, 'dashboardNotes', note.id));
+  };
 
   const latestQuoteByClient = useMemo(() => {
     const sorted = [...quotes].sort((a, b) => (toDate(b.createdAt)?.getTime() || 0) - (toDate(a.createdAt)?.getTime() || 0));
@@ -313,6 +354,78 @@ export const Dashboard: React.FC = () => {
               </button>
             )}
           </div>
+        </div>
+      </section>
+
+      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
+        <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="font-display font-bold text-lg text-slate-800 flex items-center gap-2">
+              <StickyNote className="w-5 h-5 text-amber-600" />
+              Quadro de avisos da equipe
+            </h2>
+            <p className="text-sm text-slate-400">Anotacoes compartilhadas entre usuarios no dashboard.</p>
+          </div>
+          <div className="w-full lg:max-w-xl space-y-2">
+            <textarea
+              value={newNote}
+              onChange={(event) => setNewNote(event.target.value)}
+              placeholder="Escreva um aviso para a equipe..."
+              maxLength={280}
+              className="w-full min-h-[84px] rounded-2xl border border-amber-100 bg-amber-50/40 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-200"
+            />
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-semibold text-slate-400">{newNote.length}/280</span>
+              <button
+                type="button"
+                onClick={addDashboardNote}
+                disabled={!newNote.trim() || savingNote}
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Plus className="w-4 h-4" />
+                {savingNote ? 'Salvando...' : 'Publicar aviso'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {notes.map((note, index) => {
+            const createdAt = toDate(note.createdAt);
+            const canDelete = isAdmin || note.userUid === user?.uid;
+            const palette = [
+              'bg-amber-50 border-amber-100',
+              'bg-blue-50 border-blue-100',
+              'bg-emerald-50 border-emerald-100',
+              'bg-rose-50 border-rose-100',
+            ];
+            return (
+              <article key={note.id} className={cn('rounded-2xl border p-4 shadow-sm', palette[index % palette.length])}>
+                <div className="mb-2 flex items-start justify-between gap-2">
+                  <div className="text-xs font-bold uppercase tracking-widest text-slate-500">{note.userName || 'Usuario'}</div>
+                  {canDelete && (
+                    <button
+                      type="button"
+                      onClick={() => deleteDashboardNote(note)}
+                      className="rounded-lg p-1.5 text-slate-400 hover:bg-white/80 hover:text-red-600"
+                      title="Excluir aviso"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-slate-700 whitespace-pre-wrap break-words">{note.text}</p>
+                <div className="mt-3 text-[11px] font-semibold text-slate-400">
+                  {createdAt ? createdAt.toLocaleDateString('pt-BR') : 'Agora'}
+                </div>
+              </article>
+            );
+          })}
+          {notes.length === 0 && (
+            <div className="md:col-span-2 xl:col-span-3 rounded-2xl border border-slate-100 bg-slate-50 p-6 text-center text-sm font-semibold text-slate-400">
+              Nenhum aviso publicado ainda.
+            </div>
+          )}
         </div>
       </section>
 

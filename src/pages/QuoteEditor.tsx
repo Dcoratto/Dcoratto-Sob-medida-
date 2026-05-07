@@ -18,6 +18,8 @@ import {applyQuoteInventoryByStatusTransition} from '../lib/inventoryReservation
 import {logSystemEvent} from '../lib/systemEvents';
 import {getHolidayInfo} from '../lib/holidays';
 
+type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number };
+
 const normalizeStockStatus = (value: unknown) =>
   String(value || '')
     .toLowerCase()
@@ -55,7 +57,7 @@ export const QuoteEditor: React.FC = () => {
   const [status, setStatus] = useState<QuoteStatus>('Pré-orçamento');
   const [originalStatus, setOriginalStatus] = useState<QuoteStatus>('Pré-orçamento');
   const [pieces, setPieces] = useState<QuotePiece[]>([]);
-  const [cutouts, setCutouts] = useState({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0 });
+  const [cutouts, setCutouts] = useState<QuoteCutoutState>({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0 });
   const [showDrawing, setShowDrawing] = useState<string | null>(null);
   const [employeeAssignments, setEmployeeAssignments] = useState<EmployeeAssignment[]>([]);
   const [statusHistory, setStatusHistory] = useState<QuoteStatusHistory[]>([]);
@@ -88,7 +90,7 @@ export const QuoteEditor: React.FC = () => {
     return {total: physicalTotal, reserved, available: Math.max(0, physicalTotal - reserved)};
   };
   const filteredClients = clients.filter((client) => {
-    const searchText = `${client.name} ${client.phone} ${client.address}`.toLowerCase();
+    const searchText = `${client.name} ${client.phone} ${client.email || ''} ${client.cpf || ''} ${client.rg || ''} ${client.address}`.toLowerCase();
     return searchText.includes(clientSearch.toLowerCase());
   });
 
@@ -232,7 +234,32 @@ export const QuoteEditor: React.FC = () => {
     setPieces([...pieces, newPiece]);
   };
 
+  const countCutouts = (drawingCutouts?: QuotePiece['cutouts']): QuoteCutoutState => {
+    const counts: QuoteCutoutState = {cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0};
+    (drawingCutouts || []).forEach((item) => {
+      if (item.type === 'cooktop') counts.cooktop += 1;
+      if (item.type === 'torneira') counts.faucetHole += 1;
+      if (item.type === 'cuba') counts.sinkUnder += 1;
+    });
+    return counts;
+  };
+
+  const applyCutoutDiff = (previousCutouts?: QuotePiece['cutouts'], nextCutouts?: QuotePiece['cutouts']) => {
+    const previous = countCutouts(previousCutouts);
+    const next = countCutouts(nextCutouts);
+    setCutouts((current) => ({
+      cooktop: Math.max(0, current.cooktop + (next.cooktop - previous.cooktop)),
+      sinkUnder: Math.max(0, current.sinkUnder + (next.sinkUnder - previous.sinkUnder)),
+      sinkOver: current.sinkOver,
+      faucetHole: Math.max(0, current.faucetHole + (next.faucetHole - previous.faucetHole)),
+    }));
+  };
+
   const removePiece = (id: string) => {
+    const removedPiece = pieces.find((piece) => piece.id === id);
+    if (removedPiece?.cutouts?.length) {
+      applyCutoutDiff(removedPiece.cutouts, []);
+    }
     setPieces(pieces.filter(p => p.id !== id));
   };
 
@@ -437,7 +464,7 @@ export const QuoteEditor: React.FC = () => {
                         >
                           <div className="font-bold text-sm">{client.name}</div>
                           <div className={cn('text-xs', client.id === clientId ? 'text-white/70' : 'text-slate-400')}>
-                            {[client.phone, client.address].filter(Boolean).join(' · ')}
+                            {[client.phone, client.email, client.cpf, client.address].filter(Boolean).join(' · ')}
                           </div>
                         </button>
                       ))}
@@ -1033,6 +1060,8 @@ export const QuoteEditor: React.FC = () => {
                 saveButtonId={`save-drawing-${showDrawing}`}
                 settings={settings}
                 onSave={({ json, area, previewUrl, sides, largestSide, cutouts: drawingCutouts }) => {
+                  const currentPiece = pieces.find((piece) => piece.id === showDrawing);
+                  applyCutoutDiff(currentPiece?.cutouts, drawingCutouts);
                   updatePiece(showDrawing, { 
                     drawingJson: json, 
                     manualArea: area, 

@@ -1,15 +1,39 @@
 import React, {useEffect, useState} from 'react';
-import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from 'firebase/firestore';
-import {BriefcaseBusiness, CheckCircle2, Mail, Plus, Trash2, XCircle} from 'lucide-react';
-import {db} from '../lib/firebase';
+import {EmailAuthProvider, reauthenticateWithCredential} from 'firebase/auth';
+import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, Timestamp, updateDoc, writeBatch} from 'firebase/firestore';
+import {deleteObject, ref as storageRef} from 'firebase/storage';
+import {AlertTriangle, BriefcaseBusiness, CheckCircle2, Mail, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
+import {auth, db, storage} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
+import {useAuth} from '../contexts/AuthContext';
 import {Employee, EmployeeRole, Profile} from '../types';
 import {cn} from '../lib/utils';
 
+const employeeRoles: EmployeeRole[] = ['Vendedor', 'Medidor', 'Cortador', 'Acabador', 'Instalador', 'Entregador', 'Administrativo'];
+const resetCollections = [
+  'clients',
+  'quotes',
+  'employees',
+  'materials',
+  'inventory',
+  'inventoryReservations',
+  'inventoryPurchases',
+  'condominiums',
+  'systemEvents',
+];
+
 export const AdminPage: React.FC = () => {
+  const {isAdmin} = useAuth();
   const [users, setUsers] = useState<Profile[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savingEmployee, setSavingEmployee] = useState(false);
+  const [employeeError, setEmployeeError] = useState('');
+  const [resetPassword, setResetPassword] = useState('');
+  const [resetConfirmation, setResetConfirmation] = useState('');
+  const [resettingData, setResettingData] = useState(false);
+  const [resetMessage, setResetMessage] = useState('');
+  const [resetError, setResetError] = useState('');
   const [employeeForm, setEmployeeForm] = useState<{name: string; role: EmployeeRole; phone: string}>({
     name: '',
     role: 'Medidor',
@@ -32,9 +56,17 @@ export const AdminPage: React.FC = () => {
 
   useEffect(() => {
     const q = query(collection(db, 'employees'), orderBy('name', 'asc'));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setEmployees(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Employee)));
-    });
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        setEmployees(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Employee)));
+        setEmployeeError('');
+      },
+      (error) => {
+        console.error('Erro ao carregar funcionarios:', error);
+        setEmployeeError('Nao foi possivel carregar os funcionarios agora.');
+      },
+    );
     return unsubscribe;
   }, []);
 
@@ -56,15 +88,29 @@ export const AdminPage: React.FC = () => {
 
   const addEmployee = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!employeeForm.name.trim()) return;
-    await addDoc(collection(db, 'employees'), {
-      name: employeeForm.name.trim(),
-      role: employeeForm.role,
-      phone: employeeForm.phone.trim(),
-      active: true,
-      createdAt: Timestamp.now(),
-    });
-    setEmployeeForm({name: '', role: 'Medidor', phone: ''});
+    const employeeName = employeeForm.name.trim();
+    if (!employeeName) {
+      setEmployeeError('Informe o nome do funcionario antes de adicionar.');
+      return;
+    }
+
+    setSavingEmployee(true);
+    setEmployeeError('');
+    try {
+      await addDoc(collection(db, 'employees'), {
+        name: employeeName,
+        role: employeeForm.role,
+        phone: employeeForm.phone.trim(),
+        active: true,
+        createdAt: Timestamp.now(),
+      });
+      setEmployeeForm({name: '', role: 'Medidor', phone: ''});
+    } catch (error) {
+      console.error('Erro ao adicionar funcionario:', error);
+      setEmployeeError('Nao foi possivel adicionar o funcionario. Confira sua conexao e tente novamente.');
+    } finally {
+      setSavingEmployee(false);
+    }
   };
 
   const toggleEmployee = async (employee: Employee) => {
@@ -77,6 +123,95 @@ export const AdminPage: React.FC = () => {
     const ok = await deleteFirestoreDoc('employees', employeeId);
     if (!ok) return;
     setEmployees((prev) => prev.filter((employee) => employee.id !== employeeId));
+  };
+
+  const deleteStoredFile = async (fileUrl?: unknown) => {
+    if (typeof fileUrl !== 'string' || !fileUrl.startsWith('http')) return;
+
+    try {
+      await deleteObject(storageRef(storage, fileUrl));
+    } catch (error) {
+      console.warn('Nao foi possivel excluir arquivo armazenado:', error);
+    }
+  };
+
+  const deleteCollectionData = async (collectionName: string) => {
+    const snapshot = await getDocs(collection(db, collectionName));
+    let batch = writeBatch(db);
+    let batchSize = 0;
+    let deleted = 0;
+
+    for (const item of snapshot.docs) {
+      if (collectionName === 'inventory') {
+        await deleteStoredFile(item.data().photoUrl);
+      }
+
+      batch.delete(item.ref);
+      batchSize += 1;
+      deleted += 1;
+
+      if (batchSize === 450) {
+        await batch.commit();
+        batch = writeBatch(db);
+        batchSize = 0;
+      }
+    }
+
+    if (batchSize > 0) {
+      await batch.commit();
+    }
+
+    return deleted;
+  };
+
+  const resetOperationalData = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setResetError('');
+    setResetMessage('');
+
+    if (!isAdmin) {
+      setResetError('Apenas administradores podem limpar os dados do sistema.');
+      return;
+    }
+
+    const currentUser = auth.currentUser;
+    if (!currentUser?.email) {
+      setResetError('Nao foi possivel confirmar sua conta. Entre novamente e tente de novo.');
+      return;
+    }
+
+    if (!resetPassword) {
+      setResetError('Digite a senha da sua conta para confirmar.');
+      return;
+    }
+
+    if (resetConfirmation.trim().toUpperCase() !== 'RESETAR') {
+      setResetError('Digite RESETAR no campo de confirmacao.');
+      return;
+    }
+
+    const confirmed = window.confirm('Esta acao vai apagar clientes, orcamentos, materiais, estoque, compras, funcionarios, condominios e historico. Deseja continuar?');
+    if (!confirmed) return;
+
+    setResettingData(true);
+    try {
+      const credential = EmailAuthProvider.credential(currentUser.email, resetPassword);
+      await reauthenticateWithCredential(currentUser, credential);
+
+      let totalDeleted = 0;
+      for (const collectionName of resetCollections) {
+        totalDeleted += await deleteCollectionData(collectionName);
+      }
+
+      setResetPassword('');
+      setResetConfirmation('');
+      setResetMessage(`${totalDeleted} registros foram excluidos. Usuarios, permissoes e configuracoes foram mantidos.`);
+    } catch (error) {
+      console.error('Erro ao resetar dados:', error);
+      setResetError('Nao foi possivel limpar os dados. Confira a senha e tente novamente.');
+    } finally {
+      setResettingData(false);
+    }
   };
 
   return (
@@ -95,10 +230,14 @@ export const AdminPage: React.FC = () => {
           <BriefcaseBusiness className="w-6 h-6 text-brand-primary" />
         </div>
 
+        <div className="space-y-2">
         <form onSubmit={addEmployee} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px_180px_auto] gap-3">
           <input
             value={employeeForm.name}
-            onChange={(event) => setEmployeeForm((form) => ({...form, name: event.target.value}))}
+            onChange={(event) => {
+              setEmployeeError('');
+              setEmployeeForm((form) => ({...form, name: event.target.value}));
+            }}
             placeholder="Nome do funcionário"
             className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20"
           />
@@ -107,7 +246,7 @@ export const AdminPage: React.FC = () => {
             onChange={(event) => setEmployeeForm((form) => ({...form, role: event.target.value as EmployeeRole}))}
             className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20"
           >
-            {(['Vendedor', 'Medidor', 'Cortador', 'Acabador', 'Instalador', 'Entregador', 'Administrativo'] as EmployeeRole[]).map((role) => (
+            {employeeRoles.map((role) => (
               <option key={role} value={role}>{role}</option>
             ))}
           </select>
@@ -117,11 +256,17 @@ export const AdminPage: React.FC = () => {
             placeholder="Telefone"
             className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20"
           />
-          <button type="submit" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 font-bold text-white shadow-lg shadow-brand-primary/20">
+          <button type="submit" disabled={savingEmployee} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 font-bold text-white shadow-lg shadow-brand-primary/20 disabled:cursor-not-allowed disabled:opacity-60">
             <Plus className="w-4 h-4" />
-            Adicionar
+            {savingEmployee ? 'Adicionando...' : 'Adicionar'}
           </button>
         </form>
+        {employeeError && (
+          <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+            {employeeError}
+          </div>
+        )}
+        </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {employees.map((employee) => (
@@ -149,6 +294,62 @@ export const AdminPage: React.FC = () => {
           )}
         </div>
       </section>
+
+      {isAdmin && (
+        <section className="rounded-[32px] border border-red-100 bg-red-50/60 p-6 shadow-sm">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-red-600">
+                <ShieldAlert className="h-6 w-6" />
+              </div>
+              <div>
+                <h2 className="font-display text-xl font-bold text-red-950">Zona de risco</h2>
+                <p className="mt-1 max-w-3xl text-sm text-red-700">
+                  Use este botão apenas quando o sistema estiver pronto para começar do zero. Ele apaga clientes, orçamentos, materiais, estoque, reservas, compras, funcionários, condomínios e histórico.
+                </p>
+                <p className="mt-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-red-500">
+                  <AlertTriangle className="h-4 w-4" />
+                  Usuários, permissões e configurações da empresa serão mantidos.
+                </p>
+              </div>
+            </div>
+
+            <form onSubmit={resetOperationalData} className="w-full max-w-xl space-y-3 rounded-3xl border border-red-100 bg-white p-4 shadow-sm">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <input
+                  type="password"
+                  value={resetPassword}
+                  onChange={(event) => {
+                    setResetError('');
+                    setResetPassword(event.target.value);
+                  }}
+                  placeholder="Senha da conta"
+                  className="rounded-2xl border border-red-100 bg-red-50/40 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-red-200"
+                />
+                <input
+                  value={resetConfirmation}
+                  onChange={(event) => {
+                    setResetError('');
+                    setResetConfirmation(event.target.value);
+                  }}
+                  placeholder="Digite RESETAR"
+                  className="rounded-2xl border border-red-100 bg-red-50/40 px-4 py-3 text-sm uppercase outline-none focus:ring-2 focus:ring-red-200"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={resettingData}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 font-bold text-white shadow-lg shadow-red-600/20 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Trash2 className="h-4 w-4" />
+                {resettingData ? 'Limpando dados...' : 'Excluir todos os dados operacionais'}
+              </button>
+              {resetError && <p className="text-sm font-semibold text-red-600">{resetError}</p>}
+              {resetMessage && <p className="text-sm font-semibold text-green-700">{resetMessage}</p>}
+            </form>
+          </div>
+        </section>
+      )}
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
         <div className="p-4">

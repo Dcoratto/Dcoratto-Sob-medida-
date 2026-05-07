@@ -71,6 +71,10 @@ export interface Client {
   id: string;
   name: string;
   phone: string;
+  email?: string;
+  cpf?: string;
+  rg?: string;
+  birthDate?: string;
   address: string;
   notes: string;
   city?: string;

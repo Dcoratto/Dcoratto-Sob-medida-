@@ -87,6 +87,10 @@ export const ClientsPage: React.FC = () => {
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [cpf, setCpf] = useState('');
+  const [rg, setRg] = useState('');
+  const [birthDate, setBirthDate] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
@@ -147,6 +151,10 @@ export const ClientsPage: React.FC = () => {
   const resetForm = () => {
     setName('');
     setPhone('');
+    setEmail('');
+    setCpf('');
+    setRg('');
+    setBirthDate('');
     setAddress('');
     setCity('');
     setNeighborhood('');
@@ -183,6 +191,10 @@ export const ClientsPage: React.FC = () => {
     const data = {
       name,
       phone,
+      email: email.trim(),
+      cpf: cpf.trim(),
+      rg: rg.trim(),
+      birthDate: birthDate.trim(),
       address: fullAddress,
       notes,
       city: city.trim(),
@@ -232,6 +244,10 @@ export const ClientsPage: React.FC = () => {
     setEditingClient(client);
     setName(client.name);
     setPhone(client.phone);
+    setEmail(client.email || '');
+    setCpf(client.cpf || '');
+    setRg(client.rg || '');
+    setBirthDate(client.birthDate || '');
     setAddress(client.address || '');
     setCity(client.city || '');
     setNeighborhood(client.neighborhood || '');
@@ -507,7 +523,7 @@ export const ClientsPage: React.FC = () => {
   const filteredClients = clients.filter((client) => {
     const stage = quoteStage(latestQuoteByClient.get(client.id));
     const matchesStatus = statusFilter === 'all' || stage === statusFilter;
-    const matchesSearch = normalize(`${client.name} ${client.phone} ${client.address}`).includes(normalize(search));
+    const matchesSearch = normalize(`${client.name} ${client.phone} ${client.email || ''} ${client.cpf || ''} ${client.rg || ''} ${client.address}`).includes(normalize(search));
     return matchesStatus && matchesSearch;
   });
 
@@ -587,6 +603,7 @@ export const ClientsPage: React.FC = () => {
                         <Phone className="w-3 h-3" />
                         {client.phone}
                       </div>
+                      {client.email && <div className="text-xs text-slate-400 truncate mt-0.5">{client.email}</div>}
                     </div>
                   </div>
 
@@ -618,6 +635,13 @@ export const ClientsPage: React.FC = () => {
               <div>
                 <h2 className="text-2xl font-display font-bold text-slate-900">{selectedClient.name}</h2>
                 <p className="text-sm text-slate-400">Controle de produção do contrato fechado.</p>
+                <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
+                  <span>{selectedClient.phone || '-'}</span>
+                  {selectedClient.email && <span>{selectedClient.email}</span>}
+                  {selectedClient.cpf && <span>CPF: {selectedClient.cpf}</span>}
+                  {selectedClient.rg && <span>RG: {selectedClient.rg}</span>}
+                  {selectedClient.birthDate && <span>Nascimento: {selectedClient.birthDate}</span>}
+                </div>
               </div>
               <button type="button" onClick={() => setShowProduction(false)} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full transition-all text-slate-400">
                 <X className="w-6 h-6" />
@@ -833,6 +857,12 @@ export const ClientsPage: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <FormField label="Nome Completo" value={name} onChange={setName} required />
               <FormField label="Telefone" value={phone} onChange={setPhone} required />
+              <FormField label="Email" value={email} onChange={setEmail} type="email" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <FormField label="CPF" value={cpf} onChange={setCpf} />
+                <FormField label="RG" value={rg} onChange={setRg} />
+              </div>
+              <FormField label="Data de nascimento" value={birthDate} onChange={setBirthDate} type="date" />
               <FormField label="Endereço (rua e número)" value={address} onChange={setAddress} required />
               <div className="grid grid-cols-2 gap-3">
                 <FormField label="Bairro" value={neighborhood} onChange={setNeighborhood} />
@@ -917,11 +947,23 @@ const StatusFilter = ({label, active, onClick}: {key?: React.Key; label: string;
   </button>
 );
 
-const FormField = ({label, value, onChange, required}: {label: string; value: string; onChange: (value: string) => void; required?: boolean}) => (
+const FormField = ({
+  label,
+  value,
+  onChange,
+  required,
+  type = 'text',
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  type?: string;
+}) => (
   <div className="space-y-1.5">
     <label className="text-slate-500 font-medium text-sm">{label}</label>
     <input
-      type="text"
+      type={type}
       required={required}
       value={value}
       onChange={(e) => onChange(e.target.value)}

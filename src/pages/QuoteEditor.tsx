@@ -8,7 +8,7 @@ import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
   ChevronDown, ChevronUp, Calculator,
-  MapPin, Phone, User, Calendar,
+  MapPin, Phone, User,
   Layers, PenTool
 } from 'lucide-react';
 import { cn, formatCurrency } from '../lib/utils';
@@ -16,7 +16,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
 import {applyQuoteInventoryByStatusTransition} from '../lib/inventoryReservations';
 import {logSystemEvent} from '../lib/systemEvents';
-import {getHolidayInfo} from '../lib/holidays';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number };
 
@@ -68,7 +67,6 @@ export const QuoteEditor: React.FC = () => {
     ? {...selectedBaseMaterial, marginPercentage: selectedUserPrice.marginPercentage, pricePerM2: selectedUserPrice.pricePerM2}
     : selectedBaseMaterial;
   const selectedClient = clients.find(c => c.id === clientId);
-  const selectedCondominium = condominiums.find((item) => item.id === selectedClient?.condominiumId);
   const { calculatePieceArea, calculateTotal, calculateSculptedSink } = useQuoteCalculator(settings, selectedMaterial);
   const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
   
@@ -104,28 +102,6 @@ export const QuoteEditor: React.FC = () => {
     return `${year}-${month}-${day}`;
   };
 
-  const scheduleRestrictionMessage = (() => {
-    if (!deliveryDate || !selectedCondominium) return '';
-    const date = new Date(`${deliveryDate}T12:00:00`);
-    if (Number.isNaN(date.getTime())) return '';
-    const weekday = (date.getDay() + 6) % 7;
-    const allowedWeekdays = selectedCondominium.allowedWeekdays || [];
-    const isAllowedWeekday = allowedWeekdays.includes(weekday);
-    const holiday = getHolidayInfo(date, selectedClient?.city);
-    const blockedByHoliday =
-      (Boolean(holiday.national) && Boolean(selectedCondominium.blockNationalHolidays)) ||
-      (Boolean(holiday.city) && Boolean(selectedCondominium.blockCityHolidays));
-
-    if (!isAllowedWeekday) {
-      return `Entrega bloqueada: o condomínio ${selectedCondominium.name} não permite trabalho nesse dia da semana.`;
-    }
-
-    if (blockedByHoliday) {
-      return `Entrega bloqueada: a data escolhida cai em feriado (${holiday.national || holiday.city}) e esse condomínio bloqueia feriados.`;
-    }
-
-    return '';
-  })();
 
   useEffect(() => {
     // Listen for clients
@@ -300,10 +276,6 @@ export const QuoteEditor: React.FC = () => {
       alert('Por favor, selecione um cliente e um material.');
       return;
     }
-    if (scheduleRestrictionMessage) {
-      alert(scheduleRestrictionMessage);
-      return;
-    }
     setSaving(true);
     const firstAssigned = employeeAssignments.find((item) => item.employeeId);
     
@@ -420,189 +392,6 @@ export const QuoteEditor: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Basic Info */}
         <div className="lg:col-span-1 space-y-6">
-          <section className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
-            <h2 className="font-display font-bold text-lg text-slate-800 flex items-center gap-2">
-              <User className="w-5 h-5 text-brand-primary" /> Dados do Cliente
-            </h2>
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cliente</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={clientPickerOpen ? clientSearch : selectedClient?.name || clientSearch}
-                    onFocus={() => {
-                      setClientPickerOpen(true);
-                      if (selectedClient && !clientSearch) setClientSearch(selectedClient.name);
-                    }}
-                    onChange={(e) => {
-                      setClientSearch(e.target.value);
-                      setClientPickerOpen(true);
-                      if (clientId && e.target.value !== selectedClient?.name) setClientId('');
-                    }}
-                    onBlur={() => window.setTimeout(() => setClientPickerOpen(false), 140)}
-                    placeholder="Pesquisar e selecionar cliente..."
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 pr-10 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
-                  />
-                  <ChevronDown className="absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                  {clientPickerOpen && (
-                    <div className="absolute z-30 mt-2 max-h-56 w-full overflow-auto rounded-2xl border border-slate-100 bg-white p-2 shadow-xl">
-                      {filteredClients.map((client) => (
-                        <button
-                          key={client.id}
-                          type="button"
-                          onMouseDown={(event) => event.preventDefault()}
-                          onClick={() => {
-                            setClientId(client.id);
-                            setClientSearch(client.name);
-                            setClientPickerOpen(false);
-                          }}
-                          className={cn(
-                            'w-full rounded-xl px-3 py-2 text-left transition-all',
-                            client.id === clientId ? 'bg-brand-primary text-white' : 'hover:bg-slate-50 text-slate-700',
-                          )}
-                        >
-                          <div className="font-bold text-sm">{client.name}</div>
-                          <div className={cn('text-xs', client.id === clientId ? 'text-white/70' : 'text-slate-400')}>
-                            {[client.phone, client.email, client.cpf, client.address].filter(Boolean).join(' · ')}
-                          </div>
-                        </button>
-                      ))}
-                      {filteredClients.length === 0 && (
-                        <div className="px-3 py-4 text-center text-sm text-slate-400">Nenhum cliente encontrado.</div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ambiente / Projeto</label>
-                <input 
-                  type="text" 
-                  value={environment} 
-                  onChange={(e) => setEnvironment(e.target.value)}
-                  placeholder="Ex: Cozinha, Banheiro Social..."
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
-                />
-              </div>
-            </div>
-          </section>
-
-          <section className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
-            <h2 className="font-display font-bold text-lg text-slate-800 flex items-center gap-2">
-              <Layers className="w-5 h-5 text-brand-primary" /> Material e Condições
-            </h2>
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Material</label>
-                <select 
-                  value={materialId} 
-                  onChange={(e) => setMaterialId(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
-                >
-                  <option value="">Selecione um material</option>
-                  {materials.filter(m => m.active).map((m) => {
-                    const stock = materialStock(m.id);
-                    const statusText = stock.available > 0
-                      ? `Disponível ${stock.available.toFixed(2)} m²`
-                      : stock.reserved > 0 ? 'Reservado/Sem saldo' : 'Sem estoque';
-                    return (
-                      <option key={m.id} value={m.id}>
-                        {m.name} ({m.category}) - {statusText}
-                      </option>
-                    );
-                  })}
-                </select>
-                {materialId && (
-                  <div className="mt-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
-                    {(() => {
-                      const stock = materialStock(materialId);
-                      return `Estoque: ${stock.total.toFixed(2)} m² | Reservado: ${stock.reserved.toFixed(2)} m² | Disponível: ${stock.available.toFixed(2)} m² | Este orçamento: ${totalArea.toFixed(2)} m²`;
-                    })()}
-                  </div>
-                )}
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Condição de Pagamento</label>
-                <select 
-                  value={paymentMethod} 
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
-                >
-                  <option value="">Selecione o pagamento</option>
-                  {settings.paymentMethods.map(m => (
-                    <option key={m.name} value={m.name}>{m.name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Prazo (dias)</label>
-                  <input 
-                    type="number" 
-                    value={deliveryDays} 
-                    onChange={(e) => setDeliveryDays(Number(e.target.value))}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status</label>
-                  <select 
-                    value={status} 
-                    onChange={(e) => setStatus(e.target.value as QuoteStatus)}
-                    className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
-                  >
-                    <option value="Pré-orçamento">Pré-orçamento</option>
-                    <option value="Aguardando medição">Aguardando medição</option>
-                    <option value="Medido">Medido</option>
-                    <option value="Enviado">Enviado</option>
-                    <option value="Aprovado">Aprovado</option>
-                    <option value="Recusado">Recusado</option>
-                    <option value="Em produção">Em produção</option>
-                    <option value="Pronto para entrega">Pronto para entrega</option>
-                    <option value="Entregue">Entregue</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
-            <h2 className="font-display font-bold text-lg text-slate-800 flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-brand-primary" /> Agendamento
-            </h2>
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Data da medição</label>
-                <input
-                  type="date"
-                  value={measurementDate}
-                  onChange={(e) => setMeasurementDate(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Data da entrega</label>
-                <input
-                  type="date"
-                  value={deliveryDate}
-                  onChange={(e) => setDeliveryDate(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
-                />
-              </div>
-              {selectedCondominium && (
-                <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">
-                  Condomínio: {selectedCondominium.name} · Horário permitido {selectedCondominium.workStartHour}-{selectedCondominium.workEndHour}
-                </div>
-              )}
-              {scheduleRestrictionMessage && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
-                  {scheduleRestrictionMessage}
-                </div>
-              )}
-            </div>
-          </section>
-
           <section className="bg-brand-primary p-8 rounded-[32px] text-white shadow-xl shadow-brand-primary/30">
             <div className="flex items-center gap-2 mb-4 opacity-80">
               <Calculator className="w-5 h-5" />
@@ -1084,3 +873,4 @@ export const QuoteEditor: React.FC = () => {
 };
 
 const X = ({ className }: any) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
+

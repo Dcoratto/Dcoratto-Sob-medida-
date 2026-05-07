@@ -70,6 +70,16 @@ const stepDate = (value: any) => {
   return date.toLocaleDateString('pt-BR');
 };
 
+const formatDateInput = (value: any) => {
+  if (!value) return '';
+  const date = typeof value.toDate === 'function' ? value.toDate() : value;
+  if (!(date instanceof Date)) return '';
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const ClientsPage: React.FC = () => {
   const {user, profile} = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
@@ -327,6 +337,22 @@ export const ClientsPage: React.FC = () => {
     } catch (error: any) {
       alert(error?.message || 'Não foi possível alterar o status do orçamento.');
     }
+  };
+
+  const updateQuoteSchedule = async (quote: Quote, field: 'measurementDate' | 'deliveryDate', value: string) => {
+    await updateDoc(doc(db, 'quotes', quote.id), {
+      [field]: value ? Timestamp.fromDate(new Date(`${value}T12:00:00`)) : null,
+      statusHistory: [
+        ...(quote.statusHistory || []),
+        {
+          status: quote.status,
+          changedAt: Timestamp.now(),
+          changedByUid: user?.uid || '',
+          changedByName: currentUserName,
+          note: `${field === 'measurementDate' ? 'Medição' : 'Entrega'} ${value ? `agendada para ${value.split('-').reverse().join('/')}` : 'removida'}`,
+        },
+      ],
+    });
   };
 
   const updateAssignment = async (quote: Quote, step: ProductionStep, employeeId: string) => {
@@ -676,6 +702,32 @@ export const ClientsPage: React.FC = () => {
 
                   {selectedQuote && (
                     <>
+                      {isApprovedOrBeyond(selectedQuote.status) && (
+                        <section className="rounded-3xl border border-slate-100 p-5">
+                          <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Agendamento do projeto</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Data da medição</label>
+                              <input
+                                type="date"
+                                value={formatDateInput(selectedQuote.measurementDate)}
+                                onChange={(event) => updateQuoteSchedule(selectedQuote, 'measurementDate', event.target.value)}
+                                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Data da entrega</label>
+                              <input
+                                type="date"
+                                value={formatDateInput(selectedQuote.deliveryDate)}
+                                onChange={(event) => updateQuoteSchedule(selectedQuote, 'deliveryDate', event.target.value)}
+                                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
+                              />
+                            </div>
+                          </div>
+                        </section>
+                      )}
+
                       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                         <div className="rounded-3xl bg-slate-50 p-5">
                           <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Valor fechado</div>

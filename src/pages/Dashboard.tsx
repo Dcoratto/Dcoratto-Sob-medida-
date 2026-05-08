@@ -54,6 +54,24 @@ interface DashboardNote {
   userName?: string;
 }
 
+interface ManualCalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  date: any;
+  clientId?: string;
+  clientName?: string;
+}
+
+interface DashboardCalendarEvent {
+  id: string;
+  quoteId?: string;
+  clientId?: string;
+  clientName?: string;
+  date: Date;
+  type: 'Medição' | 'Entrega' | 'Evento';
+}
+
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const {user, profile, isAdmin} = useAuth();
@@ -64,6 +82,7 @@ export const Dashboard: React.FC = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [reservations, setReservations] = useState<InventoryReservation[]>([]);
   const [purchases, setPurchases] = useState<InventoryPurchase[]>([]);
+  const [manualEvents, setManualEvents] = useState<ManualCalendarEvent[]>([]);
   const [notes, setNotes] = useState<DashboardNote[]>([]);
   const [newNote, setNewNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
@@ -102,6 +121,9 @@ export const Dashboard: React.FC = () => {
     const unsubNotes = onSnapshot(query(collection(db, 'dashboardNotes'), orderBy('createdAt', 'desc'), limit(12)), (snap) => {
       setNotes(snap.docs.map((item) => ({id: item.id, ...item.data()} as DashboardNote)));
     });
+    const unsubManualEvents = onSnapshot(collection(db, 'calendarEvents'), (snap) => {
+      setManualEvents(snap.docs.map((item) => ({id: item.id, ...item.data()} as ManualCalendarEvent)));
+    });
 
     return () => {
       unsubQuotesAll();
@@ -112,6 +134,7 @@ export const Dashboard: React.FC = () => {
       unsubReservations();
       unsubPurchases();
       unsubNotes();
+      unsubManualEvents();
     };
   }, []);
 
@@ -155,22 +178,67 @@ export const Dashboard: React.FC = () => {
     return base;
   }, [clients, latestQuoteByClient]);
 
-  const deadlineAlerts = useMemo(() => {
+  const today = useMemo(() => {
     const now = new Date();
-    return quotes
-      .filter((quote) => !['Finalizado'].includes(normalizeStatus(quote.status)))
-      .map((quote) => {
-        const createdAt = toDate(quote.createdAt);
-        const deadline = toDate(quote.validityDate) || (createdAt ?new Date(createdAt.getTime() + (quote.deliveryDays || 0) * 86400000) : null);
-        if (!deadline) return null;
-        const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / 86400000);
-        if (daysLeft > 3) return null;
-        return {quote, deadline, daysLeft};
-      })
-      .filter(Boolean)
-      .sort((a, b) => (a!.daysLeft - b!.daysLeft))
-      .slice(0, 5) as Array<{quote: Quote; deadline: Date; daysLeft: number}>;
-  }, [quotes]);
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }, []);
+
+  const daysLeftFromToday = (date: Date) => {
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    return Math.ceil((target - today.getTime()) / 86400000);
+  };
+
+  const calendarEvents = useMemo(() => {
+    const events: DashboardCalendarEvent[] = [];
+    quotes.forEach((quote) => {
+      const measurementDate = toDate(quote.measurementDate);
+      const deliveryDate = toDate(quote.deliveryDate);
+      if (measurementDate) {
+        events.push({
+          id: `${quote.id}-medicao`,
+          quoteId: quote.id,
+          clientId: quote.clientId,
+          clientName: quote.clientName,
+          date: measurementDate,
+          type: 'Medição',
+        });
+      }
+      if (deliveryDate) {
+        events.push({
+          id: `${quote.id}-entrega`,
+          quoteId: quote.id,
+          clientId: quote.clientId,
+          clientName: quote.clientName,
+          date: deliveryDate,
+          type: 'Entrega',
+        });
+      }
+    });
+    manualEvents.forEach((event) => {
+      const date = toDate(event.date);
+      if (!date) return;
+      events.push({
+        id: `manual-${event.id}`,
+        clientId: event.clientId,
+        clientName: event.clientName || event.title,
+        date,
+        type: 'Evento',
+      });
+    });
+    return events;
+  }, [manualEvents, quotes]);
+
+  const deadlineAlerts = useMemo(() => {
+    return calendarEvents
+      .map((event) => ({event, daysLeft: daysLeftFromToday(event.date)}))
+      .filter((item) => item.daysLeft >= 0 && item.daysLeft <= 7)
+      .sort((a, b) => a.daysLeft - b.daysLeft)
+      .slice(0, 8)
+      .map((item) => ({
+        ...item,
+        level: (item.daysLeft <= 2 ? 'maximo' : 'alerta') as 'maximo' | 'alerta',
+      }));
+  }, [calendarEvents, today]);
 
   const upcomingSchedule = useMemo(() => {
     const today = new Date();
@@ -275,16 +343,17 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div className="space-y-3">
-            {deadlineAlerts.map(({quote, daysLeft}) => (
+            {deadlineAlerts.map(({event, daysLeft, level}) => (
               <button
-                key={quote.id}
+                key={`${event.id}-dashboard-alert`}
                 type="button"
-                onClick={() => navigate(`/quotes/edit/${quote.id}`)}
+                onClick={() => event.quoteId ? navigate(`/quotes/edit/${event.quoteId}`) : navigate('/calendar')}
                 className="w-full rounded-2xl bg-slate-50 p-3 text-left hover:bg-slate-100 transition-all"
               >
-                <div className="font-bold text-sm text-slate-900">{quote.clientName}</div>
-                <div className={cn('mt-1 text-xs font-bold', daysLeft < 0 ?'text-red-600' : 'text-amber-600')}>
-                  {daysLeft < 0 ?`${Math.abs(daysLeft)} dia(s) vencido` : `vence em ${daysLeft} dia(s)`}
+                <div className="font-bold text-sm text-slate-900">{event.clientName || 'Evento'}</div>
+                <div className="mt-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">{event.type}</div>
+                <div className={cn('mt-1 text-xs font-bold', level === 'maximo' ? 'text-red-600' : 'text-amber-700')}>
+                  {level === 'maximo' ? 'ALERTA MÁXIMO' : 'ALERTA DE PRAZO'}: {daysLeft === 0 ? 'hoje' : `faltam ${daysLeft} dia(s)`}
                 </div>
               </button>
             ))}
@@ -529,16 +598,17 @@ export const Dashboard: React.FC = () => {
               </div>
             </div>
             <div className="space-y-3">
-              {deadlineAlerts.map(({quote, daysLeft}) => (
+              {deadlineAlerts.map(({event, daysLeft, level}) => (
                 <button
-                  key={quote.id}
+                  key={`${event.id}-dashboard-hidden`}
                   type="button"
-                  onClick={() => navigate(`/quotes/edit/${quote.id}`)}
+                  onClick={() => event.quoteId ? navigate(`/quotes/edit/${event.quoteId}`) : navigate('/calendar')}
                   className="w-full rounded-2xl bg-slate-50 p-3 text-left hover:bg-slate-100 transition-all"
                 >
-                  <div className="font-bold text-sm text-slate-900">{quote.clientName}</div>
-                  <div className={cn('mt-1 text-xs font-bold', daysLeft < 0 ?'text-red-600' : 'text-amber-600')}>
-                    {daysLeft < 0 ?`${Math.abs(daysLeft)} dia(s) vencido` : `vence em ${daysLeft} dia(s)`}
+                  <div className="font-bold text-sm text-slate-900">{event.clientName || 'Evento'}</div>
+                  <div className="mt-1 text-[11px] font-bold uppercase tracking-wider text-slate-500">{event.type}</div>
+                  <div className={cn('mt-1 text-xs font-bold', level === 'maximo' ? 'text-red-600' : 'text-amber-700')}>
+                    {level === 'maximo' ? 'ALERTA MÁXIMO' : 'ALERTA DE PRAZO'}: {daysLeft === 0 ? 'hoje' : `faltam ${daysLeft} dia(s)`}
                   </div>
                 </button>
               ))}

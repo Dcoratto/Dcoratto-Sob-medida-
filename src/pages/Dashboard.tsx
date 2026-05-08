@@ -72,6 +72,7 @@ interface ManualCalendarEvent {
 
 interface DashboardCalendarEvent {
   id: string;
+  sourceId?: string;
   quoteId?: string;
   clientId?: string;
   clientName?: string;
@@ -94,6 +95,8 @@ export const Dashboard: React.FC = () => {
   const [newNote, setNewNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedDeadlineEvent, setSelectedDeadlineEvent] = useState<DashboardCalendarEvent | null>(null);
+  const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
 
   useEffect(() => {
     const qQuotesAll = query(collection(db, 'quotes'));
@@ -226,6 +229,7 @@ export const Dashboard: React.FC = () => {
       if (!date) return;
       events.push({
         id: `manual-${event.id}`,
+        sourceId: event.id,
         clientId: event.clientId,
         clientName: event.clientName || event.title,
         date,
@@ -311,6 +315,18 @@ export const Dashboard: React.FC = () => {
   const totalPendingPurchaseArea = pendingPurchases.reduce((acc, item) => acc + item.missing, 0);
 
   const getStatusColor = (status: string) => quoteStatusColor(status).replace(/ border-[a-z]+-\d+/g, '');
+  const selectedDeadlineClient = selectedDeadlineEvent?.clientId ? clients.find((client) => client.id === selectedDeadlineEvent.clientId) : null;
+
+  const handleDeleteManualEvent = async () => {
+    if (!selectedDeadlineEvent?.sourceId) return;
+    setDeletingEventId(selectedDeadlineEvent.sourceId);
+    try {
+      await deleteDoc(doc(db, 'calendarEvents', selectedDeadlineEvent.sourceId));
+      setSelectedDeadlineEvent(null);
+    } finally {
+      setDeletingEventId(null);
+    }
+  };
 
   return (
     <div className="space-y-8 pb-20">
@@ -666,6 +682,59 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {selectedDeadlineEvent && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white border border-slate-100 shadow-2xl p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{selectedDeadlineEvent.type}</div>
+                <h3 className="mt-1 text-xl font-display font-bold text-slate-900">{selectedDeadlineEvent.clientName || 'Evento'}</h3>
+                <div className="mt-1 text-sm font-semibold text-slate-500">{selectedDeadlineEvent.date.toLocaleDateString('pt-BR')}</div>
+              </div>
+              <button type="button" onClick={() => setSelectedDeadlineEvent(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">✕</button>
+            </div>
+
+            {selectedDeadlineClient ? (
+              <div className="mt-5 space-y-3">
+                <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Telefone</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-800">{selectedDeadlineClient.phone || 'Não informado'}</div>
+                </div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Endereço</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-800">{selectedDeadlineClient.address || 'Não informado'}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-5 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">Sem cliente vinculado.</div>
+            )}
+
+            <div className="mt-5 grid grid-cols-1 gap-2">
+              {selectedDeadlineEvent.quoteId && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/quotes/edit/${selectedDeadlineEvent.quoteId}`)}
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                >
+                  Abrir orçamento
+                </button>
+              )}
+              {selectedDeadlineEvent.sourceId && (
+                <button
+                  type="button"
+                  onClick={handleDeleteManualEvent}
+                  disabled={deletingEventId === selectedDeadlineEvent.sourceId}
+                  className="w-full rounded-xl bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-70"
+                >
+                  {deletingEventId === selectedDeadlineEvent.sourceId ? 'Excluindo...' : 'Excluir evento'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

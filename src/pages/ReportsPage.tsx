@@ -5,6 +5,7 @@ import {Client, Employee, InventoryItem, Material, ProductionStep, Quote, System
 import {db} from '../lib/firebase';
 import {cn, formatCurrency} from '../lib/utils';
 import {generateReportPDF} from '../lib/reportPdfGenerator';
+import {QUOTE_STATUSES, normalizeQuoteStatus} from '../lib/quoteStatus';
 
 type Period = 'all' | 'today' | 'week' | 'month' | 'year';
 
@@ -41,26 +42,16 @@ const periodStart = (period: Period) => {
 
 const periodLabel = (period: Period) => {
   if (period === 'today') return 'Hoje';
-  if (period === 'week') return 'Últimos 7 dias';
+  if (period === 'week') return 'últimos 7 dias';
   if (period === 'month') return 'Mês atual';
   if (period === 'year') return 'Ano atual';
   return 'Todo o período';
 };
 
-const statusLabel = (status: string) => {
-  const value = normalize(status);
-  if (value.includes('finalizado') || value.includes('concluido')) return 'Finalizado';
-  if (value.includes('entrega') || value.includes('entregue')) return 'Entrega';
-  if (value.includes('acabamento') || value.includes('pronto')) return 'Acabamento';
-  if (value.includes('producao')) return 'Produ??o';
-  if (value.includes('aprovacao') || value.includes('aprovado')) return 'Aprova??o';
-  if (value.includes('projeto') || value.includes('enviado')) return 'Projeto';
-  if (value.includes('medicao') || value.includes('medido')) return 'Medi??o';
-  return 'Or?amento';
-};
+const statusLabel = (status: string) => normalizeQuoteStatus(status);
 
 const isClosedSale = (status: string) =>
-  ['Aprova??o', 'Produ??o', 'Acabamento', 'Entrega', 'Finalizado'].includes(statusLabel(status));
+  ['Aprovação', 'Produção', 'Acabamento', 'Entrega', 'Finalizado'].includes(statusLabel(status));
 
 export const ReportsPage: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -120,7 +111,7 @@ export const ReportsPage: React.FC = () => {
   const approvedCount = filteredQuotes.filter((quote) => isClosedSale(quote.status)).length;
   const conversionRate = filteredQuotes.length ? Math.round((approvedCount / filteredQuotes.length) * 100) : 0;
 
-  const statusCounts = ['Or?amento', 'Medi??o', 'Projeto', 'Aprova??o', 'Produ??o', 'Acabamento', 'Entrega', 'Finalizado']
+  const statusCounts = QUOTE_STATUSES
     .map((status) => ({status, count: filteredQuotes.filter((quote) => statusLabel(quote.status) === status).length}));
   const maxStatusCount = Math.max(1, ...statusCounts.map((item) => item.count));
 
@@ -184,7 +175,7 @@ export const ReportsPage: React.FC = () => {
     <div className="space-y-8 pb-20">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Relatórios</h1>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Relatérios</h1>
           <p className="text-slate-500 mt-1">Visão geral da marmoraria, produção, prazos, materiais e equipe.</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -207,7 +198,7 @@ export const ReportsPage: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <ReportCard icon={TrendingUp} label="Valor vendido" value={formatCurrency(totalSold)} tone="brand" />
-        <ReportCard icon={Gauge} label="Conversão" value={`${conversionRate}%`} tone="green" />
+        <ReportCard icon={Gauge} label="Convers?o" value={`${conversionRate}%`} tone="green" />
         <ReportCard icon={Users} label="Clientes" value={String(clients.length)} tone="blue" />
         <ReportCard icon={Boxes} label="Itens em estoque" value={String(inventory.length)} tone="amber" />
       </div>
@@ -234,7 +225,7 @@ export const ReportsPage: React.FC = () => {
             <MoneyLine label="Vendidos" value={totalSold} className="text-green-700" />
             <MoneyLine label="Em aberto" value={openValue} className="text-amber-700" />
             <MoneyLine label="Recusados" value={refusedValue} className="text-red-600" />
-            <MoneyLine label="Ticket médio" value={filteredQuotes.length ? filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) / filteredQuotes.length : 0} className="text-slate-900" />
+            <MoneyLine label="Ticket m²dio" value={filteredQuotes.length ? filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) / filteredQuotes.length : 0} className="text-slate-900" />
           </div>
         </div>
       </section>
@@ -325,7 +316,7 @@ export const ReportsPage: React.FC = () => {
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">
                       {date ? date.toLocaleDateString('pt-BR') : 'Sem data'}
                     </div>
-                    <div className="text-xs text-slate-400">Usuário: {event.userName || 'Não informado'}</div>
+                    <div className="text-xs text-slate-400">Usu?rio: {event.userName || 'Não informado'}</div>
                   </div>
                 </div>
               </div>
@@ -359,12 +350,12 @@ export const ReportsPage: React.FC = () => {
                 </div>
                 <div className="rounded-xl bg-white p-3">
                   <div className="font-bold text-slate-900">{evaluations.length}</div>
-                  <div className="text-slate-400">avaliações</div>
+                  <div className="text-slate-400">avaliaçóes</div>
                 </div>
               </div>
             </div>
           ))}
-          {employeeStats.length === 0 && <EmptyText>Nenhum funcionário cadastrado.</EmptyText>}
+          {employeeStats.length === 0 && <EmptyText>Nenhum funcion?rio cadastrado.</EmptyText>}
         </div>
       </section>
 

@@ -1,16 +1,24 @@
 import React, {useEffect, useState} from 'react';
 import {EmailAuthProvider, reauthenticateWithCredential} from 'firebase/auth';
-import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, Timestamp, updateDoc, writeBatch} from 'firebase/firestore';
+import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from 'firebase/firestore';
 import {deleteObject, ref as storageRef} from 'firebase/storage';
 import {AlertTriangle, BriefcaseBusiness, CheckCircle2, Mail, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
 import {auth, db, storage} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {useAuth} from '../contexts/AuthContext';
-import {Employee, EmployeeRole, FixtureCatalogItem, FixtureCategory, Profile} from '../types';
+import {Employee, EmployeeRole, FixtureCatalogItem, FixtureCategory, Material, Profile} from '../types';
 import {cn} from '../lib/utils';
 import { SettingsPage } from './SettingsPage';
 
 const employeeRoles: EmployeeRole[] = ['Vendedor', 'Medidor', 'Cortador', 'Acabador', 'Instalador', 'Entregador', 'Administrativo'];
+const slugify = (value: string) =>
+  value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
 const resetCollections = [
   'clients',
   'quotes',
@@ -27,6 +35,7 @@ export const AdminPage: React.FC = () => {
   const {isAdmin} = useAuth();
   const [users, setUsers] = useState<Profile[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingEmployee, setSavingEmployee] = useState(false);
   const [employeeError, setEmployeeError] = useState('');
@@ -41,6 +50,14 @@ export const AdminPage: React.FC = () => {
     phone: '',
   });
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
+  const [savingMaterial, setSavingMaterial] = useState(false);
+  const [materialForm, setMaterialForm] = useState({
+    name: '',
+    provider: '',
+    category: '',
+    baseCostPerM2: '',
+    marginPercentage: '',
+  });
   const [savingFixture, setSavingFixture] = useState(false);
   const [fixtureForm, setFixtureForm] = useState<{
     name: string;
@@ -68,6 +85,14 @@ export const AdminPage: React.FC = () => {
       }, []);
       setUsers(uniqueUsers);
       setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, 'materials'), orderBy('name', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material)));
     });
     return unsubscribe;
   }, []);
@@ -149,6 +174,37 @@ export const AdminPage: React.FC = () => {
     const ok = await deleteFirestoreDoc('employees', employeeId);
     if (!ok) return;
     setEmployees((prev) => prev.filter((employee) => employee.id !== employeeId));
+  };
+
+  const addMaterialCatalogItem = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const name = materialForm.name.trim();
+    if (!name) return;
+
+    const baseCostPerM2 = Number(materialForm.baseCostPerM2) || 0;
+    const marginPercentage = Number(materialForm.marginPercentage) || 0;
+    const pricePerM2 = baseCostPerM2 * (1 + marginPercentage / 100);
+
+    setSavingMaterial(true);
+    try {
+      await setDoc(doc(db, 'materials', slugify(name)), {
+        name,
+        provider: materialForm.provider.trim(),
+        category: materialForm.category.trim(),
+        baseCostPerM2,
+        marginPercentage,
+        pricePerM2,
+        active: true,
+        updatedAt: serverTimestamp(),
+      }, {merge: true});
+      setMaterialForm({name: '', provider: '', category: '', baseCostPerM2: '', marginPercentage: ''});
+    } finally {
+      setSavingMaterial(false);
+    }
+  };
+
+  const toggleMaterialCatalogItem = async (material: Material) => {
+    await updateDoc(doc(db, 'materials', material.id), {active: !material.active, updatedAt: serverTimestamp()});
   };
 
   const addFixtureCatalogItem = async (event: React.FormEvent) => {
@@ -350,6 +406,42 @@ export const AdminPage: React.FC = () => {
           {employees.length === 0 && (
             <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum funcionário cadastrado.</div>
           )}
+        </div>
+      </section>
+
+      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-6">
+        <div>
+          <h2 className="font-display text-xl font-bold text-slate-900">Catálogo de pedras</h2>
+          <p className="text-sm text-slate-400">Cadastre as pedras aqui para seleção no estoque, compras e orçamentos.</p>
+        </div>
+
+        <form onSubmit={addMaterialCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
+          <input value={materialForm.name} onChange={(event) => setMaterialForm((form) => ({...form, name: event.target.value}))} placeholder="Nome da pedra" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input value={materialForm.provider} onChange={(event) => setMaterialForm((form) => ({...form, provider: event.target.value}))} placeholder="Fornecedor" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input value={materialForm.category} onChange={(event) => setMaterialForm((form) => ({...form, category: event.target.value}))} placeholder="Categoria" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input type="number" step="0.01" value={materialForm.baseCostPerM2} onChange={(event) => setMaterialForm((form) => ({...form, baseCostPerM2: event.target.value}))} placeholder="Custo/m²" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input type="number" step="0.01" value={materialForm.marginPercentage} onChange={(event) => setMaterialForm((form) => ({...form, marginPercentage: event.target.value}))} placeholder="Margem %" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <button type="submit" disabled={savingMaterial} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-white disabled:opacity-60">
+            {savingMaterial ? 'Salvando...' : 'Cadastrar pedra'}
+          </button>
+        </form>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {materials.map((material) => (
+            <div key={material.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-bold text-slate-900">{material.name}</div>
+                  <div className="text-xs text-slate-400">{material.category || 'Sem categoria'} · {material.provider || 'Sem fornecedor'}</div>
+                  <div className="mt-1 text-xs font-semibold text-slate-500">Venda/m²: R$ {(material.pricePerM2 || 0).toFixed(2)}</div>
+                </div>
+                <button type="button" onClick={() => toggleMaterialCatalogItem(material)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', material.active ? 'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
+                  {material.active ? 'Ativo' : 'Inativo'}
+                </button>
+              </div>
+            </div>
+          ))}
+          {materials.length === 0 && <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-400">Nenhuma pedra cadastrada.</div>}
         </div>
       </section>
 

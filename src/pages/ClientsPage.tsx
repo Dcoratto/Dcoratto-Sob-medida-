@@ -8,6 +8,7 @@ import {cn, formatCurrency} from '../lib/utils';
 import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
+import {QUOTE_STATUSES, normalizeQuoteStatus} from '../lib/quoteStatus';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -19,16 +20,7 @@ const productionSteps: Array<{key: ProductionStep; label: string}> = [
   {key: 'entrega', label: 'Entrega'},
 ];
 
-const quoteStatuses: QuoteStatus[] = [
-  'Or?amento',
-  'Medi??o',
-  'Projeto',
-  'Aprova??o',
-  'Produ??o',
-  'Acabamento',
-  'Entrega',
-  'Finalizado',
-];
+const quoteStatuses: QuoteStatus[] = QUOTE_STATUSES;
 
 const normalize = (value: unknown) =>
   String(value || '')
@@ -37,8 +29,8 @@ const normalize = (value: unknown) =>
     .replace(/[\u0300-\u036f]/g, '');
 
 const stageMeta: Record<ClientStage, {label: string; dot: string; chip: string}> = {
-  pre: {label: 'Or?amento', dot: 'bg-blue-500', chip: 'bg-blue-50 text-blue-700'},
-  approved: {label: 'Aprova??o', dot: 'bg-violet-500', chip: 'bg-violet-50 text-violet-700'},
+  pre: {label: 'Orçamento', dot: 'bg-blue-500', chip: 'bg-blue-50 text-blue-700'},
+  approved: {label: 'Aprovação', dot: 'bg-violet-500', chip: 'bg-violet-50 text-violet-700'},
   production: {label: 'Produção', dot: 'bg-zinc-900', chip: 'bg-zinc-100 text-zinc-700'},
   ready: {label: 'Acabamento', dot: 'bg-amber-700', chip: 'bg-amber-50 text-amber-800'},
   done: {label: 'Concluído', dot: 'bg-violet-500', chip: 'bg-violet-50 text-violet-700'},
@@ -46,12 +38,12 @@ const stageMeta: Record<ClientStage, {label: string; dot: string; chip: string}>
 };
 
 const quoteStage = (quote?: Quote): ClientStage => {
-  const status = normalize(quote?.status);
   if (!quote) return 'none';
-  if (status === 'finalizado') return 'done';
-  if (status === 'producao') return 'production';
-  if (status === 'acabamento' || status === 'entrega') return 'ready';
-  if (status === 'aprovacao') return 'approved';
+  const status = normalizeQuoteStatus(quote.status);
+  if (status === 'Finalizado') return 'done';
+  if (status === 'Produção') return 'production';
+  if (status === 'Acabamento' || status === 'Entrega') return 'ready';
+  if (status === 'Aprovação') return 'approved';
   return 'pre';
 };
 

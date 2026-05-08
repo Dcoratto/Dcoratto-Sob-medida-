@@ -307,6 +307,24 @@ export const SettingsPage: React.FC = () => {
                     className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
                   />
                 </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase">Rebaixo Americano</span>
+                  <input
+                    type="number"
+                    value={settings.cutoutPrices.wetAreaAmericanRecess || 0}
+                    onChange={(e) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, wetAreaAmericanRecess: Number(e.target.value) } })}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase">Rebaixo Italiano</span>
+                  <input
+                    type="number"
+                    value={settings.cutoutPrices.wetAreaItalianRecess || 0}
+                    onChange={(e) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, wetAreaItalianRecess: Number(e.target.value) } })}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
+                  />
+                </div>
               </div>
             </div>
           </div>

@@ -1,23 +1,15 @@
 import {deleteDoc, doc, serverTimestamp, setDoc} from 'firebase/firestore';
 import {db} from './firebase';
 import {Quote, QuoteStatus} from '../types';
-
-const normalized = (value?: string) =>
-  (value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+import {isQuoteApprovedOrBeyond, normalizeText} from './quoteStatus';
 
 export const shouldReserveStock = (status?: QuoteStatus | string) => {
-  const text = normalized(status);
+  const text = normalizeText(status);
   return !text.includes('recusado') && !text.includes('cancelado');
 };
 
 export const isApprovedOrBeyond = (status?: QuoteStatus | string) => {
-  const text = normalized(status);
-  return text.includes('aprovacao')
-    || text.includes('producao')
-    || text.includes('acabamento')
-    || text.includes('entrega')
-    || text.includes('finalizado')
-    || text.includes('concluido');
+  return isQuoteApprovedOrBeyond(status);
 };
 
 export const syncQuoteReservation = async (quoteId: string, quote: Partial<Quote>) => {

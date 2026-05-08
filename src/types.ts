@@ -30,6 +30,8 @@ export interface Settings {
     faucetHole: number;
     trashBinCutout?: number;
     popUpTowerCutout?: number;
+    wetAreaAmericanRecess?: number;
+    wetAreaItalianRecess?: number;
     sinkSculpted?: boolean;
     sinkSculptedPrice?: number;
   };
@@ -147,11 +149,11 @@ export interface QuoteStatusHistory {
 }
 
 export type QuoteStatus =
-  | 'Or?amento'
-  | 'Medi??o'
+  | 'Orçamento'
+  | 'Medição'
   | 'Projeto'
-  | 'Aprova??o'
-  | 'Produ??o'
+  | 'Aprovação'
+  | 'Produção'
   | 'Acabamento'
   | 'Entrega'
   | 'Finalizado';
@@ -258,6 +260,8 @@ export interface QuoteCutouts {
   faucetHole: number;
   trashBinCutout?: number;
   popUpTowerCutout?: number;
+  wetAreaAmericanRecess?: number;
+  wetAreaItalianRecess?: number;
   sinkSculpted?: boolean;
 }
 

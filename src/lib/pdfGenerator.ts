@@ -44,7 +44,7 @@ const addFooter = (doc: jsPDF, settings: Settings, primary: PdfColor) => {
     doc.setTextColor(120, 130, 145);
     doc.text(`${settings.companyName} | ${settings.phone} | ${settings.email}`, 14, 287);
     doc.setTextColor(primary[0], primary[1], primary[2]);
-    doc.text(`Página ${page} de ${pages}`, 196, 287, {align: 'right'});
+    doc.text(`P?gina ${page} de ${pages}`, 196, 287, {align: 'right'});
   }
 };
 
@@ -54,6 +54,15 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
   const dark: PdfColor = [15, 23, 42];
   const muted: PdfColor = [100, 116, 139];
   const light: PdfColor = [248, 250, 252];
+  const totalCutouts =
+    (quote.cutouts?.cooktop || 0) +
+    (quote.cutouts?.sinkUnder || 0) +
+    (quote.cutouts?.sinkOver || 0) +
+    (quote.cutouts?.faucetHole || 0) +
+    (quote.cutouts?.trashBinCutout || 0) +
+    (quote.cutouts?.popUpTowerCutout || 0) +
+    (quote.cutouts?.wetAreaAmericanRecess || 0) +
+    (quote.cutouts?.wetAreaItalianRecess || 0);
 
   doc.setFillColor(dark[0], dark[1], dark[2]);
   doc.rect(0, 0, 210, 38, 'F');
@@ -72,7 +81,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('ORÇAMENTO TÉCNICO', 171, 17, {align: 'center'});
+  doc.text('OR?AMENTO T?CNICO', 171, 17, {align: 'center'});
   doc.setFontSize(7);
   doc.text(format(toDate(quote.createdAt), 'dd/MM/yyyy', {locale: ptBR}), 171, 23, {align: 'center'});
 
@@ -98,7 +107,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
     startY: 99,
     theme: 'plain',
     body: [
-      ['Área total', `${(quote.totalArea || 0).toFixed(4)} m²`, 'Recortes', `${(quote.cutouts?.cooktop || 0) + (quote.cutouts?.sinkUnder || 0) + (quote.cutouts?.sinkOver || 0) + (quote.cutouts?.faucetHole || 0) + (quote.cutouts?.trashBinCutout || 0) + (quote.cutouts?.popUpTowerCutout || 0)} un`],
+      ['área total', `${(quote.totalArea || 0).toFixed(4)} m²`, 'Recortes', `${totalCutouts} un`],
       ['Status', quote.status, 'Valor total', money(quote.totalPrice || 0)],
     ],
     styles: {fontSize: 9, cellPadding: 4, lineColor: [230, 226, 220], lineWidth: 0.2},
@@ -117,7 +126,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
   addSectionTitle(doc, 'Peças e medidas', cursorY, primary);
   autoTable(doc, {
     startY: cursorY + 6,
-    head: [['Item', 'Peça', 'Dimensões', 'Área', 'Adicionais', 'Observações']],
+    head: [['Item', 'Peça', 'Dimensóes', 'área', 'Adicionais', 'Observaçóes']],
     body: quote.pieces.map((piece, index) => {
       const additions = (piece.sides || [])
         .filter((side) => side.type && side.type !== 'none')
@@ -151,7 +160,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
       doc.addPage();
       cursorY = 20;
     }
-    addSectionTitle(doc, 'Desenhos técnicos', cursorY, primary);
+    addSectionTitle(doc, 'Desenhos t?cnicos', cursorY, primary);
     cursorY += 8;
     previews.slice(0, 4).forEach((piece, index) => {
       const x = index % 2 === 0 ? 14 : 106;
@@ -166,7 +175,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
         doc.addImage(piece.previewUrl, 'PNG', x + 4, y + 9, 78, 36, undefined, 'FAST');
       } catch {
         doc.setTextColor(muted[0], muted[1], muted[2]);
-        doc.text('Preview indisponível', x + 43, y + 28, {align: 'center'});
+        doc.text('Preview indispon?vel', x + 43, y + 28, {align: 'center'});
       }
     });
     cursorY += Math.ceil(previews.slice(0, 4).length / 2) * 58 + 4;
@@ -177,7 +186,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
     cursorY = 22;
   }
 
-  addSectionTitle(doc, 'Recortes e condições', cursorY, primary);
+  addSectionTitle(doc, 'Recortes e condiçóes', cursorY, primary);
   autoTable(doc, {
     startY: cursorY + 6,
     head: [['Tipo', 'Quantidade']],
@@ -188,6 +197,8 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
       ['Furação de torneira', quote.cutouts?.faucetHole || 0],
       ['Lixeira de embutir', quote.cutouts?.trashBinCutout || 0],
       ['Torre de tomada', quote.cutouts?.popUpTowerCutout || 0],
+      ['Rebaixo americano', quote.cutouts?.wetAreaAmericanRecess || 0],
+      ['Rebaixo italiano', quote.cutouts?.wetAreaItalianRecess || 0],
     ].filter((row) => Number(row[1]) > 0),
     theme: 'grid',
     headStyles: {fillColor: [31, 41, 55], textColor: [255, 255, 255], fontSize: 8},
@@ -208,7 +219,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
   if (quote.commercialNotes) {
     const noteY = cursorY + 34;
     if (noteY < 265) {
-      addSectionTitle(doc, 'Observações comerciais', noteY, primary);
+      addSectionTitle(doc, 'Observaçóes comerciais', noteY, primary);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
       doc.setTextColor(muted[0], muted[1], muted[2]);

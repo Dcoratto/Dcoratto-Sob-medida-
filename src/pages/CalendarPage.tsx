@@ -18,7 +18,6 @@ interface CalendarEvent {
   type: EventType;
   status?: string;
   condominiumId?: string;
-  condominiumName?: string;
   title?: string;
   description?: string;
 }
@@ -28,7 +27,6 @@ interface ManualCalendarEvent {
   title: string;
   description?: string;
   date: any;
-  createdAt?: any;
 }
 
 const toDate = (value: any) => {
@@ -54,6 +52,8 @@ const toInputDate = (date: Date) => {
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
 };
+
+const eventLabel = (type: EventType) => type === 'entrega' ? 'Entrega' : type === 'medicao' ? 'Medição' : 'Evento';
 
 export const CalendarPage: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -81,40 +81,48 @@ export const CalendarPage: React.FC = () => {
     };
   }, []);
 
+  const today = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  }, []);
+
+  const daysLeftFromToday = (date: Date) => {
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    return Math.ceil((target - today.getTime()) / 86400000);
+  };
+
   const events = useMemo(() => {
     const list: CalendarEvent[] = [];
     quotes.forEach((quote) => {
       const client = clients.find((item) => item.id === quote.clientId);
-      const medicao = toDate(quote.measurementDate);
-      const entrega = toDate(quote.deliveryDate);
+      const measurementDate = toDate(quote.measurementDate);
+      const deliveryDate = toDate(quote.deliveryDate);
 
-      if (medicao) {
+      if (measurementDate) {
         list.push({
           id: `${quote.id}-medicao`,
           quoteId: quote.id,
           clientId: quote.clientId,
           clientName: quote.clientName,
           city: client?.city,
-          date: medicao,
+          date: measurementDate,
           type: 'medicao',
           status: quote.status,
           condominiumId: client?.condominiumId,
-          condominiumName: client?.condominiumName,
         });
       }
 
-      if (entrega) {
+      if (deliveryDate) {
         list.push({
           id: `${quote.id}-entrega`,
           quoteId: quote.id,
           clientId: quote.clientId,
           clientName: quote.clientName,
           city: client?.city,
-          date: entrega,
+          date: deliveryDate,
           type: 'entrega',
           status: quote.status,
           condominiumId: client?.condominiumId,
-          condominiumName: client?.condominiumName,
         });
       }
     });
@@ -148,9 +156,7 @@ export const CalendarPage: React.FC = () => {
     const map = new Map<string, CalendarEvent[]>();
     events.forEach((event) => {
       const key = keyOf(event.date);
-      const current = map.get(key) || [];
-      current.push(event);
-      map.set(key, current);
+      map.set(key, [...(map.get(key) || []), event]);
     });
     return map;
   }, [events]);
@@ -167,27 +173,16 @@ export const CalendarPage: React.FC = () => {
         const holidayBlocked = (holiday.national && condominium.blockNationalHolidays) || (holiday.city && condominium.blockCityHolidays);
         if (!dayBlocked && !holidayBlocked) return null;
         const reason = dayBlocked
-          ? `dia nao permitido (${['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'][weekday]})`
+          ? `dia não permitido (${['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'][weekday]})`
           : `feriado bloqueado (${holiday.national || holiday.city})`;
         return {event, condominium, reason};
       })
       .filter(Boolean) as Array<{event: CalendarEvent; condominium: CondominiumRule; reason: string}>;
   }, [condominiums, events]);
 
-  const today = useMemo(() => {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  }, []);
-
   const upcomingEvents = useMemo(() => {
-    const diffDays = (date: Date) => {
-      const target = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-      const base = today.getTime();
-      return Math.ceil((target - base) / (1000 * 60 * 60 * 24));
-    };
-
     return events
-      .map((event) => ({event, daysLeft: diffDays(event.date)}))
+      .map((event) => ({event, daysLeft: daysLeftFromToday(event.date)}))
       .filter((item) => item.daysLeft >= 0)
       .sort((a, b) => a.daysLeft - b.daysLeft)
       .slice(0, 12);
@@ -205,11 +200,7 @@ export const CalendarPage: React.FC = () => {
   const selectedClient = selectedEvent?.clientId ? clients.find((item) => item.id === selectedEvent.clientId) : null;
 
   const openCreateModal = (date?: Date) => {
-    if (date) {
-      setNewEventDate(toInputDate(date));
-    } else {
-      setNewEventDate(toInputDate(new Date()));
-    }
+    setNewEventDate(toInputDate(date || new Date()));
     setNewEventTitle('');
     setNewEventDescription('');
     setShowCreateModal(true);
@@ -218,7 +209,6 @@ export const CalendarPage: React.FC = () => {
   const handleCreateEvent = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!newEventTitle.trim() || !newEventDate) return;
-
     const [year, month, day] = newEventDate.split('-').map(Number);
     const selectedDate = new Date(year, month - 1, day);
 
@@ -238,21 +228,15 @@ export const CalendarPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Calendario operacional</h1>
-          <p className="text-slate-500 mt-1">Medicoes, entregas e eventos manuais.</p>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Calendário operacional</h1>
+          <p className="text-slate-500 mt-1">Medições, entregas e eventos manuais.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => openCreateModal()}
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
-          >
-            <span className="inline-flex items-center gap-1">
-              <Plus className="w-4 h-4" />
-              Adicionar evento
-            </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={() => openCreateModal()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+            <Plus className="w-4 h-4" />
+            Adicionar evento
           </button>
           <button type="button" onClick={() => setBaseDate(new Date(baseDate.getFullYear(), baseDate.getMonth() - 1, 1))} className="rounded-xl border border-slate-200 bg-white p-2">
             <ChevronLeft className="w-5 h-5 text-slate-500" />
@@ -270,12 +254,12 @@ export const CalendarPage: React.FC = () => {
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
           <div className="flex items-center gap-2 text-amber-800 font-bold">
             <AlertTriangle className="w-5 h-5" />
-            Alertas de restricao (condominio/feriado)
+            Alertas de restrição
           </div>
           <div className="mt-3 space-y-2">
             {restrictions.slice(0, 8).map(({event, condominium, reason}) => (
               <div key={`${event.id}-${reason}`} className="text-sm text-amber-900">
-                {event.type === 'entrega' ? 'Entrega' : 'Medicao'} de {event.clientName} em {event.date.toLocaleDateString('pt-BR')} no {condominium.name}: {reason}.
+                {eventLabel(event.type)} de {event.clientName} em {event.date.toLocaleDateString('pt-BR')} no {condominium.name}: {reason}.
               </div>
             ))}
           </div>
@@ -291,8 +275,7 @@ export const CalendarPage: React.FC = () => {
           <div className="mt-3 space-y-2">
             {deadlineAlerts.slice(0, 8).map(({event, daysLeft, level}) => (
               <div key={`${event.id}-deadline`} className={cn('text-sm font-semibold', level === 'maximo' ? 'text-rose-900' : 'text-amber-800')}>
-                {level === 'maximo' ? 'ALERTA MAXIMO' : 'Aviso'}: {event.clientName || event.title} em {event.date.toLocaleDateString('pt-BR')} (
-                {daysLeft === 0 ? 'hoje' : `faltam ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`})
+                {level === 'maximo' ? 'ALERTA MÁXIMO' : 'Aviso'}: {event.clientName || event.title} em {event.date.toLocaleDateString('pt-BR')} ({daysLeft === 0 ? 'hoje' : `faltam ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`})
               </div>
             ))}
           </div>
@@ -308,23 +291,11 @@ export const CalendarPage: React.FC = () => {
             </div>
           )}
           {upcomingEvents.map(({event, daysLeft}) => (
-            <button
-              key={`${event.id}-countdown`}
-              type="button"
-              onClick={() => setSelectedEvent(event)}
-              className={cn(
-                'rounded-xl px-3 py-2 text-left transition-all',
-                daysLeft <= 2 ? 'bg-rose-50 hover:bg-rose-100' : daysLeft <= 7 ? 'bg-amber-50 hover:bg-amber-100' : 'bg-slate-50 hover:bg-slate-100',
-              )}
-            >
-              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                {event.type === 'entrega' ? 'Entrega' : event.type === 'medicao' ? 'Medicao' : 'Evento'} Â· {event.clientName || event.title}
-              </div>
-              {daysLeft <= 2 && <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-rose-700">Alerta maximo</div>}
+            <button key={`${event.id}-countdown`} type="button" onClick={() => setSelectedEvent(event)} className={cn('rounded-xl px-3 py-2 text-left transition-all', daysLeft <= 2 ? 'bg-rose-50 hover:bg-rose-100' : daysLeft <= 7 ? 'bg-amber-50 hover:bg-amber-100' : 'bg-slate-50 hover:bg-slate-100')}>
+              <div className="text-xs font-bold uppercase tracking-wider text-slate-500">{eventLabel(event.type)} · {event.clientName || event.title}</div>
+              {daysLeft <= 2 && <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-rose-700">Alerta máximo</div>}
               {daysLeft > 2 && daysLeft <= 7 && <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-amber-700">Aviso de prazo</div>}
-              <div className="mt-1 text-sm font-bold text-slate-800">
-                {daysLeft === 0 ? 'E hoje' : `Daqui a ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`}
-              </div>
+              <div className="mt-1 text-sm font-bold text-slate-800">{daysLeft === 0 ? 'É hoje' : `Daqui a ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`}</div>
               <div className="text-xs text-slate-500">{event.date.toLocaleDateString('pt-BR')}</div>
             </button>
           ))}
@@ -333,9 +304,7 @@ export const CalendarPage: React.FC = () => {
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
         <div className="grid grid-cols-7 border-b border-slate-100 text-center text-xs font-bold uppercase tracking-widest text-slate-400">
-          {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((label) => (
-            <div key={label} className="py-3">{label}</div>
-          ))}
+          {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((label) => <div key={label} className="py-3">{label}</div>)}
         </div>
         <div className="grid grid-cols-7">
           {days.map((day) => {
@@ -345,42 +314,25 @@ export const CalendarPage: React.FC = () => {
             const holiday = getHolidayInfo(day);
             const dayEvents = eventByDay.get(key) || [];
             return (
-              <div
-                key={key}
-                className={cn(
-                  'min-h-[120px] border-r border-b border-slate-100 p-2',
-                  !isCurrentMonth && 'bg-slate-50/70',
-                  isToday && 'bg-brand-primary/5 ring-1 ring-brand-primary/30',
-                )}
-              >
+              <div key={key} className={cn('min-h-[120px] border-r border-b border-slate-100 p-2', !isCurrentMonth && 'bg-slate-50/70', isToday && 'bg-brand-primary/5 ring-1 ring-brand-primary/30')}>
                 <div className="flex items-start justify-between gap-2">
                   <div className={cn('text-xs font-bold', isToday ? 'text-brand-primary' : isCurrentMonth ? 'text-slate-700' : 'text-slate-400')}>
                     {day.getDate()}{isToday ? ' · Hoje' : ''}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => openCreateModal(day)}
-                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
-                    title="Adicionar evento"
-                  >
+                  <button type="button" onClick={() => openCreateModal(day)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" title="Adicionar evento">
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
                 {holiday.national && <div className="mt-1 rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">{holiday.national}</div>}
                 <div className="mt-2 space-y-1">
-                  {dayEvents.slice(0, 3).map((event) => (
-                    <button
-                      key={event.id}
-                      type="button"
-                      onClick={() => setSelectedEvent(event)}
-              className={cn(
-                'rounded-xl px-3 py-2 text-left transition-all',
-                daysLeft <= 2 ? 'bg-rose-50 hover:bg-rose-100' : daysLeft <= 7 ? 'bg-amber-50 hover:bg-amber-100' : 'bg-slate-50 hover:bg-slate-100',
-              )}
-                    >
-                      {event.type === 'entrega' ? 'Entrega' : event.type === 'medicao' ? 'Medicao' : 'Evento'} · {event.clientName || event.title}
-                    </button>
-                  ))}
+                  {dayEvents.slice(0, 3).map((event) => {
+                    const daysLeft = daysLeftFromToday(event.date);
+                    return (
+                      <button key={event.id} type="button" onClick={() => setSelectedEvent(event)} className={cn('w-full rounded-lg px-2 py-1.5 text-left text-[11px] font-semibold transition-all', daysLeft >= 0 && daysLeft <= 2 ? 'bg-rose-50 text-rose-700 hover:bg-rose-100' : daysLeft >= 0 && daysLeft <= 7 ? 'bg-amber-50 text-amber-700 hover:bg-amber-100' : 'bg-slate-50 text-slate-600 hover:bg-slate-100')}>
+                        {eventLabel(event.type)} · {event.clientName || event.title}
+                      </button>
+                    );
+                  })}
                   {dayEvents.length > 3 && <div className="text-[10px] font-bold text-slate-400">+{dayEvents.length - 3} mais</div>}
                 </div>
               </div>
@@ -394,13 +346,9 @@ export const CalendarPage: React.FC = () => {
           <div className="w-full max-w-md rounded-3xl bg-white border border-slate-100 shadow-2xl p-6">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                  {selectedEvent.type === 'entrega' ? 'Entrega' : selectedEvent.type === 'medicao' ? 'Medicao' : 'Evento'}
-                </div>
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{eventLabel(selectedEvent.type)}</div>
                 <h3 className="mt-1 text-xl font-display font-bold text-slate-900">{selectedEvent.clientName || selectedEvent.title}</h3>
-                <div className="mt-1 text-sm font-semibold text-slate-500">
-                  {selectedEvent.date.toLocaleDateString('pt-BR')} · {selectedEvent.status || 'Sem status'}
-                </div>
+                <div className="mt-1 text-sm font-semibold text-slate-500">{selectedEvent.date.toLocaleDateString('pt-BR')} · {selectedEvent.status || 'Sem status'}</div>
               </div>
               <button type="button" onClick={() => setSelectedEvent(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
                 <X className="w-5 h-5" />
@@ -408,24 +356,16 @@ export const CalendarPage: React.FC = () => {
             </div>
 
             {selectedEvent.type === 'manual' ? (
-              <div className="mt-5 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-                {selectedEvent.description?.trim() || 'Sem descricao.'}
-              </div>
+              <div className="mt-5 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{selectedEvent.description?.trim() || 'Sem descrição.'}</div>
             ) : (
               <div className="mt-5 space-y-3">
                 <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
-                    <Phone className="w-4 h-4" />
-                    Telefone
-                  </div>
-                  <div className="mt-1 text-sm font-semibold text-slate-800">{selectedClient?.phone || 'Nao informado'}</div>
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400"><Phone className="w-4 h-4" />Telefone</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-800">{selectedClient?.phone || 'Não informado'}</div>
                 </div>
                 <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
-                    <MapPin className="w-4 h-4" />
-                    Endereco
-                  </div>
-                  <div className="mt-1 text-sm font-semibold text-slate-800">{selectedClient?.address || 'Nao informado'}</div>
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400"><MapPin className="w-4 h-4" />Endereço</div>
+                  <div className="mt-1 text-sm font-semibold text-slate-800">{selectedClient?.address || 'Não informado'}</div>
                 </div>
               </div>
             )}
@@ -439,7 +379,7 @@ export const CalendarPage: React.FC = () => {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Novo evento</div>
-                <h3 className="mt-1 text-xl font-display font-bold text-slate-900">Adicionar no calendario</h3>
+                <h3 className="mt-1 text-xl font-display font-bold text-slate-900">Adicionar no calendário</h3>
               </div>
               <button type="button" onClick={() => setShowCreateModal(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
                 <X className="w-5 h-5" />
@@ -448,41 +388,19 @@ export const CalendarPage: React.FC = () => {
 
             <form className="mt-5 space-y-3" onSubmit={handleCreateEvent}>
               <div>
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Titulo</label>
-                <input
-                  value={newEventTitle}
-                  onChange={(event) => setNewEventTitle(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary"
-                  placeholder="Ex: visita tecnica"
-                  required
-                />
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Título</label>
+                <input value={newEventTitle} onChange={(event) => setNewEventTitle(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary" placeholder="Ex: visita técnica" required />
               </div>
               <div>
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Data</label>
-                <input
-                  type="date"
-                  value={newEventDate}
-                  onChange={(event) => setNewEventDate(event.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary"
-                  required
-                />
+                <input type="date" value={newEventDate} onChange={(event) => setNewEventDate(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary" required />
               </div>
               <div>
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Descricao (opcional)</label>
-                <textarea
-                  value={newEventDescription}
-                  onChange={(event) => setNewEventDescription(event.target.value)}
-                  rows={3}
-                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary"
-                  placeholder="Detalhes do que sera feito"
-                />
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Descrição (opcional)</label>
+                <textarea value={newEventDescription} onChange={(event) => setNewEventDescription(event.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary" placeholder="Detalhes do que será feito" />
               </div>
 
-              <button
-                type="submit"
-                disabled={isSavingEvent}
-                className="w-full rounded-xl bg-brand-primary px-3 py-2 text-sm font-bold text-white hover:brightness-105 disabled:opacity-70"
-              >
+              <button type="submit" disabled={isSavingEvent} className="w-full rounded-xl bg-brand-primary px-3 py-2 text-sm font-bold text-white hover:brightness-105 disabled:opacity-70">
                 {isSavingEvent ? 'Salvando...' : 'Salvar evento'}
               </button>
             </form>
@@ -492,5 +410,3 @@ export const CalendarPage: React.FC = () => {
     </div>
   );
 };
-
-

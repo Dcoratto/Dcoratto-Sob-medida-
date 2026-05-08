@@ -6,29 +6,20 @@ import {db} from '../lib/firebase';
 import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
+import {normalizeQuoteStatus, quoteStatusColor} from '../lib/quoteStatus';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
 const statusGroups: Record<ClientStage, {label: string; dot: string; bg: string; statuses: QuoteStatus[]}> = {
-  pre: {label: 'Or?amento', dot: 'bg-blue-500', bg: 'bg-blue-50 text-blue-700', statuses: ['Or?amento', 'Medi??o', 'Projeto']},
-  approved: {label: 'Aprova??o', dot: 'bg-violet-500', bg: 'bg-violet-50 text-violet-700', statuses: ['Aprova??o']},
-  production: {label: 'Produ??o', dot: 'bg-zinc-900', bg: 'bg-zinc-100 text-zinc-700', statuses: ['Produ??o']},
+  pre: {label: 'Orçamento', dot: 'bg-blue-500', bg: 'bg-blue-50 text-blue-700', statuses: ['Orçamento', 'Medição', 'Projeto']},
+  approved: {label: 'Aprovação', dot: 'bg-violet-500', bg: 'bg-violet-50 text-violet-700', statuses: ['Aprovação']},
+  production: {label: 'Produção', dot: 'bg-zinc-900', bg: 'bg-zinc-100 text-zinc-700', statuses: ['Produção']},
   ready: {label: 'Acabamento/Entrega', dot: 'bg-amber-700', bg: 'bg-amber-50 text-amber-800', statuses: ['Acabamento', 'Entrega']},
   done: {label: 'Finalizado', dot: 'bg-emerald-500', bg: 'bg-emerald-50 text-emerald-700', statuses: ['Finalizado']},
-  none: {label: 'Sem or?amento', dot: 'bg-slate-300', bg: 'bg-slate-50 text-slate-500', statuses: []},
+  none: {label: 'Sem orçamento', dot: 'bg-slate-300', bg: 'bg-slate-50 text-slate-500', statuses: []},
 };
 
-const normalizeStatus = (status?: string) => {
-  const text = (status || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  if (text.includes('finalizado') || text.includes('concluido')) return 'Finalizado' as QuoteStatus;
-  if (text.includes('entrega') || text.includes('entregue')) return 'Entrega' as QuoteStatus;
-  if (text.includes('acabamento') || text.includes('pronto')) return 'Acabamento' as QuoteStatus;
-  if (text.includes('producao')) return 'Produ??o' as QuoteStatus;
-  if (text.includes('aprovacao') || text.includes('aprovado')) return 'Aprova??o' as QuoteStatus;
-  if (text.includes('projeto') || text.includes('enviado')) return 'Projeto' as QuoteStatus;
-  if (text.includes('medicao') || text.includes('medido')) return 'Medi??o' as QuoteStatus;
-  return 'Or?amento' as QuoteStatus;
-};
+const normalizeStatus = normalizeQuoteStatus;
 
 const isClosedSale = (status?: string) => {
   const text = (status || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -44,7 +35,7 @@ const quoteStage = (quote?: Quote): ClientStage => {
   if (status === 'Finalizado') return 'done';
   if (status === 'Acabamento' || status === 'Entrega') return 'ready';
   if (status === 'Produção') return 'production';
-  if (status === 'Aprova??o') return 'approved';
+  if (status === 'Aprovação') return 'approved';
   return 'pre';
 };
 
@@ -244,16 +235,7 @@ export const Dashboard: React.FC = () => {
   }).filter((item) => item.missing > 0);
   const totalPendingPurchaseArea = pendingPurchases.reduce((acc, item) => acc + item.missing, 0);
 
-  const getStatusColor = (status: string) => {
-    const normalized = normalizeStatus(status);
-    if (normalized === 'Aprova??o') return 'bg-violet-50 text-violet-700';
-    if (normalized === 'Projeto') return 'bg-orange-50 text-orange-700';
-    if (normalized === 'Produção') return 'bg-zinc-100 text-zinc-700';
-    if (normalized === 'Medi??o') return 'bg-yellow-50 text-yellow-700';
-    if (normalized === 'Finalizado') return 'bg-emerald-50 text-emerald-700';
-    if (normalized === 'Acabamento' || normalized === 'Entrega') return 'bg-green-50 text-green-700';
-    return 'bg-slate-100 text-slate-500';
-  };
+  const getStatusColor = (status: string) => quoteStatusColor(status).replace(/ border-[a-z]+-\d+/g, '');
 
   return (
     <div className="space-y-8 pb-20">

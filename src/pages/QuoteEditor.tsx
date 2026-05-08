@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -16,8 +16,9 @@ import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
 import {applyQuoteInventoryByStatusTransition} from '../lib/inventoryReservations';
 import {logSystemEvent} from '../lib/systemEvents';
+import {normalizeQuoteStatus} from '../lib/quoteStatus';
 
-type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number };
+type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 
 const normalizeStockStatus = (value: unknown) =>
   String(value || '')
@@ -53,10 +54,10 @@ export const QuoteEditor: React.FC = () => {
   const [deliveryDate, setDeliveryDate] = useState('');
   const [validityDays, setValidityDays] = useState(15);
   const [commercialNotes, setCommercialNotes] = useState('');
-  const [status, setStatus] = useState<QuoteStatus>('Or?amento');
-  const [originalStatus, setOriginalStatus] = useState<QuoteStatus>('Or?amento');
+  const [status, setStatus] = useState<QuoteStatus>('Orçamento');
+  const [originalStatus, setOriginalStatus] = useState<QuoteStatus>('Orçamento');
   const [pieces, setPieces] = useState<QuotePiece[]>([]);
-  const [cutouts, setCutouts] = useState<QuoteCutoutState>({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0 });
+  const [cutouts, setCutouts] = useState<QuoteCutoutState>({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
   const [showDrawing, setShowDrawing] = useState<string | null>(null);
   const [employeeAssignments, setEmployeeAssignments] = useState<EmployeeAssignment[]>([]);
   const [statusHistory, setStatusHistory] = useState<QuoteStatusHistory[]>([]);
@@ -69,7 +70,7 @@ export const QuoteEditor: React.FC = () => {
     : selectedBaseMaterial;
   const selectedClient = clients.find(c => c.id === clientId);
   const { calculatePieceArea, calculateTotal, calculateSculptedSink } = useQuoteCalculator(settings, selectedMaterial);
-  const currentUserName = profile?.name || user?.displayName || user?.email || 'UsuÃ¡rio';
+  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usu?rio';
   
   const selectedPaymentAdjustment = settings.paymentMethods.find(m => m.name === paymentMethod)?.adjustment || 0;
   const totalPrice = calculateTotal(pieces, cutouts, selectedPaymentAdjustment);
@@ -154,8 +155,8 @@ export const QuoteEditor: React.FC = () => {
           setDeliveryDate(formatDateInput(data.deliveryDate));
           setValidityDays(15); // Adjust if needed
           setCommercialNotes(data.commercialNotes || '');
-          setStatus(data.status);
-          setOriginalStatus(data.status);
+          setStatus(normalizeQuoteStatus(data.status));
+          setOriginalStatus(normalizeQuoteStatus(data.status));
           setPieces(data.pieces || []);
           setEmployeeAssignments(data.employeeAssignments || []);
           setStatusHistory(data.statusHistory || []);
@@ -166,6 +167,8 @@ export const QuoteEditor: React.FC = () => {
             faucetHole: data.cutouts?.faucetHole || 0,
             trashBinCutout: data.cutouts?.trashBinCutout || 0,
             popUpTowerCutout: data.cutouts?.popUpTowerCutout || 0,
+            wetAreaAmericanRecess: data.cutouts?.wetAreaAmericanRecess || 0,
+            wetAreaItalianRecess: data.cutouts?.wetAreaItalianRecess || 0,
           });
         }
       }
@@ -186,7 +189,7 @@ export const QuoteEditor: React.FC = () => {
   }, [id, user?.uid]);
 
   useEffect(() => {
-    if (!id && !responsible && currentUserName !== 'UsuÃ¡rio') {
+    if (!id && !responsible && currentUserName !== 'Usu?rio') {
       setResponsible(currentUserName);
     }
   }, [currentUserName, id, responsible]);
@@ -194,7 +197,7 @@ export const QuoteEditor: React.FC = () => {
   const addPiece = () => {
     const newPiece: QuotePiece = {
       id: Math.random().toString(36).substr(2, 9),
-      name: `PeÃ§a ${pieces.length + 1}`,
+      name: `Peça ${pieces.length + 1}`,
       materialId: materialId,
       unit: 'cm',
       width: 0,
@@ -218,7 +221,7 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const countCutouts = (drawingCutouts?: QuotePiece['cutouts']): QuoteCutoutState => {
-    const counts: QuoteCutoutState = {cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0};
+    const counts: QuoteCutoutState = {cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0};
     (drawingCutouts || []).forEach((item) => {
       if (item.type === 'cooktop') counts.cooktop += 1;
       if (item.type === 'torneira') counts.faucetHole += 1;
@@ -239,6 +242,8 @@ export const QuoteEditor: React.FC = () => {
       faucetHole: Math.max(0, current.faucetHole + (next.faucetHole - previous.faucetHole)),
       trashBinCutout: Math.max(0, current.trashBinCutout + (next.trashBinCutout - previous.trashBinCutout)),
       popUpTowerCutout: Math.max(0, current.popUpTowerCutout + (next.popUpTowerCutout - previous.popUpTowerCutout)),
+      wetAreaAmericanRecess: current.wetAreaAmericanRecess,
+      wetAreaItalianRecess: current.wetAreaItalianRecess,
     }));
   };
 
@@ -378,7 +383,7 @@ export const QuoteEditor: React.FC = () => {
         await applyQuoteInventoryByStatusTransition(id, originalStatus, status, quoteData);
         await logSystemEvent({
           type: 'quote_updated',
-          title: 'OrÃ§amento atualizado',
+          title: 'Orçamento atualizado',
           description: `${selectedClient?.name || 'Cliente'} - ${environment || 'Sem ambiente'}`,
           entityType: 'quote',
           entityId: id,
@@ -394,10 +399,10 @@ export const QuoteEditor: React.FC = () => {
         });
       } else {
         const createdRef = await addDoc(collection(db, 'quotes'), quoteData);
-        await applyQuoteInventoryByStatusTransition(createdRef.id, 'Or?amento', status, quoteData);
+        await applyQuoteInventoryByStatusTransition(createdRef.id, 'Orçamento', status, quoteData);
         await logSystemEvent({
           type: 'quote_created',
-          title: 'OrÃ§amento criado',
+          title: 'Orçamento criado',
           description: `${selectedClient?.name || 'Cliente'} - ${environment || 'Sem ambiente'}`,
           entityType: 'quote',
           entityId: createdRef.id,
@@ -432,9 +437,9 @@ export const QuoteEditor: React.FC = () => {
           </button>
           <div>
             <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">
-              {id ? 'Editar OrÃ§amento' : 'Novo OrÃ§amento'}
+              {id ? 'Editar Orçamento' : 'Novo Orçamento'}
             </h1>
-            <p className="text-slate-500 mt-1">Configure as peÃ§as, materiais e condiÃ§Ãµes.</p>
+            <p className="text-slate-500 mt-1">Configure as peças, materiais e condiçóes.</p>
           </div>
         </div>
         <button
@@ -443,7 +448,7 @@ export const QuoteEditor: React.FC = () => {
           className="flex items-center gap-2 bg-brand-primary text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95 disabled:opacity-50"
         >
           <Save className="w-5 h-5" />
-          {saving ? 'Salvando...' : 'Salvar OrÃ§amento'}
+          {saving ? 'Salvando...' : 'Salvar Orçamento'}
         </button>
       </header>
 
@@ -467,12 +472,12 @@ export const QuoteEditor: React.FC = () => {
         {/* Right Column: Pieces */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-2xl font-display font-bold text-slate-900">PeÃ§as do OrÃ§amento</h2>
+            <h2 className="text-2xl font-display font-bold text-slate-900">Peças do Orçamento</h2>
             <button 
               onClick={addPiece}
               className="flex items-center gap-2 text-brand-primary font-bold hover:underline"
             >
-              <Plus className="w-5 h-5" /> Adicionar PeÃ§a
+              <Plus className="w-5 h-5" /> Adicionar Peça
             </button>
           </div>
 
@@ -480,8 +485,8 @@ export const QuoteEditor: React.FC = () => {
             {pieces.length === 0 && (
               <div className="bg-slate-50 border-2 border-dashed border-slate-200 p-12 rounded-[32px] text-center space-y-4">
                 <Layers className="w-12 h-12 text-slate-300 mx-auto" />
-                <div className="text-slate-500 font-medium tracking-tight">Nenhuma peÃ§a adicionada ainda.</div>
-                <button onClick={addPiece} className="text-brand-primary font-bold">Clique aqui para comeÃ§ar</button>
+                <div className="text-slate-500 font-medium tracking-tight">Nenhuma peça adicionada ainda.</div>
+                <button onClick={addPiece} className="text-brand-primary font-bold">Clique aqui para começar</button>
               </div>
             )}
 
@@ -501,8 +506,8 @@ export const QuoteEditor: React.FC = () => {
                   </div>
                   <button 
                     type="button"
-                    aria-label="Remover peÃ§a"
-                    title="Remover peÃ§a"
+                    aria-label="Remover peça"
+                    title="Remover peça"
                     onClick={() => removePiece(piece.id)} 
                     className="p-2 text-slate-300 hover:text-red-500 transition-all"
                   >
@@ -524,7 +529,7 @@ export const QuoteEditor: React.FC = () => {
                           <div className="absolute inset-0 bg-brand-primary/0 group-hover:bg-brand-primary/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-2xl">
                             <PenTool className="w-5 h-5 text-brand-primary" />
                           </div>
-                          <div className="absolute bottom-2 right-2 bg-green-500 w-3 h-3 rounded-full border-2 border-white shadow-sm" title="Desenho tÃ©cnico disponÃ­vel" />
+                          <div className="absolute bottom-2 right-2 bg-green-500 w-3 h-3 rounded-full border-2 border-white shadow-sm" title="Desenho t?cnico dispon?vel" />
                         </div>
                       ) : (
                         <button 
@@ -532,7 +537,7 @@ export const QuoteEditor: React.FC = () => {
                           className="w-full aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-brand-primary hover:border-brand-primary/20 hover:bg-white transition-all"
                         >
                           <Pencil className="w-8 h-8 opacity-50" />
-                          <span className="text-[10px] uppercase font-bold tracking-widest">Desenhar PeÃ§a</span>
+                          <span className="text-[10px] uppercase font-bold tracking-widest">Desenhar Peça</span>
                         </button>
                       )}
                     </div>
@@ -557,7 +562,7 @@ export const QuoteEditor: React.FC = () => {
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ãrea Total (mÂ²)</label>
+                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">área Total (m²)</label>
                         <div className="px-4 py-2.5 bg-slate-100 rounded-xl font-mono text-slate-600 flex flex-col items-end">
                           <div className="flex justify-between w-full items-center">
                             <span className="text-[9px] uppercase font-bold text-slate-400">Total:</span>
@@ -566,7 +571,7 @@ export const QuoteEditor: React.FC = () => {
                           {piece.sculptedSink?.active && (
                             <div className="text-[8px] text-slate-400 flex flex-col w-full">
                               <div className="flex justify-between">
-                                <span>PeÃ§a:</span>
+                                <span>Peça:</span>
                                 <span>{calculatePieceArea(piece).mainArea.toFixed(4)}</span>
                               </div>
                               <div className="flex justify-between">
@@ -586,10 +591,10 @@ export const QuoteEditor: React.FC = () => {
                           type="url"
                           value={piece.proposalImageUrl || ''}
                           onChange={(e) => updatePiece(piece.id, { proposalImageUrl: e.target.value })}
-                          placeholder="Cole aqui o link da imagem, render ou planta desta peÃ§a"
+                          placeholder="Cole aqui o link da imagem, render ou planta desta peça"
                           className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
                         />
-                        <p className="text-[11px] text-slate-400">Essa imagem aparece na proposta premium. Se ficar vazio, o sistema usa o desenho tÃ©cnico salvo.</p>
+                        <p className="text-[11px] text-slate-400">Essa imagem aparece na proposta premium. Se ficar vazio, o sistema usa o desenho t?cnico salvo.</p>
                       </div>
                     </div>
                   </div>
@@ -609,7 +614,7 @@ export const QuoteEditor: React.FC = () => {
                           <button 
                             onClick={() => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink, active: false } as any })}
                             className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", !piece.sculptedSink?.active ? "bg-white text-brand-primary shadow-sm" : "text-slate-400")}
-                          >NÃ£o</button>
+                          >Não</button>
                         </div>
                       </div>
                     </div>
@@ -626,7 +631,7 @@ export const QuoteEditor: React.FC = () => {
                             >
                               <option value="Simples">Simples</option>
                               <option value="Com rampa">Com rampa</option>
-                              <option value="VÃ¡lvula oculta">VÃ¡lvula oculta</option>
+                              <option value="V?lvula oculta">V?lvula oculta</option>
                               <option value="Cuba dupla">Cuba dupla</option>
                             </select>
                           </div>
@@ -691,11 +696,11 @@ export const QuoteEditor: React.FC = () => {
                               return (
                                 <>
                                   <div className="space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Ãrea Cuba (mÂ²)</span>
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">área Cuba (m²)</span>
                                     <div className="text-slate-900 font-mono font-bold">{calc.area.toFixed(4)}</div>
                                   </div>
                                   <div className="space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">MÃ£o de Obra</span>
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">M?o de Obra</span>
                                     <div className="text-slate-900 font-mono font-bold">{formatCurrency(calc.laborValue + calc.extraSinkValue)}</div>
                                   </div>
                                   <div className="space-y-0.5">
@@ -715,7 +720,7 @@ export const QuoteEditor: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Adicionais - FrontÃ£o, Saia, etc */}
+                  {/* Adicionais - Frontão, Saia, etc */}
                   <div className="space-y-4 pt-4 border-t border-slate-50">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                       <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Adicionais (Frontao/Saia/Virada/Pe)</h3>
@@ -725,7 +730,7 @@ export const QuoteEditor: React.FC = () => {
                           onClick={() => addSide(piece.id, 'frontao')}
                           className="px-3 py-2 rounded-xl bg-brand-primary/10 text-brand-primary text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary/15 transition-all"
                         >
-                          + FrontÃ£o
+                          + Frontão
                         </button>
                         <button
                           type="button"
@@ -777,7 +782,7 @@ export const QuoteEditor: React.FC = () => {
                                 }}
                                 className="min-w-0 bg-white border border-slate-200 rounded-lg text-xs p-1"
                               >
-                                <option value="frontao">FrontÃ£o</option>
+                                <option value="frontao">Frontão</option>
                                 <option value="saia">Saia</option>
                                 <option value="virada">Virada</option>
                                 <option value="pe">Pe de bancada</option>
@@ -838,7 +843,7 @@ export const QuoteEditor: React.FC = () => {
 
           <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
             <h2 className="font-display font-bold text-xl text-slate-800">Recortes e Acabamentos Especiais</h2>
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-6">
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cooktop (Qtd)</label>
                 <input 
@@ -893,15 +898,33 @@ export const QuoteEditor: React.FC = () => {
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
                 />
               </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rebaixo Amer. (Qtd)</label>
+                <input
+                  type="number"
+                  value={cutouts.wetAreaAmericanRecess}
+                  onChange={(e) => setCutouts({ ...cutouts, wetAreaAmericanRecess: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rebaixo Ital. (Qtd)</label>
+                <input
+                  type="number"
+                  value={cutouts.wetAreaItalianRecess}
+                  onChange={(e) => setCutouts({ ...cutouts, wetAreaItalianRecess: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
+                />
+              </div>
             </div>
           </section>
 
           <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
-            <h2 className="font-display font-bold text-xl text-slate-800">Especificações do cliente</h2>
-            <p className="text-xs text-slate-400">No card do cliente são exibidas somente peças previamente cadastradas no Admin.</p>
+            <h2 className="font-display font-bold text-xl text-slate-800">Especificaçóes do cliente</h2>
+            <p className="text-xs text-slate-400">No card do cliente s?o exibidas somente peças previamente cadastradas no Admin.</p>
             {!pieces.length ? (
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                Adicione ao menos uma peça para vincular os itens do catálogo.
+                Adicione ao menos uma peça para vincular os itens do catélogo.
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -943,16 +966,16 @@ export const QuoteEditor: React.FC = () => {
               </div>
             )}
             <div className="text-xs text-slate-400">
-              Se não encontrar um item aqui, cadastre primeiro na aba Admin em Catálogo de peças.
+              Se não encontrar um item aqui, cadastre primeiro na aba Admin em Catélogo de peças.
             </div>
           </section>
 
           <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
-            <h2 className="font-display font-bold text-xl text-slate-800">ObservaÃ§Ãµes Comerciais</h2>
+            <h2 className="font-display font-bold text-xl text-slate-800">Observaçóes Comerciais</h2>
             <textarea 
               value={commercialNotes}
               onChange={(e) => setCommercialNotes(e.target.value)}
-              placeholder="InformaÃ§Ãµes sobre entrega, instalaÃ§Ã£o, etc..."
+              placeholder="Informações sobre entrega, instalação, etc..."
               className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all min-h-[120px]"
             />
           </section>
@@ -964,8 +987,8 @@ export const QuoteEditor: React.FC = () => {
           <div className="w-full max-w-5xl bg-white rounded-[40px] shadow-2xl flex flex-col h-[90vh]">
             <div className="p-8 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <h3 className="text-2xl font-display font-bold text-slate-900">Desenho TÃ©cnico</h3>
-                <p className="text-slate-400 text-sm">PeÃ§a: {pieces.find(p => p.id === showDrawing)?.name}</p>
+                <h3 className="text-2xl font-display font-bold text-slate-900">Desenho Técnico</h3>
+                <p className="text-slate-400 text-sm">Peça: {pieces.find(p => p.id === showDrawing)?.name}</p>
               </div>
               <div className="flex items-center gap-3">
                 <button
@@ -974,7 +997,7 @@ export const QuoteEditor: React.FC = () => {
                   className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all"
                 >
                   <Save className="w-4 h-4" />
-                  Salvar peÃ§a
+                  Salvar peça
                 </button>
                 <button
                   onClick={() => setShowDrawing(null)}

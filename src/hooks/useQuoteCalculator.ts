@@ -105,6 +105,8 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
     total += (cutouts.faucetHole || 0) * (settings.cutoutPrices?.faucetHole || 0);
     total += (cutouts.trashBinCutout || 0) * (settings.cutoutPrices?.trashBinCutout || 0);
     total += (cutouts.popUpTowerCutout || 0) * (settings.cutoutPrices?.popUpTowerCutout || 0);
+    total += (cutouts.wetAreaAmericanRecess || 0) * (settings.cutoutPrices?.wetAreaAmericanRecess || 0);
+    total += (cutouts.wetAreaItalianRecess || 0) * (settings.cutoutPrices?.wetAreaItalianRecess || 0);
     return total;
   };
 

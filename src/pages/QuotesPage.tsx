@@ -11,23 +11,7 @@ import {cn, formatCurrency} from '../lib/utils';
 import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, releaseQuoteReservation, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
-
-const quoteStatuses: QuoteStatus[] = [
-  'Or?amento',
-  'Medi??o',
-  'Projeto',
-  'Aprova??o',
-  'Produ??o',
-  'Acabamento',
-  'Entrega',
-  'Finalizado',
-];
-
-const normalize = (value: unknown) =>
-  String(value || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+import {QUOTE_STATUSES, normalizeQuoteStatus, normalizeText, quoteStatusColor} from '../lib/quoteStatus';
 
 export const QuotesPage: React.FC = () => {
   const {user, profile} = useAuth();
@@ -50,7 +34,7 @@ export const QuotesPage: React.FC = () => {
   }, []);
 
   const filteredQuotes = quotes.filter((quote) => {
-    const normalizedStatus = normalize(quote.status);
+    const normalizedStatus = normalizeText(normalizeQuoteStatus(quote.status));
     const isOpenScope = ['orcamento', 'medicao', 'projeto', 'aprovacao', 'producao', 'acabamento', 'entrega'].includes(normalizedStatus);
     const matchesScope = scope === 'open' ? isOpenScope : true;
 
@@ -61,9 +45,9 @@ export const QuotesPage: React.FC = () => {
       quote.address,
       quote.status,
       quote.responsible,
-    ].map(normalize).join(' ');
+    ].map(normalizeText).join(' ');
 
-    return matchesScope && searchable.includes(normalize(search));
+    return matchesScope && searchable.includes(normalizeText(search));
   });
 
   const handleStatusChange = async (quote: Quote, status: QuoteStatus) => {
@@ -112,7 +96,7 @@ export const QuotesPage: React.FC = () => {
     const duplicatedQuote = {
       ...data,
       createdAt: Timestamp.now(),
-      status: 'Or?amento',
+      status: 'Orçamento',
       clientName: `${data.clientName} (Cópia)`,
     } as Omit<Quote, 'id'>;
     const createdRef = await addDoc(collection(db, 'quotes'), duplicatedQuote);
@@ -161,28 +145,6 @@ export const QuotesPage: React.FC = () => {
       });
     }
     setQuotes((prev) => prev.filter((quote) => quote.id !== id));
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (normalize(status)) {
-      case 'aprovado':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-100';
-      case 'recusado':
-        return 'bg-red-50 text-red-600 border-red-100';
-      case 'em producao':
-        return 'bg-blue-50 text-blue-700 border-blue-100';
-      case 'pronto para entrega':
-        return 'bg-amber-50 text-amber-700 border-amber-100';
-      case 'entregue':
-        return 'bg-slate-100 text-slate-600 border-slate-200';
-      case 'aguardando medicao':
-        return 'bg-amber-50 text-amber-700 border-amber-100';
-      case 'medido':
-      case 'enviado':
-        return 'bg-violet-50 text-violet-700 border-violet-100';
-      default:
-        return 'bg-slate-100 text-slate-600 border-slate-200';
-    }
   };
 
   return (
@@ -259,14 +221,14 @@ export const QuotesPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4">
                       <select
-                        value={quote.status}
+                        value={normalizeQuoteStatus(quote.status)}
                         onChange={(e) => handleStatusChange(quote, e.target.value as QuoteStatus)}
                         className={cn(
                           'max-w-[180px] cursor-pointer rounded-full border px-3 py-1 text-[10px] font-bold uppercase outline-none transition-all',
-                          getStatusColor(quote.status),
+                          quoteStatusColor(quote.status),
                         )}
                       >
-                        {quoteStatuses.map((status) => (
+                        {QUOTE_STATUSES.map((status) => (
                           <option key={status} value={status}>{status}</option>
                         ))}
                       </select>

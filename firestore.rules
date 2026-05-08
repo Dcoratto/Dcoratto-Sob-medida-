@@ -62,6 +62,10 @@ service cloud.firestore {
       allow read, write: if signedIn();
     }
 
+    match /calendarEvents/{document} {
+      allow read, write: if signedIn();
+    }
+
     match /systemEvents/{document} {
       allow read, create: if signedIn();
       allow update, delete: if isAdmin();

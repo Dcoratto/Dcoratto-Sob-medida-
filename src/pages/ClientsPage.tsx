@@ -8,7 +8,7 @@ import {cn, formatCurrency} from '../lib/utils';
 import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
-import {QUOTE_STATUSES, normalizeQuoteStatus} from '../lib/quoteStatus';
+import {QUOTE_STATUSES, normalizeQuoteStatus, quoteStatusColor} from '../lib/quoteStatus';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -30,8 +30,8 @@ const normalize = (value: unknown) =>
 
 const stageMeta: Record<ClientStage, {label: string; dot: string; chip: string}> = {
   pre: {label: 'Orçamento', dot: 'bg-blue-500', chip: 'bg-blue-50 text-blue-700'},
-  approved: {label: 'Aprovação', dot: 'bg-violet-500', chip: 'bg-violet-50 text-violet-700'},
-  production: {label: 'Produção', dot: 'bg-zinc-900', chip: 'bg-zinc-100 text-zinc-700'},
+  approved: {label: 'Aprovado', dot: 'bg-violet-500', chip: 'bg-violet-50 text-violet-700'},
+  production: {label: 'Produ??o', dot: 'bg-zinc-900', chip: 'bg-zinc-100 text-zinc-700'},
   ready: {label: 'Acabamento', dot: 'bg-amber-700', chip: 'bg-amber-50 text-amber-800'},
   done: {label: 'Concluído', dot: 'bg-violet-500', chip: 'bg-violet-50 text-violet-700'},
   none: {label: 'Sem projeto', dot: 'bg-zinc-300', chip: 'bg-zinc-100 text-zinc-500'},
@@ -41,9 +41,9 @@ const quoteStage = (quote?: Quote): ClientStage => {
   if (!quote) return 'none';
   const status = normalizeQuoteStatus(quote.status);
   if (status === 'Finalizado') return 'done';
-  if (status === 'Produção') return 'production';
+  if (status === 'Produ??o') return 'production';
   if (status === 'Acabamento' || status === 'Entrega') return 'ready';
-  if (status === 'Aprovação') return 'approved';
+  if (status === 'Aprovado') return 'approved';
   return 'pre';
 };
 
@@ -56,14 +56,14 @@ const quoteTime = (quote?: Quote) => {
 
 const stepDate = (value: any) => {
   if (!value) return '';
-  const date = typeof value.toDate === 'function' ? value.toDate() : value;
+  const date = typeof value.toDate === 'function' ?value.toDate() : value;
   if (!(date instanceof Date)) return '';
   return date.toLocaleDateString('pt-BR');
 };
 
 const formatDateInput = (value: any) => {
   if (!value) return '';
-  const date = typeof value.toDate === 'function' ? value.toDate() : value;
+  const date = typeof value.toDate === 'function' ?value.toDate() : value;
   if (!(date instanceof Date)) return '';
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -94,6 +94,7 @@ export const ClientsPage: React.FC = () => {
   const [birthDate, setBirthDate] = useState('');
   const [address, setAddress] = useState('');
   const [city, setCity] = useState('');
+  const [zipCode, setZipCode] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
   const [addressType, setAddressType] = useState<Client['addressType']>('casa');
   const [condominiumId, setCondominiumId] = useState('');
@@ -158,6 +159,7 @@ export const ClientsPage: React.FC = () => {
     setBirthDate('');
     setAddress('');
     setCity('');
+    setZipCode('');
     setNeighborhood('');
     setAddressType('casa');
     setCondominiumId('');
@@ -181,13 +183,14 @@ export const ClientsPage: React.FC = () => {
     const selectedCondominium = condominiums.find((item) => item.id === condominiumId);
     const fullAddress = [
       address,
-      neighborhood ? `Bairro ${neighborhood}` : '',
+      neighborhood  ? `Bairro ${neighborhood}` : '',
       city,
-      selectedCondominium?.name ? `Condomínio ${selectedCondominium.name}` : '',
-      block ? `Quadra ${block}` : '',
-      lot ? `Lote ${lot}` : '',
-      tower ? `Torre ${tower}` : '',
-      apartmentNumber ? `Apto ${apartmentNumber}` : '',
+      zipCode  ? `CEP ${zipCode}` : '',
+      selectedCondominium?.name  ? `Condomínio ${selectedCondominium.name}` : '',
+      block  ? `Quadra ${block}` : '',
+      lot  ? `Lote ${lot}` : '',
+      tower  ? `Torre ${tower}` : '',
+      apartmentNumber  ? `Apto ${apartmentNumber}` : '',
     ].filter(Boolean).join(' · ');
     const data = {
       name,
@@ -199,6 +202,7 @@ export const ClientsPage: React.FC = () => {
       address: fullAddress,
       notes,
       city: city.trim(),
+      zipCode: zipCode.trim(),
       neighborhood: neighborhood.trim(),
       addressType,
       condominiumId: selectedCondominium?.id || '',
@@ -251,6 +255,7 @@ export const ClientsPage: React.FC = () => {
     setBirthDate(client.birthDate || '');
     setAddress(client.address || '');
     setCity(client.city || '');
+    setZipCode(client.zipCode || '');
     setNeighborhood(client.neighborhood || '');
     setAddressType(client.addressType || 'casa');
     setCondominiumId(client.condominiumId || '');
@@ -332,7 +337,7 @@ export const ClientsPage: React.FC = () => {
 
   const updateQuoteSchedule = async (quote: Quote, field: 'measurementDate' | 'deliveryDate', value: string) => {
     await updateDoc(doc(db, 'quotes', quote.id), {
-      [field]: value ? Timestamp.fromDate(new Date(`${value}T12:00:00`)) : null,
+      [field]: value ?Timestamp.fromDate(new Date(`${value}T12:00:00`)) : null,
       statusHistory: [
         ...(quote.statusHistory || []),
         {
@@ -340,7 +345,7 @@ export const ClientsPage: React.FC = () => {
           changedAt: Timestamp.now(),
           changedByUid: user?.uid || '',
           changedByName: currentUserName,
-          note: `${field === 'measurementDate' ? 'Medição' : 'Entrega'} ${value ? `agendada para ${value.split('-').reverse().join('/')}` : 'removida'}`,
+          note: `${field === 'measurementDate' ?'Medição' : 'Entrega'} ${value  ? `agendada para ${value.split('-').reverse().join('/')}` : 'removida'}`,
         },
       ],
     });
@@ -370,14 +375,14 @@ export const ClientsPage: React.FC = () => {
           responsibleEmployeeId: employee?.id || '',
           responsibleEmployeeName: employee?.name || '',
           step,
-          note: employee ? `${employee.name} assumiu ${productionSteps.find((item) => item.key === step)?.label}` : `Responsável removido de ${step}`,
+          note: employee  ? `${employee.name} assumiu ${productionSteps.find((item) => item.key === step)?.label}` : `Responsável removido de ${step}`,
         },
       ],
     });
     await logSystemEvent({
       type: 'production_assignment_changed',
-      title: employee ? 'Responsável de produção definido' : 'Responsável de produção removido',
-      description: employee ? `${employee.name} em ${productionSteps.find((item) => item.key === step)?.label}` : `Etapa ${step}`,
+      title: employee ?'Responsável de produção definido' : 'Responsável de produção removido',
+      description: employee  ? `${employee.name} em ${productionSteps.find((item) => item.key === step)?.label}` : `Etapa ${step}`,
       entityType: 'production',
       entityId: quote.id,
       quoteId: quote.id,
@@ -396,7 +401,7 @@ export const ClientsPage: React.FC = () => {
     const finished = Boolean(assignment.finishedAt);
     const nextAssignments = (quote.employeeAssignments || []).map((item) => (
       item.step === assignment.step && item.employeeId === assignment.employeeId
-        ? {...item, finishedAt: finished ? null : Timestamp.now()}
+        ?{...item, finishedAt: finished ?null : Timestamp.now()}
         : item
     ));
 
@@ -412,13 +417,13 @@ export const ClientsPage: React.FC = () => {
           responsibleEmployeeId: assignment.employeeId,
           responsibleEmployeeName: assignment.employeeName,
           step: assignment.step,
-          note: `${productionSteps.find((item) => item.key === assignment.step)?.label} ${finished ? 'reaberta' : 'finalizada'} por ${assignment.employeeName}`,
+          note: `${productionSteps.find((item) => item.key === assignment.step)?.label} ${finished  ? 'reaberta' : 'finalizada'} por ${assignment.employeeName}`,
         },
       ],
     });
     await logSystemEvent({
       type: 'production_step_changed',
-      title: finished ? 'Etapa de produção reaberta' : 'Etapa de produção finalizada',
+      title: finished ?'Etapa de produção reaberta' : 'Etapa de produção finalizada',
       description: `${productionSteps.find((item) => item.key === assignment.step)?.label} - ${assignment.employeeName}`,
       entityType: 'production',
       entityId: quote.id,
@@ -497,7 +502,7 @@ export const ClientsPage: React.FC = () => {
       const currentFixture = piece.purchasedFixtures?.[fixtureType] || {};
       const nextFixture = {
         ...currentFixture,
-        [field]: numericFields.includes(field) ? Number(value || 0) : value,
+        [field]: numericFields.includes(field) ?Number(value || 0) : value,
       };
       return {
         ...piece,
@@ -517,14 +522,14 @@ export const ClientsPage: React.FC = () => {
           changedAt: Timestamp.now(),
           changedByUid: user?.uid || '',
           changedByName: currentUserName,
-          note: `Dados de ${fixtureType === 'sink' ? 'cuba' : fixtureType === 'faucet' ? 'torneira' : 'cooktop'} atualizados`,
+          note: `Dados de ${fixtureType === 'sink' ?'cuba' : fixtureType === 'faucet' ?'torneira' : 'cooktop'} atualizados`,
         },
       ],
     });
     await logSystemEvent({
       type: 'fixture_updated',
       title: 'Item comprado pelo cliente atualizado',
-      description: `${fixtureType === 'sink' ? 'Cuba' : fixtureType === 'faucet' ? 'Torneira' : 'Cooktop'} em ${quote.clientName}`,
+      description: `${fixtureType === 'sink' ?'Cuba' : fixtureType === 'faucet' ?'Torneira' : 'Cooktop'} em ${quote.clientName}`,
       entityType: 'quote',
       entityId: quote.id,
       quoteId: quote.id,
@@ -583,9 +588,9 @@ export const ClientsPage: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-          {loading ? (
+          {loading ?(
             <div className="col-span-full py-20 text-center text-slate-400">Carregando clientes...</div>
-          ) : filteredClients.length === 0 ? (
+          ) : filteredClients.length === 0 ?(
             <div className="col-span-full py-20 text-center text-slate-400">Nenhum cliente encontrado.</div>
           ) : (
             filteredClients.map((client) => {
@@ -666,7 +671,7 @@ export const ClientsPage: React.FC = () => {
             </div>
 
             <div className="overflow-auto p-6 space-y-6">
-              {selectedClientQuotes.length > 0 ? (
+              {selectedClientQuotes.length > 0 ?(
                 <>
                   <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_220px] gap-4">
                     <select
@@ -680,12 +685,12 @@ export const ClientsPage: React.FC = () => {
                     </select>
                     {selectedQuote && (
                       <select
-                        value={selectedQuote.status}
+                        value={normalizeQuoteStatus(selectedQuote.status)}
                         onChange={(event) => updateQuoteStatus(selectedQuote, event.target.value as QuoteStatus)}
-                        className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
+                        className={cn('rounded-2xl border px-4 py-3 font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20', quoteStatusColor(selectedQuote.status))}
                       >
                         {quoteStatuses.map((status) => (
-                          <option key={status} value={status}>{status}</option>
+                          <option key={status} value={status} className={quoteStatusColor(status)}>{status}</option>
                         ))}
                       </select>
                     )}
@@ -739,7 +744,7 @@ export const ClientsPage: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                           {(selectedQuote.pieces || []).map((piece) => (
                             <div key={piece.id} className="rounded-2xl bg-slate-50 p-4 flex gap-4">
-                              {piece.previewUrl ? (
+                              {piece.previewUrl ?(
                                 <img src={piece.previewUrl} alt={piece.name} className="h-24 w-24 rounded-xl border border-slate-100 bg-white object-contain p-2" />
                               ) : (
                                 <div className="h-24 w-24 rounded-xl border border-slate-100 bg-white flex items-center justify-center text-slate-300">
@@ -786,7 +791,7 @@ export const ClientsPage: React.FC = () => {
                           {productionSteps.map((step) => {
                             const assignment = selectedQuote.employeeAssignments?.find((item) => item.step === step.key);
                             const evaluation = assignment
-                              ? selectedQuote.employeeEvaluations?.find((item) => item.step === step.key && item.employeeId === assignment.employeeId)
+                              ?selectedQuote.employeeEvaluations?.find((item) => item.step === step.key && item.employeeId === assignment.employeeId)
                               : undefined;
                             return (
                               <div key={step.key} className="rounded-2xl bg-slate-50 p-4 space-y-3">
@@ -794,7 +799,7 @@ export const ClientsPage: React.FC = () => {
                                   <div>
                                     <div className="font-bold text-slate-900">{step.label}</div>
                                     <div className="text-xs text-slate-400">
-                                      {assignment?.startedAt ? `Iniciado em ${stepDate(assignment.startedAt)}` : 'Sem início registrado'}
+                                      {assignment?.startedAt  ? `Iniciado em ${stepDate(assignment.startedAt)}` : 'Sem início registrado'}
                                     </div>
                                   </div>
                                   {assignment?.finishedAt && <CheckCircle2 className="w-5 h-5 text-green-600" />}
@@ -818,7 +823,7 @@ export const ClientsPage: React.FC = () => {
                                         onChange={() => toggleStepDone(selectedQuote, assignment)}
                                         className="h-4 w-4 accent-brand-primary"
                                       />
-                                      {assignment.finishedAt ? `Finalizado em ${stepDate(assignment.finishedAt)}` : 'Marcar etapa finalizada'}
+                                      {assignment.finishedAt  ? `Finalizado em ${stepDate(assignment.finishedAt)}` : 'Marcar etapa finalizada'}
                                     </label>
 
                                     <div className="rounded-xl bg-white p-3 space-y-2">
@@ -832,11 +837,11 @@ export const ClientsPage: React.FC = () => {
                                               onClick={() => updateEvaluation(selectedQuote, assignment, rating)}
                                               className={cn(
                                                 'h-8 w-8 rounded-full text-sm transition-all',
-                                                (evaluation?.rating || 0) >= rating ? 'bg-green-500 text-white shadow-sm' : 'bg-slate-50 text-slate-300 hover:text-brand-primary',
+                                                (evaluation?.rating || 0) >= rating  ? 'bg-green-500 text-white shadow-sm' : 'bg-slate-50 text-slate-300 hover:text-brand-primary',
                                               )}
                                               title={`${rating} ponto(s)`}
                                             >
-                                              {rating <= 2 ? '☹' : rating === 3 ? '○' : '☺'}
+                                              {rating <= 2 ?'☹' : rating === 3 ?'○' : '☺'}
                                             </button>
                                           ))}
                                         </div>
@@ -863,7 +868,7 @@ export const ClientsPage: React.FC = () => {
                             <div key={`${item.changedAt}-${index}`} className="rounded-2xl bg-slate-50 px-4 py-3">
                               <div className="text-sm font-bold text-slate-800">{(item as any).note || item.status}</div>
                               <div className="text-xs text-slate-400">
-                                {stepDate(item.changedAt)}{item.responsibleEmployeeName ? ` · ${item.responsibleEmployeeName}` : ''}
+                                {stepDate(item.changedAt)}{item.responsibleEmployeeName  ? ` · ${item.responsibleEmployeeName}` : ''}
                               </div>
                             </div>
                           ))}
@@ -889,26 +894,27 @@ export const ClientsPage: React.FC = () => {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-md rounded-[32px] shadow-2xl p-8 space-y-6 animate-in fade-in zoom-in duration-300">
+          <div className="bg-white w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-[32px] shadow-2xl p-6 md:p-8 space-y-6 animate-in fade-in zoom-in duration-300">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-display font-bold text-slate-900">{editingClient ? 'Editar Cliente' : 'Novo Cliente'}</h2>
+              <h2 className="text-2xl font-display font-bold text-slate-900">{editingClient ?'Editar Cliente' : 'Novo Cliente'}</h2>
               <button type="button" onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <FormField label="Nome Completo" value={name} onChange={setName} required />
-              <FormField label="Telefone" value={phone} onChange={setPhone} required />
-              <FormField label="Email" value={email} onChange={setEmail} type="email" />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <FormField label="Nome Completo" value={name} onChange={setName} required />
+                <FormField label="Telefone" value={phone} onChange={setPhone} required />
+                <FormField label="Email" value={email} onChange={setEmail} type="email" />
+                <FormField label="Data de nascimento" value={birthDate} onChange={setBirthDate} type="date" />
                 <FormField label="CPF" value={cpf} onChange={setCpf} />
                 <FormField label="RG" value={rg} onChange={setRg} />
               </div>
-              <FormField label="Data de nascimento" value={birthDate} onChange={setBirthDate} type="date" />
-              <FormField label="Endereço (rua e número)" value={address} onChange={setAddress} required />
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="md:col-span-2"><FormField label="Endere?o (rua e n?mero)" value={address} onChange={setAddress} required /></div>
                 <FormField label="Bairro" value={neighborhood} onChange={setNeighborhood} />
+                <FormField label="CEP" value={zipCode} onChange={setZipCode} />
                 <FormField label="Cidade" value={city} onChange={setCity} required />
               </div>
               <div className="space-y-1.5">
@@ -970,7 +976,7 @@ export const ClientsPage: React.FC = () => {
               </div>
 
               <button type="submit" className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
-                {editingClient ? 'Salvar Alterações' : 'Cadastrar Cliente'}
+                {editingClient ?'Salvar Alterações' : 'Cadastrar Cliente'}
               </button>
             </form>
           </div>
@@ -984,7 +990,7 @@ const StatusFilter = ({label, active, onClick}: {key?: React.Key; label: string;
   <button
     type="button"
     onClick={onClick}
-    className={cn('px-3 py-2 rounded-xl text-xs font-bold transition-all', active ? 'bg-brand-primary text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100')}
+    className={cn('px-3 py-2 rounded-xl text-xs font-bold transition-all', active  ? 'bg-brand-primary text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100')}
   >
     {label}
   </button>
@@ -1036,7 +1042,7 @@ const FixtureFields = ({
       <div className="text-sm font-bold text-slate-900">{title}</div>
       <FixtureInput label="Modelo" value={fixture.model || ''} onBlur={(value) => onChange(quote, piece.id, type, 'model', value)} />
       <FixtureInput label="Marca" value={fixture.brand || ''} onBlur={(value) => onChange(quote, piece.id, type, 'brand', value)} />
-      {showDiameter ? (
+      {showDiameter ?(
         <FixtureInput label="Diâmetro/furo (cm)" type="number" value={String(fixture.diameter || '')} onBlur={(value) => onChange(quote, piece.id, type, 'diameter', value)} />
       ) : (
         <div className="grid grid-cols-2 gap-2">

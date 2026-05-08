@@ -134,7 +134,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
         .join('\n') || '-';
       return [
         String(index + 1).padStart(2, '0'),
-        piece.sculptedSink?.active ? `${piece.name}\nPia esculpida: ${piece.sculptedSink.type}` : piece.name,
+        piece.sculptedSink?.active ?`${piece.name}\nPia esculpida: ${piece.sculptedSink.type}` : piece.name,
         `${piece.length || 0} x ${piece.width || 0} cm`,
         `${(piece.totalArea || piece.manualArea || piece.area || 0).toFixed(4)} m²`,
         additions,
@@ -163,7 +163,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
     addSectionTitle(doc, 'Desenhos t?cnicos', cursorY, primary);
     cursorY += 8;
     previews.slice(0, 4).forEach((piece, index) => {
-      const x = index % 2 === 0 ? 14 : 106;
+      const x = index % 2 === 0 ?14 : 106;
       const y = cursorY + Math.floor(index / 2) * 58;
       doc.setFillColor(250, 248, 245);
       doc.roundedRect(x, y, 86, 50, 3, 3, 'F');

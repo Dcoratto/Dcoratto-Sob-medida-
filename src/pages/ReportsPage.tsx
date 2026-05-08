@@ -51,7 +51,7 @@ const periodLabel = (period: Period) => {
 const statusLabel = (status: string) => normalizeQuoteStatus(status);
 
 const isClosedSale = (status: string) =>
-  ['Aprovação', 'Produção', 'Acabamento', 'Entrega', 'Finalizado'].includes(statusLabel(status));
+  ['Aprovado', 'Produ??o', 'Acabamento', 'Entrega', 'Finalizado'].includes(statusLabel(status));
 
 export const ReportsPage: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -86,7 +86,7 @@ export const ReportsPage: React.FC = () => {
     if (!start) return quotes;
     return quotes.filter((quote) => {
       const createdAt = toDate(quote.createdAt);
-      return createdAt ? createdAt >= start : true;
+      return createdAt ?createdAt >= start : true;
     });
   }, [period, quotes]);
 
@@ -95,7 +95,7 @@ export const ReportsPage: React.FC = () => {
     if (!start) return systemEvents;
     return systemEvents.filter((event) => {
       const createdAt = toDate(event.createdAt);
-      return createdAt ? createdAt >= start : true;
+      return createdAt ?createdAt >= start : true;
     });
   }, [period, systemEvents]);
 
@@ -109,7 +109,7 @@ export const ReportsPage: React.FC = () => {
     .filter((quote) => statusLabel(quote.status) === '__none__')
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
   const approvedCount = filteredQuotes.filter((quote) => isClosedSale(quote.status)).length;
-  const conversionRate = filteredQuotes.length ? Math.round((approvedCount / filteredQuotes.length) * 100) : 0;
+  const conversionRate = filteredQuotes.length ?Math.round((approvedCount / filteredQuotes.length) * 100) : 0;
 
   const statusCounts = QUOTE_STATUSES
     .map((status) => ({status, count: filteredQuotes.filter((quote) => statusLabel(quote.status) === status).length}));
@@ -128,7 +128,7 @@ export const ReportsPage: React.FC = () => {
     .filter((quote) => !['Finalizado'].includes(statusLabel(quote.status)))
     .map((quote) => {
       const createdAt = toDate(quote.createdAt);
-      const deadline = toDate(quote.validityDate) || (createdAt ? new Date(createdAt.getTime() + (quote.deliveryDays || 0) * 86400000) : null);
+      const deadline = toDate(quote.validityDate) || (createdAt ?new Date(createdAt.getTime() + (quote.deliveryDays || 0) * 86400000) : null);
       if (!deadline) return null;
       const daysLeft = Math.ceil((deadline.getTime() - Date.now()) / 86400000);
       if (daysLeft > 5) return null;
@@ -139,7 +139,7 @@ export const ReportsPage: React.FC = () => {
   const employeeStats = employees.map((employee) => {
     const evaluations = filteredQuotes.flatMap((quote) => quote.employeeEvaluations || []).filter((item) => item.employeeId === employee.id);
     const assignments = filteredQuotes.flatMap((quote) => quote.employeeAssignments || []).filter((item) => item.employeeId === employee.id);
-    const average = evaluations.length ? evaluations.reduce((sum, item) => sum + item.rating, 0) / evaluations.length : 0;
+    const average = evaluations.length ?evaluations.reduce((sum, item) => sum + item.rating, 0) / evaluations.length : 0;
     return {employee, evaluations, assignments, average};
   }).sort((a, b) => b.average - a.average || b.assignments.length - a.assignments.length);
 
@@ -184,9 +184,9 @@ export const ReportsPage: React.FC = () => {
               key={item}
               type="button"
               onClick={() => setPeriod(item)}
-              className={cn('rounded-xl px-4 py-2 text-xs font-bold uppercase transition-all', period === item ? 'bg-brand-primary text-white' : 'bg-white text-slate-500 hover:bg-slate-50')}
+              className={cn('rounded-xl px-4 py-2 text-xs font-bold uppercase transition-all', period === item ?'bg-brand-primary text-white' : 'bg-white text-slate-500 hover:bg-slate-50')}
             >
-              {item === 'today' ? 'Hoje' : item === 'week' ? 'Semana' : item === 'month' ? 'Mês' : item === 'year' ? 'Ano' : 'Tudo'}
+              {item === 'today' ?'Hoje' : item === 'week' ?'Semana' : item === 'month' ?'Mês' : item === 'year' ?'Ano' : 'Tudo'}
             </button>
           ))}
           <button type="button" onClick={exportReport} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold uppercase text-white">
@@ -225,7 +225,7 @@ export const ReportsPage: React.FC = () => {
             <MoneyLine label="Vendidos" value={totalSold} className="text-green-700" />
             <MoneyLine label="Em aberto" value={openValue} className="text-amber-700" />
             <MoneyLine label="Recusados" value={refusedValue} className="text-red-600" />
-            <MoneyLine label="Ticket m²dio" value={filteredQuotes.length ? filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) / filteredQuotes.length : 0} className="text-slate-900" />
+            <MoneyLine label="Ticket m²dio" value={filteredQuotes.length ?filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) / filteredQuotes.length : 0} className="text-slate-900" />
           </div>
         </div>
       </section>
@@ -252,11 +252,11 @@ export const ReportsPage: React.FC = () => {
           <div className="space-y-3">
             {deadlineAlerts.map(({quote, daysLeft}) => (
               <div key={quote.id} className="rounded-2xl bg-slate-50 p-4 flex items-center gap-3">
-                <AlertCircle className={cn('w-5 h-5', daysLeft < 0 ? 'text-red-600' : 'text-amber-600')} />
+                <AlertCircle className={cn('w-5 h-5', daysLeft < 0 ?'text-red-600' : 'text-amber-600')} />
                 <div>
                   <div className="font-bold text-slate-900">{quote.clientName}</div>
-                  <div className={cn('text-xs font-bold', daysLeft < 0 ? 'text-red-600' : 'text-amber-600')}>
-                    {daysLeft < 0 ? `${Math.abs(daysLeft)} dia(s) atrasado` : `vence em ${daysLeft} dia(s)`}
+                  <div className={cn('text-xs font-bold', daysLeft < 0 ?'text-red-600' : 'text-amber-600')}>
+                    {daysLeft < 0 ?`${Math.abs(daysLeft)} dia(s) atrasado` : `vence em ${daysLeft} dia(s)`}
                   </div>
                 </div>
               </div>
@@ -280,13 +280,13 @@ export const ReportsPage: React.FC = () => {
                   </div>
                   <div className="text-left md:text-right">
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                      {date ? date.toLocaleDateString('pt-BR') : 'Sem data'}
+                      {date ?date.toLocaleDateString('pt-BR') : 'Sem data'}
                     </div>
                     {item.changedByName && (
                       <div className="text-xs text-slate-400">Alterado por {item.changedByName}</div>
                     )}
                     <div className="text-xs text-slate-400">
-                      {[item.responsibleEmployeeName, item.step ? productionStepLabels[item.step] : ''].filter(Boolean).join(' · ')}
+                      {[item.responsibleEmployeeName, item.step ?productionStepLabels[item.step] : ''].filter(Boolean).join(' · ')}
                     </div>
                   </div>
                 </div>
@@ -314,7 +314,7 @@ export const ReportsPage: React.FC = () => {
                   </div>
                   <div className="text-left md:text-right">
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                      {date ? date.toLocaleDateString('pt-BR') : 'Sem data'}
+                      {date ?date.toLocaleDateString('pt-BR') : 'Sem data'}
                     </div>
                     <div className="text-xs text-slate-400">Usu?rio: {event.userName || 'Não informado'}</div>
                   </div>
@@ -340,7 +340,7 @@ export const ReportsPage: React.FC = () => {
                   <div className="text-xs text-slate-400">{employee.role}</div>
                 </div>
                 <div className="rounded-full bg-white px-3 py-1 text-xs font-bold text-brand-primary">
-                  {average ? average.toFixed(1) : '-'} / 5
+                  {average ?average.toFixed(1) : '-'} / 5
                 </div>
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 text-xs">
@@ -373,7 +373,7 @@ export const ReportsPage: React.FC = () => {
                   </div>
                   <div className="text-left md:text-right">
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                      {date ? date.toLocaleDateString('pt-BR') : 'Sem data'}
+                      {date ?date.toLocaleDateString('pt-BR') : 'Sem data'}
                     </div>
                     <div className="text-xs text-slate-400">
                       Nota {item.rating}/5 - Avaliado por {item.evaluatedByName || 'Nao informado'}

@@ -134,7 +134,7 @@ export const InventoryPage: React.FC = () => {
 
     const area = (Number(length) * Number(width)) / 10000;
     const totalCost = Number(cost);
-    const inventoryRef = editingItem ? doc(db, 'inventory', editingItem.id) : doc(collection(db, 'inventory'));
+    const inventoryRef = editingItem ?doc(db, 'inventory', editingItem.id) : doc(collection(db, 'inventory'));
     const materialId = selectedMaterialId;
     const selectedMaterial = materials.find((material) => material.id === materialId);
     let photoUrl = editingItem?.photoUrl || '';
@@ -247,7 +247,7 @@ export const InventoryPage: React.FC = () => {
     setPurchaseCategory(inventoryItem?.category || material?.category || '');
     setPurchaseLength('');
     setPurchaseWidth('');
-    setPurchaseThickness(inventoryItem?.thickness ? String(inventoryItem.thickness) : '');
+    setPurchaseThickness(inventoryItem?.thickness ?String(inventoryItem.thickness) : '');
     setPurchaseCost('');
     setPurchaseCode('');
     setPurchaseNotes(`Compra pendente sugerida: ${formatNumber(item.missing)} m²`);
@@ -404,16 +404,8 @@ export const InventoryPage: React.FC = () => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Estoque</h1>
-          <p className="text-slate-500 mt-1">Cadastre as pedras aqui. Elas aparecem automaticamente em Materiais.</p>
+          <p className="text-slate-500 mt-1">Entrada, compra e controle das pedras cadastradas no Admin.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => { resetForm(); setShowModal(true); }}
-          className="flex items-center gap-2 bg-brand-primary text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95"
-        >
-          <Plus className="w-5 h-5" />
-          Adicionar Pedra
-        </button>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
@@ -435,10 +427,10 @@ export const InventoryPage: React.FC = () => {
         </div>
         <div className={cn(
           'p-6 rounded-[32px] border shadow-sm',
-          pendingPurchases.length > 0 ? 'bg-amber-50 border-amber-100' : 'bg-white border-slate-100',
+          pendingPurchases.length > 0 ?'bg-amber-50 border-amber-100' : 'bg-white border-slate-100',
         )}>
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Compra Pendente</div>
-          <div className={cn('text-3xl font-display font-bold', pendingPurchases.length > 0 ? 'text-amber-700' : 'text-slate-900')}>
+          <div className={cn('text-3xl font-display font-bold', pendingPurchases.length > 0 ?'text-amber-700' : 'text-slate-900')}>
             {formatNumber(totalPendingPurchaseArea)} m²
           </div>
         </div>
@@ -568,9 +560,9 @@ export const InventoryPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ? (
+              {loading ?(
                 <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400">Carregando estoque...</td></tr>
-              ) : filteredItems.length === 0 ? (
+              ) : filteredItems.length === 0 ?(
                 <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400">Nenhuma pedra encontrada.</td></tr>
               ) : (
                 filteredItems.map((item) => (
@@ -578,7 +570,7 @@ export const InventoryPage: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 shrink-0 rounded-full border border-slate-200 bg-slate-100 overflow-hidden flex items-center justify-center">
-                          {item.photoUrl ? (
+                          {item.photoUrl ?(
                             <img src={item.photoUrl} alt={item.materialName} className="h-full w-full object-cover" />
                           ) : (
                             <PackageCheck className="w-5 h-5 text-slate-400" />
@@ -597,9 +589,9 @@ export const InventoryPage: React.FC = () => {
                     <td className="px-6 py-4">
                       <span className={cn(
                         'inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase',
-                        item.status === 'Disponível' ? 'bg-green-50 text-green-600' :
-                        item.status === 'Reservada' ? 'bg-amber-50 text-amber-600' :
-                        item.status === 'Retalho' ? 'bg-blue-50 text-blue-600' :
+                        item.status === 'Disponível' ?'bg-green-50 text-green-600' :
+                        item.status === 'Reservada' ?'bg-amber-50 text-amber-600' :
+                        item.status === 'Retalho' ?'bg-blue-50 text-blue-600' :
                         'bg-slate-100 text-slate-500',
                       )}>
                         {item.status}
@@ -656,7 +648,7 @@ export const InventoryPage: React.FC = () => {
                     <td className="px-6 py-4">
                       <span className={cn(
                         'inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase',
-                        purchase.status === 'Entregue' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600',
+                        purchase.status === 'Entregue' ?'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600',
                       )}>
                         {purchase.status}
                       </span>
@@ -762,7 +754,7 @@ export const InventoryPage: React.FC = () => {
           <div className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl p-8 space-y-6 animate-in fade-in zoom-in duration-300 overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-display font-bold text-slate-900">
-                {editingItem ? 'Editar Pedra' : 'Nova Pedra no Estoque'}
+                {editingItem ?'Editar Pedra' : 'Nova Pedra no Estoque'}
               </h2>
               <button type="button" onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
                 <X className="w-6 h-6" />
@@ -835,7 +827,7 @@ export const InventoryPage: React.FC = () => {
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                     <div className="flex items-center gap-4">
                       <div className="h-16 w-16 shrink-0 rounded-full border border-slate-200 bg-white overflow-hidden flex items-center justify-center">
-                        {photoPreview ? (
+                        {photoPreview ?(
                           <img src={photoPreview} alt="Prévia da pedra" className="h-full w-full object-cover" />
                         ) : (
                           <ImagePlus className="w-6 h-6 text-slate-400" />
@@ -868,7 +860,7 @@ export const InventoryPage: React.FC = () => {
               </div>
 
               <button type="submit" className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
-                {editingItem ? 'Salvar Alterações' : 'Adicionar ao Estoque'}
+                {editingItem ?'Salvar Alterações' : 'Adicionar ao Estoque'}
               </button>
             </form>
           </div>

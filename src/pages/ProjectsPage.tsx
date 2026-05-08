@@ -5,6 +5,7 @@ import {ClipboardCheck, Search} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {Quote} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
+import {normalizeQuoteStatus, quoteStatusColor} from '../lib/quoteStatus';
 
 const normalize = (value: unknown) =>
   String(value || '')
@@ -13,8 +14,7 @@ const normalize = (value: unknown) =>
     .replace(/[\u0300-\u036f]/g, '');
 
 const isProjectStatus = (status: string) => {
-  const text = normalize(status);
-  return text === 'aprovado' || text === 'em producao' || text === 'pronto para entrega' || text === 'entregue';
+  return ['Aprovado', 'Produção', 'Acabamento', 'Entrega', 'Finalizado'].includes(normalizeQuoteStatus(status));
 };
 
 export const ProjectsPage: React.FC = () => {
@@ -69,9 +69,9 @@ export const ProjectsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ? (
+              {loading ?(
                 <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Carregando projetos...</td></tr>
-              ) : projects.length === 0 ? (
+              ) : projects.length === 0 ?(
                 <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Nenhum projeto encontrado.</td></tr>
               ) : (
                 projects.map((quote) => (
@@ -85,10 +85,7 @@ export const ProjectsPage: React.FC = () => {
                     <td className="px-6 py-4">
                       <span className={cn(
                         'inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase',
-                        normalize(quote.status) === 'entregue' ? 'bg-violet-50 text-violet-700' :
-                          normalize(quote.status) === 'em producao' ? 'bg-blue-50 text-blue-700' :
-                            normalize(quote.status) === 'pronto para entrega' ? 'bg-amber-50 text-amber-700' :
-                              'bg-emerald-50 text-emerald-700',
+                        quoteStatusColor(quote.status),
                       )}>
                         {quote.status}
                       </span>

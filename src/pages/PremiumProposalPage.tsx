@@ -74,7 +74,7 @@ export const PremiumProposalPage: React.FC = () => {
       cards.set(selectedMaterial.id, {
         name: selectedMaterial.name,
         category: [selectedMaterial.category, selectedMaterial.provider].filter(Boolean).join(' · ') || 'Material principal',
-        image: quote?.pieces?.find((piece) => pieceImage(piece)) ? pieceImage(quote.pieces.find((piece) => pieceImage(piece))!) : undefined,
+        image: quote?.pieces?.find((piece) => pieceImage(piece)) ?pieceImage(quote.pieces.find((piece) => pieceImage(piece))!) : undefined,
         area: 0,
         pieces: [],
       });
@@ -124,7 +124,7 @@ export const PremiumProposalPage: React.FC = () => {
   }
 
   const totalPieces = quote.pieces?.length || 0;
-  const quoteNumber = quote.id ? `#${quote.id.slice(0, 8).toUpperCase()}` : '#--------';
+  const quoteNumber = quote.id ?`#${quote.id.slice(0, 8).toUpperCase()}` : '#--------';
   const halfValue = (quote.totalPrice || 0) / 10;
   const cashValue = (quote.totalPrice || 0) * 0.9;
   const totalAdditionsArea = (quote.pieces || []).reduce(
@@ -193,7 +193,7 @@ export const PremiumProposalPage: React.FC = () => {
             {materialCards.map((material, index) => (
               <div key={`${material.name}-${index}`} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] print:border-slate-200 print:bg-white">
                 <div className="aspect-[4/3] bg-[#15110c]">
-                  {material.image ? (
+                  {material.image ?(
                     <img src={material.image} alt={material.name} className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full items-center justify-center bg-[linear-gradient(135deg,#e7e2d7,#9d9a93)] text-xs font-bold uppercase tracking-widest text-black/30">
@@ -275,7 +275,7 @@ export const PremiumProposalPage: React.FC = () => {
           <SectionHeading eyebrow="Condiçóes" title="Condiçóes de pagamento" />
           <div className="grid gap-6 md:grid-cols-2">
             <PaymentCard title="Cartão de crédito" subtitle="Parcelamento facilitado" lines={[`Entrada: ${formatCurrency(halfValue)}`, `9 parcelas de: ${formatCurrency(halfValue)}`, `Total: ${formatCurrency(quote.totalPrice || 0)}`]} />
-            <PaymentCard title="Pagamento ? vista" subtitle="Desconto especial" badge="10% OFF" lines={[`Desconto: - ${formatCurrency((quote.totalPrice || 0) * 0.1)}`, `? vista: ${formatCurrency(cashValue)}`]} highlight />
+            <PaymentCard title="Pagamento ?vista" subtitle="Desconto especial" badge="10% OFF" lines={[`Desconto: - ${formatCurrency((quote.totalPrice || 0) * 0.1)}`, `?vista: ${formatCurrency(cashValue)}`]} highlight />
           </div>
 
           <div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.035] p-8 print:border-slate-200 print:bg-white">
@@ -311,7 +311,7 @@ const Hero = ({quote, settings, totalPieces, quoteNumber, totalAdditionsArea}: {
     <div className="absolute inset-0 [background-image:linear-gradient(135deg,rgba(255,255,255,0.05)_0_1px,transparent_1px_18px),radial-gradient(circle_at_45%_38%,rgba(0,0,0,0),rgba(0,0,0,0.78)_56%,#050505_100%)]" />
     <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/30 to-[#050505]" />
     <div className="relative z-10 mx-auto flex min-h-[calc(100vh-7rem)] max-w-6xl flex-col items-center justify-center text-center print:min-h-0">
-      {settings.logoUrl || '/logo.png' ? (
+      {settings.logoUrl || '/logo.png' ?(
         <img src={settings.logoUrl || '/logo.png'} alt={settings.companyName} className="mb-8 h-16 max-w-[220px] object-contain opacity-85" />
       ) : (
         <div className="mb-8 text-sm font-bold uppercase tracking-[0.4em] text-white/35">{settings.companyName || "D\'Coratto Sob Medida"}</div>
@@ -355,7 +355,7 @@ const PieceSection = ({piece, index, materialName, reverse, quoteCutouts}: {key?
   ].filter((item) => item.count > 0);
   const rows = [
     {description: 'Pedra principal', measure: `${piece.length || 0} x ${piece.width || 0} cm`, area: `${formatNumber(pieceArea(piece), 4)} m²`, material: materialName, subtotal: 'Inclu?do'},
-    ...(piece.sculptedSink?.active ? [{
+    ...(piece.sculptedSink?.active ?[{
       description: `Pia esculpida ${piece.sculptedSink.type}`,
       measure: `${piece.sculptedSink.width || 0} x ${piece.sculptedSink.depth || 0} ${piece.sculptedSink.unit}`,
       area: `${formatNumber(piece.sculptedSink.calculatedArea || 0, 4)} m²`,
@@ -376,7 +376,7 @@ const PieceSection = ({piece, index, materialName, reverse, quoteCutouts}: {key?
       material: 'No desenho',
       subtotal: 'Projeto',
     })),
-    ...(!piece.cutouts?.length && index === 0 ? projectCutouts.map((cutout) => ({
+    ...(!piece.cutouts?.length && index === 0 ?projectCutouts.map((cutout) => ({
       description: cutout.label,
       measure: `${cutout.count} un`,
       area: '-',
@@ -391,13 +391,13 @@ const PieceSection = ({piece, index, materialName, reverse, quoteCutouts}: {key?
       <Eyebrow>Ambiente {String(index + 1).padStart(2, '0')}</Eyebrow>
       <h2 className="mb-2 mt-3 font-display text-3xl font-bold md:text-4xl">{piece.name}</h2>
       <p className="mb-8 text-xs text-white/35 print:text-slate-500">
-        Material: {materialName} ? área: {formatNumber(pieceArea(piece), 4)} m²
+        Material: {materialName} ?área: {formatNumber(pieceArea(piece), 4)} m²
       </p>
-      <div className={`grid gap-8 lg:grid-cols-12 ${reverse ? 'lg:[&>*:first-child]:order-2' : ''}`}>
+      <div className={`grid gap-8 lg:grid-cols-12 ${reverse ?'lg:[&>*:first-child]:order-2' : ''}`}>
         <div className="lg:col-span-5">
           <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] print:border-slate-200 print:bg-white">
             <div className="aspect-[4/3] bg-[#15110c]">
-              {pieceImage(piece) ? (
+              {pieceImage(piece) ?(
                 <img src={pieceImage(piece)} alt={piece.name} className="h-full w-full object-contain bg-white" />
               ) : (
                 <div className="flex h-full items-center justify-center text-center text-xs font-bold uppercase tracking-widest text-white/28 print:text-slate-400">
@@ -454,10 +454,10 @@ const FixtureSummary = ({piece}: {piece: QuotePiece}) => {
             </div>
             <div className="mt-1 font-mono text-white/40 print:text-slate-500">
               {[
-                fixture.width ? `L ${fixture.width}` : '',
-                fixture.depth ? `P ${fixture.depth}` : '',
-                fixture.height ? `A ${fixture.height}` : '',
-                fixture.diameter ? `Ø ${fixture.diameter}` : '',
+                fixture.width ?`L ${fixture.width}` : '',
+                fixture.depth ?`P ${fixture.depth}` : '',
+                fixture.height ?`A ${fixture.height}` : '',
+                fixture.diameter ?`Ø ${fixture.diameter}` : '',
               ].filter(Boolean).join(' · ') || 'Medidas pendentes'}
             </div>
           </div>
@@ -478,9 +478,9 @@ const TableRow = ({description, measure, area, material, subtotal}: {key?: React
 );
 
 const MetricCard = ({label, value, highlight = false}: {label: string; value: string; highlight?: boolean}) => (
-  <div className={`rounded-xl border p-6 backdrop-blur ${highlight ? 'border-[#D4A853]/45 bg-[#D4A853]/[0.05]' : 'border-white/10 bg-white/[0.035]'}`}>
+  <div className={`rounded-xl border p-6 backdrop-blur ${highlight ?'border-[#D4A853]/45 bg-[#D4A853]/[0.05]' : 'border-white/10 bg-white/[0.035]'}`}>
     <div className="mb-3 text-xs font-bold uppercase tracking-[0.28em] text-white/38">{label}</div>
-    <div className={`font-mono text-2xl font-bold ${highlight ? 'text-[#D4A853]' : 'text-white'}`}>{value}</div>
+    <div className={`font-mono text-2xl font-bold ${highlight ?'text-[#D4A853]' : 'text-white'}`}>{value}</div>
   </div>
 );
 
@@ -508,7 +508,7 @@ const SectionNumber = ({value}: {value: string}) => (
 );
 
 const InfoRow = ({label, value, last = false}: {label: string; value: string; last?: boolean}) => (
-  <div className={`flex items-center justify-between gap-6 py-3 text-sm ${last ? '' : 'border-b border-white/[0.05] print:border-slate-100'}`}>
+  <div className={`flex items-center justify-between gap-6 py-3 text-sm ${last ?'' : 'border-b border-white/[0.05] print:border-slate-100'}`}>
     <span className="text-white/35 print:text-slate-400">{label}</span>
     <span className="text-right font-semibold text-white/82 print:text-slate-800">{value}</span>
   </div>
@@ -522,7 +522,7 @@ const SummaryItem = ({label, value}: {label: string; value: string}) => (
 );
 
 const PaymentCard = ({title, subtitle, lines, badge, highlight = false}: {title: string; subtitle: string; lines: string[]; badge?: string; highlight?: boolean}) => (
-  <div className={`relative rounded-2xl border p-8 text-center ${highlight ? 'border-[#D4A853]/30 bg-[#D4A853]/[0.045]' : 'border-white/10 bg-white/[0.035]'} print:border-slate-200 print:bg-white`}>
+  <div className={`relative rounded-2xl border p-8 text-center ${highlight ?'border-[#D4A853]/30 bg-[#D4A853]/[0.045]' : 'border-white/10 bg-white/[0.035]'} print:border-slate-200 print:bg-white`}>
     {badge && <div className="absolute right-4 top-4 rounded-full bg-[#D4A853] px-3 py-1 text-[10px] font-bold text-black">{badge}</div>}
     <h3 className="font-display text-xl font-bold">{title}</h3>
     <p className="mt-2 text-sm text-white/42 print:text-slate-500">{subtitle}</p>

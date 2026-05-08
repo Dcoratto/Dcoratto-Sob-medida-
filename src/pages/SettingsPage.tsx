@@ -106,7 +106,7 @@ export const SettingsPage: React.FC = () => {
 
   const toggleWeekday = (weekday: number) => {
     setAllowedWeekdays((current) => (
-      current.includes(weekday) ? current.filter((item) => item !== weekday) : [...current, weekday].sort((a, b) => a - b)
+      current.includes(weekday) ?current.filter((item) => item !== weekday) : [...current, weekday].sort((a, b) => a - b)
     ));
   };
 
@@ -124,15 +124,15 @@ export const SettingsPage: React.FC = () => {
           disabled={saving || !isAdmin}
           className={cn(
             "flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold transition-all shadow-lg active:scale-95 disabled:opacity-50",
-            success ? "bg-green-600 text-white shadow-green-200" : "bg-brand-primary text-white shadow-brand-primary/20"
+            success ?"bg-green-600 text-white shadow-green-200" : "bg-brand-primary text-white shadow-brand-primary/20"
           )}
         >
-          {saving ? (
+          {saving ?(
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           ) : (
             <>
               <Save className="w-5 h-5" />
-              {success ? 'Salvo!' : 'Salvar Alterações'}
+              {success ?'Salvo!' : 'Salvar Alterações'}
             </>
           )}
         </button>
@@ -488,7 +488,7 @@ export const SettingsPage: React.FC = () => {
                     key={label}
                     type="button"
                     onClick={() => toggleWeekday(index)}
-                    className={cn('px-3 py-2 rounded-xl text-xs font-bold', allowedWeekdays.includes(index) ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')}
+                    className={cn('px-3 py-2 rounded-xl text-xs font-bold', allowedWeekdays.includes(index) ?'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')}
                   >
                     {label}
                   </button>
@@ -509,7 +509,7 @@ export const SettingsPage: React.FC = () => {
             </div>
             <div className="md:col-span-2 flex items-center gap-3">
               <button type="submit" className="bg-brand-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold">
-                {editingCondominium ? 'Atualizar condomínio' : 'Cadastrar condomínio'}
+                {editingCondominium ?'Atualizar condomínio' : 'Cadastrar condomínio'}
               </button>
               {editingCondominium && (
                 <button type="button" onClick={resetCondoForm} className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-bold">

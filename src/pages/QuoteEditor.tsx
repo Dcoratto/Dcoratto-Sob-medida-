@@ -66,7 +66,7 @@ export const QuoteEditor: React.FC = () => {
   const selectedBaseMaterial = materials.find(m => m.id === materialId);
   const selectedUserPrice = userMaterialPrices.find((price) => price.materialId === materialId);
   const selectedMaterial = selectedBaseMaterial && selectedUserPrice
-    ? {...selectedBaseMaterial, marginPercentage: selectedUserPrice.marginPercentage, pricePerM2: selectedUserPrice.pricePerM2}
+    ?{...selectedBaseMaterial, marginPercentage: selectedUserPrice.marginPercentage, pricePerM2: selectedUserPrice.pricePerM2}
     : selectedBaseMaterial;
   const selectedClient = clients.find(c => c.id === clientId);
   const { calculatePieceArea, calculateTotal, calculateSculptedSink } = useQuoteCalculator(settings, selectedMaterial);
@@ -96,7 +96,7 @@ export const QuoteEditor: React.FC = () => {
 
   const formatDateInput = (value: any) => {
     if (!value) return '';
-    const date = typeof value.toDate === 'function' ? value.toDate() : value;
+    const date = typeof value.toDate === 'function' ?value.toDate() : value;
     if (!(date instanceof Date)) return '';
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -121,7 +121,7 @@ export const QuoteEditor: React.FC = () => {
     });
 
     const unsubUserPrices = user?.uid
-      ? onSnapshot(query(collection(db, 'userMaterialPrices'), where('userId', '==', user.uid)), (snap) => {
+      ?onSnapshot(query(collection(db, 'userMaterialPrices'), where('userId', '==', user.uid)), (snap) => {
         setUserMaterialPrices(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserMaterialPrice)));
       })
       : undefined;
@@ -256,7 +256,7 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const updatePiece = (id: string, data: Partial<QuotePiece>) => {
-    setPieces(pieces.map(p => p.id === id ? { ...p, ...data } : p));
+    setPieces(pieces.map(p => p.id === id ?{ ...p, ...data } : p));
   };
 
   const updateFirstPieceFixture = (fixtureKey: 'trashBin' | 'popUpTower', field: 'brand' | 'model' | 'diameter' | 'width' | 'depth' | 'height' | 'notes', value: string | number | undefined) => {
@@ -292,7 +292,7 @@ export const QuoteEditor: React.FC = () => {
       purchasedFixtures: {
         ...firstPiece.purchasedFixtures,
         [fixtureKey]: selected
-          ? {
+          ?{
               brand: selected.brand,
               model: selected.model,
               width: selected.width,
@@ -320,6 +320,8 @@ export const QuoteEditor: React.FC = () => {
       const defaultHeight =
         type === 'frontao' ? settings.defaultFrontonHeight :
         type === 'saia' ? settings.defaultSkirtHeight :
+        type === 'rebaixo_americano' ? 2 :
+        type === 'rebaixo_italiano' ? 3 :
         settings.defaultTurnHeight;
       const newSide: PieceSide = {
         type,
@@ -355,8 +357,8 @@ export const QuoteEditor: React.FC = () => {
       materialName: selectedMaterial?.name || '',
       paymentMethod,
       deliveryDays,
-      measurementDate: measurementDate ? Timestamp.fromDate(new Date(`${measurementDate}T12:00:00`)) : null,
-      deliveryDate: deliveryDate ? Timestamp.fromDate(new Date(`${deliveryDate}T12:00:00`)) : null,
+      measurementDate: measurementDate ?Timestamp.fromDate(new Date(`${measurementDate}T12:00:00`)) : null,
+      deliveryDate: deliveryDate ?Timestamp.fromDate(new Date(`${deliveryDate}T12:00:00`)) : null,
       validityDate: Timestamp.fromDate(new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000)),
       commercialNotes,
       status,
@@ -373,7 +375,7 @@ export const QuoteEditor: React.FC = () => {
         responsibleEmployeeId: firstAssigned?.employeeId || '',
         responsibleEmployeeName: firstAssigned?.employeeName || '',
       }],
-      ...(id ? {} : {createdAt: Timestamp.now()}),
+      ...(id ?{} : {createdAt: Timestamp.now()}),
       createdBy: user?.uid || '',
     };
 
@@ -437,7 +439,7 @@ export const QuoteEditor: React.FC = () => {
           </button>
           <div>
             <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">
-              {id ? 'Editar Orçamento' : 'Novo Orçamento'}
+              {id ?'Editar Orçamento' : 'Novo Orçamento'}
             </h1>
             <p className="text-slate-500 mt-1">Configure as peças, materiais e condiçóes.</p>
           </div>
@@ -448,7 +450,7 @@ export const QuoteEditor: React.FC = () => {
           className="flex items-center gap-2 bg-brand-primary text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95 disabled:opacity-50"
         >
           <Save className="w-5 h-5" />
-          {saving ? 'Salvando...' : 'Salvar Orçamento'}
+          {saving ?'Salvando...' : 'Salvar Orçamento'}
         </button>
       </header>
 
@@ -519,7 +521,7 @@ export const QuoteEditor: React.FC = () => {
                   {/* Drawing Preview and Dimensions */}
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div className="md:col-span-1">
-                      {piece.previewUrl ? (
+                      {piece.previewUrl ?(
                         <div className="relative group cursor-pointer" onClick={() => setShowDrawing(piece.id)}>
                           <img 
                             src={piece.previewUrl} 
@@ -609,11 +611,11 @@ export const QuoteEditor: React.FC = () => {
                             onClick={() => updatePiece(piece.id, { sculptedSink: { ...(piece.sculptedSink || {
                               type: 'Simples', quantity: 1, width: 0, depth: 0, height: 0, unit: 'cm'
                             }), active: true } as any })}
-                            className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", piece.sculptedSink?.active ? "bg-white text-brand-primary shadow-sm" : "text-slate-400")}
+                            className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", piece.sculptedSink?.active ?"bg-white text-brand-primary shadow-sm" : "text-slate-400")}
                           >Sim</button>
                           <button 
                             onClick={() => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink, active: false } as any })}
-                            className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", !piece.sculptedSink?.active ? "bg-white text-brand-primary shadow-sm" : "text-slate-400")}
+                            className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", !piece.sculptedSink?.active ?"bg-white text-brand-primary shadow-sm" : "text-slate-400")}
                           >Não</button>
                         </div>
                       </div>
@@ -751,14 +753,28 @@ export const QuoteEditor: React.FC = () => {
                           onClick={() => addSide(piece.id, 'pe')}
                           className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
                         >
-                          + Pe de bancada
+                          + P?de bancada
                         </button>
                         <button
                           type="button"
                           onClick={() => addSide(piece.id, 'guarnicao')}
                           className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
                         >
-                          + Guarnicao
+                          + Guarni?o
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => addSide(piece.id, 'rebaixo_americano')}
+                          className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg text-xs font-bold transition-colors"
+                        >
+                          + Rebaixo americano
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => addSide(piece.id, 'rebaixo_italiano')}
+                          className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg text-xs font-bold transition-colors"
+                        >
+                          + Rebaixo italiano
                         </button>
                       </div>
                     </div>
@@ -777,6 +793,8 @@ export const QuoteEditor: React.FC = () => {
                                   newSides[sIdx].height =
                                     e.target.value === 'frontao' ? settings.defaultFrontonHeight :
                                     e.target.value === 'saia' ? settings.defaultSkirtHeight :
+                                    e.target.value === 'rebaixo_americano' ? 2 :
+                                    e.target.value === 'rebaixo_italiano' ? 3 :
                                     settings.defaultTurnHeight;
                                   updatePiece(piece.id, { sides: newSides });
                                 }}
@@ -785,8 +803,10 @@ export const QuoteEditor: React.FC = () => {
                                 <option value="frontao">Frontão</option>
                                 <option value="saia">Saia</option>
                                 <option value="virada">Virada</option>
-                                <option value="pe">Pe de bancada</option>
-                                <option value="guarnicao">Guarnicao</option>
+                                <option value="pe">P?de bancada</option>
+                                <option value="guarnicao">Guarni?o</option>
+                                <option value="rebaixo_americano">Rebaixo americano</option>
+                                <option value="rebaixo_italiano">Rebaixo italiano</option>
                               </select>
                               <select 
                                 value={side.side}
@@ -922,7 +942,7 @@ export const QuoteEditor: React.FC = () => {
           <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
             <h2 className="font-display font-bold text-xl text-slate-800">Especificaçóes do cliente</h2>
             <p className="text-xs text-slate-400">No card do cliente s?o exibidas somente peças previamente cadastradas no Admin.</p>
-            {!pieces.length ? (
+            {!pieces.length ?(
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
                 Adicione ao menos uma peça para vincular os itens do catélogo.
               </div>
@@ -949,7 +969,7 @@ export const QuoteEditor: React.FC = () => {
                         <option value="">Selecionar peça cadastrada</option>
                         {options.map((item) => (
                           <option key={item.id} value={item.id}>
-                            {item.name} {item.brand ? `- ${item.brand}` : ''} {item.model ? `(${item.model})` : ''}
+                            {item.name} {item.brand ?`- ${item.brand}` : ''} {item.model ?`(${item.model})` : ''}
                           </option>
                         ))}
                       </select>

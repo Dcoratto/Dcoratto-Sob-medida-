@@ -81,7 +81,7 @@ export const ProfilePage: React.FC = () => {
             <div className="relative group">
               <div className="w-24 h-24 rounded-3xl bg-white p-1 shadow-xl">
                 <div className="w-full h-full rounded-2xl bg-brand-primary/10 flex items-center justify-center text-brand-primary overflow-hidden shadow-inner">
-                  {photoUrl ? (
+                  {photoUrl ?(
                     <img src={photoUrl} alt={name} className="w-full h-full object-cover" />
                   ) : (
                     <User className="w-10 h-10" />
@@ -108,7 +108,7 @@ export const ProfilePage: React.FC = () => {
               <h2 className="text-xl font-bold text-slate-900">{profile?.name || 'Seu Nome'}</h2>
               <p className="text-slate-500">{profile?.email}</p>
               <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-bold uppercase tracking-wider">
-                {profile?.role === 'admin' ? 'Administrador' : 'Usuário'}
+                {profile?.role === 'admin' ?'Administrador' : 'Usuário'}
               </div>
             </div>
           </div>
@@ -174,15 +174,15 @@ export const ProfilePage: React.FC = () => {
                 disabled={saving}
                 className={cn(
                   "flex items-center gap-2 px-8 py-3 rounded-2xl font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50",
-                  success ? "bg-green-600 text-white shadow-green-200" : "bg-brand-primary text-white shadow-brand-primary/20"
+                  success ?"bg-green-600 text-white shadow-green-200" : "bg-brand-primary text-white shadow-brand-primary/20"
                 )}
               >
-                {saving ? (
+                {saving ?(
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <>
                     <Save className="w-5 h-5" />
-                    {success ? 'Salvo!' : 'Salvar Alterações'}
+                    {success ?'Salvo!' : 'Salvar Alterações'}
                   </>
                 )}
               </button>

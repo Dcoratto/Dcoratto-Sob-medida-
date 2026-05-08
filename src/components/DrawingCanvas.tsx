@@ -24,7 +24,7 @@ import {DrawingCutout, PieceSide} from '../types';
 
 type DrawTool = 'select' | 'line' | 'move-point' | 'pan' | 'cutout';
 type CutoutType = 'cuba' | 'cooktop' | 'torneira' | 'lixeira' | 'torre_tomada';
-type ComplementType = 'frontao' | 'saia' | 'virada' | 'pe' | 'guarnicao';
+type ComplementType = 'frontao' | 'saia' | 'virada' | 'pe' | 'guarnicao' | 'rebaixo_americano' | 'rebaixo_italiano';
 
 interface Point {
   x: number;
@@ -76,6 +76,17 @@ const MIN_ZOOM = 45;
 const MAX_ZOOM = 420;
 const BASE_SCALE = 110;
 const EMPTY_SIDES: PieceSide[] = [];
+const complementLabel = (type: ComplementType | PieceSide['type']) => {
+  if (type === 'frontao') return 'Front?o';
+  if (type === 'saia') return 'Saia';
+  if (type === 'virada') return 'Virada';
+  if (type === 'pe') return 'P?';
+  if (type === 'guarnicao') return 'Guarni?o';
+  if (type === 'rebaixo_americano') return 'Rebaixo americano';
+  if (type === 'rebaixo_italiano') return 'Rebaixo italiano';
+  return String(type || '');
+};
+
 const EMPTY_CUTOUTS: DrawingCutout[] = [];
 
 const alphabetName = (index: number) => {
@@ -104,7 +115,7 @@ const polygonArea = (points: Point[]) => {
 const orientation = (a: Point, b: Point, c: Point) => {
   const value = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y);
   if (Math.abs(value) < 0.000001) return 0;
-  return value > 0 ? 1 : 2;
+  return value > 0 ?1 : 2;
 };
 
 const segmentsIntersect = (p1: Point, q1: Point, p2: Point, q2: Point) => {
@@ -136,6 +147,8 @@ const makeSideKey = (index: number) => `side:${index}`;
 const defaultHeightFor = (type: ComplementType, settings?: DrawingCanvasProps['settings']) => {
   if (type === 'frontao') return settings?.defaultFrontonHeight ?? 10;
   if (type === 'saia') return settings?.defaultSkirtHeight ?? 4;
+  if (type === 'rebaixo_americano') return 2;
+  if (type === 'rebaixo_italiano') return 3;
   return settings?.defaultTurnHeight ?? 2;
 };
 
@@ -198,7 +211,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
   const technicalSides = useMemo<TechnicalSide[]>(() => {
     if (drawPoints.length < 2) return [];
-    const count = closed ? drawPoints.length : drawPoints.length - 1;
+    const count = closed ?drawPoints.length : drawPoints.length - 1;
     return Array.from({length: count}, (_, index) => {
       const start = drawPoints[index];
       const end = drawPoints[(index + 1) % drawPoints.length];
@@ -212,14 +225,14 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     });
   }, [closed, drawPoints]);
 
-  const area = useMemo(() => closed ? polygonArea(drawPoints) : 0, [closed, drawPoints]);
+  const area = useMemo(() => closed ?polygonArea(drawPoints) : 0, [closed, drawPoints]);
   const majorSideM = useMemo(() => Math.max(0, ...technicalSides.map((side) => side.lengthM)), [technicalSides]);
   const additionalArea = useMemo(() => complementos.reduce((total, item) => total + (item.areaTotal || item.area || 0), 0), [complementos]);
   const totalArea = area + additionalArea;
   const editableSideLabels = useMemo(() => {
     const screenPoints = drawPoints.map(worldToScreen);
     const center = screenPoints.length
-      ? {
+      ?{
         x: screenPoints.reduce((sum, point) => sum + point.x, 0) / screenPoints.length,
         y: screenPoints.reduce((sum, point) => sum + point.y, 0) / screenPoints.length,
       }
@@ -233,7 +246,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       const dy = b.y - a.y;
       const len = Math.hypot(dx, dy) || 1;
       const normal = {x: -dy / len, y: dx / len};
-      const direction = ((mid.x - center.x) * normal.x + (mid.y - center.y) * normal.y) >= 0 ? 1 : -1;
+      const direction = ((mid.x - center.x) * normal.x + (mid.y - center.y) * normal.y) >= 0 ?1 : -1;
       const offset = 34 + (index % 3) * 16;
       return {
         side,
@@ -292,7 +305,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     if (!ortho) return target;
     const dx = Math.abs(target.x - origin.x);
     const dy = Math.abs(target.y - origin.y);
-    return dx >= dy ? {x: target.x, y: origin.y} : {x: origin.x, y: target.y};
+    return dx >= dy ?{x: target.x, y: origin.y} : {x: origin.x, y: target.y};
   }, [ortho]);
 
   const snapPoint = useCallback((target: Point) => {
@@ -358,7 +371,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     if (drawTool === 'cutout') {
       const width = Math.max(0.02, Number(cutoutWidth.replace(',', '.')) || 0.1);
       const height = cutoutType === 'torneira' || cutoutType === 'torre_tomada'
-        ? width
+        ?width
         : Math.max(0.02, Number(cutoutHeight.replace(',', '.')) || 0.1);
       setCutouts((current) => [...current, {
         id: crypto.randomUUID(),
@@ -395,7 +408,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
     if (dragIndex !== null) {
       setWasDragging(true);
-      setDrawPoints((current) => current.map((point, index) => index === dragIndex ? world : point));
+      setDrawPoints((current) => current.map((point, index) => index === dragIndex ?world : point));
       return;
     }
 
@@ -431,7 +444,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     if (!rect) return;
     const mouse = {x: event.clientX - rect.left, y: event.clientY - rect.top};
     const before = screenToWorld(event.clientX, event.clientY);
-    const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * (event.deltaY < 0 ? 1.08 : 0.92)));
+    const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom * (event.deltaY < 0 ?1.08 : 0.92)));
     const nextScale = (BASE_SCALE * nextZoom) / 100;
     setZoom(nextZoom);
     setPanX(mouse.x - before.x * nextScale);
@@ -548,7 +561,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         value: 0,
       };
       if (existingIndex >= 0) {
-        return current.map((item, index) => index === existingIndex ? {...item, ...next} : item);
+        return current.map((item, index) => index === existingIndex ?{...item, ...next} : item);
       }
       return [...current, next];
     });
@@ -559,7 +572,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   };
 
   const updateComplementHeight = (sideKey: string, type: ComplementType, height: number) => {
-    const nextHeight = Math.max(0, Number.isFinite(height) ? height : 0);
+    const nextHeight = Math.max(0, Number.isFinite(height) ?height : 0);
     setComplementos((current) => current.map((item) => {
       if (item.side !== sideKey || item.type !== type) return item;
       const areaUnit = (item.length / 100) * (nextHeight / 100);
@@ -586,7 +599,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     const ux = (side.end.x - side.start.x) / currentLength;
     const uy = (side.end.y - side.start.y) / currentLength;
     const newEnd = {x: side.start.x + ux * lengthM, y: side.start.y + uy * lengthM};
-    setDrawPoints((current) => current.map((point, pointIndex) => pointIndex === (index + 1) % current.length ? newEnd : point));
+    setDrawPoints((current) => current.map((point, pointIndex) => pointIndex === (index + 1) % current.length ?newEnd : point));
   };
 
   const generatePreview = useCallback(() => {
@@ -793,8 +806,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       const width = cutout.width * scale;
       const height = cutout.height * scale;
       ctx.save();
-      ctx.strokeStyle = cutout.type === 'torneira' ? '#0f766e' : '#334155';
-      ctx.fillStyle = cutout.type === 'torneira' ? 'rgba(20, 184, 166, 0.12)' : 'rgba(51, 65, 85, 0.08)';
+      ctx.strokeStyle = cutout.type === 'torneira' ?'#0f766e' : '#334155';
+      ctx.fillStyle = cutout.type === 'torneira' ?'rgba(20, 184, 166, 0.12)' : 'rgba(51, 65, 85, 0.08)';
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 4]);
       if (cutout.type === 'torneira') {
@@ -815,7 +828,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     });
 
     const center = screenPoints.length
-      ? {x: screenPoints.reduce((sum, point) => sum + point.x, 0) / screenPoints.length, y: screenPoints.reduce((sum, point) => sum + point.y, 0) / screenPoints.length}
+      ?{x: screenPoints.reduce((sum, point) => sum + point.x, 0) / screenPoints.length, y: screenPoints.reduce((sum, point) => sum + point.y, 0) / screenPoints.length}
       : {x: rect.width / 2, y: rect.height / 2};
 
     technicalSides.forEach((side, index) => {
@@ -826,7 +839,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       const dy = b.y - a.y;
       const len = Math.hypot(dx, dy) || 1;
       const normal = {x: -dy / len, y: dx / len};
-      const direction = ((mid.x - center.x) * normal.x + (mid.y - center.y) * normal.y) >= 0 ? 1 : -1;
+      const direction = ((mid.x - center.x) * normal.x + (mid.y - center.y) * normal.y) >= 0 ?1 : -1;
       const offset = 34 + (index % 3) * 16;
       const c1 = {x: a.x + normal.x * direction * offset, y: a.y + normal.y * direction * offset};
       const c2 = {x: b.x + normal.x * direction * offset, y: b.y + normal.y * direction * offset};
@@ -872,8 +885,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     drawPoints.forEach((point, index) => {
       const screen = worldToScreen(point);
       ctx.beginPath();
-      ctx.fillStyle = hoverGuide === index ? '#16a34a' : index === drawPoints.length - 1 ? '#c99b55' : '#8e693e';
-      ctx.arc(screen.x, screen.y, hoverGuide === index ? 6 : 4.5, 0, Math.PI * 2);
+      ctx.fillStyle = hoverGuide === index ?'#16a34a' : index === drawPoints.length - 1 ?'#c99b55' : '#8e693e';
+      ctx.arc(screen.x, screen.y, hoverGuide === index ?6 : 4.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#fffaf0';
       ctx.lineWidth = 1.5;
@@ -897,11 +910,11 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <ToolButton icon={Hand} label="Pan" active={drawTool === 'pan'} onClick={() => setDrawTool('pan')} />
         <ToolButton icon={Scissors} label="Adicionar recorte" active={drawTool === 'cutout'} onClick={() => setDrawTool('cutout')} />
 
-        <button type="button" onClick={() => setOrtho((value) => !value)} className={cn('rounded-xl px-3 py-2 text-xs font-bold uppercase', ortho ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')}>
-          {ortho ? 'ORTHO ligado' : 'ORTHO livre'}
+        <button type="button" onClick={() => setOrtho((value) => !value)} className={cn('rounded-xl px-3 py-2 text-xs font-bold uppercase', ortho ?'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')}>
+          {ortho ?'ORTHO ligado' : 'ORTHO livre'}
         </button>
-        <button type="button" onClick={() => setSnap((value) => !value)} className={cn('rounded-xl px-3 py-2 text-xs font-bold uppercase', snap ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-500')}>
-          Snap {snap ? 'ligado' : 'desligado'}
+        <button type="button" onClick={() => setSnap((value) => !value)} className={cn('rounded-xl px-3 py-2 text-xs font-bold uppercase', snap ?'bg-green-600 text-white' : 'bg-slate-100 text-slate-500')}>
+          Snap {snap ?'ligado' : 'desligado'}
         </button>
 
         <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500">
@@ -938,7 +951,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <button type="button" onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value * 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomIn className="h-4 w-4" /></button>
         <button type="button" onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value / 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomOut className="h-4 w-4" /></button>
         <button type="button" onClick={centerDrawing} className="rounded-xl bg-slate-100 p-2 text-slate-500"><LocateFixed className="h-4 w-4" /></button>
-        <button type="button" onClick={() => setShowHelp((value) => !value)} className={cn('rounded-xl p-2', showHelp ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')} title="Ajuda">
+        <button type="button" onClick={() => setShowHelp((value) => !value)} className={cn('rounded-xl p-2', showHelp ?'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')} title="Ajuda">
           <HelpCircle className="h-4 w-4" />
         </button>
       </div>
@@ -973,7 +986,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                           value={quantity}
                           onChange={(event) => {
                             const nextQuantity = Math.max(1, Number(event.target.value));
-                            setComplementos((current) => current.map((item) => item.side === side.key ? {
+                            setComplementos((current) => current.map((item) => item.side === side.key ?{
                               ...item,
                               quantity: nextQuantity,
                               areaTotal: (item.area || 0) * nextQuantity,
@@ -984,19 +997,19 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                       </label>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      {(['frontao', 'saia', 'virada', 'pe', 'guarnicao'] as ComplementType[]).map((type) => {
+                      {(['frontao', 'saia', 'virada', 'pe', 'guarnicao', 'rebaixo_americano', 'rebaixo_italiano'] as ComplementType[]).map((type) => {
                         const selected = sideComplements.some((item) => item.type === type);
                         return (
                           <button
                             key={type}
                             type="button"
-                            onClick={() => selected ? removeComplement(side.key, type) : updateComplement(side, type, quantity)}
+                            onClick={() => selected ?removeComplement(side.key, type) : updateComplement(side, type, quantity)}
                             className={cn(
                               'rounded-xl px-2 py-2 text-[10px] font-bold uppercase transition-all',
-                              selected ? 'bg-green-600 text-white shadow-sm' : 'bg-white text-slate-500 hover:text-brand-primary',
+                              selected ?'bg-green-600 text-white shadow-sm' : 'bg-white text-slate-500 hover:text-brand-primary',
                             )}
                           >
-                            {type === 'frontao' ? 'Frontao' : type === 'saia' ? 'Saia' : type === 'virada' ? 'Virada' : type === 'pe' ? 'Pe' : 'Guarnicao'}
+                            {complementLabel(type)}
                           </button>
                         );
                       })}
@@ -1006,7 +1019,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                         {sideComplements.map((item) => (
                           <div key={`${side.key}-${item.type}`} className="flex items-center justify-between gap-3 rounded-xl bg-white px-2 py-2">
                             <span className="text-[10px] font-bold uppercase text-slate-500">
-                              {item.type === 'frontao' ? 'Frontao' : item.type === 'saia' ? 'Saia' : item.type === 'virada' ? 'Virada' : item.type === 'pe' ? 'Pe' : 'Guarnicao'}
+                              {complementLabel(item.type)}
                             </span>
                             <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                               Altura (cm)
@@ -1044,7 +1057,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           onMouseLeave={stopDrag}
           onWheel={handleWheel}
           onContextMenu={(event) => event.preventDefault()}
-          className={cn('block h-full w-full touch-none select-none outline-none', drawTool === 'pan' ? 'cursor-grab' : drawTool === 'cutout' ? 'cursor-cell' : 'cursor-crosshair')}
+          className={cn('block h-full w-full touch-none select-none outline-none', drawTool === 'pan' ?'cursor-grab' : drawTool === 'cutout' ?'cursor-cell' : 'cursor-crosshair')}
         />
         <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-brand-primary/20 bg-white/95 p-2 shadow-xl">
           <Ruler className="h-5 w-5 text-brand-primary" />
@@ -1141,14 +1154,14 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-1">
-                          {(['frontao', 'saia', 'virada', 'pe', 'guarnicao'] as ComplementType[]).map((type) => (
+                          {(['frontao', 'saia', 'virada', 'pe', 'guarnicao', 'rebaixo_americano', 'rebaixo_italiano'] as ComplementType[]).map((type) => (
                             <button
                               key={type}
                               type="button"
-                              onClick={() => sideComplements.some((item) => item.type === type) ? removeComplement(side.key, type) : updateComplement(side, type, quantity)}
-                              className={cn('rounded-lg px-2 py-1 text-[10px] font-bold uppercase', sideComplements.some((item) => item.type === type) ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-500')}
+                              onClick={() => sideComplements.some((item) => item.type === type) ?removeComplement(side.key, type) : updateComplement(side, type, quantity)}
+                              className={cn('rounded-lg px-2 py-1 text-[10px] font-bold uppercase', sideComplements.some((item) => item.type === type) ?'bg-green-600 text-white' : 'bg-slate-100 text-slate-500')}
                             >
-                              {type === 'frontao' ? 'Frontao' : type === 'saia' ? 'Saia' : type === 'virada' ? 'Virada' : type === 'pe' ? 'Pe' : 'Guarnicao'}
+                              {complementLabel(type)}
                             </button>
                           ))}
                         </div>
@@ -1160,7 +1173,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                           value={quantity}
                           onChange={(event) => {
                             const nextQuantity = Math.max(1, Number(event.target.value));
-                            setComplementos((current) => current.map((item) => item.side === side.key ? {
+                            setComplementos((current) => current.map((item) => item.side === side.key ?{
                               ...item,
                               quantity: nextQuantity,
                               areaTotal: (item.area || 0) * nextQuantity,

@@ -4,7 +4,7 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
   const calculateSculptedSink = (sink: SculptedSink) => {
     if (!sink.active) return { area: 0, value: 0, materialValue: 0, laborValue: 0, extraSinkValue: 0, lossValue: 0 };
     
-    const factor = sink.unit === 'cm' ? 100 : 1;
+    const factor = sink.unit === 'cm' ?100 : 1;
     const l = sink.width / factor;
     const p = sink.depth / factor;
     const h = sink.height / factor;
@@ -71,12 +71,12 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
     
     // Area of side additions
     const sidesArea = piece.sides.reduce((acc, side) => {
-      const sideArea = (side.length * side.height * side.quantity) / (piece.unit === 'cm' ? 10000 : 1);
+      const sideArea = (side.length * side.height * side.quantity) / (piece.unit === 'cm' ?10000 : 1);
       return acc + sideArea;
     }, 0);
 
     // Sculpted sink area
-    const sinkResult = piece.sculptedSink ? calculateSculptedSink(piece.sculptedSink) : { area: 0, value: 0, additionalValue: 0 };
+    const sinkResult = piece.sculptedSink ?calculateSculptedSink(piece.sculptedSink) : { area: 0, value: 0, additionalValue: 0 };
 
     return { 
       mainArea: piece.manualArea || mainArea, 
@@ -92,7 +92,7 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
     return pieces.reduce((acc, p) => {
       // Labor per linear meter * largest side
       const largestDim = p.largestSide || Math.max(p.width, p.length);
-      const largestSideM = largestDim / (p.unit === 'cm' ? 100 : 1);
+      const largestSideM = largestDim / (p.unit === 'cm' ?100 : 1);
       return acc + (settings.laborRatePerLinearMeter * largestSideM);
     }, 0);
   };

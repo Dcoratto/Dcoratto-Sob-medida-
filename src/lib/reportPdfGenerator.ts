@@ -76,7 +76,7 @@ const toDate = (value: any): Date | null => {
 
 const dateText = (value: any) => {
   const date = toDate(value);
-  return date ? date.toLocaleDateString('pt-BR') : '-';
+  return date ?date.toLocaleDateString('pt-BR') : '-';
 };
 
 const addFooter = (doc: jsPDF, primary: PdfColor) => {
@@ -121,7 +121,7 @@ const currentStepText = (quote: Quote, labels: Record<ProductionStep, string>) =
   const step = openStep || lastStep;
   if (!step) return 'Sem responsável';
   const label = labels[step.step] || step.step;
-  return `${label}${step.employeeName ? ` | ${step.employeeName}` : ''}`;
+  return `${label}${step.employeeName ?` | ${step.employeeName}` : ''}`;
 };
 
 export const generateReportPDF = (data: ReportPdfData) => {
@@ -176,7 +176,7 @@ export const generateReportPDF = (data: ReportPdfData) => {
       ['Orçamentos fechados', money(data.totalSold)],
       ['Orçamentos em aberto', money(data.openValue)],
       ['Orçamentos recusados', money(data.refusedValue)],
-      ['Ticket médio', money(data.quotes.length ? data.quotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) / data.quotes.length : 0)],
+      ['Ticket médio', money(data.quotes.length ?data.quotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) / data.quotes.length : 0)],
       ['Total de orçamentos no período', String(data.quotes.length)],
     ],
     headStyles: {fillColor: primary, textColor: [255, 255, 255], fontSize: 8},
@@ -233,10 +233,10 @@ export const generateReportPDF = (data: ReportPdfData) => {
     startY: y + 6,
     head: [['Cliente', 'Projeto', 'Situação', 'Status']],
     body: data.deadlineAlerts.length
-      ? data.deadlineAlerts.map(({quote, daysLeft}) => [
+      ?data.deadlineAlerts.map(({quote, daysLeft}) => [
         quote.clientName,
         quote.environment || '-',
-        daysLeft < 0 ? `${Math.abs(daysLeft)} dia(s) atrasado` : `vence em ${daysLeft} dia(s)`,
+        daysLeft < 0 ?`${Math.abs(daysLeft)} dia(s) atrasado` : `vence em ${daysLeft} dia(s)`,
         quote.status,
       ])
       : [['Sem alertas críticos', '-', '-', '-']],
@@ -254,7 +254,7 @@ export const generateReportPDF = (data: ReportPdfData) => {
     startY: y + 6,
     head: [['Material', 'Orçamentos', 'Valor gerado']],
     body: data.materialSales.length
-      ? data.materialSales.map((item) => [item.name, item.count, money(item.value)])
+      ?data.materialSales.map((item) => [item.name, item.count, money(item.value)])
       : [['Sem materiais vendidos', '-', '-']],
     headStyles: {fillColor: primary, textColor: [255, 255, 255], fontSize: 8},
     styles: {fontSize: 8, cellPadding: 3, lineColor: [226, 232, 240], lineWidth: 0.2},
@@ -268,12 +268,12 @@ export const generateReportPDF = (data: ReportPdfData) => {
     startY: y + 6,
     head: [['Funcionário', 'Função', 'Etapas', 'Avaliações', 'Média']],
     body: data.employeeStats.length
-      ? data.employeeStats.map(({employee, assignments, evaluations, average}) => [
+      ?data.employeeStats.map(({employee, assignments, evaluations, average}) => [
         employee.name,
         employee.role,
         assignments.length,
         evaluations.length,
-        average ? average.toFixed(1) : '-',
+        average ?average.toFixed(1) : '-',
       ])
       : [['Sem funcionários cadastrados', '-', '-', '-', '-']],
     headStyles: {fillColor: primary, textColor: [255, 255, 255], fontSize: 8},
@@ -292,7 +292,7 @@ export const generateReportPDF = (data: ReportPdfData) => {
     startY: y + 6,
     head: [['Data', 'Cliente', 'Funcionario', 'Etapa', 'Nota', 'Avaliador', 'Observacao']],
     body: data.evaluationHistory.length
-      ? data.evaluationHistory.slice(0, 30).map(({quote, item}) => [
+      ?data.evaluationHistory.slice(0, 30).map(({quote, item}) => [
         dateText(item.createdAt),
         quote.clientName,
         item.employeeName,
@@ -318,13 +318,13 @@ export const generateReportPDF = (data: ReportPdfData) => {
     startY: y + 6,
     head: [['Data', 'Cliente', 'Movimentação', 'Funcionário', 'Alterado por', 'Etapa']],
     body: data.productionHistory.length
-      ? data.productionHistory.slice(0, 35).map(({quote, item}) => [
+      ?data.productionHistory.slice(0, 35).map(({quote, item}) => [
         dateText(item.changedAt),
         quote.clientName,
         item.note || item.status,
         item.responsibleEmployeeName || '-',
         item.changedByName || '-',
-        item.step ? data.productionStepLabels[item.step] : '-',
+        item.step ?data.productionStepLabels[item.step] : '-',
       ])
       : [['-', 'Sem movimentações no período', '-', '-', '-', '-']],
     headStyles: {fillColor: dark, textColor: [255, 255, 255], fontSize: 7.5},

@@ -34,7 +34,7 @@ const ProtectedRoute = ({ children, adminOnly = false, shell = true }: { childre
   if (!user) return <Navigate to="/login" />;
   if (adminOnly && !isAdmin) return <Navigate to="/" />;
   
-  return shell ? <Shell>{children}</Shell> : <>{children}</>;
+  return shell ?<Shell>{children}</Shell> : <>{children}</>;
 };
 
 export default function App() {

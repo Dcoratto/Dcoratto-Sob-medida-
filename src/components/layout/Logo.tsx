@@ -5,7 +5,7 @@ export const Logo: React.FC<{ className?: string }> = ({ className }) => {
 
   return (
     <div className={`flex items-center ${className}`}>
-      {error ? (
+      {error ?(
         <div className="font-display font-bold text-xl text-slate-900">
           D'Coratto
         </div>

@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {EmailAuthProvider, reauthenticateWithCredential} from 'firebase/auth';
 import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from 'firebase/firestore';
-import {deleteObject, ref as storageRef} from 'firebase/storage';
+import {deleteObject, getDownloadURL, ref as storageRef, uploadBytes} from 'firebase/storage';
 import {AlertTriangle, BriefcaseBusiness, CheckCircle2, Mail, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
 import {auth, db, storage} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
@@ -51,6 +51,7 @@ export const AdminPage: React.FC = () => {
   });
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
   const [savingMaterial, setSavingMaterial] = useState(false);
+  const [materialImageFile, setMaterialImageFile] = useState<File | null>(null);
   const [materialForm, setMaterialForm] = useState({
     name: '',
     provider: '',
@@ -59,6 +60,7 @@ export const AdminPage: React.FC = () => {
     marginPercentage: '',
   });
   const [savingFixture, setSavingFixture] = useState(false);
+  const [fixtureImageFile, setFixtureImageFile] = useState<File | null>(null);
   const [fixtureForm, setFixtureForm] = useState<{
     name: string;
     category: FixtureCategory;
@@ -81,7 +83,7 @@ export const AdminPage: React.FC = () => {
       const allUsers = snapshot.docs.map((item) => ({uid: item.id, ...item.data()} as Profile));
       const uniqueUsers = allUsers.reduce((acc: Profile[], current) => {
         const exists = acc.find((item) => item.email === current.email);
-        return exists ? acc : acc.concat([current]);
+        return exists ?acc : acc.concat([current]);
       }, []);
       setUsers(uniqueUsers);
       setLoading(false);
@@ -187,17 +189,27 @@ export const AdminPage: React.FC = () => {
 
     setSavingMaterial(true);
     try {
-      await setDoc(doc(db, 'materials', slugify(name)), {
+      const materialId = slugify(name);
+      let imageUrl = '';
+      if (materialImageFile) {
+        const extension = materialImageFile.name.split('.').pop() || 'jpg';
+        const fileRef = storageRef(storage, `materials/${materialId}/image-${Date.now()}.${extension}`);
+        await uploadBytes(fileRef, materialImageFile);
+        imageUrl = await getDownloadURL(fileRef);
+      }
+      await setDoc(doc(db, 'materials', materialId), {
         name,
         provider: materialForm.provider.trim(),
         category: materialForm.category.trim(),
         baseCostPerM2,
         marginPercentage,
         pricePerM2,
+        ...(imageUrl ?{imageUrl} : {}),
         active: true,
         updatedAt: serverTimestamp(),
       }, {merge: true});
       setMaterialForm({name: '', provider: '', category: '', baseCostPerM2: '', marginPercentage: ''});
+      setMaterialImageFile(null);
     } finally {
       setSavingMaterial(false);
     }
@@ -212,12 +224,19 @@ export const AdminPage: React.FC = () => {
     if (!fixtureForm.name.trim()) return;
     setSavingFixture(true);
     try {
+      let imageUrl = fixtureForm.imageUrl.trim();
+      if (fixtureImageFile) {
+        const extension = fixtureImageFile.name.split('.').pop() || 'jpg';
+        const fileRef = storageRef(storage, `fixtureCatalog/${slugify(fixtureForm.name)}/image-${Date.now()}.${extension}`);
+        await uploadBytes(fileRef, fixtureImageFile);
+        imageUrl = await getDownloadURL(fileRef);
+      }
       await addDoc(collection(db, 'fixtureCatalog'), {
         name: fixtureForm.name.trim(),
         category: fixtureForm.category,
         brand: fixtureForm.brand.trim(),
         model: fixtureForm.model.trim(),
-        imageUrl: fixtureForm.imageUrl.trim(),
+        imageUrl,
         notes: fixtureForm.notes.trim(),
         active: true,
         createdAt: Timestamp.now(),
@@ -230,6 +249,7 @@ export const AdminPage: React.FC = () => {
         imageUrl: '',
         notes: '',
       });
+      setFixtureImageFile(null);
     } finally {
       setSavingFixture(false);
     }
@@ -372,7 +392,7 @@ export const AdminPage: React.FC = () => {
           />
           <button type="submit" disabled={savingEmployee} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 font-bold text-white shadow-lg shadow-brand-primary/20 disabled:cursor-not-allowed disabled:opacity-60">
             <Plus className="w-4 h-4" />
-            {savingEmployee ? 'Adicionando...' : 'Adicionar'}
+            {savingEmployee ?'Adicionando...' : 'Adicionar'}
           </button>
         </form>
         {employeeError && (
@@ -387,15 +407,15 @@ export const AdminPage: React.FC = () => {
             <div key={employee.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 flex items-center justify-between gap-3">
               <div>
                 <div className="font-bold text-slate-900">{employee.name}</div>
-                <div className="text-xs text-slate-400">{employee.role}{employee.phone ? ` · ${employee.phone}` : ''}</div>
+                <div className="text-xs text-slate-400">{employee.role}{employee.phone ?` · ${employee.phone}` : ''}</div>
               </div>
               <div className="flex items-center gap-1">
                 <button
                   type="button"
                   onClick={() => toggleEmployee(employee)}
-                  className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', employee.active ? 'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}
+                  className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', employee.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}
                 >
-                  {employee.active ? 'Ativo' : 'Inativo'}
+                  {employee.active ?'Ativo' : 'Inativo'}
                 </button>
                 <button type="button" onClick={() => deleteEmployee(employee.id)} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600">
                   <Trash2 className="w-4 h-4" />
@@ -421,22 +441,27 @@ export const AdminPage: React.FC = () => {
           <input value={materialForm.category} onChange={(event) => setMaterialForm((form) => ({...form, category: event.target.value}))} placeholder="Categoria" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input type="number" step="0.01" value={materialForm.baseCostPerM2} onChange={(event) => setMaterialForm((form) => ({...form, baseCostPerM2: event.target.value}))} placeholder="Custo/m²" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input type="number" step="0.01" value={materialForm.marginPercentage} onChange={(event) => setMaterialForm((form) => ({...form, marginPercentage: event.target.value}))} placeholder="Margem %" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <label className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 cursor-pointer">
+            {materialImageFile ?materialImageFile.name : 'Imagem da pedra'}
+            <input type="file" accept="image/*" className="hidden" onChange={(event) => setMaterialImageFile(event.target.files?.[0] || null)} />
+          </label>
           <button type="submit" disabled={savingMaterial} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-white disabled:opacity-60">
-            {savingMaterial ? 'Salvando...' : 'Cadastrar pedra'}
+            {savingMaterial ?'Salvando...' : 'Cadastrar pedra'}
           </button>
         </form>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {materials.map((material) => (
             <div key={material.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+              {material.imageUrl && <img src={material.imageUrl} alt={material.name} className="mb-3 h-28 w-full rounded-xl object-cover" />}
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="font-bold text-slate-900">{material.name}</div>
                   <div className="text-xs text-slate-400">{material.category || 'Sem categoria'} · {material.provider || 'Sem fornecedor'}</div>
                   <div className="mt-1 text-xs font-semibold text-slate-500">Venda/m²: R$ {(material.pricePerM2 || 0).toFixed(2)}</div>
                 </div>
-                <button type="button" onClick={() => toggleMaterialCatalogItem(material)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', material.active ? 'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
-                  {material.active ? 'Ativo' : 'Inativo'}
+                <button type="button" onClick={() => toggleMaterialCatalogItem(material)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', material.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
+                  {material.active ?'Ativo' : 'Inativo'}
                 </button>
               </div>
             </div>
@@ -463,9 +488,13 @@ export const AdminPage: React.FC = () => {
           <input value={fixtureForm.brand} onChange={(e) => setFixtureForm((f) => ({...f, brand: e.target.value}))} placeholder="Marca" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input value={fixtureForm.model} onChange={(e) => setFixtureForm((f) => ({...f, model: e.target.value}))} placeholder="Modelo" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input value={fixtureForm.imageUrl} onChange={(e) => setFixtureForm((f) => ({...f, imageUrl: e.target.value}))} placeholder="URL da imagem" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-2" />
+          <label className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 cursor-pointer md:col-span-2 xl:col-span-1">
+            {fixtureImageFile ? fixtureImageFile.name : 'Upload da imagem'}
+            <input type="file" accept="image/*" className="hidden" onChange={(event) => setFixtureImageFile(event.target.files?.[0] || null)} />
+          </label>
           <input value={fixtureForm.notes} onChange={(e) => setFixtureForm((f) => ({...f, notes: e.target.value}))} placeholder="Informações" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-1" />
           <button type="submit" disabled={savingFixture} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-white disabled:opacity-60">
-            {savingFixture ? 'Salvando...' : 'Cadastrar peça'}
+            {savingFixture ?'Salvando...' : 'Cadastrar peça'}
           </button>
         </form>
 
@@ -477,8 +506,8 @@ export const AdminPage: React.FC = () => {
                   <div className="font-bold text-slate-900">{item.name}</div>
                   <div className="text-xs text-slate-400">{item.category} · {[item.brand, item.model].filter(Boolean).join(' / ')}</div>
                 </div>
-                <button type="button" onClick={() => toggleFixtureCatalogItem(item)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', item.active ? 'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
-                  {item.active ? 'Ativo' : 'Inativo'}
+                <button type="button" onClick={() => toggleFixtureCatalogItem(item)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', item.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
+                  {item.active ?'Ativo' : 'Inativo'}
                 </button>
               </div>
             </div>
@@ -542,7 +571,7 @@ export const AdminPage: React.FC = () => {
                 className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-red-600 px-5 py-3 font-bold text-white shadow-lg shadow-red-600/20 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <Trash2 className="h-4 w-4" />
-                {resettingData ? 'Limpando dados...' : 'Excluir todos os dados operacionais'}
+                {resettingData ?'Limpando dados...' : 'Excluir todos os dados operacionais'}
               </button>
               {resetError && <p className="text-sm font-semibold text-red-600">{resetError}</p>}
               {resetMessage && <p className="text-sm font-semibold text-green-700">{resetMessage}</p>}
@@ -567,7 +596,7 @@ export const AdminPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ? (
+              {loading ?(
                 <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400">Carregando usuários...</td></tr>
               ) : (
                 users.map((user) => (
@@ -582,7 +611,7 @@ export const AdminPage: React.FC = () => {
                       <select
                         value={user.role}
                         onChange={(event) => changeRole(user.uid, event.target.value as 'admin' | 'user')}
-                        className={cn('px-3 py-1 rounded-full text-[10px] font-bold uppercase outline-none', user.role === 'admin' ? 'bg-purple-50 text-purple-600' : 'bg-slate-100 text-slate-500')}
+                        className={cn('px-3 py-1 rounded-full text-[10px] font-bold uppercase outline-none', user.role === 'admin' ?'bg-purple-50 text-purple-600' : 'bg-slate-100 text-slate-500')}
                       >
                         <option value="user">Usuário</option>
                         <option value="admin">Administrador</option>
@@ -591,9 +620,9 @@ export const AdminPage: React.FC = () => {
                     <td className="px-6 py-4">
                       <button
                         onClick={() => toggleBlock(user.uid, user.blocked)}
-                        className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all', user.blocked ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100')}
+                        className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all', user.blocked ?'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100')}
                       >
-                        {user.blocked ? <><XCircle className="w-3 h-3" /> Bloqueado</> : <><CheckCircle2 className="w-3 h-3" /> Ativo</>}
+                        {user.blocked ?<><XCircle className="w-3 h-3" /> Bloqueado</> : <><CheckCircle2 className="w-3 h-3" /> Ativo</>}
                       </button>
                     </td>
                     <td className="px-6 py-4 text-right">

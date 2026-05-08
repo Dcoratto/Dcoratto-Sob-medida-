@@ -136,9 +136,9 @@ export const MaterialsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ? (
+              {loading ?(
                 <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400">Carregando materiais...</td></tr>
-              ) : filteredMaterials.length === 0 ? (
+              ) : filteredMaterials.length === 0 ?(
                 <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400">Nenhum material encontrado. Cadastre uma pedra no estoque primeiro.</td></tr>
               ) : (
                 filteredMaterials.map((material) => (
@@ -152,11 +152,11 @@ export const MaterialsPage: React.FC = () => {
                     <td className="px-6 py-4 font-mono font-bold text-brand-primary">{formatCurrency(material.userPricePerM2 || 0)}</td>
                     <td className="px-6 py-4">
                       <select
-                        value={material.active ? 'active' : 'inactive'}
+                        value={material.active ?'active' : 'inactive'}
                         onChange={(e) => handleStatusChange(material, e.target.value === 'active')}
                         className={cn(
                           'cursor-pointer rounded-full border px-3 py-1 text-[10px] font-bold uppercase outline-none',
-                          material.active ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100',
+                          material.active ?'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100',
                         )}
                       >
                         <option value="active">Ativo</option>

@@ -35,8 +35,8 @@ export const QuotesPage: React.FC = () => {
 
   const filteredQuotes = quotes.filter((quote) => {
     const normalizedStatus = normalizeText(normalizeQuoteStatus(quote.status));
-    const isOpenScope = ['orcamento', 'medicao', 'projeto', 'aprovacao', 'producao', 'acabamento', 'entrega'].includes(normalizedStatus);
-    const matchesScope = scope === 'open' ? isOpenScope : true;
+    const isOpenScope = ['orcamento', 'medicao', 'projeto', 'aprovado', 'producao', 'acabamento', 'entrega'].includes(normalizedStatus);
+    const matchesScope = scope === 'open' ?isOpenScope : true;
 
     const searchable = [
       quote.clientName,
@@ -202,9 +202,9 @@ export const QuotesPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ? (
+              {loading ?(
                 <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Carregando orçamentos...</td></tr>
-              ) : filteredQuotes.length === 0 ? (
+              ) : filteredQuotes.length === 0 ?(
                 <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Nenhum orçamento encontrado.</td></tr>
               ) : (
                 filteredQuotes.map((quote) => (
@@ -214,7 +214,7 @@ export const QuotesPage: React.FC = () => {
                       <div className="text-xs text-brand-primary font-medium">{quote.environment}</div>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-500">
-                      {quote.createdAt?.toDate ? format(quote.createdAt.toDate(), 'dd/MM/yyyy', {locale: ptBR}) : '-'}
+                      {quote.createdAt?.toDate ?format(quote.createdAt.toDate(), 'dd/MM/yyyy', {locale: ptBR}) : '-'}
                     </td>
                     <td className="px-6 py-4 font-mono font-bold text-slate-900">
                       {formatCurrency(quote.totalPrice || 0)}
@@ -229,7 +229,7 @@ export const QuotesPage: React.FC = () => {
                         )}
                       >
                         {QUOTE_STATUSES.map((status) => (
-                          <option key={status} value={status}>{status}</option>
+                          <option key={status} value={status} className={quoteStatusColor(status)}>{status}</option>
                         ))}
                       </select>
                     </td>

@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'user';
+﻿export type UserRole = 'admin' | 'user';
 
 export interface Profile {
   uid: string;
@@ -56,6 +56,7 @@ export interface Material {
   marginPercentage?: number;
   provider: string;
   category: string;
+  imageUrl?: string;
   active: boolean;
   sourceInventoryId?: string;
   updatedAt?: any;
@@ -82,6 +83,7 @@ export interface Client {
   address: string;
   notes: string;
   city?: string;
+  zipCode?: string;
   neighborhood?: string;
   addressType?: 'casa' | 'condominio' | 'apartamento';
   condominiumId?: string;
@@ -149,17 +151,17 @@ export interface QuoteStatusHistory {
 }
 
 export type QuoteStatus =
-  | 'Orçamento'
-  | 'Medição'
+  | 'OrÃ§amento'
+  | 'MediÃ§Ã£o'
   | 'Projeto'
-  | 'Aprovação'
-  | 'Produção'
+  | 'Aprovado'
+  | 'Produ??o'
   | 'Acabamento'
   | 'Entrega'
   | 'Finalizado';
 
 export interface PieceSide {
-  type: 'frontao' | 'saia' | 'virada' | 'pe' | 'guarnicao' | 'acabamento' | 'none';
+  type: 'frontao' | 'saia' | 'virada' | 'pe' | 'guarnicao' | 'rebaixo_americano' | 'rebaixo_italiano' | 'acabamento' | 'none';
   side: string;
   sideLabel?: string;
   length: number;
@@ -181,7 +183,7 @@ export interface DrawingCutout {
 
 export interface SculptedSink {
   active: boolean;
-  type: 'Simples' | 'Com rampa' | 'Válvula oculta' | 'Cuba dupla';
+  type: 'Simples' | 'Com rampa' | 'VÃ¡lvula oculta' | 'Cuba dupla';
   quantity: number;
   width: number;
   depth: number;
@@ -307,7 +309,7 @@ export interface InventoryItem {
   thickness: number;
   area: number;
   cost: number;
-  status: 'Disponível' | 'Reservada' | 'Usada' | 'Retalho' | 'Descarte';
+  status: 'DisponÃ­vel' | 'Reservada' | 'Usada' | 'Retalho' | 'Descarte';
   notes: string;
   photoUrl?: string;
 }

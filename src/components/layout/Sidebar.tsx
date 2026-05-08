@@ -51,7 +51,7 @@ export const Sidebar: React.FC = () => {
             className={({ isActive }) => cn(
               "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group text-sm font-medium",
               isActive 
-                ? "bg-brand-primary text-white shadow-lg shadow-brand-primary/20" 
+                ?"bg-brand-primary text-white shadow-lg shadow-brand-primary/20" 
                 : "text-slate-600 hover:bg-slate-50 hover:text-brand-primary"
             )}
           >
@@ -66,11 +66,11 @@ export const Sidebar: React.FC = () => {
           to="/profile"
           className={({ isActive }) => cn(
             "flex items-center gap-3 px-3 py-4 mb-2 rounded-xl transition-all group",
-            isActive ? "bg-slate-50" : "hover:bg-slate-50"
+            isActive ?"bg-slate-50" : "hover:bg-slate-50"
           )}
         >
           <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold overflow-hidden">
-            {profile?.photoUrl ? (
+            {profile?.photoUrl ?(
               <img src={profile.photoUrl} alt={profile.name} className="w-full h-full object-cover" />
             ) : (
               profile?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()

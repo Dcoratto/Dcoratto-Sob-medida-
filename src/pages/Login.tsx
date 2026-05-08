@@ -97,11 +97,11 @@ export const Login: React.FC = () => {
         <div className="flex flex-col items-center mb-10">
           <Logo className="scale-125 mb-4" />
           <h1 className="text-2xl font-display font-semibold text-slate-900">
-            {isLogin ? 'Bem-vindo de volta' : 'Crie sua conta'}
+            {isLogin ?'Bem-vindo de volta' : 'Crie sua conta'}
           </h1>
           <p className="text-slate-500 text-sm mt-2 text-center">
             {isLogin 
-              ? 'Acesse o sistema de gestão da D’Coratto Sob Medida' 
+              ?'Acesse o sistema de gestão da D’Coratto Sob Medida' 
               : 'Comece a gerenciar seus orçamentos agora mesmo'}
           </p>
         </div>
@@ -178,11 +178,11 @@ export const Login: React.FC = () => {
             disabled={loading}
             className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 active:scale-[0.98]"
           >
-            {loading ? (
+            {loading ?(
               <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                {isLogin ? 'Entrar' : 'Cadastrar'}
+                {isLogin ?'Entrar' : 'Cadastrar'}
                 <ArrowRight className="w-5 h-5" />
               </>
             )}
@@ -209,12 +209,12 @@ export const Login: React.FC = () => {
         </div>
 
         <p className="mt-8 text-center text-sm text-slate-500">
-          {isLogin ? 'Não tem uma conta?' : 'Já possui uma conta?'}
+          {isLogin ?'Não tem uma conta?' : 'Já possui uma conta?'}
           <button
             onClick={() => setIsLogin(!isLogin)}
             className="ml-1 font-semibold text-brand-primary hover:underline"
           >
-            {isLogin ? 'Cadastre-se' : 'Faça login'}
+            {isLogin ?'Cadastre-se' : 'Faça login'}
           </button>
         </p>
       </motion.div>

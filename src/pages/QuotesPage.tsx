@@ -13,15 +13,14 @@ import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
 
 const quoteStatuses: QuoteStatus[] = [
-  'Pré-orçamento',
-  'Aguardando medição',
-  'Medido',
-  'Enviado',
-  'Aprovado',
-  'Recusado',
-  'Em produção',
-  'Pronto para entrega',
-  'Entregue',
+  'Or?amento',
+  'Medi??o',
+  'Projeto',
+  'Aprova??o',
+  'Produ??o',
+  'Acabamento',
+  'Entrega',
+  'Finalizado',
 ];
 
 const normalize = (value: unknown) =>
@@ -52,7 +51,7 @@ export const QuotesPage: React.FC = () => {
 
   const filteredQuotes = quotes.filter((quote) => {
     const normalizedStatus = normalize(quote.status);
-    const isOpenScope = ['pre-orcamento', 'aguardando medicao', 'medido', 'enviado'].includes(normalizedStatus);
+    const isOpenScope = ['orcamento', 'medicao', 'projeto', 'aprovacao', 'producao', 'acabamento', 'entrega'].includes(normalizedStatus);
     const matchesScope = scope === 'open' ? isOpenScope : true;
 
     const searchable = [
@@ -113,7 +112,7 @@ export const QuotesPage: React.FC = () => {
     const duplicatedQuote = {
       ...data,
       createdAt: Timestamp.now(),
-      status: 'Pré-orçamento',
+      status: 'Or?amento',
       clientName: `${data.clientName} (Cópia)`,
     } as Omit<Quote, 'id'>;
     const createdRef = await addDoc(collection(db, 'quotes'), duplicatedQuote);

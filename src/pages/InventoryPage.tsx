@@ -11,15 +11,6 @@ import {logSystemEvent} from '../lib/systemEvents';
 
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
-const slugify = (value: string) =>
-  value
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-
 const normalizeStatus = (value: unknown) =>
   String(value || '')
     .toLowerCase()
@@ -49,6 +40,7 @@ export const InventoryPage: React.FC = () => {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const [selectedMaterialId, setSelectedMaterialId] = useState('');
   const [materialName, setMaterialName] = useState('');
   const [code, setCode] = useState('');
   const [provider, setProvider] = useState('');
@@ -102,6 +94,7 @@ export const InventoryPage: React.FC = () => {
   }, []);
 
   const resetForm = () => {
+    setSelectedMaterialId('');
     setMaterialName('');
     setCode('');
     setProvider('');
@@ -132,36 +125,18 @@ export const InventoryPage: React.FC = () => {
     setPurchaseNotes('');
   };
 
-  const upsertMaterialFromInventory = async (inventoryId: string, area: number, totalCost: number) => {
-    const existingMaterial = editingItem?.materialId
-      ? materials.find((material) => material.id === editingItem.materialId)
-      : materials.find((material) => slugify(material.name) === slugify(materialName));
-
-    const materialId = existingMaterial?.id || slugify(materialName);
-    const baseCostPerM2 = area > 0 ? totalCost / area : 0;
-
-    await setDoc(doc(db, 'materials', materialId), {
-      name: materialName.trim(),
-      provider: provider.trim(),
-      category: category.trim(),
-      baseCostPerM2,
-      marginPercentage: existingMaterial?.marginPercentage ?? 0,
-      pricePerM2: existingMaterial?.pricePerM2 ?? baseCostPerM2,
-      active: existingMaterial?.active ?? true,
-      sourceInventoryId: inventoryId,
-      updatedAt: serverTimestamp(),
-    }, {merge: true});
-
-    return materialId;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedMaterialId) {
+      alert('Selecione uma pedra cadastrada no Admin.');
+      return;
+    }
 
     const area = (Number(length) * Number(width)) / 10000;
     const totalCost = Number(cost);
     const inventoryRef = editingItem ? doc(db, 'inventory', editingItem.id) : doc(collection(db, 'inventory'));
-    const materialId = await upsertMaterialFromInventory(inventoryRef.id, area, totalCost);
+    const materialId = selectedMaterialId;
+    const selectedMaterial = materials.find((material) => material.id === materialId);
     let photoUrl = editingItem?.photoUrl || '';
     if (photoFile) {
       const extension = photoFile.name.split('.').pop() || 'jpg';
@@ -172,7 +147,7 @@ export const InventoryPage: React.FC = () => {
 
     const data = {
       materialId,
-      materialName: materialName.trim(),
+      materialName: selectedMaterial?.name || materialName.trim(),
       code: code.trim(),
       provider: provider.trim(),
       category: category.trim(),
@@ -222,6 +197,7 @@ export const InventoryPage: React.FC = () => {
 
   const handleEdit = (item: InventoryItem) => {
     setEditingItem(item);
+    setSelectedMaterialId(item.materialId || '');
     setMaterialName(item.materialName);
     setCode(item.code);
     setProvider(item.provider);
@@ -280,10 +256,16 @@ export const InventoryPage: React.FC = () => {
 
   const handlePurchaseSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!purchaseMaterialId) {
+      alert('Selecione uma pedra cadastrada no Admin.');
+      return;
+    }
+    const selectedMaterial = materials.find((material) => material.id === purchaseMaterialId);
+    const selectedMaterialName = selectedMaterial?.name || purchaseMaterialName.trim();
     const area = (Number(purchaseLength) * Number(purchaseWidth)) / 10000;
     const purchaseRef = await addDoc(collection(db, 'inventoryPurchases'), {
       materialId: purchaseMaterialId,
-      materialName: purchaseMaterialName.trim(),
+      materialName: selectedMaterialName,
       provider: purchaseProvider.trim(),
       code: purchaseCode.trim(),
       category: purchaseCategory.trim(),
@@ -301,11 +283,11 @@ export const InventoryPage: React.FC = () => {
     await logSystemEvent({
       type: 'purchase_ordered',
       title: 'Compra de material lançada',
-      description: `${purchaseMaterialName.trim()} - ${formatNumber(area)} m²`,
+      description: `${selectedMaterialName} - ${formatNumber(area)} m²`,
       entityType: 'purchase',
       entityId: purchaseRef.id,
       materialId: purchaseMaterialId,
-      materialName: purchaseMaterialName.trim(),
+      materialName: selectedMaterialName,
       userUid: user?.uid || '',
       userName: currentUserName,
       metadata: {area, cost: Number(purchaseCost), status: 'Pedido'},
@@ -705,8 +687,25 @@ export const InventoryPage: React.FC = () => {
             <form onSubmit={handlePurchaseSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Nome da Pedra</label>
-                  <input type="text" required value={purchaseMaterialName} onChange={(e) => setPurchaseMaterialName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                  <label className="text-slate-500 font-medium text-sm">Pedra cadastrada (Admin)</label>
+                  <select
+                    required
+                    value={purchaseMaterialId}
+                    onChange={(e) => {
+                      const nextId = e.target.value;
+                      const selected = materials.find((material) => material.id === nextId);
+                      setPurchaseMaterialId(nextId);
+                      setPurchaseMaterialName(selected?.name || '');
+                      setPurchaseProvider(selected?.provider || '');
+                      setPurchaseCategory(selected?.category || '');
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                  >
+                    <option value="">Selecione uma pedra</option>
+                    {materials.filter((material) => material.active !== false).map((material) => (
+                      <option key={material.id} value={material.id}>{material.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Código / Lote</label>
@@ -773,8 +772,27 @@ export const InventoryPage: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Nome da Pedra</label>
-                  <input type="text" required value={materialName} onChange={(e) => setMaterialName(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                  <label className="text-slate-500 font-medium text-sm">Pedra cadastrada (Admin)</label>
+                  <select
+                    required
+                    value={selectedMaterialId}
+                    onChange={(e) => {
+                      const nextId = e.target.value;
+                      const selected = materials.find((material) => material.id === nextId);
+                      setSelectedMaterialId(nextId);
+                      setMaterialName(selected?.name || '');
+                      if (!editingItem) {
+                        setProvider(selected?.provider || '');
+                        setCategory(selected?.category || '');
+                      }
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                  >
+                    <option value="">Selecione uma pedra</option>
+                    {materials.filter((material) => material.active !== false).map((material) => (
+                      <option key={material.id} value={material.id}>{material.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Código / Lote</label>

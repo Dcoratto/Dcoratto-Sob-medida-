@@ -19,6 +19,8 @@ export const DEFAULT_SETTINGS: Settings = {
     sinkUnder: 100,
     sinkOver: 80,
     faucetHole: 30,
+    trashBinCutout: 60,
+    popUpTowerCutout: 45,
     sinkSculpted: false,
     sinkSculptedPrice: 800
   },

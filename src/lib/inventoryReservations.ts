@@ -12,10 +12,11 @@ export const shouldReserveStock = (status?: QuoteStatus | string) => {
 
 export const isApprovedOrBeyond = (status?: QuoteStatus | string) => {
   const text = normalized(status);
-  return text.includes('aprovado')
-    || text.includes('em producao')
-    || text.includes('pronto para entrega')
-    || text.includes('entregue')
+  return text.includes('aprovacao')
+    || text.includes('producao')
+    || text.includes('acabamento')
+    || text.includes('entrega')
+    || text.includes('finalizado')
     || text.includes('concluido');
 };
 

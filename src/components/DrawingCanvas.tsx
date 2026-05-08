@@ -23,7 +23,7 @@ import {cn} from '../lib/utils';
 import {DrawingCutout, PieceSide} from '../types';
 
 type DrawTool = 'select' | 'line' | 'move-point' | 'pan' | 'cutout';
-type CutoutType = 'cuba' | 'cooktop' | 'torneira';
+type CutoutType = 'cuba' | 'cooktop' | 'torneira' | 'lixeira' | 'torre_tomada';
 type ComplementType = 'frontao' | 'saia' | 'virada' | 'pe' | 'guarnicao';
 
 interface Point {
@@ -357,7 +357,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
     if (drawTool === 'cutout') {
       const width = Math.max(0.02, Number(cutoutWidth.replace(',', '.')) || 0.1);
-      const height = cutoutType === 'torneira'
+      const height = cutoutType === 'torneira' || cutoutType === 'torre_tomada'
         ? width
         : Math.max(0.02, Number(cutoutHeight.replace(',', '.')) || 0.1);
       setCutouts((current) => [...current, {
@@ -929,9 +929,11 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           <option value="cuba">Cuba</option>
           <option value="cooktop">Cooktop</option>
           <option value="torneira">Torneira</option>
+          <option value="lixeira">Lixeira de embutir</option>
+          <option value="torre_tomada">Torre de tomada</option>
         </select>
         <input value={cutoutWidth} onChange={(e) => setCutoutWidth(e.target.value)} className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Larg./diÃ¢m." />
-        <input value={cutoutHeight} onChange={(e) => setCutoutHeight(e.target.value)} className="w-20 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Altura" disabled={cutoutType === 'torneira'} />
+        <input value={cutoutHeight} onChange={(e) => setCutoutHeight(e.target.value)} className="w-20 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Altura" disabled={cutoutType === 'torneira' || cutoutType === 'torre_tomada'} />
 
         <button type="button" onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value * 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomIn className="h-4 w-4" /></button>
         <button type="button" onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value / 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomOut className="h-4 w-4" /></button>

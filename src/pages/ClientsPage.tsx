@@ -20,15 +20,14 @@ const productionSteps: Array<{key: ProductionStep; label: string}> = [
 ];
 
 const quoteStatuses: QuoteStatus[] = [
-  'Pré-orçamento',
-  'Aguardando medição',
-  'Medido',
-  'Enviado',
-  'Aprovado',
-  'Recusado',
-  'Em produção',
-  'Pronto para entrega',
-  'Entregue',
+  'Or?amento',
+  'Medi??o',
+  'Projeto',
+  'Aprova??o',
+  'Produ??o',
+  'Acabamento',
+  'Entrega',
+  'Finalizado',
 ];
 
 const normalize = (value: unknown) =>
@@ -38,10 +37,10 @@ const normalize = (value: unknown) =>
     .replace(/[\u0300-\u036f]/g, '');
 
 const stageMeta: Record<ClientStage, {label: string; dot: string; chip: string}> = {
-  pre: {label: 'Pré-orçamento', dot: 'bg-slate-400', chip: 'bg-slate-100 text-slate-600'},
-  approved: {label: 'Projeto fechado', dot: 'bg-emerald-500', chip: 'bg-emerald-50 text-emerald-700'},
-  production: {label: 'Em produção', dot: 'bg-blue-500', chip: 'bg-blue-50 text-blue-700'},
-  ready: {label: 'Aguardando entrega', dot: 'bg-amber-500', chip: 'bg-amber-50 text-amber-700'},
+  pre: {label: 'Or?amento', dot: 'bg-blue-500', chip: 'bg-blue-50 text-blue-700'},
+  approved: {label: 'Aprova??o', dot: 'bg-violet-500', chip: 'bg-violet-50 text-violet-700'},
+  production: {label: 'Produção', dot: 'bg-zinc-900', chip: 'bg-zinc-100 text-zinc-700'},
+  ready: {label: 'Acabamento', dot: 'bg-amber-700', chip: 'bg-amber-50 text-amber-800'},
   done: {label: 'Concluído', dot: 'bg-violet-500', chip: 'bg-violet-50 text-violet-700'},
   none: {label: 'Sem projeto', dot: 'bg-zinc-300', chip: 'bg-zinc-100 text-zinc-500'},
 };
@@ -49,10 +48,10 @@ const stageMeta: Record<ClientStage, {label: string; dot: string; chip: string}>
 const quoteStage = (quote?: Quote): ClientStage => {
   const status = normalize(quote?.status);
   if (!quote) return 'none';
-  if (status === 'entregue') return 'done';
-  if (status === 'em producao') return 'production';
-  if (status === 'pronto para entrega') return 'ready';
-  if (status === 'aprovado') return 'approved';
+  if (status === 'finalizado') return 'done';
+  if (status === 'producao') return 'production';
+  if (status === 'acabamento' || status === 'entrega') return 'ready';
+  if (status === 'aprovacao') return 'approved';
   return 'pre';
 };
 

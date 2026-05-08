@@ -49,19 +49,18 @@ const periodLabel = (period: Period) => {
 
 const statusLabel = (status: string) => {
   const value = normalize(status);
-  if (value.includes('producao')) return 'Em produção';
-  if (value.includes('pronto')) return 'Pronto para entrega';
-  if (value.includes('entregue')) return 'Entregue';
-  if (value.includes('aprovado')) return 'Aprovado';
-  if (value.includes('recusado')) return 'Recusado';
-  if (value.includes('medicao')) return 'Aguardando medição';
-  if (value.includes('medido')) return 'Medido';
-  if (value.includes('enviado')) return 'Enviado';
-  return 'Pré-orçamento';
+  if (value.includes('finalizado') || value.includes('concluido')) return 'Finalizado';
+  if (value.includes('entrega') || value.includes('entregue')) return 'Entrega';
+  if (value.includes('acabamento') || value.includes('pronto')) return 'Acabamento';
+  if (value.includes('producao')) return 'Produ??o';
+  if (value.includes('aprovacao') || value.includes('aprovado')) return 'Aprova??o';
+  if (value.includes('projeto') || value.includes('enviado')) return 'Projeto';
+  if (value.includes('medicao') || value.includes('medido')) return 'Medi??o';
+  return 'Or?amento';
 };
 
 const isClosedSale = (status: string) =>
-  ['Aprovado', 'Em produção', 'Pronto para entrega', 'Entregue'].includes(statusLabel(status));
+  ['Aprova??o', 'Produ??o', 'Acabamento', 'Entrega', 'Finalizado'].includes(statusLabel(status));
 
 export const ReportsPage: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -113,15 +112,15 @@ export const ReportsPage: React.FC = () => {
     .filter((quote) => isClosedSale(quote.status))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
   const openValue = filteredQuotes
-    .filter((quote) => ['Pré-orçamento', 'Aguardando medição', 'Medido', 'Enviado'].includes(statusLabel(quote.status)))
+    .filter((quote) => ['Orçamento', 'Medição', 'Projeto'].includes(statusLabel(quote.status)))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
   const refusedValue = filteredQuotes
-    .filter((quote) => statusLabel(quote.status) === 'Recusado')
+    .filter((quote) => statusLabel(quote.status) === '__none__')
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
   const approvedCount = filteredQuotes.filter((quote) => isClosedSale(quote.status)).length;
   const conversionRate = filteredQuotes.length ? Math.round((approvedCount / filteredQuotes.length) * 100) : 0;
 
-  const statusCounts = ['Pré-orçamento', 'Aguardando medição', 'Medido', 'Enviado', 'Aprovado', 'Em produção', 'Pronto para entrega', 'Entregue', 'Recusado']
+  const statusCounts = ['Or?amento', 'Medi??o', 'Projeto', 'Aprova??o', 'Produ??o', 'Acabamento', 'Entrega', 'Finalizado']
     .map((status) => ({status, count: filteredQuotes.filter((quote) => statusLabel(quote.status) === status).length}));
   const maxStatusCount = Math.max(1, ...statusCounts.map((item) => item.count));
 
@@ -135,7 +134,7 @@ export const ReportsPage: React.FC = () => {
   }).sort((a, b) => b.value - a.value).slice(0, 5);
 
   const deadlineAlerts = filteredQuotes
-    .filter((quote) => !['Recusado', 'Entregue'].includes(statusLabel(quote.status)))
+    .filter((quote) => !['Finalizado'].includes(statusLabel(quote.status)))
     .map((quote) => {
       const createdAt = toDate(quote.createdAt);
       const deadline = toDate(quote.validityDate) || (createdAt ? new Date(createdAt.getTime() + (quote.deliveryDays || 0) * 86400000) : null);

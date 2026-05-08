@@ -33,7 +33,9 @@ const cutoutCount = (quote?: Quote) =>
   (quote?.cutouts?.cooktop || 0) +
   (quote?.cutouts?.sinkUnder || 0) +
   (quote?.cutouts?.sinkOver || 0) +
-  (quote?.cutouts?.faucetHole || 0);
+  (quote?.cutouts?.faucetHole || 0) +
+  (quote?.cutouts?.trashBinCutout || 0) +
+  (quote?.cutouts?.popUpTowerCutout || 0);
 
 export const PremiumProposalPage: React.FC = () => {
   const {id} = useParams();
@@ -344,6 +346,8 @@ const PieceSection = ({piece, index, materialName, reverse, quoteCutouts}: {key?
     {label: 'Cuba embutida', count: quoteCutouts?.sinkUnder || 0},
     {label: 'Cuba sobreposta', count: quoteCutouts?.sinkOver || 0},
     {label: 'FuraÃ§Ã£o torneira', count: quoteCutouts?.faucetHole || 0},
+    {label: 'Lixeira de embutir', count: quoteCutouts?.trashBinCutout || 0},
+    {label: 'Torre de tomada', count: quoteCutouts?.popUpTowerCutout || 0},
   ].filter((item) => item.count > 0);
   const rows = [
     {description: 'Pedra principal', measure: `${piece.length || 0} x ${piece.width || 0} cm`, area: `${formatNumber(pieceArea(piece), 4)} mÂ²`, material: materialName, subtotal: 'IncluÃ­do'},
@@ -426,6 +430,8 @@ const FixtureSummary = ({piece}: {piece: QuotePiece}) => {
     sink: 'Cuba',
     faucet: 'Torneira',
     cooktop: 'Cooktop',
+    trashBin: 'Lixeira de embutir',
+    popUpTower: 'Torre de tomada',
   };
   const fixtures = Object.entries(piece.purchasedFixtures || {})
     .filter(([, fixture]) => fixture && Object.values(fixture).some(Boolean));

@@ -289,6 +289,24 @@ export const SettingsPage: React.FC = () => {
                     className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
                   />
                 </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase">Lixeira Embutir</span>
+                  <input
+                    type="number"
+                    value={settings.cutoutPrices.trashBinCutout || 0}
+                    onChange={(e) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, trashBinCutout: Number(e.target.value) } })}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-400 uppercase">Torre de Tomada</span>
+                  <input
+                    type="number"
+                    value={settings.cutoutPrices.popUpTowerCutout || 0}
+                    onChange={(e) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, popUpTowerCutout: Number(e.target.value) } })}
+                    className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
+                  />
+                </div>
               </div>
             </div>
           </div>

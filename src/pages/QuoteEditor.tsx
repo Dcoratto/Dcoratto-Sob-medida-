@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSettings } from '../hooks/useSettings';
-import { Client, CondominiumRule, EmployeeAssignment, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory, UserMaterialPrice } from '../types';
+import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory, UserMaterialPrice } from '../types';
 import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
@@ -17,7 +17,7 @@ import { DrawingCanvas } from '../components/DrawingCanvas';
 import {applyQuoteInventoryByStatusTransition} from '../lib/inventoryReservations';
 import {logSystemEvent} from '../lib/systemEvents';
 
-type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number };
+type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number };
 
 const normalizeStockStatus = (value: unknown) =>
   String(value || '')
@@ -53,13 +53,14 @@ export const QuoteEditor: React.FC = () => {
   const [deliveryDate, setDeliveryDate] = useState('');
   const [validityDays, setValidityDays] = useState(15);
   const [commercialNotes, setCommercialNotes] = useState('');
-  const [status, setStatus] = useState<QuoteStatus>('Pré-orçamento');
-  const [originalStatus, setOriginalStatus] = useState<QuoteStatus>('Pré-orçamento');
+  const [status, setStatus] = useState<QuoteStatus>('Or?amento');
+  const [originalStatus, setOriginalStatus] = useState<QuoteStatus>('Or?amento');
   const [pieces, setPieces] = useState<QuotePiece[]>([]);
-  const [cutouts, setCutouts] = useState<QuoteCutoutState>({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0 });
+  const [cutouts, setCutouts] = useState<QuoteCutoutState>({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0 });
   const [showDrawing, setShowDrawing] = useState<string | null>(null);
   const [employeeAssignments, setEmployeeAssignments] = useState<EmployeeAssignment[]>([]);
   const [statusHistory, setStatusHistory] = useState<QuoteStatusHistory[]>([]);
+  const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
 
   const selectedBaseMaterial = materials.find(m => m.id === materialId);
   const selectedUserPrice = userMaterialPrices.find((price) => price.materialId === materialId);
@@ -68,7 +69,7 @@ export const QuoteEditor: React.FC = () => {
     : selectedBaseMaterial;
   const selectedClient = clients.find(c => c.id === clientId);
   const { calculatePieceArea, calculateTotal, calculateSculptedSink } = useQuoteCalculator(settings, selectedMaterial);
-  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
+  const currentUserName = profile?.name || user?.displayName || user?.email || 'UsuÃ¡rio';
   
   const selectedPaymentAdjustment = settings.paymentMethods.find(m => m.name === paymentMethod)?.adjustment || 0;
   const totalPrice = calculateTotal(pieces, cutouts, selectedPaymentAdjustment);
@@ -131,6 +132,9 @@ export const QuoteEditor: React.FC = () => {
     const unsubReservations = onSnapshot(collection(db, 'inventoryReservations'), (snap) => {
       setReservations(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryReservation)));
     });
+    const unsubFixtureCatalog = onSnapshot(collection(db, 'fixtureCatalog'), (snap) => {
+      setFixtureCatalog(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as FixtureCatalogItem)));
+    });
 
     // If editing, fetch initial quote
     const fetchQuote = async () => {
@@ -160,6 +164,8 @@ export const QuoteEditor: React.FC = () => {
             sinkUnder: data.cutouts?.sinkUnder || 0,
             sinkOver: data.cutouts?.sinkOver || 0,
             faucetHole: data.cutouts?.faucetHole || 0,
+            trashBinCutout: data.cutouts?.trashBinCutout || 0,
+            popUpTowerCutout: data.cutouts?.popUpTowerCutout || 0,
           });
         }
       }
@@ -175,11 +181,12 @@ export const QuoteEditor: React.FC = () => {
       unsubUserPrices?.();
       unsubInventory();
       unsubReservations();
+      unsubFixtureCatalog();
     };
   }, [id, user?.uid]);
 
   useEffect(() => {
-    if (!id && !responsible && currentUserName !== 'Usuário') {
+    if (!id && !responsible && currentUserName !== 'UsuÃ¡rio') {
       setResponsible(currentUserName);
     }
   }, [currentUserName, id, responsible]);
@@ -187,7 +194,7 @@ export const QuoteEditor: React.FC = () => {
   const addPiece = () => {
     const newPiece: QuotePiece = {
       id: Math.random().toString(36).substr(2, 9),
-      name: `Peça ${pieces.length + 1}`,
+      name: `PeÃ§a ${pieces.length + 1}`,
       materialId: materialId,
       unit: 'cm',
       width: 0,
@@ -211,11 +218,13 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const countCutouts = (drawingCutouts?: QuotePiece['cutouts']): QuoteCutoutState => {
-    const counts: QuoteCutoutState = {cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0};
+    const counts: QuoteCutoutState = {cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0};
     (drawingCutouts || []).forEach((item) => {
       if (item.type === 'cooktop') counts.cooktop += 1;
       if (item.type === 'torneira') counts.faucetHole += 1;
       if (item.type === 'cuba') counts.sinkUnder += 1;
+      if (item.type === 'lixeira') counts.trashBinCutout += 1;
+      if (item.type === 'torre_tomada') counts.popUpTowerCutout += 1;
     });
     return counts;
   };
@@ -228,6 +237,8 @@ export const QuoteEditor: React.FC = () => {
       sinkUnder: Math.max(0, current.sinkUnder + (next.sinkUnder - previous.sinkUnder)),
       sinkOver: current.sinkOver,
       faucetHole: Math.max(0, current.faucetHole + (next.faucetHole - previous.faucetHole)),
+      trashBinCutout: Math.max(0, current.trashBinCutout + (next.trashBinCutout - previous.trashBinCutout)),
+      popUpTowerCutout: Math.max(0, current.popUpTowerCutout + (next.popUpTowerCutout - previous.popUpTowerCutout)),
     }));
   };
 
@@ -241,6 +252,53 @@ export const QuoteEditor: React.FC = () => {
 
   const updatePiece = (id: string, data: Partial<QuotePiece>) => {
     setPieces(pieces.map(p => p.id === id ? { ...p, ...data } : p));
+  };
+
+  const updateFirstPieceFixture = (fixtureKey: 'trashBin' | 'popUpTower', field: 'brand' | 'model' | 'diameter' | 'width' | 'depth' | 'height' | 'notes', value: string | number | undefined) => {
+    if (!pieces.length) return;
+    const firstPiece = pieces[0];
+    const currentFixture = firstPiece.purchasedFixtures?.[fixtureKey] || {};
+    updatePiece(firstPiece.id, {
+      purchasedFixtures: {
+        ...firstPiece.purchasedFixtures,
+        [fixtureKey]: {
+          ...currentFixture,
+          [field]: value,
+        },
+      },
+    });
+  };
+
+  const fixturesByCategory = (category: FixtureCategory) =>
+    fixtureCatalog.filter((item) => item.active && item.category === category);
+
+  const selectCatalogFixtureForFirstPiece = (
+    fixtureKey: 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin',
+    fixtureId: string,
+  ) => {
+    if (!pieces.length) return;
+    const firstPiece = pieces[0];
+    const selected = fixtureCatalog.find((item) => item.id === fixtureId);
+    updatePiece(firstPiece.id, {
+      selectedFixtureIds: {
+        ...firstPiece.selectedFixtureIds,
+        [fixtureKey]: fixtureId || undefined,
+      },
+      purchasedFixtures: {
+        ...firstPiece.purchasedFixtures,
+        [fixtureKey]: selected
+          ? {
+              brand: selected.brand,
+              model: selected.model,
+              width: selected.width,
+              depth: selected.depth,
+              height: selected.height,
+              diameter: selected.diameter,
+              notes: selected.notes,
+            }
+          : undefined,
+      },
+    });
   };
 
   const sideOptionsForPiece = (piece: QuotePiece) => [
@@ -320,7 +378,7 @@ export const QuoteEditor: React.FC = () => {
         await applyQuoteInventoryByStatusTransition(id, originalStatus, status, quoteData);
         await logSystemEvent({
           type: 'quote_updated',
-          title: 'Orçamento atualizado',
+          title: 'OrÃ§amento atualizado',
           description: `${selectedClient?.name || 'Cliente'} - ${environment || 'Sem ambiente'}`,
           entityType: 'quote',
           entityId: id,
@@ -336,10 +394,10 @@ export const QuoteEditor: React.FC = () => {
         });
       } else {
         const createdRef = await addDoc(collection(db, 'quotes'), quoteData);
-        await applyQuoteInventoryByStatusTransition(createdRef.id, 'Pré-orçamento', status, quoteData);
+        await applyQuoteInventoryByStatusTransition(createdRef.id, 'Or?amento', status, quoteData);
         await logSystemEvent({
           type: 'quote_created',
-          title: 'Orçamento criado',
+          title: 'OrÃ§amento criado',
           description: `${selectedClient?.name || 'Cliente'} - ${environment || 'Sem ambiente'}`,
           entityType: 'quote',
           entityId: createdRef.id,
@@ -374,9 +432,9 @@ export const QuoteEditor: React.FC = () => {
           </button>
           <div>
             <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">
-              {id ? 'Editar Orçamento' : 'Novo Orçamento'}
+              {id ? 'Editar OrÃ§amento' : 'Novo OrÃ§amento'}
             </h1>
-            <p className="text-slate-500 mt-1">Configure as peças, materiais e condições.</p>
+            <p className="text-slate-500 mt-1">Configure as peÃ§as, materiais e condiÃ§Ãµes.</p>
           </div>
         </div>
         <button
@@ -385,7 +443,7 @@ export const QuoteEditor: React.FC = () => {
           className="flex items-center gap-2 bg-brand-primary text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95 disabled:opacity-50"
         >
           <Save className="w-5 h-5" />
-          {saving ? 'Salvando...' : 'Salvar Orçamento'}
+          {saving ? 'Salvando...' : 'Salvar OrÃ§amento'}
         </button>
       </header>
 
@@ -409,12 +467,12 @@ export const QuoteEditor: React.FC = () => {
         {/* Right Column: Pieces */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-2xl font-display font-bold text-slate-900">Peças do Orçamento</h2>
+            <h2 className="text-2xl font-display font-bold text-slate-900">PeÃ§as do OrÃ§amento</h2>
             <button 
               onClick={addPiece}
               className="flex items-center gap-2 text-brand-primary font-bold hover:underline"
             >
-              <Plus className="w-5 h-5" /> Adicionar Peça
+              <Plus className="w-5 h-5" /> Adicionar PeÃ§a
             </button>
           </div>
 
@@ -422,8 +480,8 @@ export const QuoteEditor: React.FC = () => {
             {pieces.length === 0 && (
               <div className="bg-slate-50 border-2 border-dashed border-slate-200 p-12 rounded-[32px] text-center space-y-4">
                 <Layers className="w-12 h-12 text-slate-300 mx-auto" />
-                <div className="text-slate-500 font-medium tracking-tight">Nenhuma peça adicionada ainda.</div>
-                <button onClick={addPiece} className="text-brand-primary font-bold">Clique aqui para começar</button>
+                <div className="text-slate-500 font-medium tracking-tight">Nenhuma peÃ§a adicionada ainda.</div>
+                <button onClick={addPiece} className="text-brand-primary font-bold">Clique aqui para comeÃ§ar</button>
               </div>
             )}
 
@@ -443,8 +501,8 @@ export const QuoteEditor: React.FC = () => {
                   </div>
                   <button 
                     type="button"
-                    aria-label="Remover peça"
-                    title="Remover peça"
+                    aria-label="Remover peÃ§a"
+                    title="Remover peÃ§a"
                     onClick={() => removePiece(piece.id)} 
                     className="p-2 text-slate-300 hover:text-red-500 transition-all"
                   >
@@ -466,7 +524,7 @@ export const QuoteEditor: React.FC = () => {
                           <div className="absolute inset-0 bg-brand-primary/0 group-hover:bg-brand-primary/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-2xl">
                             <PenTool className="w-5 h-5 text-brand-primary" />
                           </div>
-                          <div className="absolute bottom-2 right-2 bg-green-500 w-3 h-3 rounded-full border-2 border-white shadow-sm" title="Desenho técnico disponível" />
+                          <div className="absolute bottom-2 right-2 bg-green-500 w-3 h-3 rounded-full border-2 border-white shadow-sm" title="Desenho tÃ©cnico disponÃ­vel" />
                         </div>
                       ) : (
                         <button 
@@ -474,7 +532,7 @@ export const QuoteEditor: React.FC = () => {
                           className="w-full aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-brand-primary hover:border-brand-primary/20 hover:bg-white transition-all"
                         >
                           <Pencil className="w-8 h-8 opacity-50" />
-                          <span className="text-[10px] uppercase font-bold tracking-widest">Desenhar Peça</span>
+                          <span className="text-[10px] uppercase font-bold tracking-widest">Desenhar PeÃ§a</span>
                         </button>
                       )}
                     </div>
@@ -499,7 +557,7 @@ export const QuoteEditor: React.FC = () => {
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Área Total (m²)</label>
+                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ãrea Total (mÂ²)</label>
                         <div className="px-4 py-2.5 bg-slate-100 rounded-xl font-mono text-slate-600 flex flex-col items-end">
                           <div className="flex justify-between w-full items-center">
                             <span className="text-[9px] uppercase font-bold text-slate-400">Total:</span>
@@ -508,7 +566,7 @@ export const QuoteEditor: React.FC = () => {
                           {piece.sculptedSink?.active && (
                             <div className="text-[8px] text-slate-400 flex flex-col w-full">
                               <div className="flex justify-between">
-                                <span>Peça:</span>
+                                <span>PeÃ§a:</span>
                                 <span>{calculatePieceArea(piece).mainArea.toFixed(4)}</span>
                               </div>
                               <div className="flex justify-between">
@@ -528,10 +586,10 @@ export const QuoteEditor: React.FC = () => {
                           type="url"
                           value={piece.proposalImageUrl || ''}
                           onChange={(e) => updatePiece(piece.id, { proposalImageUrl: e.target.value })}
-                          placeholder="Cole aqui o link da imagem, render ou planta desta peça"
+                          placeholder="Cole aqui o link da imagem, render ou planta desta peÃ§a"
                           className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
                         />
-                        <p className="text-[11px] text-slate-400">Essa imagem aparece na proposta premium. Se ficar vazio, o sistema usa o desenho técnico salvo.</p>
+                        <p className="text-[11px] text-slate-400">Essa imagem aparece na proposta premium. Se ficar vazio, o sistema usa o desenho tÃ©cnico salvo.</p>
                       </div>
                     </div>
                   </div>
@@ -551,7 +609,7 @@ export const QuoteEditor: React.FC = () => {
                           <button 
                             onClick={() => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink, active: false } as any })}
                             className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", !piece.sculptedSink?.active ? "bg-white text-brand-primary shadow-sm" : "text-slate-400")}
-                          >Não</button>
+                          >NÃ£o</button>
                         </div>
                       </div>
                     </div>
@@ -568,7 +626,7 @@ export const QuoteEditor: React.FC = () => {
                             >
                               <option value="Simples">Simples</option>
                               <option value="Com rampa">Com rampa</option>
-                              <option value="Válvula oculta">Válvula oculta</option>
+                              <option value="VÃ¡lvula oculta">VÃ¡lvula oculta</option>
                               <option value="Cuba dupla">Cuba dupla</option>
                             </select>
                           </div>
@@ -633,11 +691,11 @@ export const QuoteEditor: React.FC = () => {
                               return (
                                 <>
                                   <div className="space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Área Cuba (m²)</span>
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Ãrea Cuba (mÂ²)</span>
                                     <div className="text-slate-900 font-mono font-bold">{calc.area.toFixed(4)}</div>
                                   </div>
                                   <div className="space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Mão de Obra</span>
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">MÃ£o de Obra</span>
                                     <div className="text-slate-900 font-mono font-bold">{formatCurrency(calc.laborValue + calc.extraSinkValue)}</div>
                                   </div>
                                   <div className="space-y-0.5">
@@ -657,7 +715,7 @@ export const QuoteEditor: React.FC = () => {
                     )}
                   </div>
 
-                  {/* Adicionais - Frontão, Saia, etc */}
+                  {/* Adicionais - FrontÃ£o, Saia, etc */}
                   <div className="space-y-4 pt-4 border-t border-slate-50">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                       <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Adicionais (Frontao/Saia/Virada/Pe)</h3>
@@ -667,7 +725,7 @@ export const QuoteEditor: React.FC = () => {
                           onClick={() => addSide(piece.id, 'frontao')}
                           className="px-3 py-2 rounded-xl bg-brand-primary/10 text-brand-primary text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary/15 transition-all"
                         >
-                          + Frontão
+                          + FrontÃ£o
                         </button>
                         <button
                           type="button"
@@ -719,7 +777,7 @@ export const QuoteEditor: React.FC = () => {
                                 }}
                                 className="min-w-0 bg-white border border-slate-200 rounded-lg text-xs p-1"
                               >
-                                <option value="frontao">Frontão</option>
+                                <option value="frontao">FrontÃ£o</option>
                                 <option value="saia">Saia</option>
                                 <option value="virada">Virada</option>
                                 <option value="pe">Pe de bancada</option>
@@ -780,7 +838,7 @@ export const QuoteEditor: React.FC = () => {
 
           <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
             <h2 className="font-display font-bold text-xl text-slate-800">Recortes e Acabamentos Especiais</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-6 gap-6">
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cooktop (Qtd)</label>
                 <input 
@@ -817,15 +875,84 @@ export const QuoteEditor: React.FC = () => {
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
                 />
               </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Lixeira Emb. (Qtd)</label>
+                <input
+                  type="number"
+                  value={cutouts.trashBinCutout}
+                  onChange={(e) => setCutouts({ ...cutouts, trashBinCutout: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Torre Tomada (Qtd)</label>
+                <input
+                  type="number"
+                  value={cutouts.popUpTowerCutout}
+                  onChange={(e) => setCutouts({ ...cutouts, popUpTowerCutout: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
+                />
+              </div>
+            </div>
+          </section>
+
+          <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
+            <h2 className="font-display font-bold text-xl text-slate-800">Especificações do cliente</h2>
+            <p className="text-xs text-slate-400">No card do cliente são exibidas somente peças previamente cadastradas no Admin.</p>
+            {!pieces.length ? (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                Adicione ao menos uma peça para vincular os itens do catálogo.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {([
+                  { key: 'cooktop', label: 'Cooktop', category: 'cooktop' },
+                  { key: 'sink', label: 'Cuba', category: 'sink' },
+                  { key: 'faucet', label: 'Torneira', category: 'faucet' },
+                  { key: 'trashBin', label: 'Lixeira de embutir', category: 'trashBin' },
+                  { key: 'popUpTower', label: 'Torre de tomada', category: 'popUpTower' },
+                ] as const).map((fixtureConfig) => {
+                  const options = fixturesByCategory(fixtureConfig.category);
+                  const selectedId = pieces[0]?.selectedFixtureIds?.[fixtureConfig.key] || '';
+                  const selectedItem = options.find((item) => item.id === selectedId);
+                  return (
+                    <div key={fixtureConfig.key} className="space-y-2 rounded-2xl bg-slate-50 p-4 border border-slate-100">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{fixtureConfig.label}</div>
+                      <select
+                        value={selectedId}
+                        onChange={(e) => selectCatalogFixtureForFirstPiece(fixtureConfig.key, e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+                      >
+                        <option value="">Selecionar peça cadastrada</option>
+                        {options.map((item) => (
+                          <option key={item.id} value={item.id}>
+                            {item.name} {item.brand ? `- ${item.brand}` : ''} {item.model ? `(${item.model})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                      {selectedItem && (
+                        <div className="space-y-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
+                          <div><span className="font-semibold text-slate-600">Marca:</span> {selectedItem.brand || '-'}</div>
+                          <div><span className="font-semibold text-slate-600">Modelo:</span> {selectedItem.model || '-'}</div>
+                          <div><span className="font-semibold text-slate-600">Imagem:</span> {selectedItem.imageUrl || '-'}</div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="text-xs text-slate-400">
+              Se não encontrar um item aqui, cadastre primeiro na aba Admin em Catálogo de peças.
             </div>
           </section>
 
           <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
-            <h2 className="font-display font-bold text-xl text-slate-800">Observações Comerciais</h2>
+            <h2 className="font-display font-bold text-xl text-slate-800">ObservaÃ§Ãµes Comerciais</h2>
             <textarea 
               value={commercialNotes}
               onChange={(e) => setCommercialNotes(e.target.value)}
-              placeholder="Informações sobre entrega, instalação, etc..."
+              placeholder="InformaÃ§Ãµes sobre entrega, instalaÃ§Ã£o, etc..."
               className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all min-h-[120px]"
             />
           </section>
@@ -837,8 +964,8 @@ export const QuoteEditor: React.FC = () => {
           <div className="w-full max-w-5xl bg-white rounded-[40px] shadow-2xl flex flex-col h-[90vh]">
             <div className="p-8 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <h3 className="text-2xl font-display font-bold text-slate-900">Desenho Técnico</h3>
-                <p className="text-slate-400 text-sm">Peça: {pieces.find(p => p.id === showDrawing)?.name}</p>
+                <h3 className="text-2xl font-display font-bold text-slate-900">Desenho TÃ©cnico</h3>
+                <p className="text-slate-400 text-sm">PeÃ§a: {pieces.find(p => p.id === showDrawing)?.name}</p>
               </div>
               <div className="flex items-center gap-3">
                 <button
@@ -847,7 +974,7 @@ export const QuoteEditor: React.FC = () => {
                   className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all"
                 >
                   <Save className="w-4 h-4" />
-                  Salvar peça
+                  Salvar peÃ§a
                 </button>
                 <button
                   onClick={() => setShowDrawing(null)}

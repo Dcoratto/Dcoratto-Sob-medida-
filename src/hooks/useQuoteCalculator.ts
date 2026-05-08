@@ -103,6 +103,8 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
     total += cutouts.sinkUnder * (settings.cutoutPrices?.sinkUnder || 0);
     total += cutouts.sinkOver * (settings.cutoutPrices?.sinkOver || 0);
     total += (cutouts.faucetHole || 0) * (settings.cutoutPrices?.faucetHole || 0);
+    total += (cutouts.trashBinCutout || 0) * (settings.cutoutPrices?.trashBinCutout || 0);
+    total += (cutouts.popUpTowerCutout || 0) * (settings.cutoutPrices?.popUpTowerCutout || 0);
     return total;
   };
 
@@ -124,6 +126,8 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
           if (c.type === 'cooktop') totalCutoutsCost += (settings.cutoutPrices?.cooktop || 0);
           if (c.type === 'cuba') totalCutoutsCost += (settings.cutoutPrices?.sinkUnder || 0); // Assuming under-mount for drawn sinks
           if (c.type === 'torneira') totalCutoutsCost += (settings.cutoutPrices?.faucetHole || 0);
+          if (c.type === 'lixeira') totalCutoutsCost += (settings.cutoutPrices?.trashBinCutout || 0);
+          if (c.type === 'torre_tomada') totalCutoutsCost += (settings.cutoutPrices?.popUpTowerCutout || 0);
         });
       }
     });

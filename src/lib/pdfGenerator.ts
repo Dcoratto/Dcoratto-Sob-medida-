@@ -98,7 +98,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
     startY: 99,
     theme: 'plain',
     body: [
-      ['Área total', `${(quote.totalArea || 0).toFixed(4)} m²`, 'Recortes', `${(quote.cutouts?.cooktop || 0) + (quote.cutouts?.sinkUnder || 0) + (quote.cutouts?.sinkOver || 0) + (quote.cutouts?.faucetHole || 0)} un`],
+      ['Área total', `${(quote.totalArea || 0).toFixed(4)} m²`, 'Recortes', `${(quote.cutouts?.cooktop || 0) + (quote.cutouts?.sinkUnder || 0) + (quote.cutouts?.sinkOver || 0) + (quote.cutouts?.faucetHole || 0) + (quote.cutouts?.trashBinCutout || 0) + (quote.cutouts?.popUpTowerCutout || 0)} un`],
       ['Status', quote.status, 'Valor total', money(quote.totalPrice || 0)],
     ],
     styles: {fontSize: 9, cellPadding: 4, lineColor: [230, 226, 220], lineWidth: 0.2},
@@ -186,6 +186,8 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
       ['Cuba embutida', quote.cutouts?.sinkUnder || 0],
       ['Cuba sobreposta', quote.cutouts?.sinkOver || 0],
       ['Furação de torneira', quote.cutouts?.faucetHole || 0],
+      ['Lixeira de embutir', quote.cutouts?.trashBinCutout || 0],
+      ['Torre de tomada', quote.cutouts?.popUpTowerCutout || 0],
     ].filter((row) => Number(row[1]) > 0),
     theme: 'grid',
     headStyles: {fillColor: [31, 41, 55], textColor: [255, 255, 255], fontSize: 8},

@@ -10,25 +10,24 @@ import {useAuth} from '../contexts/AuthContext';
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
 const statusGroups: Record<ClientStage, {label: string; dot: string; bg: string; statuses: QuoteStatus[]}> = {
-  pre: {label: 'Pré-orçamento', dot: 'bg-slate-400', bg: 'bg-slate-50 text-slate-600', statuses: ['Pré-orçamento', 'Aguardando medição', 'Medido', 'Enviado']},
-  approved: {label: 'Projeto fechado', dot: 'bg-emerald-500', bg: 'bg-emerald-50 text-emerald-700', statuses: ['Aprovado']},
-  production: {label: 'Em produção', dot: 'bg-blue-500', bg: 'bg-blue-50 text-blue-700', statuses: ['Em produção']},
-  ready: {label: 'Pronto para entrega', dot: 'bg-amber-500', bg: 'bg-amber-50 text-amber-700', statuses: ['Pronto para entrega']},
-  done: {label: 'Concluído', dot: 'bg-violet-500', bg: 'bg-violet-50 text-violet-700', statuses: ['Entregue']},
-  none: {label: 'Sem orçamento', dot: 'bg-slate-300', bg: 'bg-slate-50 text-slate-500', statuses: []},
+  pre: {label: 'Or?amento', dot: 'bg-blue-500', bg: 'bg-blue-50 text-blue-700', statuses: ['Or?amento', 'Medi??o', 'Projeto']},
+  approved: {label: 'Aprova??o', dot: 'bg-violet-500', bg: 'bg-violet-50 text-violet-700', statuses: ['Aprova??o']},
+  production: {label: 'Produ??o', dot: 'bg-zinc-900', bg: 'bg-zinc-100 text-zinc-700', statuses: ['Produ??o']},
+  ready: {label: 'Acabamento/Entrega', dot: 'bg-amber-700', bg: 'bg-amber-50 text-amber-800', statuses: ['Acabamento', 'Entrega']},
+  done: {label: 'Finalizado', dot: 'bg-emerald-500', bg: 'bg-emerald-50 text-emerald-700', statuses: ['Finalizado']},
+  none: {label: 'Sem or?amento', dot: 'bg-slate-300', bg: 'bg-slate-50 text-slate-500', statuses: []},
 };
 
 const normalizeStatus = (status?: string) => {
   const text = (status || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  if (text.includes('producao')) return 'Em produção' as QuoteStatus;
-  if (text.includes('aprovado')) return 'Aprovado' as QuoteStatus;
-  if (text.includes('recusado')) return 'Recusado' as QuoteStatus;
-  if (text.includes('entregue') || text.includes('concluido')) return 'Entregue' as QuoteStatus;
-  if (text.includes('pronto')) return 'Pronto para entrega' as QuoteStatus;
-  if (text.includes('medido')) return 'Medido' as QuoteStatus;
-  if (text.includes('enviado')) return 'Enviado' as QuoteStatus;
-  if (text.includes('medicao')) return 'Aguardando medição' as QuoteStatus;
-  return 'Pré-orçamento' as QuoteStatus;
+  if (text.includes('finalizado') || text.includes('concluido')) return 'Finalizado' as QuoteStatus;
+  if (text.includes('entrega') || text.includes('entregue')) return 'Entrega' as QuoteStatus;
+  if (text.includes('acabamento') || text.includes('pronto')) return 'Acabamento' as QuoteStatus;
+  if (text.includes('producao')) return 'Produ??o' as QuoteStatus;
+  if (text.includes('aprovacao') || text.includes('aprovado')) return 'Aprova??o' as QuoteStatus;
+  if (text.includes('projeto') || text.includes('enviado')) return 'Projeto' as QuoteStatus;
+  if (text.includes('medicao') || text.includes('medido')) return 'Medi??o' as QuoteStatus;
+  return 'Or?amento' as QuoteStatus;
 };
 
 const isClosedSale = (status?: string) => {
@@ -36,16 +35,16 @@ const isClosedSale = (status?: string) => {
   if (text.includes('pre') || text.includes('orcamento') || text.includes('aguardando') || text.includes('medido') || text.includes('enviado') || text.includes('recusado')) {
     return false;
   }
-  return text.includes('aprovado') || text.includes('fechado') || text.includes('producao') || text.includes('pronto') || text.includes('entregue') || text.includes('concluido');
+  return text.includes('aprovacao') || text.includes('producao') || text.includes('acabamento') || text.includes('entrega') || text.includes('finalizado') || text.includes('concluido');
 };
 
 const quoteStage = (quote?: Quote): ClientStage => {
   if (!quote) return 'none';
   const status = normalizeStatus(quote.status);
-  if (status === 'Entregue') return 'done';
-  if (status === 'Pronto para entrega') return 'ready';
-  if (status === 'Em produção') return 'production';
-  if (status === 'Aprovado') return 'approved';
+  if (status === 'Finalizado') return 'done';
+  if (status === 'Acabamento' || status === 'Entrega') return 'ready';
+  if (status === 'Produção') return 'production';
+  if (status === 'Aprova??o') return 'approved';
   return 'pre';
 };
 
@@ -168,7 +167,7 @@ export const Dashboard: React.FC = () => {
   const deadlineAlerts = useMemo(() => {
     const now = new Date();
     return quotes
-      .filter((quote) => !['Recusado', 'Entregue'].includes(normalizeStatus(quote.status)))
+      .filter((quote) => !['Finalizado'].includes(normalizeStatus(quote.status)))
       .map((quote) => {
         const createdAt = toDate(quote.createdAt);
         const deadline = toDate(quote.validityDate) || (createdAt ? new Date(createdAt.getTime() + (quote.deliveryDays || 0) * 86400000) : null);
@@ -207,7 +206,7 @@ export const Dashboard: React.FC = () => {
 
   const stats = [
     {label: 'Orçamentos', value: quotes.length, icon: FileText, color: 'text-brand-primary', bg: 'bg-brand-primary/10', path: '/quotes'},
-    {label: 'Projetos', value: quotes.filter((quote) => { const s = normalizeStatus(quote.status); return s === 'Aprovado' || s === 'Em produção' || s === 'Pronto para entrega' || s === 'Entregue'; }).length, icon: FolderKanban, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/projects'},
+    {label: 'Projetos', value: quotes.filter((quote) => { const s = normalizeStatus(quote.status); return s === 'Aprovação' || s === 'Produção' || s === 'Acabamento' || s === 'Entrega' || s === 'Finalizado'; }).length, icon: FolderKanban, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/projects'},
     {label: 'Clientes', value: clients.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/clients'},
     {label: 'Materiais', value: materialsCount, icon: Package, color: 'text-purple-600', bg: 'bg-purple-50', path: '/materials'},
     {label: 'Itens em Estoque', value: inventory.length, icon: Database, color: 'text-amber-600', bg: 'bg-amber-50', path: '/inventory'},
@@ -247,12 +246,12 @@ export const Dashboard: React.FC = () => {
 
   const getStatusColor = (status: string) => {
     const normalized = normalizeStatus(status);
-    if (normalized === 'Aprovado') return 'bg-green-50 text-green-600';
-    if (normalized === 'Recusado') return 'bg-red-50 text-red-600';
-    if (normalized === 'Em produção') return 'bg-blue-50 text-blue-600';
-    if (normalized === 'Aguardando medição') return 'bg-amber-50 text-amber-600';
-    if (normalized === 'Entregue') return 'bg-violet-50 text-violet-600';
-    if (normalized === 'Pronto para entrega') return 'bg-amber-50 text-amber-700';
+    if (normalized === 'Aprova??o') return 'bg-violet-50 text-violet-700';
+    if (normalized === 'Projeto') return 'bg-orange-50 text-orange-700';
+    if (normalized === 'Produção') return 'bg-zinc-100 text-zinc-700';
+    if (normalized === 'Medi??o') return 'bg-yellow-50 text-yellow-700';
+    if (normalized === 'Finalizado') return 'bg-emerald-50 text-emerald-700';
+    if (normalized === 'Acabamento' || normalized === 'Entrega') return 'bg-green-50 text-green-700';
     return 'bg-slate-100 text-slate-500';
   };
 

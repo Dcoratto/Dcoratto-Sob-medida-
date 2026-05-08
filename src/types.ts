@@ -28,6 +28,8 @@ export interface Settings {
     sinkUnder: number;
     sinkOver: number;
     faucetHole: number;
+    trashBinCutout?: number;
+    popUpTowerCutout?: number;
     sinkSculpted?: boolean;
     sinkSculptedPrice?: number;
   };
@@ -145,15 +147,14 @@ export interface QuoteStatusHistory {
 }
 
 export type QuoteStatus =
-  | 'Pré-orçamento'
-  | 'Aguardando medição'
-  | 'Medido'
-  | 'Enviado'
-  | 'Aprovado'
-  | 'Recusado'
-  | 'Em produção'
-  | 'Pronto para entrega'
-  | 'Entregue';
+  | 'Or?amento'
+  | 'Medi??o'
+  | 'Projeto'
+  | 'Aprova??o'
+  | 'Produ??o'
+  | 'Acabamento'
+  | 'Entrega'
+  | 'Finalizado';
 
 export interface PieceSide {
   type: 'frontao' | 'saia' | 'virada' | 'pe' | 'guarnicao' | 'acabamento' | 'none';
@@ -169,7 +170,7 @@ export interface PieceSide {
 
 export interface DrawingCutout {
   id: string;
-  type: 'cuba' | 'cooktop' | 'torneira';
+  type: 'cuba' | 'cooktop' | 'torneira' | 'lixeira' | 'torre_tomada';
   x: number;
   y: number;
   width: number;
@@ -210,6 +211,15 @@ export interface QuotePiece {
     sink?: FixtureInfo;
     faucet?: FixtureInfo;
     cooktop?: FixtureInfo;
+    trashBin?: FixtureInfo;
+    popUpTower?: FixtureInfo;
+  };
+  selectedFixtureIds?: {
+    cooktop?: string;
+    sink?: string;
+    faucet?: string;
+    popUpTower?: string;
+    trashBin?: string;
   };
 }
 
@@ -223,11 +233,31 @@ export interface FixtureInfo {
   notes?: string;
 }
 
+export type FixtureCategory = 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin';
+
+export interface FixtureCatalogItem {
+  id: string;
+  name: string;
+  category: FixtureCategory;
+  brand?: string;
+  model?: string;
+  width?: number;
+  depth?: number;
+  height?: number;
+  diameter?: number;
+  imageUrl?: string;
+  notes?: string;
+  active: boolean;
+  createdAt?: any;
+}
+
 export interface QuoteCutouts {
   cooktop: number;
   sinkUnder: number;
   sinkOver: number;
   faucetHole: number;
+  trashBinCutout?: number;
+  popUpTowerCutout?: number;
   sinkSculpted?: boolean;
 }
 

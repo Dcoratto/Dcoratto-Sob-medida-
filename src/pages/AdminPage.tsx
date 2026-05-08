@@ -6,8 +6,9 @@ import {AlertTriangle, BriefcaseBusiness, CheckCircle2, Mail, Plus, ShieldAlert,
 import {auth, db, storage} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {useAuth} from '../contexts/AuthContext';
-import {Employee, EmployeeRole, Profile} from '../types';
+import {Employee, EmployeeRole, FixtureCatalogItem, FixtureCategory, Profile} from '../types';
 import {cn} from '../lib/utils';
+import { SettingsPage } from './SettingsPage';
 
 const employeeRoles: EmployeeRole[] = ['Vendedor', 'Medidor', 'Cortador', 'Acabador', 'Instalador', 'Entregador', 'Administrativo'];
 const resetCollections = [
@@ -39,6 +40,23 @@ export const AdminPage: React.FC = () => {
     role: 'Medidor',
     phone: '',
   });
+  const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
+  const [savingFixture, setSavingFixture] = useState(false);
+  const [fixtureForm, setFixtureForm] = useState<{
+    name: string;
+    category: FixtureCategory;
+    brand: string;
+    model: string;
+    imageUrl: string;
+    notes: string;
+  }>({
+    name: '',
+    category: 'cooktop',
+    brand: '',
+    model: '',
+    imageUrl: '',
+    notes: '',
+  });
 
   useEffect(() => {
     const q = query(collection(db, 'profiles'), orderBy('email', 'asc'));
@@ -50,6 +68,14 @@ export const AdminPage: React.FC = () => {
       }, []);
       setUsers(uniqueUsers);
       setLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, 'fixtureCatalog'), orderBy('name', 'asc'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setFixtureCatalog(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as FixtureCatalogItem)));
     });
     return unsubscribe;
   }, []);
@@ -123,6 +149,38 @@ export const AdminPage: React.FC = () => {
     const ok = await deleteFirestoreDoc('employees', employeeId);
     if (!ok) return;
     setEmployees((prev) => prev.filter((employee) => employee.id !== employeeId));
+  };
+
+  const addFixtureCatalogItem = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!fixtureForm.name.trim()) return;
+    setSavingFixture(true);
+    try {
+      await addDoc(collection(db, 'fixtureCatalog'), {
+        name: fixtureForm.name.trim(),
+        category: fixtureForm.category,
+        brand: fixtureForm.brand.trim(),
+        model: fixtureForm.model.trim(),
+        imageUrl: fixtureForm.imageUrl.trim(),
+        notes: fixtureForm.notes.trim(),
+        active: true,
+        createdAt: Timestamp.now(),
+      });
+      setFixtureForm({
+        name: '',
+        category: fixtureForm.category,
+        brand: '',
+        model: '',
+        imageUrl: '',
+        notes: '',
+      });
+    } finally {
+      setSavingFixture(false);
+    }
+  };
+
+  const toggleFixtureCatalogItem = async (item: FixtureCatalogItem) => {
+    await updateDoc(doc(db, 'fixtureCatalog', item.id), {active: !item.active});
   };
 
   const deleteStoredFile = async (fileUrl?: unknown) => {
@@ -293,6 +351,56 @@ export const AdminPage: React.FC = () => {
             <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum funcionário cadastrado.</div>
           )}
         </div>
+      </section>
+
+      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-6">
+        <div>
+          <h2 className="font-display text-xl font-bold text-slate-900">Catálogo de peças do cliente</h2>
+          <p className="text-sm text-slate-400">Cadastre cooktop, cuba, torneira, torre de tomada e lixeira para seleção no orçamento.</p>
+        </div>
+
+        <form onSubmit={addFixtureCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+          <input value={fixtureForm.name} onChange={(e) => setFixtureForm((f) => ({...f, name: e.target.value}))} placeholder="Nome da peça" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <select value={fixtureForm.category} onChange={(e) => setFixtureForm((f) => ({...f, category: e.target.value as FixtureCategory}))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <option value="cooktop">Cooktop</option>
+            <option value="sink">Cuba</option>
+            <option value="faucet">Torneira</option>
+            <option value="popUpTower">Torre de tomada</option>
+            <option value="trashBin">Lixeira de embutir</option>
+          </select>
+          <input value={fixtureForm.brand} onChange={(e) => setFixtureForm((f) => ({...f, brand: e.target.value}))} placeholder="Marca" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input value={fixtureForm.model} onChange={(e) => setFixtureForm((f) => ({...f, model: e.target.value}))} placeholder="Modelo" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input value={fixtureForm.imageUrl} onChange={(e) => setFixtureForm((f) => ({...f, imageUrl: e.target.value}))} placeholder="URL da imagem" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-2" />
+          <input value={fixtureForm.notes} onChange={(e) => setFixtureForm((f) => ({...f, notes: e.target.value}))} placeholder="Informações" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-1" />
+          <button type="submit" disabled={savingFixture} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-white disabled:opacity-60">
+            {savingFixture ? 'Salvando...' : 'Cadastrar peça'}
+          </button>
+        </form>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {fixtureCatalog.map((item) => (
+            <div key={item.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <div className="font-bold text-slate-900">{item.name}</div>
+                  <div className="text-xs text-slate-400">{item.category} · {[item.brand, item.model].filter(Boolean).join(' / ')}</div>
+                </div>
+                <button type="button" onClick={() => toggleFixtureCatalogItem(item)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', item.active ? 'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
+                  {item.active ? 'Ativo' : 'Inativo'}
+                </button>
+              </div>
+            </div>
+          ))}
+          {fixtureCatalog.length === 0 && <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-400">Nenhuma peça cadastrada.</div>}
+        </div>
+      </section>
+
+      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-4">
+        <div>
+          <h2 className="font-display text-xl font-bold text-slate-900">Configurações do sistema</h2>
+          <p className="text-sm text-slate-400">As configurações foram migradas para a área de Admin.</p>
+        </div>
+        <SettingsPage />
       </section>
 
       {isAdmin && (

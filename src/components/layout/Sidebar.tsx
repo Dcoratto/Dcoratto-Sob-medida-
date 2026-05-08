@@ -23,12 +23,12 @@ export const Sidebar: React.FC = () => {
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-    { icon: FileText, label: 'OrÃ§amentos', path: '/quotes' },
+    { icon: FileText, label: 'Orçamentos', path: '/quotes' },
     { icon: FolderKanban, label: 'Projetos', path: '/projects' },
     { icon: Users, label: 'Clientes', path: '/clients' },
-    { icon: CalendarDays, label: 'CalendÃ¡rio', path: '/calendar' },
-    { icon: History, label: 'HistÃ³rico', path: '/history' },
-    { icon: BarChart3, label: 'RelatÃ³rios', path: '/reports' },
+    { icon: CalendarDays, label: 'Calendário', path: '/calendar' },
+    { icon: History, label: 'Histórico', path: '/history' },
+    { icon: BarChart3, label: 'Relatórios', path: '/reports' },
     { icon: Package, label: 'Materiais', path: '/materials' },
     { icon: Database, label: 'Estoque', path: '/inventory' },
   ];
@@ -77,7 +77,7 @@ export const Sidebar: React.FC = () => {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-900 truncate">{profile?.name || 'UsuÃ¡rio'}</p>
+            <p className="text-sm font-semibold text-slate-900 truncate">{profile?.name || 'Usuário'}</p>
             <p className="text-xs text-slate-500 truncate">{profile?.position || user?.email}</p>
           </div>
         </NavLink>

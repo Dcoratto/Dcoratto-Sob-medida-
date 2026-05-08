@@ -927,7 +927,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <button type="button" onClick={closeGeometry} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold uppercase text-white">Fechar geometria</button>
         <button type="button" onClick={() => setShowPiecesPanel(true)} className="inline-flex items-center gap-2 rounded-xl bg-brand-primary/10 px-3 py-2 text-xs font-bold uppercase text-brand-primary hover:bg-brand-primary/15">
           <PanelRightOpen className="h-4 w-4" />
-          Adicionar peÃ§as
+          Adicionar pe?as
         </button>
 
         <select onChange={(e) => e.target.value && applyTemplate(e.target.value as any)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600" defaultValue="">
@@ -945,7 +945,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           <option value="lixeira">Lixeira de embutir</option>
           <option value="torre_tomada">Torre de tomada</option>
         </select>
-        <input value={cutoutWidth} onChange={(e) => setCutoutWidth(e.target.value)} className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Larg./diÃ¢m." />
+        <input value={cutoutWidth} onChange={(e) => setCutoutWidth(e.target.value)} className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Larg./di?m." />
         <input value={cutoutHeight} onChange={(e) => setCutoutHeight(e.target.value)} className="w-20 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Altura" disabled={cutoutType === 'torneira' || cutoutType === 'torre_tomada'} />
 
         <button type="button" onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value * 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomIn className="h-4 w-4" /></button>
@@ -960,8 +960,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <div className="fixed right-6 top-1/2 z-[130] flex max-h-[86vh] w-[380px] max-w-[calc(100vw-48px)] -translate-y-1/2 flex-col rounded-[32px] border border-slate-100 bg-white p-6 shadow-2xl">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-display text-xl font-bold text-slate-900">Adicionar peÃ§as</h3>
-                <p className="mt-1 text-sm text-slate-400">Escolha frontÃ£o, saia, virada ou pé de bancada para cada lado criado.</p>
+                <h3 className="font-display text-xl font-bold text-slate-900">Adicionar pe?as</h3>
+                <p className="mt-1 text-sm text-slate-400">Escolha front?o, saia, virada ou pé de bancada para cada lado criado.</p>
               </div>
               <button type="button" onClick={() => setShowPiecesPanel(false)} className="rounded-xl bg-slate-50 p-2 text-slate-400 hover:text-slate-700">
                 <X className="h-5 w-5" />
@@ -1071,10 +1071,10 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           <button type="button" onClick={handleMeasureSubmit} className="rounded-xl bg-brand-primary p-2 text-white"><Check className="h-4 w-4" /></button>
         </div>
         <div className="absolute right-4 top-4 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Ãrea principal</div>
-          <div className="text-2xl font-display font-bold text-brand-primary">{area.toFixed(4)} mÂ²</div>
-          <div className="mt-2 text-xs text-slate-500">Adicionais: {additionalArea.toFixed(4)} mÂ²</div>
-          <div className="text-xs font-bold text-slate-700">Total: {totalArea.toFixed(4)} mÂ²</div>
+          <div className="text-xs font-bold uppercase tracking-widest text-slate-400">?rea principal</div>
+          <div className="text-2xl font-display font-bold text-brand-primary">{area.toFixed(4)} m?</div>
+          <div className="mt-2 text-xs text-slate-500">Adicionais: {additionalArea.toFixed(4)} m?</div>
+          <div className="text-xs font-bold text-slate-700">Total: {totalArea.toFixed(4)} m?</div>
         </div>
         {showHelp && (
           <div className="absolute left-4 top-4 w-56 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl">
@@ -1084,9 +1084,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             </div>
             <div className="space-y-2 text-xs font-semibold text-slate-500">
               <div>Scroll: zoom</div>
-              <div>BotÃ£o do meio: pan</div>
+              <div>Bot?o do meio: pan</div>
               <div>Enter: confirmar medida</div>
-              <div>Esc ou EspaÃ§o: parar desenho</div>
+              <div>Esc ou Espa?o: parar desenho</div>
             </div>
           </div>
         )}
@@ -1220,13 +1220,13 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
               <div className="font-mono text-xl font-bold text-slate-900">{majorSideM.toFixed(2)} m</div>
             </div>
             <div className="rounded-2xl bg-white p-4">
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-400">PersistÃªncia</div>
-              <p className="mt-1 text-xs text-slate-500">O desenho salva pontos, lados, complementos, recortes, Ã¡rea, maior lado e preview PNG.</p>
+              <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Persist?ncia</div>
+              <p className="mt-1 text-xs text-slate-500">O desenho salva pontos, lados, complementos, recortes, ?rea, maior lado e preview PNG.</p>
             </div>
           </div>
           <div className="space-y-2">
             <button type="button" onClick={saveDrawing} disabled={!closed || drawPoints.length < 3} className="w-full rounded-2xl bg-brand-primary py-4 font-bold text-white shadow-lg shadow-brand-primary/20 disabled:opacity-50">
-              Adicionar ao orÃ§amento
+              Adicionar ao or?amento
             </button>
             <button type="button" onClick={onCancel} className="w-full rounded-2xl bg-white py-3 text-sm font-bold text-slate-500 hover:bg-slate-100">
               Cancelar

@@ -151,11 +151,11 @@ export interface QuoteStatusHistory {
 }
 
 export type QuoteStatus =
-  | 'OrÃ§amento'
-  | 'MediÃ§Ã£o'
+  | 'Orçamento'
+  | 'Medição'
   | 'Projeto'
   | 'Aprovado'
-  | 'Produ??o'
+  | 'Produção'
   | 'Acabamento'
   | 'Entrega'
   | 'Finalizado';
@@ -183,7 +183,7 @@ export interface DrawingCutout {
 
 export interface SculptedSink {
   active: boolean;
-  type: 'Simples' | 'Com rampa' | 'VÃ¡lvula oculta' | 'Cuba dupla';
+  type: 'Simples' | 'Com rampa' | 'Válvula oculta' | 'Cuba dupla';
   quantity: number;
   width: number;
   depth: number;
@@ -309,7 +309,7 @@ export interface InventoryItem {
   thickness: number;
   area: number;
   cost: number;
-  status: 'DisponÃ­vel' | 'Reservada' | 'Usada' | 'Retalho' | 'Descarte';
+  status: 'Disponível' | 'Reservada' | 'Usada' | 'Retalho' | 'Descarte';
   notes: string;
   photoUrl?: string;
 }

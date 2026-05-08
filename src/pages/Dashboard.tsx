@@ -11,12 +11,12 @@ import {normalizeQuoteStatus, quoteStatusColor} from '../lib/quoteStatus';
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
 const statusGroups: Record<ClientStage, {label: string; dot: string; bg: string; statuses: QuoteStatus[]}> = {
-  pre: {label: 'OrÃ§amento', dot: 'bg-blue-500', bg: 'bg-blue-50 text-blue-700', statuses: ['OrÃ§amento', 'MediÃ§Ã£o', 'Projeto']},
+  pre: {label: 'Orçamento', dot: 'bg-blue-500', bg: 'bg-blue-50 text-blue-700', statuses: ['Orçamento', 'Medição', 'Projeto']},
   approved: {label: 'Aprovado', dot: 'bg-violet-500', bg: 'bg-violet-50 text-violet-700', statuses: ['Aprovado']},
-  production: {label: 'Produ??o', dot: 'bg-zinc-900', bg: 'bg-zinc-100 text-zinc-700', statuses: ['Produ??o']},
+  production: {label: 'Produção', dot: 'bg-zinc-900', bg: 'bg-zinc-100 text-zinc-700', statuses: ['Produção']},
   ready: {label: 'Acabamento/Entrega', dot: 'bg-amber-700', bg: 'bg-amber-50 text-amber-800', statuses: ['Acabamento', 'Entrega']},
   done: {label: 'Finalizado', dot: 'bg-emerald-500', bg: 'bg-emerald-50 text-emerald-700', statuses: ['Finalizado']},
-  none: {label: 'Sem orÃ§amento', dot: 'bg-slate-300', bg: 'bg-slate-50 text-slate-500', statuses: []},
+  none: {label: 'Sem orçamento', dot: 'bg-slate-300', bg: 'bg-slate-50 text-slate-500', statuses: []},
 };
 
 const normalizeStatus = normalizeQuoteStatus;
@@ -34,7 +34,7 @@ const quoteStage = (quote?: Quote): ClientStage => {
   const status = normalizeStatus(quote.status);
   if (status === 'Finalizado') return 'done';
   if (status === 'Acabamento' || status === 'Entrega') return 'ready';
-  if (status === 'Produ??o') return 'production';
+  if (status === 'Produção') return 'production';
   if (status === 'Aprovado') return 'approved';
   return 'pre';
 };
@@ -185,7 +185,7 @@ export const Dashboard: React.FC = () => {
         const measurementDate = toDate(quote.measurementDate);
         const deliveryDate = toDate(quote.deliveryDate);
         return [
-          measurementDate ?{quote, date: measurementDate, type: 'MediÃ§Ã£o'} : null,
+          measurementDate ?{quote, date: measurementDate, type: 'Medição'} : null,
           deliveryDate ?{quote, date: deliveryDate, type: 'Entrega'} : null,
         ].filter(Boolean) as Array<{quote: Quote; date: Date; type: string}>;
       })
@@ -196,8 +196,8 @@ export const Dashboard: React.FC = () => {
   }, [quotes]);
 
   const stats = [
-    {label: 'OrÃ§amentos', value: quotes.length, icon: FileText, color: 'text-brand-primary', bg: 'bg-brand-primary/10', path: '/quotes'},
-    {label: 'Projetos', value: quotes.filter((quote) => { const s = normalizeStatus(quote.status); return s === 'Aprovado' || s === 'Produ??o' || s === 'Acabamento' || s === 'Entrega' || s === 'Finalizado'; }).length, icon: FolderKanban, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/projects'},
+    {label: 'Orçamentos', value: quotes.length, icon: FileText, color: 'text-brand-primary', bg: 'bg-brand-primary/10', path: '/quotes'},
+    {label: 'Projetos', value: quotes.filter((quote) => { const s = normalizeStatus(quote.status); return s === 'Aprovado' || s === 'Produção' || s === 'Acabamento' || s === 'Entrega' || s === 'Finalizado'; }).length, icon: FolderKanban, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/projects'},
     {label: 'Clientes', value: clients.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/clients'},
     {label: 'Materiais', value: materialsCount, icon: Package, color: 'text-purple-600', bg: 'bg-purple-50', path: '/materials'},
     {label: 'Itens em Estoque', value: inventory.length, icon: Database, color: 'text-amber-600', bg: 'bg-amber-50', path: '/inventory'},
@@ -294,7 +294,7 @@ export const Dashboard: React.FC = () => {
                 onClick={() => navigate('/calendar')}
                 className="w-full rounded-2xl bg-green-50 p-4 text-left text-sm font-semibold text-green-700 hover:bg-green-100 transition-all"
               >
-                Nenhum prazo crÃ­tico no momento.
+                Nenhum prazo crítico no momento.
               </button>
             )}
           </div>
@@ -307,7 +307,7 @@ export const Dashboard: React.FC = () => {
             </div>
             <div>
               <h3 className="font-display font-bold text-lg text-slate-800">Contagem regressiva</h3>
-              <p className="text-xs text-slate-400">PrÃ³ximas mediÃ§Ãµes e entregas do calendÃ¡rio.</p>
+              <p className="text-xs text-slate-400">Próximas medições e entregas do calendário.</p>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -321,7 +321,7 @@ export const Dashboard: React.FC = () => {
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{event.type}</div>
                 <div className="mt-1 font-bold text-sm text-slate-900">{event.quote.clientName}</div>
                 <div className="mt-1 text-xs font-bold text-brand-primary">
-                  {event.daysLeft === 0 ?'Ã‰ hoje' : `daqui a ${event.daysLeft} dia${event.daysLeft > 1 ?'s' : ''}`}
+                  {event.daysLeft === 0 ?'É hoje' : `daqui a ${event.daysLeft} dia${event.daysLeft > 1 ?'s' : ''}`}
                 </div>
               </button>
             ))}
@@ -331,7 +331,7 @@ export const Dashboard: React.FC = () => {
                 onClick={() => navigate('/calendar')}
                 className="md:col-span-2 rounded-2xl bg-slate-50 p-4 text-left text-sm font-semibold text-slate-400 hover:bg-slate-100 transition-all"
               >
-                Nenhuma mediÃ§Ã£o ou entrega futura cadastrada.
+                Nenhuma medição ou entrega futura cadastrada.
               </button>
             )}
           </div>
@@ -414,7 +414,7 @@ export const Dashboard: React.FC = () => {
         <div className="mb-5 flex items-center justify-between">
           <div>
             <h2 className="font-display font-bold text-lg text-slate-800">Controle de clientes</h2>
-            <p className="text-sm text-slate-400">Resumo interno de qualidade, produÃ§Ã£o e entrega.</p>
+            <p className="text-sm text-slate-400">Resumo interno de qualidade, produção e entrega.</p>
           </div>
           <button type="button" onClick={() => navigate('/clients')} className="text-xs font-bold uppercase tracking-widest text-brand-primary hover:underline">
             Abrir clientes
@@ -441,12 +441,12 @@ export const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
           <div className="p-6 border-b border-slate-50 flex items-center justify-between">
-            <h2 className="font-display font-bold text-lg text-slate-800">OrÃ§amentos Recentes</h2>
+            <h2 className="font-display font-bold text-lg text-slate-800">Orçamentos Recentes</h2>
             <button
               type="button"
               onClick={() => navigate('/quotes')}
               className="p-2 text-slate-300 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-all"
-              title="Abrir orÃ§amentos"
+              title="Abrir orçamentos"
             >
               <TrendingUp className="w-5 h-5" />
             </button>
@@ -467,7 +467,7 @@ export const Dashboard: React.FC = () => {
                     key={quote.id}
                     onClick={() => navigate(`/quotes/edit/${quote.id}`)}
                     className="hover:bg-slate-50/50 transition-colors cursor-pointer"
-                    title="Abrir orÃ§amento"
+                    title="Abrir orçamento"
                   >
                     <td className="px-6 py-4">
                       <div className="font-semibold text-slate-900">{quote.clientName}</div>
@@ -487,7 +487,7 @@ export const Dashboard: React.FC = () => {
                 {!loading && recentQuotes.length === 0 && (
                   <tr>
                     <td colSpan={3} className="px-6 py-10 text-center text-slate-400">
-                      Nenhum orÃ§amento cadastrado.
+                      Nenhum orçamento cadastrado.
                     </td>
                   </tr>
                 )}
@@ -507,10 +507,10 @@ export const Dashboard: React.FC = () => {
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-display font-bold text-lg text-slate-800">Compra pendente para orÃ§amento aprovado</h3>
+                <h3 className="font-display font-bold text-lg text-slate-800">Compra pendente para orçamento aprovado</h3>
                 <p className="text-sm text-slate-500 mt-1">
                   {pendingPurchases.length > 0
-                    ?`${pendingPurchases.length} material(is) com falta de Ã¡rea Â· ${totalPendingPurchaseArea.toFixed(2)} mÂ²`
+                    ?`${pendingPurchases.length} material(is) com falta de ?rea ? ${totalPendingPurchaseArea.toFixed(2)} m²`
                     : 'Nenhuma compra pendente no momento.'}
                 </p>
               </div>
@@ -548,7 +548,7 @@ export const Dashboard: React.FC = () => {
                   onClick={() => navigate('/calendar')}
                   className="w-full rounded-2xl bg-green-50 p-4 text-left text-sm font-semibold text-green-700 hover:bg-green-100 transition-all"
                 >
-                  Nenhum prazo crÃ­tico no momento.
+                  Nenhum prazo crítico no momento.
                 </button>
               )}
             </div>
@@ -565,7 +565,7 @@ export const Dashboard: React.FC = () => {
             <div>
               <h3 className="font-display font-bold text-lg text-slate-800">Em Aberto</h3>
               <p className="text-slate-400 text-sm">
-                VocÃª possui {openQuotes.length} orÃ§amentos aguardando aprovaÃ§Ã£o.
+                Voc? possui {openQuotes.length} orçamentos aguardando aprovado.
               </p>
             </div>
           </button>
@@ -578,13 +578,13 @@ export const Dashboard: React.FC = () => {
             <div className="text-4xl font-display font-bold mb-1">
               {formatCurrency(totalValue)}
             </div>
-            <div className="text-xs opacity-50 mb-6">Total em orÃ§amentos fechados</div>
+            <div className="text-xs opacity-50 mb-6">Total em orçamentos fechados</div>
             <button
               type="button"
               onClick={() => navigate('/history')}
               className="w-full bg-white/10 hover:bg-white/20 py-3 rounded-2xl text-xs font-bold uppercase tracking-widest transition-all"
             >
-              Ver RelatÃ³rio Detalhado
+              Ver Relatório Detalhado
             </button>
           </div>
         </div>

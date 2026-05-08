@@ -8,21 +8,21 @@ const normalize = (value: unknown) =>
     .replace(/[\u0300-\u036f]/g, '');
 
 const cityHolidayByMd: Record<string, Record<string, string>> = {
-  'sao paulo': {'01-25': 'Anivers?rio de S?o Paulo'},
-  'aruja': {'06-08': 'Anivers?rio de Aruj?'},
-  'mogi das cruzes': {'09-01': 'Anivers?rio de Mogi das Cruzes'},
-  'mogi': {'09-01': 'Anivers?rio de Mogi das Cruzes'},
-  'suzano': {'04-02': 'Anivers?rio de Suzano'},
-  'poa': {'03-26': 'Anivers?rio de Po?'},
-  'po?': {'03-26': 'Anivers?rio de Po?'},
-  'itaquaquecetuba': {'09-08': 'Anivers?rio de Itaquaquecetuba'},
-  'itaqua': {'09-08': 'Anivers?rio de Itaquaquecetuba'},
-  'ferraz de vasconcelos': {'10-14': 'Anivers?rio de Ferraz de Vasconcelos'},
-  'guarulhos': {'12-08': 'Anivers?rio de Guarulhos'},
-  'biritiba mirim': {'05-05': 'Anivers?rio de Biritiba Mirim'},
-  'salesopolis': {'11-30': 'Anivers?rio de Sales?polis'},
-  'sales?polis': {'11-30': 'Anivers?rio de Sales?polis'},
-  'santa isabel': {'07-10': 'Anivers?rio de Santa Isabel'},
+  'sao paulo': {'01-25': 'Aniversário de São Paulo'},
+  'aruja': {'06-08': 'Aniversário de Arujá'},
+  'mogi das cruzes': {'09-01': 'Aniversário de Mogi das Cruzes'},
+  'mogi': {'09-01': 'Aniversário de Mogi das Cruzes'},
+  'suzano': {'04-02': 'Aniversário de Suzano'},
+  'poa': {'03-26': 'Aniversário de Poá'},
+  'poá': {'03-26': 'Aniversário de Poá'},
+  'itaquaquecetuba': {'09-08': 'Aniversário de Itaquaquecetuba'},
+  'itaqua': {'09-08': 'Aniversário de Itaquaquecetuba'},
+  'ferraz de vasconcelos': {'10-14': 'Aniversário de Ferraz de Vasconcelos'},
+  'guarulhos': {'12-08': 'Aniversário de Guarulhos'},
+  'biritiba mirim': {'05-05': 'Aniversário de Biritiba Mirim'},
+  'salesopolis': {'11-30': 'Aniversário de Salesópolis'},
+  'salesópolis': {'11-30': 'Aniversário de Salesópolis'},
+  'santa isabel': {'07-10': 'Aniversário de Santa Isabel'},
 };
 
 const addDays = (date: Date, days: number) => {
@@ -84,9 +84,5 @@ export const getHolidayInfo = (date: Date, city?: string) => {
   const nationalMap = getHolidayMapForYear(date.getFullYear());
   const national = nationalMap[keyFromDate(date)] || '';
   const cityName = getCityHolidayName(date, city);
-  return {
-    national,
-    city: cityName,
-    isHoliday: Boolean(national || cityName),
-  };
+  return { national, city: cityName, isHoliday: Boolean(national || cityName) };
 };

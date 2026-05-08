@@ -316,7 +316,7 @@ export const ReportsPage: React.FC = () => {
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">
                       {date ?date.toLocaleDateString('pt-BR') : 'Sem data'}
                     </div>
-                    <div className="text-xs text-slate-400">Usu?rio: {event.userName || 'Não informado'}</div>
+                    <div className="text-xs text-slate-400">Usuário: {event.userName || 'Não informado'}</div>
                   </div>
                 </div>
               </div>

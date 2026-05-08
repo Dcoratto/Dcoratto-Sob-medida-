@@ -70,7 +70,7 @@ export const QuoteEditor: React.FC = () => {
     : selectedBaseMaterial;
   const selectedClient = clients.find(c => c.id === clientId);
   const { calculatePieceArea, calculateTotal, calculateSculptedSink } = useQuoteCalculator(settings, selectedMaterial);
-  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usu?rio';
+  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
   
   const selectedPaymentAdjustment = settings.paymentMethods.find(m => m.name === paymentMethod)?.adjustment || 0;
   const totalPrice = calculateTotal(pieces, cutouts, selectedPaymentAdjustment);
@@ -189,7 +189,7 @@ export const QuoteEditor: React.FC = () => {
   }, [id, user?.uid]);
 
   useEffect(() => {
-    if (!id && !responsible && currentUserName !== 'Usu?rio') {
+    if (!id && !responsible && currentUserName !== 'Usuário') {
       setResponsible(currentUserName);
     }
   }, [currentUserName, id, responsible]);

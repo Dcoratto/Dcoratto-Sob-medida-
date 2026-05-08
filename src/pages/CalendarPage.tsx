@@ -29,6 +29,7 @@ interface ManualCalendarEvent {
   title: string;
   description?: string;
   date: any;
+  dateKey?: string;
   clientId?: string;
   clientName?: string;
   city?: string;
@@ -46,6 +47,12 @@ const toDate = (value: any) => {
 
 const keyOf = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 const toInputDate = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+const parseDateKey = (value?: string) => {
+  if (!value || !value.includes('-')) return null;
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
+};
 
 const parseInputDate = (value: string) => {
   if (!value) return null;
@@ -133,7 +140,7 @@ export const CalendarPage: React.FC = () => {
       if (deliveryDate) list.push({id: `${quote.id}-entrega`, quoteId: quote.id, clientId: quote.clientId, clientName: quote.clientName, city: client?.city, date: deliveryDate, type: 'entrega', status: quote.status, condominiumId: client?.condominiumId});
     });
     manualEvents.forEach((manualEvent) => {
-      const date = toDate(manualEvent.date);
+      const date = parseDateKey(manualEvent.dateKey) || toDate(manualEvent.date);
       if (!date) return;
       list.push({id: `manual-${manualEvent.id}`, date, type: 'manual', title: manualEvent.title, description: manualEvent.description, clientId: manualEvent.clientId, clientName: manualEvent.clientName, city: manualEvent.city, status: 'Evento manual', eventTime: manualEvent.eventTime});
     });
@@ -205,6 +212,7 @@ export const CalendarPage: React.FC = () => {
         title,
         description: newEventDescription.trim(),
         date: Timestamp.fromDate(selectedDate),
+        dateKey: keyOf(selectedDate),
         eventTime: `${String(selectedDate.getHours()).padStart(2, '0')}:${String(selectedDate.getMinutes()).padStart(2, '0')}`,
         clientId: client?.id || '',
         clientName: client?.name || '',

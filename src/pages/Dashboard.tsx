@@ -45,6 +45,12 @@ const toDate = (value: any): Date | null => {
   if (typeof value.toDate === 'function') return value.toDate();
   return null;
 };
+const parseDateKey = (value?: string): Date | null => {
+  if (!value || !value.includes('-')) return null;
+  const [year, month, day] = value.split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day, 12, 0, 0, 0);
+};
 
 interface DashboardNote {
   id: string;
@@ -59,6 +65,7 @@ interface ManualCalendarEvent {
   title: string;
   description?: string;
   date: any;
+  dateKey?: string;
   clientId?: string;
   clientName?: string;
 }
@@ -215,7 +222,7 @@ export const Dashboard: React.FC = () => {
       }
     });
     manualEvents.forEach((event) => {
-      const date = toDate(event.date);
+      const date = parseDateKey(event.dateKey) || toDate(event.date);
       if (!date) return;
       events.push({
         id: `manual-${event.id}`,

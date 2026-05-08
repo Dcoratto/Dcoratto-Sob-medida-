@@ -21,9 +21,11 @@ const pieceArea = (piece: QuotePiece) => Number(piece.totalArea || piece.manualA
 const pieceImage = (piece: QuotePiece) => piece.proposalImageUrl?.trim() || piece.previewUrl || '';
 
 const sideLabel = (type: string) => ({
-  frontao: 'Frontão',
+  frontao: 'FrontÃ£o',
   saia: 'Saia',
   virada: 'Virada',
+  pe: 'Pé de bancada',
+  guarnicao: 'Guarnição',
   acabamento: 'Acabamento',
 }[type] || type);
 
@@ -67,7 +69,7 @@ export const PremiumProposalPage: React.FC = () => {
     if (selectedMaterial) {
       cards.set(selectedMaterial.id, {
         name: selectedMaterial.name,
-        category: [selectedMaterial.category, selectedMaterial.provider].filter(Boolean).join(' · ') || 'Material principal',
+        category: [selectedMaterial.category, selectedMaterial.provider].filter(Boolean).join(' Â· ') || 'Material principal',
         image: quote?.pieces?.find((piece) => pieceImage(piece)) ? pieceImage(quote.pieces.find((piece) => pieceImage(piece))!) : undefined,
         area: 0,
         pieces: [],
@@ -108,9 +110,9 @@ export const PremiumProposalPage: React.FC = () => {
       <div className="flex min-h-screen items-center justify-center bg-[#050505] p-6 text-white">
         <div className="max-w-md rounded-3xl border border-white/10 bg-white/5 p-8 text-center">
           <FileText className="mx-auto mb-4 h-10 w-10 text-[#D4A853]" />
-          <h1 className="text-2xl font-display font-bold">Proposta não encontrada</h1>
+          <h1 className="text-2xl font-display font-bold">Proposta nÃ£o encontrada</h1>
           <button type="button" onClick={() => navigate('/quotes')} className="mt-6 rounded-full bg-[#D4A853] px-5 py-3 text-sm font-bold text-black">
-            Voltar aos orçamentos
+            Voltar aos orÃ§amentos
           </button>
         </div>
       </div>
@@ -137,7 +139,7 @@ export const PremiumProposalPage: React.FC = () => {
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
           <button type="button" onClick={() => navigate('/quotes')} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/70 transition hover:text-[#D4A853]">
             <ArrowLeft className="h-4 w-4" />
-            Orçamentos
+            OrÃ§amentos
           </button>
           <div className="hidden max-w-3xl items-center gap-5 overflow-x-auto md:flex">
             {navItems.map((item) => (
@@ -161,28 +163,28 @@ export const PremiumProposalPage: React.FC = () => {
           <div>
             <Eyebrow>Manifesto de design</Eyebrow>
             <h2 className="mt-4 font-display text-4xl font-bold leading-tight md:text-5xl">
-              Sonhos únicos merecem uma apresentação <span className="italic text-[#D4A853]">memorável</span>
+              Sonhos Ãºnicos merecem uma apresentaÃ§Ã£o <span className="italic text-[#D4A853]">memorÃ¡vel</span>
             </h2>
             <p className="mt-6 max-w-xl text-sm leading-relaxed text-white/52 print:text-slate-600">
-              Esta proposta reúne as informações técnicas e comerciais do projeto com leitura clara, visual sofisticado e foco na percepção de valor do acabamento sob medida.
+              Esta proposta reÃºne as informaÃ§Ãµes tÃ©cnicas e comerciais do projeto com leitura clara, visual sofisticado e foco na percepÃ§Ã£o de valor do acabamento sob medida.
             </p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 print:border-slate-200 print:bg-white">
             <InfoRow label="Cliente" value={safe(quote.clientName)} />
             <InfoRow label="Telefone" value={safe(quote.phone)} />
-            <InfoRow label="Endereço" value={safe(quote.address)} />
+            <InfoRow label="EndereÃ§o" value={safe(quote.address)} />
             <InfoRow label="Ambiente" value={safe(quote.environment)} />
             <InfoRow label="Status" value={safe(quote.status)} />
-            <InfoRow label="Responsável" value={safe(quote.responsibleUserName || quote.responsible)} />
+            <InfoRow label="ResponsÃ¡vel" value={safe(quote.responsibleUserName || quote.responsible)} />
             <InfoRow label="Validade" value={format(toDate(quote.validityDate), 'dd/MM/yyyy', {locale: ptBR})} />
-            <InfoRow label="Emissão" value={format(toDate(quote.createdAt), 'dd/MM/yyyy', {locale: ptBR})} last />
+            <InfoRow label="EmissÃ£o" value={format(toDate(quote.createdAt), 'dd/MM/yyyy', {locale: ptBR})} last />
           </div>
         </div>
       </section>
 
       <section id="materiais" className="px-6 py-24 print:py-12">
         <div className="mx-auto max-w-5xl">
-          <SectionHeading eyebrow="Seleção de materiais" title="Materiais selecionados" />
+          <SectionHeading eyebrow="SeleÃ§Ã£o de materiais" title="Materiais selecionados" />
           <div className="grid gap-5 md:grid-cols-3">
             {materialCards.map((material, index) => (
               <div key={`${material.name}-${index}`} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] print:border-slate-200 print:bg-white">
@@ -200,12 +202,12 @@ export const PremiumProposalPage: React.FC = () => {
                   <p className="mt-2 text-xs text-white/40 print:text-slate-500">{material.category}</p>
                   <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/5 pt-4 print:border-slate-100">
                     <div>
-                      <div className="text-[10px] font-bold uppercase tracking-widest text-white/28 print:text-slate-400">Área</div>
-                      <div className="mt-1 font-mono text-sm font-bold text-[#D4A853]">{formatNumber(material.area, 4)} m²</div>
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-white/28 print:text-slate-400">Ãrea</div>
+                      <div className="mt-1 font-mono text-sm font-bold text-[#D4A853]">{formatNumber(material.area, 4)} mÂ²</div>
                     </div>
                     <div>
                       <div className="text-[10px] font-bold uppercase tracking-widest text-white/28 print:text-slate-400">Uso</div>
-                      <div className="mt-1 text-xs font-semibold text-white/62 print:text-slate-600">{material.pieces.length} peça(s)</div>
+                      <div className="mt-1 text-xs font-semibold text-white/62 print:text-slate-600">{material.pieces.length} peÃ§a(s)</div>
                     </div>
                   </div>
                 </div>
@@ -213,7 +215,7 @@ export const PremiumProposalPage: React.FC = () => {
             ))}
             {materialCards.length === 0 && (
               <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-8 text-center text-sm font-semibold text-white/42 md:col-span-3">
-                Nenhum material vinculado ao orçamento.
+                Nenhum material vinculado ao orÃ§amento.
               </div>
             )}
           </div>
@@ -240,7 +242,7 @@ export const PremiumProposalPage: React.FC = () => {
       <section id="resumo" className="relative px-6 py-28 print:py-12">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(212,168,83,0.16),transparent_24%),linear-gradient(to_bottom,transparent,rgba(212,168,83,0.04),transparent)] print:hidden" />
         <div className="relative mx-auto max-w-4xl">
-          <SectionHeading eyebrow="Consolidação" title="Resumo do investimento" />
+          <SectionHeading eyebrow="ConsolidaÃ§Ã£o" title="Resumo do investimento" />
           <div className="overflow-hidden rounded-3xl border border-[#D4A853]/20 bg-black/35 backdrop-blur print:border-slate-200 print:bg-white">
             {(quote.pieces || []).map((piece, index) => (
               <div key={piece.id} className="flex items-center justify-between gap-4 border-b border-white/[0.04] px-6 py-4 print:border-slate-100">
@@ -248,13 +250,13 @@ export const PremiumProposalPage: React.FC = () => {
                   <span className="font-mono text-xs text-[#D4A853]/45">{String(index + 1).padStart(2, '0')}</span>
                   <span className="text-sm font-semibold text-white/78 print:text-slate-800">{piece.name}</span>
                 </div>
-                <span className="font-mono text-sm font-semibold text-white/70 print:text-slate-600">{formatNumber(pieceArea(piece), 4)} m²</span>
+                <span className="font-mono text-sm font-semibold text-white/70 print:text-slate-600">{formatNumber(pieceArea(piece), 4)} mÂ²</span>
               </div>
             ))}
             <div className="grid gap-4 border-t border-[#D4A853]/20 bg-[#D4A853]/[0.05] p-6 md:grid-cols-3">
               <SummaryItem label="Recortes" value={`${cutoutCount(quote)} un`} />
               <SummaryItem label="Pagamento" value={safe(quote.paymentMethod)} />
-              <SummaryItem label="Prazo" value={`${quote.deliveryDays || 0} dias úteis`} />
+              <SummaryItem label="Prazo" value={`${quote.deliveryDays || 0} dias Ãºteis`} />
             </div>
             <div className="flex items-end justify-between border-t border-[#D4A853]/30 px-6 py-6">
               <span className="font-display text-xl font-bold text-[#D4A853]">Investimento total</span>
@@ -266,20 +268,20 @@ export const PremiumProposalPage: React.FC = () => {
 
       <section className="px-6 pb-28 print:pb-12">
         <div className="mx-auto max-w-4xl">
-          <SectionHeading eyebrow="Condições" title="Condições de pagamento" />
+          <SectionHeading eyebrow="CondiÃ§Ãµes" title="CondiÃ§Ãµes de pagamento" />
           <div className="grid gap-6 md:grid-cols-2">
-            <PaymentCard title="Cartão de crédito" subtitle="Parcelamento facilitado" lines={[`Entrada: ${formatCurrency(halfValue)}`, `9 parcelas de: ${formatCurrency(halfValue)}`, `Total: ${formatCurrency(quote.totalPrice || 0)}`]} />
-            <PaymentCard title="Pagamento à vista" subtitle="Desconto especial" badge="10% OFF" lines={[`Desconto: - ${formatCurrency((quote.totalPrice || 0) * 0.1)}`, `À vista: ${formatCurrency(cashValue)}`]} highlight />
+            <PaymentCard title="CartÃ£o de crÃ©dito" subtitle="Parcelamento facilitado" lines={[`Entrada: ${formatCurrency(halfValue)}`, `9 parcelas de: ${formatCurrency(halfValue)}`, `Total: ${formatCurrency(quote.totalPrice || 0)}`]} />
+            <PaymentCard title="Pagamento Ã  vista" subtitle="Desconto especial" badge="10% OFF" lines={[`Desconto: - ${formatCurrency((quote.totalPrice || 0) * 0.1)}`, `Ã€ vista: ${formatCurrency(cashValue)}`]} highlight />
           </div>
 
           <div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.035] p-8 print:border-slate-200 print:bg-white">
-            <h3 className="mb-6 font-display text-xl font-bold">Observações importantes</h3>
+            <h3 className="mb-6 font-display text-xl font-bold">ObservaÃ§Ãµes importantes</h3>
             <div className="space-y-4 text-sm leading-relaxed text-white/52 print:text-slate-600">
-              <p><span className="mr-2 text-[#D4A853]">01.</span>Valores incluem material e mão de obra conforme discriminado em cada ambiente.</p>
-              <p><span className="mr-2 text-[#D4A853]">02.</span>Cubas, eletros e torneiras não fazem parte deste orçamento, salvo quando descritos nas observações comerciais.</p>
+              <p><span className="mr-2 text-[#D4A853]">01.</span>Valores incluem material e mÃ£o de obra conforme discriminado em cada ambiente.</p>
+              <p><span className="mr-2 text-[#D4A853]">02.</span>Cubas, eletros e torneiras nÃ£o fazem parte deste orÃ§amento, salvo quando descritos nas observaÃ§Ãµes comerciais.</p>
               <p><span className="mr-2 text-[#D4A853]">03.</span>Furos, recortes e acabamentos especiais seguem as quantidades informadas no projeto.</p>
-              <p><span className="mr-2 text-[#D4A853]">04.</span>Prazo de entrega: até {quote.deliveryDays || 0} dias úteis após confirmação do pedido e medição final.</p>
-              <p><span className="mr-2 text-[#D4A853]">05.</span>Proposta válida até {format(toDate(quote.validityDate), 'dd/MM/yyyy', {locale: ptBR})}.</p>
+              <p><span className="mr-2 text-[#D4A853]">04.</span>Prazo de entrega: atÃ© {quote.deliveryDays || 0} dias Ãºteis apÃ³s confirmaÃ§Ã£o do pedido e mediÃ§Ã£o final.</p>
+              <p><span className="mr-2 text-[#D4A853]">05.</span>Proposta vÃ¡lida atÃ© {format(toDate(quote.validityDate), 'dd/MM/yyyy', {locale: ptBR})}.</p>
               {quote.commercialNotes && <p><span className="mr-2 text-[#D4A853]">06.</span>{quote.commercialNotes}</p>}
             </div>
           </div>
@@ -288,10 +290,10 @@ export const PremiumProposalPage: React.FC = () => {
 
       <footer className="border-t border-white/5 px-6 py-14 text-center print:border-slate-200">
         <div className="mx-auto max-w-4xl">
-          <div className="font-display text-2xl font-bold">{settings.companyName || 'D’coratto Sob Medida'}</div>
-          <p className="mt-3 text-sm text-white/35 print:text-slate-500">{[settings.phone, settings.email, settings.address].filter(Boolean).join(' · ')}</p>
+          <div className="font-display text-2xl font-bold">{settings.companyName || 'Dâ€™coratto Sob Medida'}</div>
+          <p className="mt-3 text-sm text-white/35 print:text-slate-500">{[settings.phone, settings.email, settings.address].filter(Boolean).join(' Â· ')}</p>
           <div className="mx-auto my-8 h-px w-20 bg-gradient-to-r from-transparent via-[#D4A853] to-transparent" />
-          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/20 print:text-slate-400">Proposta premium gerada pelo sistema D’coratto</p>
+          <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-white/20 print:text-slate-400">Proposta premium gerada pelo sistema Dâ€™coratto</p>
         </div>
       </footer>
     </main>
@@ -308,18 +310,18 @@ const Hero = ({quote, settings, totalPieces, quoteNumber, totalAdditionsArea}: {
       {settings.logoUrl || '/logo.png' ? (
         <img src={settings.logoUrl || '/logo.png'} alt={settings.companyName} className="mb-8 h-16 max-w-[220px] object-contain opacity-85" />
       ) : (
-        <div className="mb-8 text-sm font-bold uppercase tracking-[0.4em] text-white/35">{settings.companyName || 'D’coratto Sob Medida'}</div>
+        <div className="mb-8 text-sm font-bold uppercase tracking-[0.4em] text-white/35">{settings.companyName || 'Dâ€™coratto Sob Medida'}</div>
       )}
       <div className="mb-5 inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.42em] text-[#D4A853]">
         <Sparkles className="h-4 w-4" />
-        Proposta exclusiva · Marmoraria
+        Proposta exclusiva Â· Marmoraria
       </div>
       <h1 className="max-w-5xl text-balance font-display text-5xl font-bold leading-none md:text-7xl">
         {safe(quote.clientName)}
       </h1>
       <div className="my-8 h-px w-28 bg-gradient-to-r from-transparent via-[#D4A853] to-transparent" />
       <p className="max-w-2xl text-lg leading-relaxed text-white/62">
-        Uma apresentação premium do seu projeto com estética contemporânea, acabamento sofisticado e experiência visual pensada para traduzir exclusividade, conforto e valor percebido.
+        Uma apresentaÃ§Ã£o premium do seu projeto com estÃ©tica contemporÃ¢nea, acabamento sofisticado e experiÃªncia visual pensada para traduzir exclusividade, conforto e valor percebido.
       </p>
       <div className="mt-12 grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
         <MetricCard label="Investimento total" value={formatCurrency(quote.totalPrice || 0)} highlight />
@@ -327,9 +329,9 @@ const Hero = ({quote, settings, totalPieces, quoteNumber, totalAdditionsArea}: {
         <MetricCard label="Pedido" value={quoteNumber} />
       </div>
       <div className="mt-6 grid w-full max-w-3xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
-        <MiniMetric label="Área principal" value={`${formatNumber(quote.totalArea || 0, 4)} m²`} />
-        <MiniMetric label="Adicionais" value={`${formatNumber(totalAdditionsArea, 4)} m²`} />
-        <MiniMetric label="Prazo" value={`${quote.deliveryDays || 0} dias úteis`} />
+        <MiniMetric label="Ãrea principal" value={`${formatNumber(quote.totalArea || 0, 4)} mÂ²`} />
+        <MiniMetric label="Adicionais" value={`${formatNumber(totalAdditionsArea, 4)} mÂ²`} />
+        <MiniMetric label="Prazo" value={`${quote.deliveryDays || 0} dias Ãºteis`} />
       </div>
     </div>
   </section>
@@ -341,23 +343,23 @@ const PieceSection = ({piece, index, materialName, reverse, quoteCutouts}: {key?
     {label: 'Cooktop', count: quoteCutouts?.cooktop || 0},
     {label: 'Cuba embutida', count: quoteCutouts?.sinkUnder || 0},
     {label: 'Cuba sobreposta', count: quoteCutouts?.sinkOver || 0},
-    {label: 'Furação torneira', count: quoteCutouts?.faucetHole || 0},
+    {label: 'FuraÃ§Ã£o torneira', count: quoteCutouts?.faucetHole || 0},
   ].filter((item) => item.count > 0);
   const rows = [
-    {description: 'Pedra principal', measure: `${piece.length || 0} x ${piece.width || 0} cm`, area: `${formatNumber(pieceArea(piece), 4)} m²`, material: materialName, subtotal: 'Incluído'},
+    {description: 'Pedra principal', measure: `${piece.length || 0} x ${piece.width || 0} cm`, area: `${formatNumber(pieceArea(piece), 4)} mÂ²`, material: materialName, subtotal: 'IncluÃ­do'},
     ...(piece.sculptedSink?.active ? [{
       description: `Pia esculpida ${piece.sculptedSink.type}`,
       measure: `${piece.sculptedSink.width || 0} x ${piece.sculptedSink.depth || 0} ${piece.sculptedSink.unit}`,
-      area: `${formatNumber(piece.sculptedSink.calculatedArea || 0, 4)} m²`,
+      area: `${formatNumber(piece.sculptedSink.calculatedArea || 0, 4)} mÂ²`,
       material: `${piece.sculptedSink.quantity || 1} un`,
-      subtotal: 'Incluído',
+      subtotal: 'IncluÃ­do',
     }] : []),
     ...additions.map((side) => ({
       description: sideLabel(side.type),
       measure: side.sideLabel || side.side,
-      area: `${formatNumber(side.areaTotal || side.area || 0, 4)} m²`,
-      material: `${side.height || 0} cm · qtd ${side.quantity || 1}`,
-      subtotal: 'Incluído',
+      area: `${formatNumber(side.areaTotal || side.area || 0, 4)} mÂ²`,
+      material: `${side.height || 0} cm Â· qtd ${side.quantity || 1}`,
+      subtotal: 'IncluÃ­do',
     })),
     ...(piece.cutouts || []).map((cutout) => ({
       description: `Recorte ${cutout.type}`,
@@ -381,7 +383,7 @@ const PieceSection = ({piece, index, materialName, reverse, quoteCutouts}: {key?
       <Eyebrow>Ambiente {String(index + 1).padStart(2, '0')}</Eyebrow>
       <h2 className="mb-2 mt-3 font-display text-3xl font-bold md:text-4xl">{piece.name}</h2>
       <p className="mb-8 text-xs text-white/35 print:text-slate-500">
-        Material: {materialName} · Área: {formatNumber(pieceArea(piece), 4)} m²
+        Material: {materialName} Â· Ãrea: {formatNumber(pieceArea(piece), 4)} mÂ²
       </p>
       <div className={`grid gap-8 lg:grid-cols-12 ${reverse ? 'lg:[&>*:first-child]:order-2' : ''}`}>
         <div className="lg:col-span-5">
@@ -391,7 +393,7 @@ const PieceSection = ({piece, index, materialName, reverse, quoteCutouts}: {key?
                 <img src={pieceImage(piece)} alt={piece.name} className="h-full w-full object-contain bg-white" />
               ) : (
                 <div className="flex h-full items-center justify-center text-center text-xs font-bold uppercase tracking-widest text-white/28 print:text-slate-400">
-                  Adicione uma imagem no orçamento
+                  Adicione uma imagem no orÃ§amento
                 </div>
               )}
             </div>
@@ -401,16 +403,16 @@ const PieceSection = ({piece, index, materialName, reverse, quoteCutouts}: {key?
         <div className="lg:col-span-7">
           <div className="overflow-hidden rounded-xl border border-white/10 bg-black/35 print:border-slate-200 print:bg-white">
             <div className="grid grid-cols-12 gap-2 border-b border-white/5 bg-white/[0.025] px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-white/30 print:border-slate-100 print:text-slate-400">
-              <span className="col-span-4">Descrição</span>
+              <span className="col-span-4">DescriÃ§Ã£o</span>
               <span className="col-span-2 text-center">Medidas</span>
-              <span className="col-span-2 text-center">Área</span>
+              <span className="col-span-2 text-center">Ãrea</span>
               <span className="col-span-2 text-right">Material</span>
               <span className="col-span-2 text-right text-[#D4A853]">Status</span>
             </div>
             {rows.map((row, rowIndex) => <TableRow key={`${row.description}-${rowIndex}`} {...row} />)}
             <div className="flex justify-between border-t border-[#D4A853]/20 bg-[#D4A853]/[0.05] px-4 py-4">
               <span className="text-sm font-semibold text-[#D4A853]">Total {piece.name}</span>
-              <span className="font-mono text-sm font-bold text-[#D4A853]">{formatNumber(pieceArea(piece), 4)} m²</span>
+              <span className="font-mono text-sm font-bold text-[#D4A853]">{formatNumber(pieceArea(piece), 4)} mÂ²</span>
             </div>
           </div>
         </div>
@@ -438,15 +440,15 @@ const FixtureSummary = ({piece}: {piece: QuotePiece}) => {
           <div key={key} className="rounded-lg bg-black/20 p-3 text-xs print:bg-slate-50">
             <div className="font-bold text-white/85 print:text-slate-800">{fixtureLabels[key as keyof typeof fixtureLabels]}</div>
             <div className="mt-1 text-white/45 print:text-slate-500">
-              {[fixture.brand, fixture.model].filter(Boolean).join(' · ') || 'Modelo não informado'}
+              {[fixture.brand, fixture.model].filter(Boolean).join(' Â· ') || 'Modelo nÃ£o informado'}
             </div>
             <div className="mt-1 font-mono text-white/40 print:text-slate-500">
               {[
                 fixture.width ? `L ${fixture.width}` : '',
                 fixture.depth ? `P ${fixture.depth}` : '',
                 fixture.height ? `A ${fixture.height}` : '',
-                fixture.diameter ? `Ø ${fixture.diameter}` : '',
-              ].filter(Boolean).join(' · ') || 'Medidas pendentes'}
+                fixture.diameter ? `Ã˜ ${fixture.diameter}` : '',
+              ].filter(Boolean).join(' Â· ') || 'Medidas pendentes'}
             </div>
           </div>
         ))}
@@ -523,3 +525,4 @@ const PaymentCard = ({title, subtitle, lines, badge, highlight = false}: {title:
     </div>
   </div>
 );
+

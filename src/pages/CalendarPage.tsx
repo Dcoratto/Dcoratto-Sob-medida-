@@ -1,24 +1,34 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {collection, onSnapshot} from 'firebase/firestore';
-import {AlertTriangle, ChevronLeft, ChevronRight, MapPin, Phone, X} from 'lucide-react';
+import {addDoc, collection, onSnapshot, Timestamp} from 'firebase/firestore';
+import {AlertTriangle, ChevronLeft, ChevronRight, MapPin, Phone, Plus, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {Client, CondominiumRule, Quote} from '../types';
 import {cn} from '../lib/utils';
 import {getHolidayInfo} from '../lib/holidays';
 
-type EventType = 'medicao' | 'entrega';
+type EventType = 'medicao' | 'entrega' | 'manual';
 
 interface CalendarEvent {
   id: string;
-  quoteId: string;
-  clientId: string;
-  clientName: string;
+  quoteId?: string;
+  clientId?: string;
+  clientName?: string;
   city?: string;
   date: Date;
   type: EventType;
-  status: string;
+  status?: string;
   condominiumId?: string;
   condominiumName?: string;
+  title?: string;
+  description?: string;
+}
+
+interface ManualCalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  date: any;
+  createdAt?: any;
 }
 
 const toDate = (value: any) => {
@@ -38,21 +48,36 @@ const startOfMonthGrid = (date: Date) => {
   return output;
 };
 
+const toInputDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const CalendarPage: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [condominiums, setCondominiums] = useState<CondominiumRule[]>([]);
+  const [manualEvents, setManualEvents] = useState<ManualCalendarEvent[]>([]);
   const [baseDate, setBaseDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newEventTitle, setNewEventTitle] = useState('');
+  const [newEventDescription, setNewEventDescription] = useState('');
+  const [newEventDate, setNewEventDate] = useState(toInputDate(new Date()));
+  const [isSavingEvent, setIsSavingEvent] = useState(false);
 
   useEffect(() => {
     const unsubQuotes = onSnapshot(collection(db, 'quotes'), (snapshot) => setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote))));
     const unsubClients = onSnapshot(collection(db, 'clients'), (snapshot) => setClients(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Client))));
     const unsubCondominiums = onSnapshot(collection(db, 'condominiums'), (snapshot) => setCondominiums(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as CondominiumRule))));
+    const unsubManualEvents = onSnapshot(collection(db, 'calendarEvents'), (snapshot) => setManualEvents(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as ManualCalendarEvent))));
     return () => {
       unsubQuotes();
       unsubClients();
       unsubCondominiums();
+      unsubManualEvents();
     };
   }, []);
 
@@ -93,8 +118,22 @@ export const CalendarPage: React.FC = () => {
         });
       }
     });
+
+    manualEvents.forEach((manualEvent) => {
+      const date = toDate(manualEvent.date);
+      if (!date) return;
+      list.push({
+        id: `manual-${manualEvent.id}`,
+        date,
+        type: 'manual',
+        title: manualEvent.title,
+        description: manualEvent.description,
+        status: 'Evento manual',
+      });
+    });
+
     return list;
-  }, [clients, quotes]);
+  }, [clients, manualEvents, quotes]);
 
   const days = useMemo(() => {
     const start = startOfMonthGrid(baseDate);
@@ -118,6 +157,7 @@ export const CalendarPage: React.FC = () => {
 
   const restrictions = useMemo(() => {
     return events
+      .filter((event) => event.type !== 'manual')
       .map((event) => {
         const condominium = condominiums.find((item) => item.id === event.condominiumId);
         if (!condominium) return null;
@@ -153,16 +193,67 @@ export const CalendarPage: React.FC = () => {
       .slice(0, 12);
   }, [events, today]);
 
-  const selectedClient = selectedEvent ? clients.find((item) => item.id === selectedEvent.clientId) : null;
+  const deadlineAlerts = useMemo(() => {
+    return upcomingEvents
+      .filter(({daysLeft}) => daysLeft <= 7)
+      .map((item) => ({
+        ...item,
+        level: (item.daysLeft <= 2 ? 'maximo' : 'aviso') as 'maximo' | 'aviso',
+      }));
+  }, [upcomingEvents]);
+
+  const selectedClient = selectedEvent?.clientId ? clients.find((item) => item.id === selectedEvent.clientId) : null;
+
+  const openCreateModal = (date?: Date) => {
+    if (date) {
+      setNewEventDate(toInputDate(date));
+    } else {
+      setNewEventDate(toInputDate(new Date()));
+    }
+    setNewEventTitle('');
+    setNewEventDescription('');
+    setShowCreateModal(true);
+  };
+
+  const handleCreateEvent = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!newEventTitle.trim() || !newEventDate) return;
+
+    const [year, month, day] = newEventDate.split('-').map(Number);
+    const selectedDate = new Date(year, month - 1, day);
+
+    setIsSavingEvent(true);
+    try {
+      await addDoc(collection(db, 'calendarEvents'), {
+        title: newEventTitle.trim(),
+        description: newEventDescription.trim(),
+        date: Timestamp.fromDate(selectedDate),
+        createdAt: Timestamp.now(),
+      });
+      setShowCreateModal(false);
+    } finally {
+      setIsSavingEvent(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Calendario operacional</h1>
-          <p className="text-slate-500 mt-1">Medicoes e entregas ligadas aos orcamentos e projetos.</p>
+          <p className="text-slate-500 mt-1">Medicoes, entregas e eventos manuais.</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => openCreateModal()}
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+          >
+            <span className="inline-flex items-center gap-1">
+              <Plus className="w-4 h-4" />
+              Adicionar evento
+            </span>
+          </button>
           <button type="button" onClick={() => setBaseDate(new Date(baseDate.getFullYear(), baseDate.getMonth() - 1, 1))} className="rounded-xl border border-slate-200 bg-white p-2">
             <ChevronLeft className="w-5 h-5 text-slate-500" />
           </button>
@@ -191,12 +282,29 @@ export const CalendarPage: React.FC = () => {
         </section>
       )}
 
+      {deadlineAlerts.length > 0 && (
+        <section className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+          <div className="flex items-center gap-2 text-rose-800 font-bold">
+            <AlertTriangle className="w-5 h-5" />
+            Alertas de prazo
+          </div>
+          <div className="mt-3 space-y-2">
+            {deadlineAlerts.slice(0, 8).map(({event, daysLeft, level}) => (
+              <div key={`${event.id}-deadline`} className={cn('text-sm font-semibold', level === 'maximo' ? 'text-rose-900' : 'text-amber-800')}>
+                {level === 'maximo' ? 'ALERTA MAXIMO' : 'Aviso'}: {event.clientName || event.title} em {event.date.toLocaleDateString('pt-BR')} (
+                {daysLeft === 0 ? 'hoje' : `faltam ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`})
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="rounded-2xl border border-slate-200 bg-white p-4">
         <div className="text-slate-800 font-bold">Contagem regressiva</div>
         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
           {upcomingEvents.length === 0 && (
             <div className="rounded-xl bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-400">
-              Nenhuma medicao ou entrega futura cadastrada.
+              Nenhum evento futuro cadastrado.
             </div>
           )}
           {upcomingEvents.map(({event, daysLeft}) => (
@@ -204,11 +312,16 @@ export const CalendarPage: React.FC = () => {
               key={`${event.id}-countdown`}
               type="button"
               onClick={() => setSelectedEvent(event)}
-              className="rounded-xl bg-slate-50 px-3 py-2 text-left hover:bg-slate-100 transition-all"
+              className={cn(
+                'rounded-xl px-3 py-2 text-left transition-all',
+                daysLeft <= 2 ? 'bg-rose-50 hover:bg-rose-100' : daysLeft <= 7 ? 'bg-amber-50 hover:bg-amber-100' : 'bg-slate-50 hover:bg-slate-100',
+              )}
             >
               <div className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                {event.type === 'entrega' ? 'Entrega' : 'Medicao'} · {event.clientName}
+                {event.type === 'entrega' ? 'Entrega' : event.type === 'medicao' ? 'Medicao' : 'Evento'} Â· {event.clientName || event.title}
               </div>
+              {daysLeft <= 2 && <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-rose-700">Alerta maximo</div>}
+              {daysLeft > 2 && daysLeft <= 7 && <div className="mt-1 text-[10px] font-black uppercase tracking-wider text-amber-700">Aviso de prazo</div>}
               <div className="mt-1 text-sm font-bold text-slate-800">
                 {daysLeft === 0 ? 'E hoje' : `Daqui a ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`}
               </div>
@@ -240,8 +353,18 @@ export const CalendarPage: React.FC = () => {
                   isToday && 'bg-brand-primary/5 ring-1 ring-brand-primary/30',
                 )}
               >
-                <div className={cn('text-xs font-bold', isToday ? 'text-brand-primary' : isCurrentMonth ? 'text-slate-700' : 'text-slate-400')}>
-                  {day.getDate()}{isToday ? ' · Hoje' : ''}
+                <div className="flex items-start justify-between gap-2">
+                  <div className={cn('text-xs font-bold', isToday ? 'text-brand-primary' : isCurrentMonth ? 'text-slate-700' : 'text-slate-400')}>
+                    {day.getDate()}{isToday ? ' · Hoje' : ''}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => openCreateModal(day)}
+                    className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                    title="Adicionar evento"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
                 </div>
                 {holiday.national && <div className="mt-1 rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-bold text-rose-700">{holiday.national}</div>}
                 <div className="mt-2 space-y-1">
@@ -250,12 +373,12 @@ export const CalendarPage: React.FC = () => {
                       key={event.id}
                       type="button"
                       onClick={() => setSelectedEvent(event)}
-                      className={cn(
-                        'w-full text-left rounded px-1.5 py-1 text-[10px] font-semibold leading-tight hover:brightness-95 transition-all',
-                        event.type === 'entrega' ? 'bg-blue-50 text-blue-700' : 'bg-emerald-50 text-emerald-700',
-                      )}
+              className={cn(
+                'rounded-xl px-3 py-2 text-left transition-all',
+                daysLeft <= 2 ? 'bg-rose-50 hover:bg-rose-100' : daysLeft <= 7 ? 'bg-amber-50 hover:bg-amber-100' : 'bg-slate-50 hover:bg-slate-100',
+              )}
                     >
-                      {event.type === 'entrega' ? 'Entrega' : 'Medicao'} · {event.clientName}
+                      {event.type === 'entrega' ? 'Entrega' : event.type === 'medicao' ? 'Medicao' : 'Evento'} · {event.clientName || event.title}
                     </button>
                   ))}
                   {dayEvents.length > 3 && <div className="text-[10px] font-bold text-slate-400">+{dayEvents.length - 3} mais</div>}
@@ -272,11 +395,11 @@ export const CalendarPage: React.FC = () => {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                  {selectedEvent.type === 'entrega' ? 'Entrega' : 'Medicao'}
+                  {selectedEvent.type === 'entrega' ? 'Entrega' : selectedEvent.type === 'medicao' ? 'Medicao' : 'Evento'}
                 </div>
-                <h3 className="mt-1 text-xl font-display font-bold text-slate-900">{selectedEvent.clientName}</h3>
+                <h3 className="mt-1 text-xl font-display font-bold text-slate-900">{selectedEvent.clientName || selectedEvent.title}</h3>
                 <div className="mt-1 text-sm font-semibold text-slate-500">
-                  {selectedEvent.date.toLocaleDateString('pt-BR')} · {selectedEvent.status}
+                  {selectedEvent.date.toLocaleDateString('pt-BR')} · {selectedEvent.status || 'Sem status'}
                 </div>
               </div>
               <button type="button" onClick={() => setSelectedEvent(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
@@ -284,25 +407,90 @@ export const CalendarPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="mt-5 space-y-3">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
-                  <Phone className="w-4 h-4" />
-                  Telefone
-                </div>
-                <div className="mt-1 text-sm font-semibold text-slate-800">{selectedClient?.phone || 'Nao informado'}</div>
+            {selectedEvent.type === 'manual' ? (
+              <div className="mt-5 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
+                {selectedEvent.description?.trim() || 'Sem descricao.'}
               </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
-                  <MapPin className="w-4 h-4" />
-                  Endereco
+            ) : (
+              <div className="mt-5 space-y-3">
+                <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
+                    <Phone className="w-4 h-4" />
+                    Telefone
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-slate-800">{selectedClient?.phone || 'Nao informado'}</div>
                 </div>
-                <div className="mt-1 text-sm font-semibold text-slate-800">{selectedClient?.address || 'Nao informado'}</div>
+                <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400">
+                    <MapPin className="w-4 h-4" />
+                    Endereco
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-slate-800">{selectedClient?.address || 'Nao informado'}</div>
+                </div>
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white border border-slate-100 shadow-2xl p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Novo evento</div>
+                <h3 className="mt-1 text-xl font-display font-bold text-slate-900">Adicionar no calendario</h3>
+              </div>
+              <button type="button" onClick={() => setShowCreateModal(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
+                <X className="w-5 h-5" />
+              </button>
             </div>
+
+            <form className="mt-5 space-y-3" onSubmit={handleCreateEvent}>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Titulo</label>
+                <input
+                  value={newEventTitle}
+                  onChange={(event) => setNewEventTitle(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary"
+                  placeholder="Ex: visita tecnica"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Data</label>
+                <input
+                  type="date"
+                  value={newEventDate}
+                  onChange={(event) => setNewEventDate(event.target.value)}
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary"
+                  required
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Descricao (opcional)</label>
+                <textarea
+                  value={newEventDescription}
+                  onChange={(event) => setNewEventDescription(event.target.value)}
+                  rows={3}
+                  className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary"
+                  placeholder="Detalhes do que sera feito"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSavingEvent}
+                className="w-full rounded-xl bg-brand-primary px-3 py-2 text-sm font-bold text-white hover:brightness-105 disabled:opacity-70"
+              >
+                {isSavingEvent ? 'Salvando...' : 'Salvar evento'}
+              </button>
+            </form>
           </div>
         </div>
       )}
     </div>
   );
 };
+
+

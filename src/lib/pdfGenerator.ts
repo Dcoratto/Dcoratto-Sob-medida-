@@ -14,6 +14,14 @@ const toDate = (value: any) => {
 };
 
 const safeText = (value?: string) => value?.trim() || '-';
+const sideTypeLabel = (type?: string) => {
+  if (type === 'frontao') return 'Frontao';
+  if (type === 'saia') return 'Saia';
+  if (type === 'virada') return 'Virada';
+  if (type === 'pe') return 'Pe de bancada';
+  if (type === 'guarnicao') return 'Guarnicao';
+  return type || '-';
+};
 
 type PdfColor = [number, number, number];
 
@@ -113,7 +121,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
     body: quote.pieces.map((piece, index) => {
       const additions = (piece.sides || [])
         .filter((side) => side.type && side.type !== 'none')
-        .map((side) => `${side.type} ${side.sideLabel || side.side || ''}`.trim())
+        .map((side) => `${sideTypeLabel(side.type)} ${side.sideLabel || side.side || ''}`.trim())
         .join('\n') || '-';
       return [
         String(index + 1).padStart(2, '0'),

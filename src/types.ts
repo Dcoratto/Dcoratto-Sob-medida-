@@ -156,7 +156,7 @@ export type QuoteStatus =
   | 'Entregue';
 
 export interface PieceSide {
-  type: 'frontao' | 'saia' | 'virada' | 'acabamento' | 'none';
+  type: 'frontao' | 'saia' | 'virada' | 'pe' | 'guarnicao' | 'acabamento' | 'none';
   side: string;
   sideLabel?: string;
   length: number;

@@ -660,7 +660,7 @@ export const QuoteEditor: React.FC = () => {
                   {/* Adicionais - Frontão, Saia, etc */}
                   <div className="space-y-4 pt-4 border-t border-slate-50">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Adicionais (Frontão/Saia)</h3>
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Adicionais (Frontao/Saia/Virada/Pe)</h3>
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
@@ -682,6 +682,20 @@ export const QuoteEditor: React.FC = () => {
                           className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
                         >
                           + Virada
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => addSide(piece.id, 'pe')}
+                          className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
+                        >
+                          + Pe de bancada
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => addSide(piece.id, 'guarnicao')}
+                          className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
+                        >
+                          + Guarnicao
                         </button>
                       </div>
                     </div>
@@ -708,6 +722,8 @@ export const QuoteEditor: React.FC = () => {
                                 <option value="frontao">Frontão</option>
                                 <option value="saia">Saia</option>
                                 <option value="virada">Virada</option>
+                                <option value="pe">Pe de bancada</option>
+                                <option value="guarnicao">Guarnicao</option>
                               </select>
                               <select 
                                 value={side.side}
@@ -873,4 +889,6 @@ export const QuoteEditor: React.FC = () => {
 };
 
 const X = ({ className }: any) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
+
+
 

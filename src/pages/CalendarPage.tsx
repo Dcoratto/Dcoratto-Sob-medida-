@@ -376,9 +376,14 @@ export const CalendarPage: React.FC = () => {
           <div className="flex items-center gap-2 text-rose-800 font-bold"><AlertTriangle className="w-5 h-5" />Alertas de prazo</div>
           <div className="mt-3 space-y-2">
             {deadlineAlerts.slice(0, 8).map(({event, daysLeft, level}) => (
-              <div key={`${event.id}-deadline`} className={cn('text-sm font-semibold', level === 'maximo' ? 'text-rose-900' : 'text-amber-800')}>
+              <button
+                key={`${event.id}-deadline`}
+                type="button"
+                onClick={() => setSelectedEvent(event)}
+                className={cn('block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-white/70', level === 'maximo' ? 'text-rose-900' : 'text-amber-800')}
+              >
                 {level === 'maximo' ? 'ALERTA MÁXIMO' : 'ALERTA DE PRAZO'}: {event.clientName || event.title} em {event.date.toLocaleDateString('pt-BR')} às {eventTimeLabel(event.date, event.eventTime)} ({daysLeft === 0 ? 'hoje' : `faltam ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`})
-              </div>
+              </button>
             ))}
           </div>
         </section>

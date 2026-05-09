@@ -545,7 +545,18 @@ export const InventoryPage: React.FC = () => {
               className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                resetPurchaseForm();
+                setShowPurchaseModal(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-amber-700 transition-all"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Comprar chapa
+            </button>
             <Filter className="w-5 h-5 text-slate-400" />
             <select
               value={statusFilter}

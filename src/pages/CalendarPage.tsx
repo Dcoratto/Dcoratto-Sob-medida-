@@ -241,7 +241,7 @@ export const CalendarPage: React.FC = () => {
       .map((event) => {
         const condominium = condominiums.find((item) => item.id === event.condominiumId);
         if (!condominium) return null;
-        const holiday = getHolidayInfo(event.date, event.city);
+        const holiday = getHolidayInfo(event.date, condominium.city);
         const weekday = (event.date.getDay() + 6) % 7;
         const dayBlocked = !condominium.allowedWeekdays.includes(weekday);
         const holidayBlocked = (holiday.national && condominium.blockNationalHolidays) || (holiday.city && condominium.blockCityHolidays);
@@ -255,6 +255,18 @@ export const CalendarPage: React.FC = () => {
   }, [condominiums, events]);
 
   const selectedClient = selectedEvent?.clientId ? clients.find((item) => item.id === selectedEvent.clientId) : null;
+
+  const getCondominiumBlockReason = (client: Client | undefined, date: Date) => {
+    const condominium = client?.condominiumId ?condominiums.find((item) => item.id === client.condominiumId) : null;
+    if (!condominium) return '';
+    const holiday = getHolidayInfo(date, condominium.city);
+    const weekday = (date.getDay() + 6) % 7;
+    const dayBlocked = !condominium.allowedWeekdays.includes(weekday);
+    const holidayBlocked = (holiday.national && condominium.blockNationalHolidays) || (holiday.city && condominium.blockCityHolidays);
+    if (dayBlocked) return `${condominium.name}: dia não permitido (${['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'][weekday]}).`;
+    if (holidayBlocked) return `${condominium.name}: ${holiday.national || holiday.city} em ${condominium.city}.`;
+    return '';
+  };
 
   const resetForm = () => {
     setNewEventTitle('');
@@ -304,6 +316,11 @@ export const CalendarPage: React.FC = () => {
 
     const client = clients.find((item) => item.id === newEventClientId);
     const title = newEventTitle.trim() || (client ? `Evento - ${client.name}` : 'Evento manual');
+    const blockedReason = getCondominiumBlockReason(client, selectedDate);
+    if (blockedReason) {
+      setCreateError(`Não é possível agendar nessa data. ${blockedReason}`);
+      return;
+    }
 
     const payload = {
       title,
@@ -383,6 +400,24 @@ export const CalendarPage: React.FC = () => {
                 className={cn('block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-white/70', level === 'maximo' ? 'text-rose-900' : 'text-amber-800')}
               >
                 {level === 'maximo' ? 'ALERTA MÁXIMO' : 'ALERTA DE PRAZO'}: {event.clientName || event.title} em {event.date.toLocaleDateString('pt-BR')} às {eventTimeLabel(event.date, event.eventTime)} ({daysLeft === 0 ? 'hoje' : `faltam ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`})
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {restrictions.length > 0 && (
+        <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center gap-2 text-amber-800 font-bold"><AlertTriangle className="w-5 h-5" />Restrições de condomínio</div>
+          <div className="mt-3 space-y-2">
+            {restrictions.slice(0, 8).map(({event, condominium, reason}) => (
+              <button
+                key={`${event.id}-${reason}`}
+                type="button"
+                onClick={() => setSelectedEvent(event)}
+                className="block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-amber-900 hover:bg-white/70"
+              >
+                {eventLabel(event.type)} de {event.clientName} em {event.date.toLocaleDateString('pt-BR')} no {condominium.name}: {reason}.
               </button>
             ))}
           </div>
@@ -512,7 +547,6 @@ export const CalendarPage: React.FC = () => {
         </div>
       )}
 
-      {restrictions.length > 0 && <section className="hidden" />}
     </div>
   );
 };

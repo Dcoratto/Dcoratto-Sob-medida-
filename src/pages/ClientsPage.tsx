@@ -9,6 +9,7 @@ import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteRese
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
 import {QUOTE_STATUSES, normalizeQuoteStatus, quoteStatusColor} from '../lib/quoteStatus';
+import {getHolidayInfo} from '../lib/holidays';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -343,9 +344,35 @@ export const ClientsPage: React.FC = () => {
     }
   };
 
+  const getCondominiumScheduleBlock = (quote: Quote, dates: Array<{label: string; date: Date | null}>) => {
+    const client = clients.find((item) => item.id === quote.clientId);
+    const condominium = client?.condominiumId ?condominiums.find((item) => item.id === client.condominiumId) : null;
+    if (!condominium) return '';
+
+    for (const item of dates) {
+      if (!item.date) continue;
+      const weekday = (item.date.getDay() + 6) % 7;
+      const holiday = getHolidayInfo(item.date, condominium.city);
+      const dayBlocked = !condominium.allowedWeekdays.includes(weekday);
+      const holidayBlocked = (holiday.national && condominium.blockNationalHolidays) || (holiday.city && condominium.blockCityHolidays);
+      if (dayBlocked) return `${item.label}: ${condominium.name} não permite agendamento em ${['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'][weekday]}.`;
+      if (holidayBlocked) return `${item.label}: ${holiday.national || holiday.city} em ${condominium.city}.`;
+    }
+
+    return '';
+  };
+
   const updateQuoteMeasurementDate = async (quote: Quote, value: string) => {
     const measurement = value ?new Date(`${value}T12:00:00`) : null;
     const delivery = value ?addDaysToInputDate(value, quote.deliveryDays || 0) : null;
+    const blockedReason = getCondominiumScheduleBlock(quote, [
+      {label: 'Medição', date: measurement},
+      {label: 'Entrega', date: delivery},
+    ]);
+    if (blockedReason) {
+      alert(`Não é possível agendar nessa data. ${blockedReason}`);
+      return;
+    }
     await updateDoc(doc(db, 'quotes', quote.id), {
       measurementDate: measurement ?Timestamp.fromDate(measurement) : null,
       deliveryDate: delivery ?Timestamp.fromDate(delivery) : null,
@@ -368,6 +395,11 @@ export const ClientsPage: React.FC = () => {
     const deliveryDays = Math.max(0, Number(value) || 0);
     const measurementInput = formatDateInput(quote.measurementDate);
     const delivery = measurementInput ?addDaysToInputDate(measurementInput, deliveryDays) : null;
+    const blockedReason = getCondominiumScheduleBlock(quote, [{label: 'Entrega', date: delivery}]);
+    if (blockedReason) {
+      alert(`Não é possível usar esse prazo. ${blockedReason}`);
+      return;
+    }
     await updateDoc(doc(db, 'quotes', quote.id), {
       deliveryDays,
       deliveryDate: delivery ?Timestamp.fromDate(delivery) : null,

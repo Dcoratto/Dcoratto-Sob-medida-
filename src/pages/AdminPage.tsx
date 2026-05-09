@@ -122,8 +122,6 @@ export const AdminPage: React.FC = () => {
     name: '',
     provider: '',
     category: '',
-    baseCostPerM2: '',
-    marginPercentage: '',
   });
   const [savingFixture, setSavingFixture] = useState(false);
   const [fixtureError, setFixtureError] = useState('');
@@ -250,10 +248,6 @@ export const AdminPage: React.FC = () => {
     const name = materialForm.name.trim();
     if (!name) return;
 
-    const baseCostPerM2 = Number(materialForm.baseCostPerM2) || 0;
-    const marginPercentage = Number(materialForm.marginPercentage) || 0;
-    const pricePerM2 = baseCostPerM2 * (1 + marginPercentage / 100);
-
     setSavingMaterial(true);
     setMaterialError('');
     try {
@@ -266,14 +260,14 @@ export const AdminPage: React.FC = () => {
         name,
         provider: materialForm.provider.trim(),
         category: materialForm.category.trim(),
-        baseCostPerM2,
-        marginPercentage,
-        pricePerM2,
+        baseCostPerM2: 0,
+        marginPercentage: 0,
+        pricePerM2: 0,
         ...(imageUrl ?{imageUrl} : {}),
         active: true,
         updatedAt: serverTimestamp(),
       }, {merge: true});
-      setMaterialForm({name: '', provider: '', category: '', baseCostPerM2: '', marginPercentage: ''});
+      setMaterialForm({name: '', provider: '', category: ''});
       setMaterialImageFile(null);
     } catch (error: any) {
       console.error('Erro ao cadastrar pedra:', error);
@@ -504,12 +498,10 @@ export const AdminPage: React.FC = () => {
           <p className="text-sm text-slate-400">Cadastre as pedras aqui para seleção no estoque, compras e orçamentos.</p>
         </div>
 
-        <form onSubmit={addMaterialCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
+        <form onSubmit={addMaterialCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
           <input value={materialForm.name} onChange={(event) => setMaterialForm((form) => ({...form, name: event.target.value}))} placeholder="Nome da pedra" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input value={materialForm.provider} onChange={(event) => setMaterialForm((form) => ({...form, provider: event.target.value}))} placeholder="Fornecedor" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input value={materialForm.category} onChange={(event) => setMaterialForm((form) => ({...form, category: event.target.value}))} placeholder="Categoria" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
-          <input type="number" step="0.01" value={materialForm.baseCostPerM2} onChange={(event) => setMaterialForm((form) => ({...form, baseCostPerM2: event.target.value}))} placeholder="Custo/m²" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
-          <input type="number" step="0.01" value={materialForm.marginPercentage} onChange={(event) => setMaterialForm((form) => ({...form, marginPercentage: event.target.value}))} placeholder="Margem %" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <label className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 cursor-pointer">
             {materialImageFile ?materialImageFile.name : 'Imagem da pedra'}
             <input
@@ -541,7 +533,7 @@ export const AdminPage: React.FC = () => {
                 <div>
                   <div className="font-bold text-slate-900">{material.name}</div>
                   <div className="text-xs text-slate-400">{material.category || 'Sem categoria'} · {material.provider || 'Sem fornecedor'}</div>
-                  <div className="mt-1 text-xs font-semibold text-slate-500">Venda/m²: R$ {(material.pricePerM2 || 0).toFixed(2)}</div>
+                  <div className="mt-1 text-xs font-semibold text-slate-500">Preço e margem definidos na aba Materiais.</div>
                 </div>
                 <button type="button" onClick={() => toggleMaterialCatalogItem(material)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', material.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
                   {material.active ?'Ativo' : 'Inativo'}

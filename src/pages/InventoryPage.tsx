@@ -137,7 +137,7 @@ export const InventoryPage: React.FC = () => {
     const inventoryRef = editingItem ?doc(db, 'inventory', editingItem.id) : doc(collection(db, 'inventory'));
     const materialId = selectedMaterialId;
     const selectedMaterial = materials.find((material) => material.id === materialId);
-    let photoUrl = editingItem?.photoUrl || '';
+    let photoUrl = editingItem?.photoUrl || selectedMaterial?.imageUrl || '';
     if (photoFile) {
       const extension = photoFile.name.split('.').pop() || 'jpg';
       const fileRef = ref(storage, `inventory/${inventoryRef.id}/photo-${Date.now()}.${extension}`);
@@ -274,6 +274,7 @@ export const InventoryPage: React.FC = () => {
       thickness: Number(purchaseThickness),
       area,
       cost: Number(purchaseCost),
+      photoUrl: selectedMaterial?.imageUrl || '',
       status: 'Pedido',
       notes: purchaseNotes,
       purchasedByUid: user?.uid || '',
@@ -312,6 +313,7 @@ export const InventoryPage: React.FC = () => {
       cost: purchase.cost,
       status: 'Disponível',
       notes: purchase.notes || '',
+      photoUrl: materials.find((material) => material.id === purchase.materialId)?.imageUrl || '',
     });
     await updateDoc(doc(db, 'inventoryPurchases', purchase.id), {
       status: 'Entregue',
@@ -398,6 +400,7 @@ export const InventoryPage: React.FC = () => {
   }).filter((item) => item.missing > 0);
   const totalPendingPurchaseArea = pendingPurchases.reduce((acc, item) => acc + item.missing, 0);
   const activePurchases = purchases.filter((purchase) => purchase.status === 'Pedido');
+  const materialImageById = (materialId: string) => materials.find((material) => material.id === materialId)?.imageUrl || '';
 
   return (
     <div className="space-y-6">
@@ -581,8 +584,8 @@ export const InventoryPage: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 shrink-0 rounded-full border border-slate-200 bg-slate-100 overflow-hidden flex items-center justify-center">
-                          {item.photoUrl ?(
-                            <img src={item.photoUrl} alt={item.materialName} className="h-full w-full object-cover" />
+                          {item.photoUrl || materialImageById(item.materialId) ?(
+                            <img src={item.photoUrl || materialImageById(item.materialId)} alt={item.materialName} className="h-full w-full object-cover" />
                           ) : (
                             <PackageCheck className="w-5 h-5 text-slate-400" />
                           )}

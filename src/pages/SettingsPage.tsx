@@ -113,8 +113,8 @@ export const SettingsPage: React.FC = () => {
   if (loading) return <div>Carregando...</div>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-20">
-      <header className="flex items-center justify-between">
+    <div className="w-full space-y-6 pb-4">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Configurações</h1>
           <p className="text-slate-500 mt-1">Gerencie os dados da empresa e valores padrão do sistema.</p>
@@ -138,9 +138,9 @@ export const SettingsPage: React.FC = () => {
         </button>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 text-sm">
         {/* Empresa */}
-        <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
+        <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6">
           <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
             <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
               <Building className="w-5 h-5" />
@@ -190,7 +190,7 @@ export const SettingsPage: React.FC = () => {
         </section>
 
         {/* Padrões Financeiros e Medidas */}
-        <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
+        <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-2">
           <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
             <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
               <Calculator className="w-5 h-5" />
@@ -331,7 +331,7 @@ export const SettingsPage: React.FC = () => {
         </section>
 
         {/* Mão de obra Pia Esculpida */}
-        <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
+        <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6">
           <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
             <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
               <Scissors className="w-5 h-5" />
@@ -393,7 +393,7 @@ export const SettingsPage: React.FC = () => {
         </section>
 
         {/* Formas de Pagamento */}
-        <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6 md:col-span-2">
+        <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-2">
           <div className="flex items-center justify-between pb-4 border-b border-slate-50">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
@@ -453,7 +453,7 @@ export const SettingsPage: React.FC = () => {
           </div>
         </section>
 
-        <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6 md:col-span-2">
+        <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-3">
           <div className="flex items-center justify-between pb-4 border-b border-slate-50">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">

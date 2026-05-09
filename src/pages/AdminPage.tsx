@@ -430,7 +430,7 @@ export const AdminPage: React.FC = () => {
       </section>
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-6">
-        <div>
+        <div className="hidden">
           <h2 className="font-display text-xl font-bold text-slate-900">Catálogo de pedras</h2>
           <p className="text-sm text-slate-400">Cadastre as pedras aqui para seleção no estoque, compras e orçamentos.</p>
         </div>
@@ -516,8 +516,8 @@ export const AdminPage: React.FC = () => {
         </div>
       </section>
 
-      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-4">
-        <div>
+      <section className="space-y-4">
+        <div className="sr-only">
           <h2 className="font-display text-xl font-bold text-slate-900">Configurações do sistema</h2>
           <p className="text-sm text-slate-400">As configurações foram migradas para a área de Admin.</p>
         </div>

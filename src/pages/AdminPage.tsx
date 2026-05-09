@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import {EmailAuthProvider, reauthenticateWithCredential} from 'firebase/auth';
 import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from 'firebase/firestore';
-import {deleteObject, getDownloadURL, ref as storageRef, uploadBytes} from 'firebase/storage';
+import {deleteObject, ref as storageRef} from 'firebase/storage';
 import {AlertTriangle, BriefcaseBusiness, CheckCircle2, Mail, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
 import {auth, db, storage} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
@@ -32,19 +32,8 @@ const resetCollections = [
 ];
 
 const MAX_IMAGE_SIZE_MB = 8;
-const IMAGE_UPLOAD_TIMEOUT_MS = 45000;
-
-const withTimeout = async <T,>(promise: Promise<T>, timeoutMessage: string) => {
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-  const timeout = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), IMAGE_UPLOAD_TIMEOUT_MS);
-  });
-  try {
-    return await Promise.race([promise, timeout]);
-  } finally {
-    if (timeoutId) clearTimeout(timeoutId);
-  }
-};
+const MAX_STORED_IMAGE_BYTES = 850 * 1024;
+const IMAGE_MAX_SIDE = 900;
 
 const assertValidImage = (file: File) => {
   if (!file.type.startsWith('image/')) {
@@ -55,12 +44,46 @@ const assertValidImage = (file: File) => {
   }
 };
 
-const uploadCatalogImage = async (path: string, file: File) => {
+const readFileAsDataUrl = (file: File) =>
+  new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Não foi possível ler a imagem selecionada.'));
+    reader.readAsDataURL(file);
+  });
+
+const dataUrlSize = (dataUrl: string) => Math.ceil((dataUrl.length * 3) / 4);
+
+const optimizeCatalogImage = async (file: File) => {
   assertValidImage(file);
-  const extension = file.name.split('.').pop() || 'jpg';
-  const fileRef = storageRef(storage, `${path}/image-${Date.now()}.${extension}`);
-  await withTimeout(uploadBytes(fileRef, file), 'O upload da imagem demorou demais. Tente uma imagem menor ou confira a conexão.');
-  return withTimeout(getDownloadURL(fileRef), 'Não foi possível obter o link da imagem enviada.');
+  const source = await readFileAsDataUrl(file);
+
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Não foi possível carregar a imagem selecionada.'));
+    img.src = source;
+  });
+
+  const scale = Math.min(1, IMAGE_MAX_SIDE / Math.max(image.width, image.height));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+  const context = canvas.getContext('2d');
+  if (!context) {
+    throw new Error('Não foi possível preparar a imagem.');
+  }
+
+  context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  for (const quality of [0.82, 0.72, 0.62, 0.52, 0.42]) {
+    const dataUrl = canvas.toDataURL('image/jpeg', quality);
+    if (dataUrlSize(dataUrl) <= MAX_STORED_IMAGE_BYTES) {
+      return dataUrl;
+    }
+  }
+
+  throw new Error('A imagem ficou muito pesada. Tente uma imagem menor ou mais simples.');
 };
 
 export const AdminPage: React.FC = () => {
@@ -227,7 +250,7 @@ export const AdminPage: React.FC = () => {
       const materialId = slugify(name);
       let imageUrl = '';
       if (materialImageFile) {
-        imageUrl = await uploadCatalogImage(`materials/${materialId}`, materialImageFile);
+        imageUrl = await optimizeCatalogImage(materialImageFile);
       }
       await setDoc(doc(db, 'materials', materialId), {
         name,
@@ -262,7 +285,7 @@ export const AdminPage: React.FC = () => {
     try {
       let imageUrl = fixtureForm.imageUrl.trim();
       if (fixtureImageFile) {
-        imageUrl = await uploadCatalogImage(`fixtureCatalog/${slugify(fixtureForm.name)}`, fixtureImageFile);
+        imageUrl = await optimizeCatalogImage(fixtureImageFile);
       }
       await addDoc(collection(db, 'fixtureCatalog'), {
         name: fixtureForm.name.trim(),

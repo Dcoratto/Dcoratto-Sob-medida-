@@ -1,5 +1,5 @@
 ﻿import React, {useEffect, useMemo, useState} from 'react';
-import {addDoc, collection, doc, onSnapshot, Timestamp, updateDoc} from 'firebase/firestore';
+import {addDoc, collection, deleteDoc, doc, onSnapshot, Timestamp, updateDoc} from 'firebase/firestore';
 import type {FirebaseError} from 'firebase/app';
 import {AlertTriangle, ChevronLeft, ChevronRight, MapPin, Phone, Plus, X} from 'lucide-react';
 import {db} from '../lib/firebase';
@@ -102,6 +102,7 @@ export const CalendarPage: React.FC = () => {
   const [newEventTime, setNewEventTime] = useState('09:00');
   const [newEventClientId, setNewEventClientId] = useState('');
   const [isSavingEvent, setIsSavingEvent] = useState(false);
+  const [isDeletingEvent, setIsDeletingEvent] = useState(false);
   const [createError, setCreateError] = useState('');
 
   const getCreateEventErrorMessage = (error: unknown) => {
@@ -338,6 +339,17 @@ export const CalendarPage: React.FC = () => {
     }
   };
 
+  const handleDeleteEvent = async () => {
+    if (!selectedEvent || selectedEvent.type !== 'manual' || !selectedEvent.sourceId) return;
+    setIsDeletingEvent(true);
+    try {
+      await deleteDoc(doc(db, 'calendarEvents', selectedEvent.sourceId));
+      setSelectedEvent(null);
+    } finally {
+      setIsDeletingEvent(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -426,6 +438,7 @@ export const CalendarPage: React.FC = () => {
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{selectedEvent.description?.trim() || 'Sem descrição.'}</div>
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-500">Criado por: <span className="text-slate-700">{selectedEvent.createdByName || 'Não informado'}</span></div>
                 <button type="button" onClick={openEditModal} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">Editar evento</button>
+                <button type="button" onClick={handleDeleteEvent} disabled={isDeletingEvent} className="w-full rounded-xl bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-70">{isDeletingEvent ? 'Excluindo...' : 'Excluir evento'}</button>
               </div>
             ) : (
               <div className="mt-5 space-y-3">

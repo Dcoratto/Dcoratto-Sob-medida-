@@ -469,6 +469,142 @@ export const QuoteEditor: React.FC = () => {
               Ajuste de pagamento: {selectedPaymentAdjustment}%
             </div>
           </section>
+
+          <section className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
+            <h2 className="font-display font-bold text-xl text-slate-800">Dados do orçamento</h2>
+
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cliente</label>
+              <select
+                value={clientId}
+                onChange={(e) => {
+                  const nextId = e.target.value;
+                  setClientId(nextId);
+                  const found = clients.find((c) => c.id === nextId);
+                  setClientSearch(found?.name || '');
+                }}
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+              >
+                <option value="">Selecionar cliente</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>{client.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Material</label>
+              <select
+                value={materialId}
+                onChange={(e) => setMaterialId(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+              >
+                <option value="">Selecionar material</option>
+                {materials.map((material) => (
+                  <option key={material.id} value={material.id}>{material.name}</option>
+                ))}
+              </select>
+              {materialId && (
+                <div className="text-[11px] text-slate-500">
+                  Estoque disponível: {materialStock(materialId).available.toFixed(2)} m²
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ambiente</label>
+              <input
+                value={environment}
+                onChange={(e) => setEnvironment(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+                placeholder="Ex: Cozinha"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Responsável</label>
+              <input
+                value={responsible}
+                onChange={(e) => setResponsible(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+                placeholder="Nome do responsável"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Medição</label>
+                <input
+                  type="date"
+                  value={measurementDate}
+                  onChange={(e) => setMeasurementDate(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Entrega</label>
+                <input
+                  type="date"
+                  value={deliveryDate}
+                  onChange={(e) => setDeliveryDate(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Prazo (dias)</label>
+                <input
+                  type="number"
+                  value={deliveryDays}
+                  onChange={(e) => setDeliveryDays(Number(e.target.value))}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Validade (dias)</label>
+                <input
+                  type="number"
+                  value={validityDays}
+                  onChange={(e) => setValidityDays(Number(e.target.value))}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pagamento</label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+              >
+                <option value="">Selecionar forma de pagamento</option>
+                {settings.paymentMethods.map((method) => (
+                  <option key={method.name} value={method.name}>{method.name}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(normalizeQuoteStatus(e.target.value) as QuoteStatus)}
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+              >
+                <option value="Orçamento">Orçamento</option>
+                <option value="Medição">Medição</option>
+                <option value="Projeto">Projeto</option>
+                <option value="Aprovado">Aprovado</option>
+                <option value="Produção">Produção</option>
+                <option value="Acabamento">Acabamento</option>
+                <option value="Entrega">Entrega</option>
+                <option value="Finalizado">Finalizado</option>
+              </select>
+            </div>
+          </section>
         </div>
 
         {/* Right Column: Pieces */}

@@ -406,6 +406,17 @@ export const InventoryPage: React.FC = () => {
           <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Estoque</h1>
           <p className="text-slate-500 mt-1">Entrada, compra e controle das pedras cadastradas no Admin.</p>
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            resetPurchaseForm();
+            setShowPurchaseModal(true);
+          }}
+          className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-5 py-3 text-sm font-bold text-white hover:bg-amber-700 transition-all"
+        >
+          <ShoppingCart className="h-4 w-4" />
+          Comprar chapa
+        </button>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">

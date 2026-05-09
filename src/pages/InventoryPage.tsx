@@ -9,7 +9,7 @@ import {cn, formatCurrency, formatNumber} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
 
-const statusOptions: InventoryItem['status'][] = ['DisponÃ­vel', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
+const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
 const normalizeStatus = (value: unknown) =>
   String(value || '')
@@ -67,7 +67,7 @@ export const InventoryPage: React.FC = () => {
   const [width, setWidth] = useState('');
   const [thickness, setThickness] = useState('');
   const [cost, setCost] = useState('');
-  const [status, setStatus] = useState<InventoryItem['status']>('DisponÃ­vel');
+  const [status, setStatus] = useState<InventoryItem['status']>('Disponível');
   const [notes, setNotes] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
@@ -124,14 +124,14 @@ export const InventoryPage: React.FC = () => {
     setWidth('');
     setThickness('');
     setCost('');
-    setStatus('DisponÃ­vel');
+    setStatus('Disponível');
     setNotes('');
     setPhotoFile(null);
     setPhotoPreview('');
     setEditingItem(null);
   };
 
-  const currentUserName = profile?.name || user?.displayName || user?.email || 'UsuÃ¡rio';
+  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
 
   const resetPurchaseForm = () => {
     setPurchaseMaterialId('');
@@ -258,7 +258,7 @@ export const InventoryPage: React.FC = () => {
     if (deletedItem) {
       await logSystemEvent({
         type: 'inventory_deleted',
-        title: 'Item de estoque excluÃ­do',
+        title: 'Item de estoque excluído',
         description: `${deletedItem.materialName} - ${deletedItem.code}`,
         entityType: 'inventory',
         entityId: id,
@@ -286,7 +286,7 @@ export const InventoryPage: React.FC = () => {
     setPurchaseThickness(inventoryItem?.thickness ?String(inventoryItem.thickness) : '');
     setPurchaseCost('');
     setPurchaseCode('');
-    setPurchaseNotes(`Compra pendente sugerida: ${formatNumber(item.missing)} mÂ²`);
+    setPurchaseNotes(`Compra pendente sugerida: ${formatNumber(item.missing)} m²`);
     setShowPurchaseModal(true);
   };
 
@@ -346,8 +346,8 @@ export const InventoryPage: React.FC = () => {
     const totalCost = slabs.reduce((acc, slab) => acc + Number(slab.cost), 0);
     await logSystemEvent({
       type: 'purchase_ordered',
-      title: 'Compra de material lanÃ§ada',
-      description: `${quantity} chapa(s) de ${selectedMaterialName} - ${formatNumber(totalArea)} mÂ²`,
+      title: 'Compra de material lançada',
+      description: `${quantity} chapa(s) de ${selectedMaterialName} - ${formatNumber(totalArea)} m²`,
       entityType: 'purchase',
       entityId: createdPurchases[0]?.id || purchaseGroupId,
       materialId: purchaseMaterialId,
@@ -374,7 +374,7 @@ export const InventoryPage: React.FC = () => {
       thickness: purchase.thickness,
       area: purchase.area,
       cost: purchase.cost,
-      status: 'DisponÃ­vel',
+      status: 'Disponível',
       notes: purchase.notes || '',
       photoUrl: purchase.photoUrl || materials.find((material) => material.id === purchase.materialId)?.imageUrl || '',
     });
@@ -388,7 +388,7 @@ export const InventoryPage: React.FC = () => {
     await logSystemEvent({
       type: 'purchase_received',
       title: 'Compra de material recebida',
-      description: `${purchase.materialName} - ${formatNumber(purchase.area)} mÂ²`,
+      description: `${purchase.materialName} - ${formatNumber(purchase.area)} m²`,
       entityType: 'purchase',
       entityId: purchase.id,
       materialId: purchase.materialId,
@@ -499,12 +499,12 @@ export const InventoryPage: React.FC = () => {
           <div className="text-3xl font-display font-bold text-slate-900">{items.length}</div>
         </div>
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Ãrea DisponÃ­vel</div>
-          <div className="text-3xl font-display font-bold text-brand-primary">{formatNumber(totalAvailableArea)} mÂ²</div>
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Área Disponível</div>
+          <div className="text-3xl font-display font-bold text-brand-primary">{formatNumber(totalAvailableArea)} m²</div>
         </div>
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Ãrea Reservada</div>
-          <div className="text-3xl font-display font-bold text-amber-600">{formatNumber(totalReservedArea)} mÂ²</div>
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Área Reservada</div>
+          <div className="text-3xl font-display font-bold text-amber-600">{formatNumber(totalReservedArea)} m²</div>
         </div>
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Custo em Estoque</div>
@@ -516,7 +516,7 @@ export const InventoryPage: React.FC = () => {
         )}>
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Compra Pendente</div>
           <div className={cn('text-3xl font-display font-bold', pendingPurchases.length > 0 ?'text-amber-700' : 'text-slate-900')}>
-            {formatNumber(totalPendingPurchaseArea)} mÂ²
+            {formatNumber(totalPendingPurchaseArea)} m²
           </div>
         </div>
       </div>
@@ -528,8 +528,8 @@ export const InventoryPage: React.FC = () => {
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="font-display text-lg font-bold text-amber-900">Compra pendente para orÃ§amento aprovado</h2>
-              <p className="mt-1 text-sm text-amber-700">As pedras abaixo tÃªm mais mÂ² vendidos/reservados em orÃ§amentos aprovados do que Ã¡rea disponÃ­vel no estoque.</p>
+              <h2 className="font-display text-lg font-bold text-amber-900">Compra pendente para orçamento aprovado</h2>
+              <p className="mt-1 text-sm text-amber-700">As pedras abaixo têm mais m² vendidos/reservados em orçamentos aprovados do que área disponível no estoque.</p>
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {pendingPurchases.map((item) => (
                   <div key={item.materialId} className="rounded-2xl border border-amber-100 bg-white/70 p-4">
@@ -546,20 +546,20 @@ export const InventoryPage: React.FC = () => {
                     </div>
                     <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
                       <div>
-                        <span className="block font-bold uppercase tracking-widest text-slate-400">DisponÃ­vel</span>
-                        <strong className="text-slate-700">{formatNumber(item.available)} mÂ²</strong>
+                        <span className="block font-bold uppercase tracking-widest text-slate-400">Disponível</span>
+                        <strong className="text-slate-700">{formatNumber(item.available)} m²</strong>
                       </div>
                       <div>
                         <span className="block font-bold uppercase tracking-widest text-slate-400">Vendido</span>
-                        <strong className="text-amber-700">{formatNumber(item.reserved)} mÂ²</strong>
+                        <strong className="text-amber-700">{formatNumber(item.reserved)} m²</strong>
                       </div>
                       <div>
                         <span className="block font-bold uppercase tracking-widest text-slate-400">Pedido</span>
-                        <strong className="text-blue-700">{formatNumber(item.ordered)} mÂ²</strong>
+                        <strong className="text-blue-700">{formatNumber(item.ordered)} m²</strong>
                       </div>
                       <div>
                         <span className="block font-bold uppercase tracking-widest text-slate-400">Comprar</span>
-                        <strong className="text-red-600">{formatNumber(item.missing)} mÂ²</strong>
+                        <strong className="text-red-600">{formatNumber(item.missing)} m²</strong>
                       </div>
                     </div>
                   </div>
@@ -585,7 +585,7 @@ export const InventoryPage: React.FC = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="font-bold text-slate-900">{purchase.materialName}</div>
-                        <div className="mt-1 text-xs text-slate-400">{purchase.code || 'Sem lote'} Â· {formatNumber(purchase.area)} mÂ²</div>
+                        <div className="mt-1 text-xs text-slate-400">{purchase.code || 'Sem lote'} · {formatNumber(purchase.area)} m²</div>
                       </div>
                       <button
                         type="button"
@@ -637,11 +637,11 @@ export const InventoryPage: React.FC = () => {
             <thead>
               <tr className="border-b border-slate-50">
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Pedra / Lote</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">DimensÃµes (cm)</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Ãrea</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Dimensões (cm)</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Área</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Custo</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">AÃ§Ãµes</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -669,12 +669,12 @@ export const InventoryPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">{item.length} x {item.width} x {item.thickness}</td>
-                    <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(item.area)} mÂ²</td>
+                    <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(item.area)} m²</td>
                     <td className="px-6 py-4 font-mono text-sm">{formatCurrency(item.cost)}</td>
                     <td className="px-6 py-4">
                       <span className={cn(
                         'inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase',
-                        item.status === 'DisponÃ­vel' ?'bg-green-50 text-green-600' :
+                        item.status === 'Disponível' ?'bg-green-50 text-green-600' :
                         item.status === 'Reservada' ?'bg-amber-50 text-amber-600' :
                         item.status === 'Retalho' ?'bg-blue-50 text-blue-600' :
                         'bg-slate-100 text-slate-500',
@@ -683,7 +683,7 @@ export const InventoryPage: React.FC = () => {
                       </span>
                       {reservedAreaByMaterial(item.materialId) > 0 && (
                         <div className="mt-1 text-[10px] font-semibold text-amber-600">
-                          {formatNumber(reservedAreaByMaterial(item.materialId))} mÂ² em orÃ§amentos
+                          {formatNumber(reservedAreaByMaterial(item.materialId))} m² em orçamentos
                         </div>
                       )}
                     </td>
@@ -708,15 +708,15 @@ export const InventoryPage: React.FC = () => {
       {purchases.length > 0 && (
         <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
           <div className="p-5 border-b border-slate-50">
-            <h2 className="font-display text-xl font-bold text-slate-900">HistÃ³rico de compras</h2>
-            <p className="mt-1 text-sm text-slate-400">Controle de pedidos, entregas e responsÃ¡veis.</p>
+            <h2 className="font-display text-xl font-bold text-slate-900">Histórico de compras</h2>
+            <p className="mt-1 text-sm text-slate-400">Controle de pedidos, entregas e responsáveis.</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-slate-50">
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Pedra</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Ãrea</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Área</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Comprou</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Recebeu</th>
@@ -729,7 +729,7 @@ export const InventoryPage: React.FC = () => {
                       <div className="font-semibold text-slate-900">{purchase.materialName}</div>
                       <div className="text-xs text-brand-primary font-mono">{purchase.code || 'Sem lote'}</div>
                     </td>
-                    <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(purchase.area)} mÂ²</td>
+                    <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(purchase.area)} m²</td>
                     <td className="px-6 py-4">
                       <span className={cn(
                         'inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase',
@@ -913,7 +913,7 @@ export const InventoryPage: React.FC = () => {
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">CÃ³digo / Lote</label>
+                  <label className="text-slate-500 font-medium text-sm">Código / Lote</label>
                   <input type="text" required value={code} onChange={(e) => setCode(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
                 </div>
                 <div className="space-y-1.5">
@@ -922,7 +922,7 @@ export const InventoryPage: React.FC = () => {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Categoria</label>
-                  <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: Granito, MÃ¡rmore, Quartzo..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                  <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: Granito, Mármore, Quartzo..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Status</label>
@@ -954,7 +954,7 @@ export const InventoryPage: React.FC = () => {
                     <div className="flex items-center gap-4">
                       <div className="h-16 w-16 shrink-0 rounded-full border border-slate-200 bg-white overflow-hidden flex items-center justify-center">
                         {photoPreview ?(
-                          <img src={photoPreview} alt="PrÃ©via da pedra" className="h-full w-full object-cover" />
+                          <img src={photoPreview} alt="Prévia da pedra" className="h-full w-full object-cover" />
                         ) : (
                           <ImagePlus className="w-6 h-6 text-slate-400" />
                         )}
@@ -974,19 +974,19 @@ export const InventoryPage: React.FC = () => {
                           }}
                           className="w-full text-sm text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-brand-primary file:px-3 file:py-2 file:text-white file:font-semibold hover:file:bg-brand-primary/90"
                         />
-                        <p className="mt-1 text-xs text-slate-400">A imagem serÃ¡ salva e exibida em cÃ­rculo na lista.</p>
+                        <p className="mt-1 text-xs text-slate-400">A imagem será salva e exibida em círculo na lista.</p>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-slate-500 font-medium text-sm">ObservaÃ§Ãµes</label>
+                  <label className="text-slate-500 font-medium text-sm">Observações</label>
                   <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium min-h-[60px]" />
                 </div>
               </div>
 
               <button type="submit" className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
-                {editingItem ?'Salvar AlteraÃ§Ãµes' : 'Adicionar ao Estoque'}
+                {editingItem ?'Salvar Alterações' : 'Adicionar ao Estoque'}
               </button>
             </form>
           </div>

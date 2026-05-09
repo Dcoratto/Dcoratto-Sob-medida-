@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+﻿import React, {useEffect, useState} from 'react';
 import {addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc} from 'firebase/firestore';
 import {AlertTriangle, CheckCircle2, Edit2, Filter, ImagePlus, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
 import {getDownloadURL, ref, uploadBytes} from 'firebase/storage';
@@ -9,13 +9,31 @@ import {cn, formatCurrency, formatNumber} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
 
-const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
+const statusOptions: InventoryItem['status'][] = ['DisponÃ­vel', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
 const normalizeStatus = (value: unknown) =>
   String(value || '')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
+
+type PurchaseMeasureMode = 'same' | 'different';
+
+type PurchaseSlabForm = {
+  code: string;
+  length: string;
+  width: string;
+  thickness: string;
+  cost: string;
+};
+
+const emptyPurchaseSlab = (): PurchaseSlabForm => ({
+  code: '',
+  length: '',
+  width: '',
+  thickness: '',
+  cost: '',
+});
 
 const isApprovedReservation = (reservation: InventoryReservation) => {
   const status = normalizeStatus(reservation.quoteStatus);
@@ -49,7 +67,7 @@ export const InventoryPage: React.FC = () => {
   const [width, setWidth] = useState('');
   const [thickness, setThickness] = useState('');
   const [cost, setCost] = useState('');
-  const [status, setStatus] = useState<InventoryItem['status']>('Disponível');
+  const [status, setStatus] = useState<InventoryItem['status']>('DisponÃ­vel');
   const [notes, setNotes] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
@@ -58,10 +76,13 @@ export const InventoryPage: React.FC = () => {
   const [purchaseCode, setPurchaseCode] = useState('');
   const [purchaseProvider, setPurchaseProvider] = useState('');
   const [purchaseCategory, setPurchaseCategory] = useState('');
+  const [purchaseQuantity, setPurchaseQuantity] = useState('1');
+  const [purchaseMeasureMode, setPurchaseMeasureMode] = useState<PurchaseMeasureMode>('same');
   const [purchaseLength, setPurchaseLength] = useState('');
   const [purchaseWidth, setPurchaseWidth] = useState('');
   const [purchaseThickness, setPurchaseThickness] = useState('');
   const [purchaseCost, setPurchaseCost] = useState('');
+  const [purchaseSlabs, setPurchaseSlabs] = useState<PurchaseSlabForm[]>([emptyPurchaseSlab()]);
   const [purchaseNotes, setPurchaseNotes] = useState('');
 
   useEffect(() => {
@@ -103,14 +124,14 @@ export const InventoryPage: React.FC = () => {
     setWidth('');
     setThickness('');
     setCost('');
-    setStatus('Disponível');
+    setStatus('DisponÃ­vel');
     setNotes('');
     setPhotoFile(null);
     setPhotoPreview('');
     setEditingItem(null);
   };
 
-  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
+  const currentUserName = profile?.name || user?.displayName || user?.email || 'UsuÃ¡rio';
 
   const resetPurchaseForm = () => {
     setPurchaseMaterialId('');
@@ -118,11 +139,24 @@ export const InventoryPage: React.FC = () => {
     setPurchaseCode('');
     setPurchaseProvider('');
     setPurchaseCategory('');
+    setPurchaseQuantity('1');
+    setPurchaseMeasureMode('same');
     setPurchaseLength('');
     setPurchaseWidth('');
     setPurchaseThickness('');
     setPurchaseCost('');
+    setPurchaseSlabs([emptyPurchaseSlab()]);
     setPurchaseNotes('');
+  };
+
+  const updatePurchaseQuantity = (value: string) => {
+    const quantity = Math.max(1, Number(value) || 1);
+    setPurchaseQuantity(String(quantity));
+    setPurchaseSlabs((prev) => Array.from({length: quantity}, (_, index) => prev[index] || emptyPurchaseSlab()));
+  };
+
+  const updatePurchaseSlab = (index: number, field: keyof PurchaseSlabForm, value: string) => {
+    setPurchaseSlabs((prev) => prev.map((slab, slabIndex) => slabIndex === index ?{...slab, [field]: value} : slab));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -224,7 +258,7 @@ export const InventoryPage: React.FC = () => {
     if (deletedItem) {
       await logSystemEvent({
         type: 'inventory_deleted',
-        title: 'Item de estoque excluído',
+        title: 'Item de estoque excluÃ­do',
         description: `${deletedItem.materialName} - ${deletedItem.code}`,
         entityType: 'inventory',
         entityId: id,
@@ -245,12 +279,14 @@ export const InventoryPage: React.FC = () => {
     setPurchaseMaterialName(item.materialName);
     setPurchaseProvider(inventoryItem?.provider || material?.provider || '');
     setPurchaseCategory(inventoryItem?.category || material?.category || '');
+    updatePurchaseQuantity('1');
+    setPurchaseMeasureMode('same');
     setPurchaseLength('');
     setPurchaseWidth('');
     setPurchaseThickness(inventoryItem?.thickness ?String(inventoryItem.thickness) : '');
     setPurchaseCost('');
     setPurchaseCode('');
-    setPurchaseNotes(`Compra pendente sugerida: ${formatNumber(item.missing)} m²`);
+    setPurchaseNotes(`Compra pendente sugerida: ${formatNumber(item.missing)} mÂ²`);
     setShowPurchaseModal(true);
   };
 
@@ -262,36 +298,63 @@ export const InventoryPage: React.FC = () => {
     }
     const selectedMaterial = materials.find((material) => material.id === purchaseMaterialId);
     const selectedMaterialName = selectedMaterial?.name || purchaseMaterialName.trim();
-    const area = (Number(purchaseLength) * Number(purchaseWidth)) / 10000;
-    const purchaseRef = await addDoc(collection(db, 'inventoryPurchases'), {
-      materialId: purchaseMaterialId,
-      materialName: selectedMaterialName,
-      provider: purchaseProvider.trim(),
-      code: purchaseCode.trim(),
-      category: purchaseCategory.trim(),
-      length: Number(purchaseLength),
-      width: Number(purchaseWidth),
-      thickness: Number(purchaseThickness),
-      area,
-      cost: Number(purchaseCost),
-      photoUrl: selectedMaterial?.imageUrl || '',
-      status: 'Pedido',
-      notes: purchaseNotes,
-      purchasedByUid: user?.uid || '',
-      purchasedByName: currentUserName,
-      purchasedAt: serverTimestamp(),
-    });
+    const quantity = Math.max(1, Number(purchaseQuantity) || 1);
+    const slabs = purchaseMeasureMode === 'same'
+      ? Array.from({length: quantity}, (_, index) => ({
+        code: quantity > 1 && purchaseCode.trim() ?`${purchaseCode.trim()}-${index + 1}` : purchaseCode.trim(),
+        length: purchaseLength,
+        width: purchaseWidth,
+        thickness: purchaseThickness,
+        cost: purchaseCost,
+      }))
+      : purchaseSlabs.slice(0, quantity).map((slab, index) => ({
+        ...slab,
+        code: slab.code.trim() || (purchaseCode.trim() ?`${purchaseCode.trim()}-${index + 1}` : ''),
+      }));
+
+    if (slabs.some((slab) => !Number(slab.length) || !Number(slab.width) || !Number(slab.cost))) {
+      alert('Preencha comprimento, largura e custo de todas as chapas.');
+      return;
+    }
+
+    const purchaseGroupId = doc(collection(db, 'inventoryPurchases')).id;
+    const createdPurchases = await Promise.all(slabs.map((slab, index) => {
+      const area = (Number(slab.length) * Number(slab.width)) / 10000;
+      return addDoc(collection(db, 'inventoryPurchases'), {
+        materialId: purchaseMaterialId,
+        materialName: selectedMaterialName,
+        provider: purchaseProvider.trim(),
+        code: slab.code,
+        category: purchaseCategory.trim(),
+        length: Number(slab.length),
+        width: Number(slab.width),
+        thickness: Number(slab.thickness),
+        area,
+        cost: Number(slab.cost),
+        photoUrl: selectedMaterial?.imageUrl || '',
+        purchaseGroupId,
+        purchaseIndex: index + 1,
+        purchaseQuantity: quantity,
+        status: 'Pedido',
+        notes: purchaseNotes,
+        purchasedByUid: user?.uid || '',
+        purchasedByName: currentUserName,
+        purchasedAt: serverTimestamp(),
+      });
+    }));
+    const totalArea = slabs.reduce((acc, slab) => acc + (Number(slab.length) * Number(slab.width)) / 10000, 0);
+    const totalCost = slabs.reduce((acc, slab) => acc + Number(slab.cost), 0);
     await logSystemEvent({
       type: 'purchase_ordered',
-      title: 'Compra de material lançada',
-      description: `${selectedMaterialName} - ${formatNumber(area)} m²`,
+      title: 'Compra de material lanÃ§ada',
+      description: `${quantity} chapa(s) de ${selectedMaterialName} - ${formatNumber(totalArea)} mÂ²`,
       entityType: 'purchase',
-      entityId: purchaseRef.id,
+      entityId: createdPurchases[0]?.id || purchaseGroupId,
       materialId: purchaseMaterialId,
       materialName: selectedMaterialName,
       userUid: user?.uid || '',
       userName: currentUserName,
-      metadata: {area, cost: Number(purchaseCost), status: 'Pedido'},
+      metadata: {area: totalArea, cost: totalCost, quantity, status: 'Pedido'},
     });
     setShowPurchaseModal(false);
     resetPurchaseForm();
@@ -311,9 +374,9 @@ export const InventoryPage: React.FC = () => {
       thickness: purchase.thickness,
       area: purchase.area,
       cost: purchase.cost,
-      status: 'Disponível',
+      status: 'DisponÃ­vel',
       notes: purchase.notes || '',
-      photoUrl: materials.find((material) => material.id === purchase.materialId)?.imageUrl || '',
+      photoUrl: purchase.photoUrl || materials.find((material) => material.id === purchase.materialId)?.imageUrl || '',
     });
     await updateDoc(doc(db, 'inventoryPurchases', purchase.id), {
       status: 'Entregue',
@@ -325,7 +388,7 @@ export const InventoryPage: React.FC = () => {
     await logSystemEvent({
       type: 'purchase_received',
       title: 'Compra de material recebida',
-      description: `${purchase.materialName} - ${formatNumber(purchase.area)} m²`,
+      description: `${purchase.materialName} - ${formatNumber(purchase.area)} mÂ²`,
       entityType: 'purchase',
       entityId: purchase.id,
       materialId: purchase.materialId,
@@ -401,6 +464,14 @@ export const InventoryPage: React.FC = () => {
   const totalPendingPurchaseArea = pendingPurchases.reduce((acc, item) => acc + item.missing, 0);
   const activePurchases = purchases.filter((purchase) => purchase.status === 'Pedido');
   const materialImageById = (materialId: string) => materials.find((material) => material.id === materialId)?.imageUrl || '';
+  const selectedPurchaseMaterial = materials.find((material) => material.id === purchaseMaterialId);
+  const purchaseQuantityNumber = Math.max(1, Number(purchaseQuantity) || 1);
+  const purchaseSlabRows = purchaseSlabs.slice(0, purchaseQuantityNumber);
+  const purchasePreviewSlabs = purchaseMeasureMode === 'same'
+    ? Array.from({length: purchaseQuantityNumber}, () => ({length: purchaseLength, width: purchaseWidth, cost: purchaseCost}))
+    : purchaseSlabRows;
+  const purchaseTotalArea = purchasePreviewSlabs.reduce((acc, slab) => acc + ((Number(slab.length) * Number(slab.width)) / 10000), 0);
+  const purchaseTotalCost = purchasePreviewSlabs.reduce((acc, slab) => acc + Number(slab.cost || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -428,12 +499,12 @@ export const InventoryPage: React.FC = () => {
           <div className="text-3xl font-display font-bold text-slate-900">{items.length}</div>
         </div>
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Área Disponível</div>
-          <div className="text-3xl font-display font-bold text-brand-primary">{formatNumber(totalAvailableArea)} m²</div>
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Ãrea DisponÃ­vel</div>
+          <div className="text-3xl font-display font-bold text-brand-primary">{formatNumber(totalAvailableArea)} mÂ²</div>
         </div>
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Área Reservada</div>
-          <div className="text-3xl font-display font-bold text-amber-600">{formatNumber(totalReservedArea)} m²</div>
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Ãrea Reservada</div>
+          <div className="text-3xl font-display font-bold text-amber-600">{formatNumber(totalReservedArea)} mÂ²</div>
         </div>
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Custo em Estoque</div>
@@ -445,7 +516,7 @@ export const InventoryPage: React.FC = () => {
         )}>
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Compra Pendente</div>
           <div className={cn('text-3xl font-display font-bold', pendingPurchases.length > 0 ?'text-amber-700' : 'text-slate-900')}>
-            {formatNumber(totalPendingPurchaseArea)} m²
+            {formatNumber(totalPendingPurchaseArea)} mÂ²
           </div>
         </div>
       </div>
@@ -457,8 +528,8 @@ export const InventoryPage: React.FC = () => {
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="font-display text-lg font-bold text-amber-900">Compra pendente para orçamento aprovado</h2>
-              <p className="mt-1 text-sm text-amber-700">As pedras abaixo têm mais m² vendidos/reservados em orçamentos aprovados do que área disponível no estoque.</p>
+              <h2 className="font-display text-lg font-bold text-amber-900">Compra pendente para orÃ§amento aprovado</h2>
+              <p className="mt-1 text-sm text-amber-700">As pedras abaixo tÃªm mais mÂ² vendidos/reservados em orÃ§amentos aprovados do que Ã¡rea disponÃ­vel no estoque.</p>
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                 {pendingPurchases.map((item) => (
                   <div key={item.materialId} className="rounded-2xl border border-amber-100 bg-white/70 p-4">
@@ -475,20 +546,20 @@ export const InventoryPage: React.FC = () => {
                     </div>
                     <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
                       <div>
-                        <span className="block font-bold uppercase tracking-widest text-slate-400">Disponível</span>
-                        <strong className="text-slate-700">{formatNumber(item.available)} m²</strong>
+                        <span className="block font-bold uppercase tracking-widest text-slate-400">DisponÃ­vel</span>
+                        <strong className="text-slate-700">{formatNumber(item.available)} mÂ²</strong>
                       </div>
                       <div>
                         <span className="block font-bold uppercase tracking-widest text-slate-400">Vendido</span>
-                        <strong className="text-amber-700">{formatNumber(item.reserved)} m²</strong>
+                        <strong className="text-amber-700">{formatNumber(item.reserved)} mÂ²</strong>
                       </div>
                       <div>
                         <span className="block font-bold uppercase tracking-widest text-slate-400">Pedido</span>
-                        <strong className="text-blue-700">{formatNumber(item.ordered)} m²</strong>
+                        <strong className="text-blue-700">{formatNumber(item.ordered)} mÂ²</strong>
                       </div>
                       <div>
                         <span className="block font-bold uppercase tracking-widest text-slate-400">Comprar</span>
-                        <strong className="text-red-600">{formatNumber(item.missing)} m²</strong>
+                        <strong className="text-red-600">{formatNumber(item.missing)} mÂ²</strong>
                       </div>
                     </div>
                   </div>
@@ -514,7 +585,7 @@ export const InventoryPage: React.FC = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="font-bold text-slate-900">{purchase.materialName}</div>
-                        <div className="mt-1 text-xs text-slate-400">{purchase.code || 'Sem lote'} · {formatNumber(purchase.area)} m²</div>
+                        <div className="mt-1 text-xs text-slate-400">{purchase.code || 'Sem lote'} Â· {formatNumber(purchase.area)} mÂ²</div>
                       </div>
                       <button
                         type="button"
@@ -566,11 +637,11 @@ export const InventoryPage: React.FC = () => {
             <thead>
               <tr className="border-b border-slate-50">
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Pedra / Lote</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Dimensões (cm)</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Área</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">DimensÃµes (cm)</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Ãrea</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Custo</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">AÃ§Ãµes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -598,12 +669,12 @@ export const InventoryPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">{item.length} x {item.width} x {item.thickness}</td>
-                    <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(item.area)} m²</td>
+                    <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(item.area)} mÂ²</td>
                     <td className="px-6 py-4 font-mono text-sm">{formatCurrency(item.cost)}</td>
                     <td className="px-6 py-4">
                       <span className={cn(
                         'inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase',
-                        item.status === 'Disponível' ?'bg-green-50 text-green-600' :
+                        item.status === 'DisponÃ­vel' ?'bg-green-50 text-green-600' :
                         item.status === 'Reservada' ?'bg-amber-50 text-amber-600' :
                         item.status === 'Retalho' ?'bg-blue-50 text-blue-600' :
                         'bg-slate-100 text-slate-500',
@@ -612,7 +683,7 @@ export const InventoryPage: React.FC = () => {
                       </span>
                       {reservedAreaByMaterial(item.materialId) > 0 && (
                         <div className="mt-1 text-[10px] font-semibold text-amber-600">
-                          {formatNumber(reservedAreaByMaterial(item.materialId))} m² em orçamentos
+                          {formatNumber(reservedAreaByMaterial(item.materialId))} mÂ² em orÃ§amentos
                         </div>
                       )}
                     </td>
@@ -637,15 +708,15 @@ export const InventoryPage: React.FC = () => {
       {purchases.length > 0 && (
         <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
           <div className="p-5 border-b border-slate-50">
-            <h2 className="font-display text-xl font-bold text-slate-900">Histórico de compras</h2>
-            <p className="mt-1 text-sm text-slate-400">Controle de pedidos, entregas e responsáveis.</p>
+            <h2 className="font-display text-xl font-bold text-slate-900">HistÃ³rico de compras</h2>
+            <p className="mt-1 text-sm text-slate-400">Controle de pedidos, entregas e responsÃ¡veis.</p>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
                 <tr className="border-b border-slate-50">
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Pedra</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Área</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Ãrea</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Comprou</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Recebeu</th>
@@ -658,7 +729,7 @@ export const InventoryPage: React.FC = () => {
                       <div className="font-semibold text-slate-900">{purchase.materialName}</div>
                       <div className="text-xs text-brand-primary font-mono">{purchase.code || 'Sem lote'}</div>
                     </td>
-                    <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(purchase.area)} m²</td>
+                    <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(purchase.area)} mÂ²</td>
                     <td className="px-6 py-4">
                       <span className={cn(
                         'inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase',
@@ -679,11 +750,11 @@ export const InventoryPage: React.FC = () => {
 
       {showPurchaseModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl p-8 space-y-6 animate-in fade-in zoom-in duration-300 overflow-y-auto max-h-[90vh]">
+          <div className="bg-white w-full max-w-4xl rounded-[32px] shadow-2xl p-8 space-y-6 animate-in fade-in zoom-in duration-300 overflow-y-auto max-h-[90vh]">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-2xl font-display font-bold text-slate-900">Registrar compra</h2>
-                <p className="mt-1 text-sm text-slate-400">Status inicial: Pedido · Comprado por {currentUserName}</p>
+                <p className="mt-1 text-sm text-slate-400">Escolha a pedra, quantidade de chapas e medidas. Comprado por {currentUserName}</p>
               </div>
               <button type="button" onClick={() => { setShowPurchaseModal(false); resetPurchaseForm(); }} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
                 <X className="w-6 h-6" />
@@ -713,9 +784,26 @@ export const InventoryPage: React.FC = () => {
                     ))}
                   </select>
                 </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 flex items-center gap-3">
+                  <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white flex items-center justify-center">
+                    {selectedPurchaseMaterial?.imageUrl ?(
+                      <img src={selectedPurchaseMaterial.imageUrl} alt={selectedPurchaseMaterial.name} className="h-full w-full object-cover" />
+                    ) : (
+                      <PackageCheck className="h-5 w-5 text-slate-400" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Imagem da pedra</div>
+                    <div className="font-semibold text-slate-900">{selectedPurchaseMaterial?.name || 'Selecione uma pedra'}</div>
+                  </div>
+                </div>
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Código / Lote</label>
+                  <label className="text-slate-500 font-medium text-sm">Código / Lote base</label>
                   <input type="text" required value={purchaseCode} onChange={(e) => setPurchaseCode(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Quantidade de chapas</label>
+                  <input type="number" min="1" required value={purchaseQuantity} onChange={(e) => updatePurchaseQuantity(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Fornecedor</label>
@@ -725,30 +813,54 @@ export const InventoryPage: React.FC = () => {
                   <label className="text-slate-500 font-medium text-sm">Categoria</label>
                   <input type="text" value={purchaseCategory} onChange={(e) => setPurchaseCategory(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
                 </div>
-                <div className="grid grid-cols-3 gap-2 md:col-span-2">
-                  <div className="space-y-1.5">
-                    <label className="text-slate-500 font-medium text-xs">Comprimento (cm)</label>
-                    <input type="number" required value={purchaseLength} onChange={(e) => setPurchaseLength(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+
+                <div className="md:col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-2 flex gap-2">
+                  <button type="button" onClick={() => setPurchaseMeasureMode('same')} className={cn('flex-1 rounded-xl px-4 py-3 text-sm font-bold transition-all', purchaseMeasureMode === 'same' ?'bg-brand-primary text-white shadow-sm' : 'bg-white text-slate-500 hover:text-slate-900')}>
+                    Mesma medida
+                  </button>
+                  <button type="button" onClick={() => setPurchaseMeasureMode('different')} className={cn('flex-1 rounded-xl px-4 py-3 text-sm font-bold transition-all', purchaseMeasureMode === 'different' ?'bg-brand-primary text-white shadow-sm' : 'bg-white text-slate-500 hover:text-slate-900')}>
+                    Medida diferente
+                  </button>
+                </div>
+
+                {purchaseMeasureMode === 'same' ? (
+                  <div className="md:col-span-2 rounded-3xl border border-slate-100 bg-slate-50 p-4">
+                    <div className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">Medida usada em todas as chapas</div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                      <input type="number" required value={purchaseLength} onChange={(e) => setPurchaseLength(e.target.value)} placeholder="Comprimento (cm)" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                      <input type="number" required value={purchaseWidth} onChange={(e) => setPurchaseWidth(e.target.value)} placeholder="Largura (cm)" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                      <input type="number" value={purchaseThickness} onChange={(e) => setPurchaseThickness(e.target.value)} placeholder="Espessura (cm)" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                      <input type="number" step="0.01" required value={purchaseCost} onChange={(e) => setPurchaseCost(e.target.value)} placeholder="Custo por chapa" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-slate-500 font-medium text-xs">Largura (cm)</label>
-                    <input type="number" required value={purchaseWidth} onChange={(e) => setPurchaseWidth(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                ) : (
+                  <div className="md:col-span-2 space-y-3">
+                    {purchaseSlabRows.map((slab, index) => (
+                      <div key={index} className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
+                        <div className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">Chapa {index + 1}</div>
+                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                          <input type="text" value={slab.code} onChange={(e) => updatePurchaseSlab(index, 'code', e.target.value)} placeholder={`Lote ${index + 1}`} className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                          <input type="number" required value={slab.length} onChange={(e) => updatePurchaseSlab(index, 'length', e.target.value)} placeholder="Comprimento" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                          <input type="number" required value={slab.width} onChange={(e) => updatePurchaseSlab(index, 'width', e.target.value)} placeholder="Largura" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                          <input type="number" value={slab.thickness} onChange={(e) => updatePurchaseSlab(index, 'thickness', e.target.value)} placeholder="Espessura" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                          <input type="number" step="0.01" required value={slab.cost} onChange={(e) => updatePurchaseSlab(index, 'cost', e.target.value)} placeholder="Custo" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  <div className="space-y-1.5">
-                    <label className="text-slate-500 font-medium text-xs">Espessura (cm)</label>
-                    <input type="number" value={purchaseThickness} onChange={(e) => setPurchaseThickness(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                )}
+
+                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-slate-100 border border-slate-200 px-4 py-3">
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Área total calculada</div>
+                    <div className="mt-1 font-mono text-xl font-bold text-slate-800">{formatNumber(purchaseTotalArea)} m²</div>
+                  </div>
+                  <div className="rounded-2xl bg-slate-100 border border-slate-200 px-4 py-3">
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Custo total calculado</div>
+                    <div className="mt-1 font-mono text-xl font-bold text-slate-800">{formatCurrency(purchaseTotalCost)}</div>
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Custo Total</label>
-                  <input type="number" step="0.01" required value={purchaseCost} onChange={(e) => setPurchaseCost(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Área calculada</label>
-                  <div className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 font-mono font-bold text-slate-700">
-                    {formatNumber((Number(purchaseLength) * Number(purchaseWidth)) / 10000)} m²
-                  </div>
-                </div>
+
                 <div className="space-y-1.5 md:col-span-2">
                   <label className="text-slate-500 font-medium text-sm">Observações</label>
                   <textarea value={purchaseNotes} onChange={(e) => setPurchaseNotes(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium min-h-[60px]" />
@@ -756,7 +868,7 @@ export const InventoryPage: React.FC = () => {
               </div>
 
               <button type="submit" className="w-full bg-amber-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-amber-600/20 hover:bg-amber-700 transition-all active:scale-95">
-                Registrar Pedido de Compra
+                Registrar {purchaseQuantityNumber} chapa(s)
               </button>
             </form>
           </div>
@@ -801,7 +913,7 @@ export const InventoryPage: React.FC = () => {
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Código / Lote</label>
+                  <label className="text-slate-500 font-medium text-sm">CÃ³digo / Lote</label>
                   <input type="text" required value={code} onChange={(e) => setCode(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
                 </div>
                 <div className="space-y-1.5">
@@ -810,7 +922,7 @@ export const InventoryPage: React.FC = () => {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Categoria</label>
-                  <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: Granito, Mármore, Quartzo..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                  <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: Granito, MÃ¡rmore, Quartzo..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Status</label>
@@ -842,7 +954,7 @@ export const InventoryPage: React.FC = () => {
                     <div className="flex items-center gap-4">
                       <div className="h-16 w-16 shrink-0 rounded-full border border-slate-200 bg-white overflow-hidden flex items-center justify-center">
                         {photoPreview ?(
-                          <img src={photoPreview} alt="Prévia da pedra" className="h-full w-full object-cover" />
+                          <img src={photoPreview} alt="PrÃ©via da pedra" className="h-full w-full object-cover" />
                         ) : (
                           <ImagePlus className="w-6 h-6 text-slate-400" />
                         )}
@@ -862,19 +974,19 @@ export const InventoryPage: React.FC = () => {
                           }}
                           className="w-full text-sm text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-brand-primary file:px-3 file:py-2 file:text-white file:font-semibold hover:file:bg-brand-primary/90"
                         />
-                        <p className="mt-1 text-xs text-slate-400">A imagem será salva e exibida em círculo na lista.</p>
+                        <p className="mt-1 text-xs text-slate-400">A imagem serÃ¡ salva e exibida em cÃ­rculo na lista.</p>
                       </div>
                     </div>
                   </div>
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
-                  <label className="text-slate-500 font-medium text-sm">Observações</label>
+                  <label className="text-slate-500 font-medium text-sm">ObservaÃ§Ãµes</label>
                   <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium min-h-[60px]" />
                 </div>
               </div>
 
               <button type="submit" className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
-                {editingItem ?'Salvar Alterações' : 'Adicionar ao Estoque'}
+                {editingItem ?'Salvar AlteraÃ§Ãµes' : 'Adicionar ao Estoque'}
               </button>
             </form>
           </div>

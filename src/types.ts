@@ -339,6 +339,10 @@ export interface InventoryPurchase {
   thickness: number;
   area: number;
   cost: number;
+  photoUrl?: string;
+  purchaseGroupId?: string;
+  purchaseIndex?: number;
+  purchaseQuantity?: number;
   status: InventoryPurchaseStatus;
   notes?: string;
   purchasedByUid: string;

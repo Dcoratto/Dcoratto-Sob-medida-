@@ -31,6 +31,38 @@ const resetCollections = [
   'systemEvents',
 ];
 
+const MAX_IMAGE_SIZE_MB = 8;
+const IMAGE_UPLOAD_TIMEOUT_MS = 45000;
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMessage: string) => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(timeoutMessage)), IMAGE_UPLOAD_TIMEOUT_MS);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
+const assertValidImage = (file: File) => {
+  if (!file.type.startsWith('image/')) {
+    throw new Error('Selecione um arquivo de imagem válido.');
+  }
+  if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
+    throw new Error(`A imagem deve ter no máximo ${MAX_IMAGE_SIZE_MB} MB.`);
+  }
+};
+
+const uploadCatalogImage = async (path: string, file: File) => {
+  assertValidImage(file);
+  const extension = file.name.split('.').pop() || 'jpg';
+  const fileRef = storageRef(storage, `${path}/image-${Date.now()}.${extension}`);
+  await withTimeout(uploadBytes(fileRef, file), 'O upload da imagem demorou demais. Tente uma imagem menor ou confira a conexão.');
+  return withTimeout(getDownloadURL(fileRef), 'Não foi possível obter o link da imagem enviada.');
+};
+
 export const AdminPage: React.FC = () => {
   const {isAdmin} = useAuth();
   const [users, setUsers] = useState<Profile[]>([]);
@@ -51,6 +83,7 @@ export const AdminPage: React.FC = () => {
   });
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
   const [savingMaterial, setSavingMaterial] = useState(false);
+  const [materialError, setMaterialError] = useState('');
   const [materialImageFile, setMaterialImageFile] = useState<File | null>(null);
   const [materialForm, setMaterialForm] = useState({
     name: '',
@@ -60,6 +93,7 @@ export const AdminPage: React.FC = () => {
     marginPercentage: '',
   });
   const [savingFixture, setSavingFixture] = useState(false);
+  const [fixtureError, setFixtureError] = useState('');
   const [fixtureImageFile, setFixtureImageFile] = useState<File | null>(null);
   const [fixtureForm, setFixtureForm] = useState<{
     name: string;
@@ -188,14 +222,12 @@ export const AdminPage: React.FC = () => {
     const pricePerM2 = baseCostPerM2 * (1 + marginPercentage / 100);
 
     setSavingMaterial(true);
+    setMaterialError('');
     try {
       const materialId = slugify(name);
       let imageUrl = '';
       if (materialImageFile) {
-        const extension = materialImageFile.name.split('.').pop() || 'jpg';
-        const fileRef = storageRef(storage, `materials/${materialId}/image-${Date.now()}.${extension}`);
-        await uploadBytes(fileRef, materialImageFile);
-        imageUrl = await getDownloadURL(fileRef);
+        imageUrl = await uploadCatalogImage(`materials/${materialId}`, materialImageFile);
       }
       await setDoc(doc(db, 'materials', materialId), {
         name,
@@ -210,6 +242,9 @@ export const AdminPage: React.FC = () => {
       }, {merge: true});
       setMaterialForm({name: '', provider: '', category: '', baseCostPerM2: '', marginPercentage: ''});
       setMaterialImageFile(null);
+    } catch (error: any) {
+      console.error('Erro ao cadastrar pedra:', error);
+      setMaterialError(error?.message || 'Não foi possível cadastrar a pedra com imagem.');
     } finally {
       setSavingMaterial(false);
     }
@@ -223,13 +258,11 @@ export const AdminPage: React.FC = () => {
     event.preventDefault();
     if (!fixtureForm.name.trim()) return;
     setSavingFixture(true);
+    setFixtureError('');
     try {
       let imageUrl = fixtureForm.imageUrl.trim();
       if (fixtureImageFile) {
-        const extension = fixtureImageFile.name.split('.').pop() || 'jpg';
-        const fileRef = storageRef(storage, `fixtureCatalog/${slugify(fixtureForm.name)}/image-${Date.now()}.${extension}`);
-        await uploadBytes(fileRef, fixtureImageFile);
-        imageUrl = await getDownloadURL(fileRef);
+        imageUrl = await uploadCatalogImage(`fixtureCatalog/${slugify(fixtureForm.name)}`, fixtureImageFile);
       }
       await addDoc(collection(db, 'fixtureCatalog'), {
         name: fixtureForm.name.trim(),
@@ -250,6 +283,9 @@ export const AdminPage: React.FC = () => {
         notes: '',
       });
       setFixtureImageFile(null);
+    } catch (error: any) {
+      console.error('Erro ao cadastrar peça:', error);
+      setFixtureError(error?.message || 'Não foi possível cadastrar a peça com imagem.');
     } finally {
       setSavingFixture(false);
     }
@@ -430,7 +466,7 @@ export const AdminPage: React.FC = () => {
       </section>
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-6">
-        <div className="hidden">
+        <div>
           <h2 className="font-display text-xl font-bold text-slate-900">Catálogo de pedras</h2>
           <p className="text-sm text-slate-400">Cadastre as pedras aqui para seleção no estoque, compras e orçamentos.</p>
         </div>
@@ -443,12 +479,26 @@ export const AdminPage: React.FC = () => {
           <input type="number" step="0.01" value={materialForm.marginPercentage} onChange={(event) => setMaterialForm((form) => ({...form, marginPercentage: event.target.value}))} placeholder="Margem %" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <label className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 cursor-pointer">
             {materialImageFile ?materialImageFile.name : 'Imagem da pedra'}
-            <input type="file" accept="image/*" className="hidden" onChange={(event) => setMaterialImageFile(event.target.files?.[0] || null)} />
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => {
+                setMaterialError('');
+                setMaterialImageFile(event.target.files?.[0] || null);
+              }}
+            />
           </label>
           <button type="submit" disabled={savingMaterial} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-white disabled:opacity-60">
             {savingMaterial ?'Salvando...' : 'Cadastrar pedra'}
           </button>
         </form>
+
+        {materialError && (
+          <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            {materialError}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {materials.map((material) => (
@@ -490,13 +540,27 @@ export const AdminPage: React.FC = () => {
           <input value={fixtureForm.imageUrl} onChange={(e) => setFixtureForm((f) => ({...f, imageUrl: e.target.value}))} placeholder="URL da imagem" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-2" />
           <label className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 cursor-pointer md:col-span-2 xl:col-span-1">
             {fixtureImageFile ? fixtureImageFile.name : 'Upload da imagem'}
-            <input type="file" accept="image/*" className="hidden" onChange={(event) => setFixtureImageFile(event.target.files?.[0] || null)} />
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => {
+                setFixtureError('');
+                setFixtureImageFile(event.target.files?.[0] || null);
+              }}
+            />
           </label>
           <input value={fixtureForm.notes} onChange={(e) => setFixtureForm((f) => ({...f, notes: e.target.value}))} placeholder="Informações" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-1" />
           <button type="submit" disabled={savingFixture} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-white disabled:opacity-60">
             {savingFixture ?'Salvando...' : 'Cadastrar peça'}
           </button>
         </form>
+
+        {fixtureError && (
+          <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            {fixtureError}
+          </div>
+        )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {fixtureCatalog.map((item) => (

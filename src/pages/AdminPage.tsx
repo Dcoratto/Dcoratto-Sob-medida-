@@ -24,6 +24,7 @@ const resetCollections = [
   'quotes',
   'employees',
   'materials',
+  'fixtureCatalog',
   'inventory',
   'inventoryReservations',
   'inventoryPurchases',
@@ -84,6 +85,15 @@ const optimizeCatalogImage = async (file: File) => {
   }
 
   throw new Error('A imagem ficou muito pesada. Tente uma imagem menor ou mais simples.');
+};
+
+const getCatalogSaveErrorMessage = (error: any, itemName: string) => {
+  const message = String(error?.message || '');
+  const code = String(error?.code || '');
+  if (code.includes('permission-denied') || message.includes('Missing or insufficient permissions')) {
+    return `Sem permissão para salvar ${itemName}. Publique as regras atualizadas do Firestore e faça login novamente.`;
+  }
+  return message || `Não foi possível cadastrar ${itemName}.`;
 };
 
 export const AdminPage: React.FC = () => {
@@ -267,7 +277,7 @@ export const AdminPage: React.FC = () => {
       setMaterialImageFile(null);
     } catch (error: any) {
       console.error('Erro ao cadastrar pedra:', error);
-      setMaterialError(error?.message || 'Não foi possível cadastrar a pedra com imagem.');
+      setMaterialError(getCatalogSaveErrorMessage(error, 'a pedra'));
     } finally {
       setSavingMaterial(false);
     }
@@ -308,7 +318,7 @@ export const AdminPage: React.FC = () => {
       setFixtureImageFile(null);
     } catch (error: any) {
       console.error('Erro ao cadastrar peça:', error);
-      setFixtureError(error?.message || 'Não foi possível cadastrar a peça com imagem.');
+      setFixtureError(getCatalogSaveErrorMessage(error, 'a peça'));
     } finally {
       setSavingFixture(false);
     }

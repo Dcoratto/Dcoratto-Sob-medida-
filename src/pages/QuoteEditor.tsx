@@ -357,8 +357,6 @@ export const QuoteEditor: React.FC = () => {
       materialName: selectedMaterial?.name || '',
       paymentMethod,
       deliveryDays,
-      measurementDate: measurementDate ?Timestamp.fromDate(new Date(`${measurementDate}T12:00:00`)) : null,
-      deliveryDate: deliveryDate ?Timestamp.fromDate(new Date(`${deliveryDate}T12:00:00`)) : null,
       validityDate: Timestamp.fromDate(new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000)),
       commercialNotes,
       status,
@@ -529,27 +527,6 @@ export const QuoteEditor: React.FC = () => {
                 className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
                 placeholder="Nome do responsável"
               />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Medição</label>
-                <input
-                  type="date"
-                  value={measurementDate}
-                  onChange={(e) => setMeasurementDate(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Entrega</label>
-                <input
-                  type="date"
-                  value={deliveryDate}
-                  onChange={(e) => setDeliveryDate(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
-                />
-              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

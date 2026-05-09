@@ -32,7 +32,7 @@ const normalize = (value: unknown) =>
 const stageMeta: Record<ClientStage, {label: string; dot: string; chip: string}> = {
   pre: {label: 'Orçamento', dot: 'bg-blue-500', chip: 'bg-blue-50 text-blue-700'},
   approved: {label: 'Aprovado', dot: 'bg-violet-500', chip: 'bg-violet-50 text-violet-700'},
-  production: {label: 'Produ??o', dot: 'bg-zinc-900', chip: 'bg-zinc-100 text-zinc-700'},
+  production: {label: 'Produção', dot: 'bg-zinc-900', chip: 'bg-zinc-100 text-zinc-700'},
   ready: {label: 'Acabamento', dot: 'bg-amber-700', chip: 'bg-amber-50 text-amber-800'},
   done: {label: 'Concluído', dot: 'bg-violet-500', chip: 'bg-violet-50 text-violet-700'},
   none: {label: 'Sem projeto', dot: 'bg-zinc-300', chip: 'bg-zinc-100 text-zinc-500'},
@@ -42,7 +42,7 @@ const quoteStage = (quote?: Quote): ClientStage => {
   if (!quote) return 'none';
   const status = normalizeQuoteStatus(quote.status);
   if (status === 'Finalizado') return 'done';
-  if (status === 'Produ??o') return 'production';
+  if (status === 'Produção') return 'production';
   if (status === 'Acabamento' || status === 'Entrega') return 'ready';
   if (status === 'Aprovado') return 'approved';
   return 'pre';
@@ -914,7 +914,7 @@ export const ClientsPage: React.FC = () => {
                                               )}
                                               title={`${rating} ponto(s)`}
                                             >
-                                              {rating <= 2 ?'â˜¹' : rating === 3 ?'â—‹' : 'â˜º'}
+                                              {rating <= 2 ?'☹' : rating === 3 ?'○' : '☺'}
                                             </button>
                                           ))}
                                         </div>
@@ -1149,3 +1149,4 @@ const FixtureInput = ({label, value, type = 'text', onBlur}: {label: string; val
     </label>
   );
 };
+

@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+﻿import React, {useEffect, useMemo, useState} from 'react';
 import {collection, doc, getDoc, onSnapshot} from 'firebase/firestore';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
@@ -281,7 +281,7 @@ export const PremiumProposalPage: React.FC = () => {
           <div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.035] p-8 print:border-slate-200 print:bg-white">
             <h3 className="mb-6 font-display text-xl font-bold">Observaçóes importantes</h3>
             <div className="space-y-4 text-sm leading-relaxed text-white/52 print:text-slate-600">
-              <p><span className="mr-2 text-[#D4A853]">01.</span>Valores incluem material e m²o de obra conforme discriminado em cada ambiente.</p>
+              <p><span className="mr-2 text-[#D4A853]">01.</span>Valores incluem material e mão de obra conforme discriminado em cada ambiente.</p>
               <p><span className="mr-2 text-[#D4A853]">02.</span>Cubas, eletros e torneiras não fazem parte deste orçamento, salvo quando descritos nas observações comerciais.</p>
               <p><span className="mr-2 text-[#D4A853]">03.</span>Furos, recortes e acabamentos especiais seguem as quantidades informadas no projeto.</p>
               <p><span className="mr-2 text-[#D4A853]">04.</span>Prazo de entrega: até {quote.deliveryDays || 0} dias úteis após confirmação do pedido e medição final.</p>
@@ -354,20 +354,20 @@ const PieceSection = ({piece, index, materialName, reverse, quoteCutouts}: {key?
     {label: 'Rebaixo italiano', count: quoteCutouts?.wetAreaItalianRecess || 0},
   ].filter((item) => item.count > 0);
   const rows = [
-    {description: 'Pedra principal', measure: `${piece.length || 0} x ${piece.width || 0} cm`, area: `${formatNumber(pieceArea(piece), 4)} m²`, material: materialName, subtotal: 'Inclu?do'},
+    {description: 'Pedra principal', measure: `${piece.length || 0} x ${piece.width || 0} cm`, area: `${formatNumber(pieceArea(piece), 4)} m²`, material: materialName, subtotal: 'Incluído'},
     ...(piece.sculptedSink?.active ?[{
       description: `Pia esculpida ${piece.sculptedSink.type}`,
       measure: `${piece.sculptedSink.width || 0} x ${piece.sculptedSink.depth || 0} ${piece.sculptedSink.unit}`,
       area: `${formatNumber(piece.sculptedSink.calculatedArea || 0, 4)} m²`,
       material: `${piece.sculptedSink.quantity || 1} un`,
-      subtotal: 'Inclu?do',
+      subtotal: 'Incluído',
     }] : []),
     ...additions.map((side) => ({
       description: sideLabel(side.type),
       measure: side.sideLabel || side.side,
       area: `${formatNumber(side.areaTotal || side.area || 0, 4)} m²`,
       material: `${side.height || 0} cm · qtd ${side.quantity || 1}`,
-      subtotal: 'Inclu?do',
+      subtotal: 'Incluído',
     })),
     ...(piece.cutouts || []).map((cutout) => ({
       description: `Recorte ${cutout.type}`,
@@ -391,7 +391,7 @@ const PieceSection = ({piece, index, materialName, reverse, quoteCutouts}: {key?
       <Eyebrow>Ambiente {String(index + 1).padStart(2, '0')}</Eyebrow>
       <h2 className="mb-2 mt-3 font-display text-3xl font-bold md:text-4xl">{piece.name}</h2>
       <p className="mb-8 text-xs text-white/35 print:text-slate-500">
-        Material: {materialName} ?área: {formatNumber(pieceArea(piece), 4)} m²
+        Material: {materialName} Área: {formatNumber(pieceArea(piece), 4)} m²
       </p>
       <div className={`grid gap-8 lg:grid-cols-12 ${reverse ?'lg:[&>*:first-child]:order-2' : ''}`}>
         <div className="lg:col-span-5">
@@ -457,7 +457,7 @@ const FixtureSummary = ({piece}: {piece: QuotePiece}) => {
                 fixture.width ?`L ${fixture.width}` : '',
                 fixture.depth ?`P ${fixture.depth}` : '',
                 fixture.height ?`A ${fixture.height}` : '',
-                fixture.diameter ?`Ø ${fixture.diameter}` : '',
+                fixture.diameter ?`Ã˜ ${fixture.diameter}` : '',
               ].filter(Boolean).join(' · ') || 'Medidas pendentes'}
             </div>
           </div>
@@ -535,4 +535,5 @@ const PaymentCard = ({title, subtitle, lines, badge, highlight = false}: {title:
     </div>
   </div>
 );
+
 

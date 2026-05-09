@@ -1057,7 +1057,7 @@ export const QuoteEditor: React.FC = () => {
             <p className="text-xs text-slate-400">No card do cliente s?o exibidas somente peças previamente cadastradas no Admin.</p>
             {!pieces.length ?(
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                Adicione ao menos uma peça para vincular os itens do catélogo.
+                Adicione ao menos uma peça para vincular os itens do catálogo.
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1099,7 +1099,7 @@ export const QuoteEditor: React.FC = () => {
               </div>
             )}
             <div className="text-xs text-slate-400">
-              Se não encontrar um item aqui, cadastre primeiro na aba Admin em Catélogo de peças.
+              Se não encontrar um item aqui, cadastre primeiro na aba Admin em Catálogo de peças.
             </div>
           </section>
 

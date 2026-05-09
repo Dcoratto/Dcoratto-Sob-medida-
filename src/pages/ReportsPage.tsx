@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useState} from 'react';
+﻿import React, {useEffect, useMemo, useState} from 'react';
 import {collection, limit, onSnapshot, orderBy, query} from 'firebase/firestore';
 import {AlertCircle, BarChart3, Boxes, FileDown, Gauge, TrendingUp, Users} from 'lucide-react';
 import {Client, Employee, InventoryItem, Material, ProductionStep, Quote, SystemEvent} from '../types';
@@ -51,7 +51,7 @@ const periodLabel = (period: Period) => {
 const statusLabel = (status: string) => normalizeQuoteStatus(status);
 
 const isClosedSale = (status: string) =>
-  ['Aprovado', 'Produ??o', 'Acabamento', 'Entrega', 'Finalizado'].includes(statusLabel(status));
+  ['Aprovado', 'Produção', 'Acabamento', 'Entrega', 'Finalizado'].includes(statusLabel(status));
 
 export const ReportsPage: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -225,7 +225,7 @@ export const ReportsPage: React.FC = () => {
             <MoneyLine label="Vendidos" value={totalSold} className="text-green-700" />
             <MoneyLine label="Em aberto" value={openValue} className="text-amber-700" />
             <MoneyLine label="Recusados" value={refusedValue} className="text-red-600" />
-            <MoneyLine label="Ticket m²dio" value={filteredQuotes.length ?filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) / filteredQuotes.length : 0} className="text-slate-900" />
+            <MoneyLine label="Ticket médio" value={filteredQuotes.length ?filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) / filteredQuotes.length : 0} className="text-slate-900" />
           </div>
         </div>
       </section>
@@ -418,3 +418,4 @@ const MoneyLine = ({label, value, className}: {label: string; value: number; cla
 const EmptyText = ({children}: {children: React.ReactNode}) => (
   <div className="rounded-2xl bg-slate-50 p-5 text-center text-sm font-semibold text-slate-400">{children}</div>
 );
+

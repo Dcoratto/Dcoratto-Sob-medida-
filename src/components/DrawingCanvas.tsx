@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+﻿import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {
   Check,
   CircleDot,
@@ -1071,7 +1071,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           <button type="button" onClick={handleMeasureSubmit} className="rounded-xl bg-brand-primary p-2 text-white"><Check className="h-4 w-4" /></button>
         </div>
         <div className="absolute right-4 top-4 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl">
-          <div className="text-xs font-bold uppercase tracking-widest text-slate-400">?rea principal</div>
+          <div className="text-xs font-bold uppercase tracking-widest text-slate-400">área principal</div>
           <div className="text-2xl font-display font-bold text-brand-primary">{area.toFixed(4)} m?</div>
           <div className="mt-2 text-xs text-slate-500">Adicionais: {additionalArea.toFixed(4)} m?</div>
           <div className="text-xs font-bold text-slate-700">Total: {totalArea.toFixed(4)} m?</div>
@@ -1221,7 +1221,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             </div>
             <div className="rounded-2xl bg-white p-4">
               <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Persist?ncia</div>
-              <p className="mt-1 text-xs text-slate-500">O desenho salva pontos, lados, complementos, recortes, ?rea, maior lado e preview PNG.</p>
+              <p className="mt-1 text-xs text-slate-500">O desenho salva pontos, lados, complementos, recortes, área, maior lado e preview PNG.</p>
             </div>
           </div>
           <div className="space-y-2">
@@ -1252,6 +1252,7 @@ const ToolButton = ({icon: Icon, label, active, onClick}: {icon: any; label: str
     <span className="hidden xl:inline">{label}</span>
   </button>
 );
+
 
 
 

@@ -602,7 +602,7 @@ export const Dashboard: React.FC = () => {
                 <h3 className="font-display font-bold text-lg text-slate-800">Compra pendente para orçamento aprovado</h3>
                 <p className="text-sm text-slate-500 mt-1">
                   {pendingPurchases.length > 0
-                    ?`${pendingPurchases.length} material(is) com falta de ?rea ? ${totalPendingPurchaseArea.toFixed(2)} m²`
+                    ?`${pendingPurchases.length} material(is) com falta de área: ${totalPendingPurchaseArea.toFixed(2)} m²`
                     : 'Nenhuma compra pendente no momento.'}
                 </p>
               </div>
@@ -737,4 +737,5 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+
 

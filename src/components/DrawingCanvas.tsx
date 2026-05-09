@@ -927,7 +927,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <button type="button" onClick={closeGeometry} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold uppercase text-white">Fechar geometria</button>
         <button type="button" onClick={() => setShowPiecesPanel(true)} className="inline-flex items-center gap-2 rounded-xl bg-brand-primary/10 px-3 py-2 text-xs font-bold uppercase text-brand-primary hover:bg-brand-primary/15">
           <PanelRightOpen className="h-4 w-4" />
-          Adicionar pe?as
+          Adicionar peças
         </button>
 
         <select onChange={(e) => e.target.value && applyTemplate(e.target.value as any)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600" defaultValue="">
@@ -945,7 +945,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           <option value="lixeira">Lixeira de embutir</option>
           <option value="torre_tomada">Torre de tomada</option>
         </select>
-        <input value={cutoutWidth} onChange={(e) => setCutoutWidth(e.target.value)} className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Larg./di?m." />
+        <input value={cutoutWidth} onChange={(e) => setCutoutWidth(e.target.value)} className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Larg./diâm." />
         <input value={cutoutHeight} onChange={(e) => setCutoutHeight(e.target.value)} className="w-20 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Altura" disabled={cutoutType === 'torneira' || cutoutType === 'torre_tomada'} />
 
         <button type="button" onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value * 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomIn className="h-4 w-4" /></button>
@@ -960,8 +960,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <div className="fixed right-6 top-1/2 z-[130] flex max-h-[86vh] w-[380px] max-w-[calc(100vw-48px)] -translate-y-1/2 flex-col rounded-[32px] border border-slate-100 bg-white p-6 shadow-2xl">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
-                <h3 className="font-display text-xl font-bold text-slate-900">Adicionar pe?as</h3>
-                <p className="mt-1 text-sm text-slate-400">Escolha front?o, saia, virada ou pé de bancada para cada lado criado.</p>
+                <h3 className="font-display text-xl font-bold text-slate-900">Adicionar peças</h3>
+                <p className="mt-1 text-sm text-slate-400">Escolha frontão, saia, virada ou pé de bancada para cada lado criado.</p>
               </div>
               <button type="button" onClick={() => setShowPiecesPanel(false)} className="rounded-xl bg-slate-50 p-2 text-slate-400 hover:text-slate-700">
                 <X className="h-5 w-5" />

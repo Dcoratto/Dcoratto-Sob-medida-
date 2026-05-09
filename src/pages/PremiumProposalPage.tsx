@@ -457,7 +457,7 @@ const FixtureSummary = ({piece}: {piece: QuotePiece}) => {
                 fixture.width ?`L ${fixture.width}` : '',
                 fixture.depth ?`P ${fixture.depth}` : '',
                 fixture.height ?`A ${fixture.height}` : '',
-                fixture.diameter ?`Ã˜ ${fixture.diameter}` : '',
+                fixture.diameter ?`Ø ${fixture.diameter}` : '',
               ].filter(Boolean).join(' · ') || 'Medidas pendentes'}
             </div>
           </div>

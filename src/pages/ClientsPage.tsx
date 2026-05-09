@@ -190,14 +190,17 @@ export const ClientsPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const selectedCondominium = condominiums.find((item) => item.id === condominiumId);
+    const selectedCondoAddressMode = selectedCondominium?.addressMode || 'street';
+    const includeStreet = addressType !== 'condominio' || selectedCondoAddressMode === 'street';
+    const includeLot = addressType === 'condominio' && selectedCondoAddressMode === 'lot';
     const fullAddress = [
-      address,
+      includeStreet ?address : '',
       neighborhood  ? `Bairro ${neighborhood}` : '',
       city,
       zipCode  ? `CEP ${zipCode}` : '',
       selectedCondominium?.name  ? `Condomínio ${selectedCondominium.name}` : '',
-      block  ? `Quadra ${block}` : '',
-      lot  ? `Lote ${lot}` : '',
+      includeLot && block  ? `Quadra ${block}` : '',
+      includeLot && lot  ? `Lote ${lot}` : '',
       tower  ? `Torre ${tower}` : '',
       apartmentNumber  ? `Apto ${apartmentNumber}` : '',
     ].filter(Boolean).join(' · ');
@@ -614,6 +617,10 @@ export const ClientsPage: React.FC = () => {
     const matchesSearch = normalize(`${client.name} ${client.phone} ${client.email || ''} ${client.cpf || ''} ${client.rg || ''} ${client.address}`).includes(normalize(search));
     return matchesStatus && matchesSearch;
   });
+  const selectedCondominiumForForm = condominiumId ?condominiums.find((item) => item.id === condominiumId) : null;
+  const condominiumAddressMode = selectedCondominiumForForm?.addressMode || 'street';
+  const needsStreetAddress = addressType !== 'condominio' || condominiumAddressMode === 'street';
+  const needsLotAddress = addressType === 'condominio' && condominiumAddressMode === 'lot';
 
   return (
     <div className="space-y-6">
@@ -985,7 +992,11 @@ export const ClientsPage: React.FC = () => {
                 <FormField label="RG" value={rg} onChange={setRg} />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div className="md:col-span-2"><FormField label="Endere?o (rua e n?mero)" value={address} onChange={setAddress} required /></div>
+                {needsStreetAddress && (
+                  <div className="md:col-span-2">
+                    <FormField label="Endereço (rua e número)" value={address} onChange={setAddress} required={needsStreetAddress} />
+                  </div>
+                )}
                 <FormField label="Bairro" value={neighborhood} onChange={setNeighborhood} />
                 <FormField label="CEP" value={zipCode} onChange={setZipCode} />
                 <FormField label="Cidade" value={city} onChange={setCity} required />
@@ -1018,7 +1029,18 @@ export const ClientsPage: React.FC = () => {
                   <label className="text-slate-500 font-medium text-sm">Condomínio cadastrado</label>
                   <select
                     value={condominiumId}
-                    onChange={(e) => setCondominiumId(e.target.value)}
+                    onChange={(e) => {
+                      const nextId = e.target.value;
+                      const selected = condominiums.find((item) => item.id === nextId);
+                      setCondominiumId(nextId);
+                      if (selected?.city) setCity(selected.city);
+                      if ((selected?.addressMode || 'street') === 'street') {
+                        setBlock('');
+                        setLot('');
+                      } else {
+                        setAddress('');
+                      }
+                    }}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                   >
                     <option value="">Selecione um condomínio</option>
@@ -1029,10 +1051,10 @@ export const ClientsPage: React.FC = () => {
                 </div>
               )}
 
-              {addressType === 'condominio' && (
+              {needsLotAddress && (
                 <div className="grid grid-cols-2 gap-3">
-                  <FormField label="Quadra" value={block} onChange={setBlock} />
-                  <FormField label="Lote" value={lot} onChange={setLot} />
+                  <FormField label="Quadra" value={block} onChange={setBlock} required />
+                  <FormField label="Lote" value={lot} onChange={setLot} required />
                 </div>
               )}
 

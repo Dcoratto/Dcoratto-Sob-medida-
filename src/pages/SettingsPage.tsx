@@ -18,6 +18,7 @@ export const SettingsPage: React.FC = () => {
   const [editingCondominium, setEditingCondominium] = useState<CondominiumRule | null>(null);
   const [condoName, setCondoName] = useState('');
   const [condoCity, setCondoCity] = useState('');
+  const [condoAddressMode, setCondoAddressMode] = useState<CondominiumRule['addressMode']>('street');
   const [workStartHour, setWorkStartHour] = useState('08:00');
   const [workEndHour, setWorkEndHour] = useState('17:00');
   const [allowedWeekdays, setAllowedWeekdays] = useState<number[]>([0, 1, 2, 3, 4]);
@@ -69,6 +70,7 @@ export const SettingsPage: React.FC = () => {
     setEditingCondominium(null);
     setCondoName('');
     setCondoCity('');
+    setCondoAddressMode('street');
     setWorkStartHour('08:00');
     setWorkEndHour('17:00');
     setAllowedWeekdays([0, 1, 2, 3, 4]);
@@ -82,6 +84,7 @@ export const SettingsPage: React.FC = () => {
     const data = {
       name: condoName.trim(),
       city: condoCity.trim(),
+      addressMode: condoAddressMode || 'street',
       allowedWeekdays,
       workStartHour,
       workEndHour,
@@ -472,6 +475,18 @@ export const SettingsPage: React.FC = () => {
               <label className="text-slate-500 font-medium text-sm">Cidade</label>
               <input value={condoCity} onChange={(e) => setCondoCity(e.target.value)} required placeholder="Ex: Arujá" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
+            <div className="md:col-span-2 space-y-1.5">
+              <label className="text-slate-500 font-medium text-sm">Tipo de endereço do condomínio</label>
+              <select
+                value={condoAddressMode || 'street'}
+                onChange={(e) => setCondoAddressMode(e.target.value as CondominiumRule['addressMode'])}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
+              >
+                <option value="street">Rua e número</option>
+                <option value="lot">Quadra e lote</option>
+              </select>
+              <p className="text-xs text-slate-400">Essa escolha define quais campos aparecem ao vincular o condomínio no cadastro do cliente.</p>
+            </div>
             <div className="space-y-1.5">
               <label className="text-slate-500 font-medium text-sm">Início do trabalho</label>
               <input type="time" value={workStartHour} onChange={(e) => setWorkStartHour(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
@@ -483,7 +498,7 @@ export const SettingsPage: React.FC = () => {
             <div className="md:col-span-2 space-y-2">
               <label className="text-slate-500 font-medium text-sm">Dias permitidos</label>
               <div className="flex flex-wrap gap-2">
-                {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((label, index) => (
+                {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((label, index) => (
                   <button
                     key={label}
                     type="button"
@@ -525,7 +540,7 @@ export const SettingsPage: React.FC = () => {
                 <div>
                   <div className="font-bold text-slate-900">{condo.name}</div>
                   <div className="text-xs text-slate-500">
-                    {condo.city} · {condo.workStartHour}-{condo.workEndHour} · Dias: {condo.allowedWeekdays.map((item) => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'][item]).join(', ')}
+                    {condo.city} · {(condo.addressMode || 'street') === 'lot' ? 'Quadra e lote' : 'Rua e número'} · {condo.workStartHour}-{condo.workEndHour} · Dias: {condo.allowedWeekdays.map((item) => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'][item]).join(', ')}
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -535,6 +550,7 @@ export const SettingsPage: React.FC = () => {
                       setEditingCondominium(condo);
                       setCondoName(condo.name);
                       setCondoCity(condo.city);
+                      setCondoAddressMode(condo.addressMode || 'street');
                       setWorkStartHour(condo.workStartHour);
                       setWorkEndHour(condo.workEndHour);
                       setAllowedWeekdays(condo.allowedWeekdays || [0, 1, 2, 3, 4]);

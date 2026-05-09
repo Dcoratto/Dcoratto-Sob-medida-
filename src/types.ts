@@ -98,6 +98,7 @@ export interface CondominiumRule {
   id: string;
   name: string;
   city: string;
+  addressMode?: 'street' | 'lot';
   allowedWeekdays: number[];
   workStartHour: string;
   workEndHour: string;

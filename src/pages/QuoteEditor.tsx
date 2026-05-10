@@ -45,6 +45,8 @@ export const QuoteEditor: React.FC = () => {
   const [clientId, setClientId] = useState('');
   const [clientSearch, setClientSearch] = useState('');
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
+  const [materialSearch, setMaterialSearch] = useState('');
+  const [materialPickerOpen, setMaterialPickerOpen] = useState(false);
   const [environment, setEnvironment] = useState('');
   const [responsible, setResponsible] = useState(user?.displayName || '');
   const [materialId, setMaterialId] = useState('');
@@ -92,6 +94,10 @@ export const QuoteEditor: React.FC = () => {
   const filteredClients = clients.filter((client) => {
     const searchText = `${client.name} ${client.phone} ${client.email || ''} ${client.cpf || ''} ${client.rg || ''} ${client.address}`.toLowerCase();
     return searchText.includes(clientSearch.toLowerCase());
+  });
+  const filteredMaterials = materials.filter((material) => {
+    const searchText = `${material.name} ${material.provider || ''} ${material.category || ''}`.toLowerCase();
+    return searchText.includes(materialSearch.toLowerCase());
   });
 
   const formatDateInput = (value: any) => {
@@ -149,6 +155,7 @@ export const QuoteEditor: React.FC = () => {
           setEnvironment(data.environment);
           setResponsible(data.responsible);
           setMaterialId(data.materialId);
+          setMaterialSearch(data.materialName || '');
           setPaymentMethod(data.paymentMethod);
           setDeliveryDays(data.deliveryDays);
           setMeasurementDate(formatDateInput(data.measurementDate));
@@ -193,6 +200,20 @@ export const QuoteEditor: React.FC = () => {
       setResponsible(currentUserName);
     }
   }, [currentUserName, id, responsible]);
+
+  useEffect(() => {
+    if (clientId && !clientSearch) {
+      const found = clients.find((client) => client.id === clientId);
+      if (found) setClientSearch(found.name);
+    }
+  }, [clientId, clientSearch, clients]);
+
+  useEffect(() => {
+    if (materialId && !materialSearch) {
+      const found = materials.find((material) => material.id === materialId);
+      if (found) setMaterialSearch(found.name);
+    }
+  }, [materialId, materialSearch, materials]);
 
   const addPiece = () => {
     const newPiece: QuotePiece = {
@@ -439,7 +460,7 @@ export const QuoteEditor: React.FC = () => {
             <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">
               {id ?'Editar Orçamento' : 'Novo Orçamento'}
             </h1>
-            <p className="text-slate-500 mt-1">Configure as peças, materiais e condiçóes.</p>
+          <p className="text-slate-500 mt-1">Configure as peças, materiais e condições.</p>
           </div>
         </div>
         <button
@@ -473,35 +494,112 @@ export const QuoteEditor: React.FC = () => {
 
             <div className="space-y-1">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cliente</label>
-              <select
-                value={clientId}
-                onChange={(e) => {
-                  const nextId = e.target.value;
-                  setClientId(nextId);
-                  const found = clients.find((c) => c.id === nextId);
-                  setClientSearch(found?.name || '');
-                }}
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
-              >
-                <option value="">Selecionar cliente</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>{client.name}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <input
+                  value={clientSearch}
+                  onFocus={() => setClientPickerOpen(true)}
+                  onChange={(e) => {
+                    setClientSearch(e.target.value);
+                    setClientId('');
+                    setClientPickerOpen(true);
+                  }}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                  placeholder="Pesquisar cliente..."
+                />
+                <button type="button" onClick={() => setClientPickerOpen((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+                {clientPickerOpen && (
+                  <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-56 overflow-auto rounded-2xl border border-slate-100 bg-white p-2 shadow-xl">
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        setClientId('');
+                        setClientSearch('');
+                        setClientPickerOpen(false);
+                      }}
+                      className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-500 hover:bg-slate-50"
+                    >
+                      Selecionar cliente
+                    </button>
+                    {filteredClients.map((client) => (
+                      <button
+                        key={client.id}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          setClientId(client.id);
+                          setClientSearch(client.name);
+                          setClientPickerOpen(false);
+                        }}
+                        className={cn('w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', clientId === client.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
+                      >
+                        <span className="block">{client.name}</span>
+                        <span className={cn('text-[11px] font-medium', clientId === client.id ? 'text-white/80' : 'text-slate-400')}>{client.phone || client.email || 'Sem contato'}</span>
+                      </button>
+                    ))}
+                    {filteredClients.length === 0 && (
+                      <div className="px-3 py-3 text-sm font-semibold text-slate-400">Nenhum cliente encontrado.</div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="space-y-1">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Material</label>
-              <select
-                value={materialId}
-                onChange={(e) => setMaterialId(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
-              >
-                <option value="">Selecionar material</option>
-                {materials.map((material) => (
-                  <option key={material.id} value={material.id}>{material.name}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <input
+                  value={materialSearch}
+                  onFocus={() => setMaterialPickerOpen(true)}
+                  onChange={(e) => {
+                    setMaterialSearch(e.target.value);
+                    setMaterialId('');
+                    setMaterialPickerOpen(true);
+                  }}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                  placeholder="Pesquisar material..."
+                />
+                <button type="button" onClick={() => setMaterialPickerOpen((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+                {materialPickerOpen && (
+                  <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-56 overflow-auto rounded-2xl border border-slate-100 bg-white p-2 shadow-xl">
+                    <button
+                      type="button"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => {
+                        setMaterialId('');
+                        setMaterialSearch('');
+                        setMaterialPickerOpen(false);
+                      }}
+                      className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-500 hover:bg-slate-50"
+                    >
+                      Selecionar material
+                    </button>
+                    {filteredMaterials.map((material) => (
+                      <button
+                        key={material.id}
+                        type="button"
+                        onMouseDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          setMaterialId(material.id);
+                          setMaterialSearch(material.name);
+                          setMaterialPickerOpen(false);
+                        }}
+                        className={cn('w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', materialId === material.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
+                      >
+                        <span className="block">{material.name}</span>
+                        <span className={cn('text-[11px] font-medium', materialId === material.id ? 'text-white/80' : 'text-slate-400')}>{material.provider || material.category || 'Material cadastrado'}</span>
+                      </button>
+                    ))}
+                    {filteredMaterials.length === 0 && (
+                      <div className="px-3 py-3 text-sm font-semibold text-slate-400">Nenhum material encontrado.</div>
+                    )}
+                  </div>
+                )}
+              </div>
               {materialId && (
                 <div className="text-[11px] text-slate-500">
                   Estoque disponível: {materialStock(materialId).available.toFixed(2)} m²
@@ -644,7 +742,7 @@ export const QuoteEditor: React.FC = () => {
                           <div className="absolute inset-0 bg-brand-primary/0 group-hover:bg-brand-primary/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-2xl">
                             <PenTool className="w-5 h-5 text-brand-primary" />
                           </div>
-                          <div className="absolute bottom-2 right-2 bg-green-500 w-3 h-3 rounded-full border-2 border-white shadow-sm" title="Desenho t?cnico dispon?vel" />
+                <div className="absolute bottom-2 right-2 bg-green-500 w-3 h-3 rounded-full border-2 border-white shadow-sm" title="Desenho técnico disponível" />
                         </div>
                       ) : (
                         <button 
@@ -709,7 +807,7 @@ export const QuoteEditor: React.FC = () => {
                           placeholder="Cole aqui o link da imagem, render ou planta desta peça"
                           className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
                         />
-                        <p className="text-[11px] text-slate-400">Essa imagem aparece na proposta premium. Se ficar vazio, o sistema usa o desenho t?cnico salvo.</p>
+                  <p className="text-[11px] text-slate-400">Essa imagem aparece na proposta premium. Se ficar vazio, o sistema usa o desenho técnico salvo.</p>
                       </div>
                     </div>
                   </div>
@@ -746,7 +844,7 @@ export const QuoteEditor: React.FC = () => {
                             >
                               <option value="Simples">Simples</option>
                               <option value="Com rampa">Com rampa</option>
-                              <option value="V?lvula oculta">V?lvula oculta</option>
+                                <option value="Válvula oculta">Válvula oculta</option>
                               <option value="Cuba dupla">Cuba dupla</option>
                             </select>
                           </div>
@@ -815,7 +913,7 @@ export const QuoteEditor: React.FC = () => {
                                     <div className="text-slate-900 font-mono font-bold">{calc.area.toFixed(4)}</div>
                                   </div>
                                   <div className="space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">M?o de Obra</span>
+                            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Mão de Obra</span>
                                     <div className="text-slate-900 font-mono font-bold">{formatCurrency(calc.laborValue + calc.extraSinkValue)}</div>
                                   </div>
                                   <div className="space-y-0.5">
@@ -866,14 +964,14 @@ export const QuoteEditor: React.FC = () => {
                           onClick={() => addSide(piece.id, 'pe')}
                           className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
                         >
-                          + P?de bancada
+                        + Pé de bancada
                         </button>
                         <button
                           type="button"
                           onClick={() => addSide(piece.id, 'guarnicao')}
                           className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
                         >
-                          + Guarni?o
+                        + Guarnição
                         </button>
                         <button 
                           type="button"
@@ -916,8 +1014,8 @@ export const QuoteEditor: React.FC = () => {
                                 <option value="frontao">Frontão</option>
                                 <option value="saia">Saia</option>
                                 <option value="virada">Virada</option>
-                                <option value="pe">P?de bancada</option>
-                                <option value="guarnicao">Guarni?o</option>
+                              <option value="pe">Pé de bancada</option>
+                              <option value="guarnicao">Guarnição</option>
                                 <option value="rebaixo_americano">Rebaixo americano</option>
                                 <option value="rebaixo_italiano">Rebaixo italiano</option>
                               </select>
@@ -1053,8 +1151,8 @@ export const QuoteEditor: React.FC = () => {
           </section>
 
           <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
-            <h2 className="font-display font-bold text-xl text-slate-800">Especificaçóes do cliente</h2>
-            <p className="text-xs text-slate-400">No card do cliente s?o exibidas somente peças previamente cadastradas no Admin.</p>
+            <h2 className="font-display font-bold text-xl text-slate-800">Especificações do cliente</h2>
+            <p className="text-xs text-slate-400">No card do cliente são exibidas somente peças previamente cadastradas no Admin.</p>
             {!pieces.length ?(
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
                 Adicione ao menos uma peça para vincular os itens do catálogo.
@@ -1104,7 +1202,7 @@ export const QuoteEditor: React.FC = () => {
           </section>
 
           <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
-            <h2 className="font-display font-bold text-xl text-slate-800">Observaçóes Comerciais</h2>
+            <h2 className="font-display font-bold text-xl text-slate-800">Observações Comerciais</h2>
             <textarea 
               value={commercialNotes}
               onChange={(e) => setCommercialNotes(e.target.value)}

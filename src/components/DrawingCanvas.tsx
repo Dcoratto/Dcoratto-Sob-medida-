@@ -49,6 +49,15 @@ interface SavedDrawing {
   previewImage?: string;
 }
 
+interface DrawingHistoryState {
+  points: Point[];
+  closed: boolean;
+  sides: PieceSide[];
+  cutouts: DrawingCutout[];
+  drawingActive: boolean;
+  drawTool: DrawTool;
+}
+
 interface DrawingCanvasProps {
   onSave?: (data: {
     json: string;
@@ -168,6 +177,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const wrapRef = useRef<HTMLDivElement>(null);
   const measureInputRef = useRef<HTMLInputElement>(null);
   const lastMouseWorld = useRef<Point | null>(null);
+  const undoStackRef = useRef<DrawingHistoryState[]>([]);
+  const redoStackRef = useRef<DrawingHistoryState[]>([]);
 
   const [drawPoints, setDrawPoints] = useState<Point[]>([]);
   const [previewPoint, setPreviewPoint] = useState<Point | null>(null);
@@ -277,6 +288,49 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     });
   }, [drawPoints, technicalSides, worldToScreen]);
 
+  const currentHistoryState = useCallback((): DrawingHistoryState => ({
+    points: drawPoints,
+    closed,
+    sides: complementos,
+    cutouts,
+    drawingActive,
+    drawTool,
+  }), [closed, complementos, cutouts, drawPoints, drawTool, drawingActive]);
+
+  const restoreHistoryState = useCallback((state: DrawingHistoryState) => {
+    setDrawPoints(state.points);
+    setClosed(state.closed);
+    setComplementos(state.sides);
+    setCutouts(state.cutouts);
+    setDrawingActive(state.drawingActive);
+    setDrawTool(state.drawTool);
+    setPreviewPoint(null);
+    setMeasureBuffer('');
+    setDragIndex(null);
+    setPanStart(null);
+    setWasDragging(false);
+    setHoverGuide(null);
+  }, []);
+
+  const recordHistory = useCallback(() => {
+    undoStackRef.current = [...undoStackRef.current.slice(-49), currentHistoryState()];
+    redoStackRef.current = [];
+  }, [currentHistoryState]);
+
+  const undoLastAction = useCallback(() => {
+    const previous = undoStackRef.current.pop();
+    if (!previous) return;
+    redoStackRef.current = [...redoStackRef.current.slice(-49), currentHistoryState()];
+    restoreHistoryState(previous);
+  }, [currentHistoryState, restoreHistoryState]);
+
+  const redoLastAction = useCallback(() => {
+    const next = redoStackRef.current.pop();
+    if (!next) return;
+    undoStackRef.current = [...undoStackRef.current.slice(-49), currentHistoryState()];
+    restoreHistoryState(next);
+  }, [currentHistoryState, restoreHistoryState]);
+
   const resetTransientState = useCallback(() => {
     setPreviewPoint(null);
     setMeasureBuffer('');
@@ -293,6 +347,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
   useEffect(() => {
     resetTransientState();
+    undoStackRef.current = [];
+    redoStackRef.current = [];
     if (!initialJson) {
       setDrawPoints([]);
       setClosed(false);
@@ -364,13 +420,14 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   }, [applyOrtho, drawPoints, drawingActive, screenToWorld, snapPoint]);
 
   const addPoint = useCallback((point: Point) => {
+    recordHistory();
     setDrawPoints((current) => [...current, point]);
     setRedoPoints([]);
     setPreviewPoint(null);
     setDrawingActive(true);
     setCurrentMeasure('0.00 m');
     setClosed(false);
-  }, []);
+  }, [recordHistory]);
 
   const closeGeometry = useCallback(() => {
     if (drawPoints.length < 3) return;
@@ -378,11 +435,12 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       alert('A geometria tem linhas cruzadas. Ajuste os pontos antes de fechar.');
       return;
     }
+    recordHistory();
     setClosed(true);
     setDrawingActive(false);
     setPreviewPoint(null);
     setDrawTool('select');
-  }, [drawPoints]);
+  }, [drawPoints, recordHistory]);
 
   const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
     event.preventDefault();
@@ -402,6 +460,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     }
 
     if (drawTool === 'cutout') {
+      recordHistory();
       const rawWidthCm = selectedFixture?.width || selectedFixture?.diameter || Number(cutoutWidth.replace(',', '.')) || 10;
       const rawHeightCm = selectedFixture?.depth || selectedFixture?.height || selectedFixture?.diameter || selectedFixture?.width || Number(cutoutHeight.replace(',', '.')) || 10;
       const baseWidth = Math.max(0.02, rawWidthCm / 100);
@@ -535,6 +594,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   }, []);
 
   const clearDrawing = () => {
+    recordHistory();
     setDrawPoints([]);
     setPreviewPoint(null);
     setCutouts([]);
@@ -568,6 +628,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   };
 
   const applyTemplate = (template: 'reta' | 'l' | 'ilha' | 'soleira') => {
+    recordHistory();
     const templates: Record<typeof template, Point[]> = {
       reta: [{x: 0, y: 0}, {x: 2.4, y: 0}, {x: 2.4, y: 0.6}, {x: 0, y: 0.6}],
       l: [{x: 0, y: 0}, {x: 2.4, y: 0}, {x: 2.4, y: 0.6}, {x: 0.7, y: 0.6}, {x: 0.7, y: 1.8}, {x: 0, y: 1.8}],
@@ -586,6 +647,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   };
 
   const updateComplement = (side: TechnicalSide, type: ComplementType, quantity = 1) => {
+    recordHistory();
     const height = defaultHeightFor(type, settings);
     const areaUnit = side.lengthM * (height / 100);
     setComplementos((current) => {
@@ -609,10 +671,12 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   };
 
   const removeComplement = (sideKey: string, type: ComplementType) => {
+    recordHistory();
     setComplementos((current) => current.filter((item) => !(item.side === sideKey && item.type === type)));
   };
 
   const updateComplementHeight = (sideKey: string, type: ComplementType, height: number) => {
+    recordHistory();
     const nextHeight = Math.max(0, Number.isFinite(height) ?height : 0);
     setComplementos((current) => current.map((item) => {
       if (item.side !== sideKey || item.type !== type) return item;
@@ -623,6 +687,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   };
 
   const removeSegment = (index: number) => {
+    recordHistory();
     if (drawPoints.length <= 2) {
       setDrawPoints([]);
       setClosed(false);
@@ -636,6 +701,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     if (!Number.isFinite(lengthM) || lengthM <= 0) return;
     const side = technicalSides[index];
     if (!side) return;
+    recordHistory();
     const currentLength = distance(side.start, side.end) || 1;
     const ux = (side.end.x - side.start.x) / currentLength;
     const uy = (side.end.y - side.start.y) / currentLength;
@@ -732,11 +798,11 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'z') {
         event.preventDefault();
-        undoPoint();
+        undoLastAction();
       }
       if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'y') {
         event.preventDefault();
-        redoPoint();
+        redoLastAction();
       }
       if (event.key === 'Escape' || event.key === ' ') {
         event.preventDefault();
@@ -764,7 +830,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [closed, drawPoints.length, drawTool, handleMeasureSubmit, measureBuffer, redoPoint, undoPoint]);
+  }, [closed, drawPoints.length, drawTool, handleMeasureSubmit, measureBuffer, redoLastAction, undoLastAction]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -962,8 +1028,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           Linha atual: {currentMeasure || '-'}
         </div>
 
-        <button type="button" onClick={undoPoint} className="rounded-xl bg-slate-100 p-2 text-slate-500 hover:text-brand-primary" title="Desfazer ponto"><Undo2 className="h-4 w-4" /></button>
-        <button type="button" onClick={redoPoint} className="rounded-xl bg-slate-100 p-2 text-slate-500 hover:text-brand-primary" title="Refazer ponto"><Redo2 className="h-4 w-4" /></button>
+        <button type="button" onClick={undoLastAction} className="rounded-xl bg-slate-100 p-2 text-slate-500 hover:text-brand-primary" title="Desfazer última ação"><Undo2 className="h-4 w-4" /></button>
+        <button type="button" onClick={redoLastAction} className="rounded-xl bg-slate-100 p-2 text-slate-500 hover:text-brand-primary" title="Refazer última ação"><Redo2 className="h-4 w-4" /></button>
         <button type="button" onClick={clearDrawing} className="rounded-xl bg-red-50 p-2 text-red-500" title="Limpar desenho"><Eraser className="h-4 w-4" /></button>
         <button type="button" onClick={closeGeometry} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold uppercase text-white">Fechar geometria</button>
         <button type="button" onClick={() => setShowPiecesPanel(true)} className="inline-flex items-center gap-2 rounded-xl bg-brand-primary/10 px-3 py-2 text-xs font-bold uppercase text-brand-primary hover:bg-brand-primary/15">
@@ -1103,6 +1169,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                           min={1}
                           value={quantity}
                           onChange={(event) => {
+                            recordHistory();
                             const nextQuantity = Math.max(1, Number(event.target.value));
                             setComplementos((current) => current.map((item) => item.side === side.key ?{
                               ...item,
@@ -1290,6 +1357,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                           min={1}
                           value={quantity}
                           onChange={(event) => {
+                            recordHistory();
                             const nextQuantity = Math.max(1, Number(event.target.value));
                             setComplementos((current) => current.map((item) => item.side === side.key ?{
                               ...item,
@@ -1318,7 +1386,10 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                   <button
                     key={cutout.id}
                     type="button"
-                    onClick={() => setCutouts((current) => current.filter((item) => item.id !== cutout.id))}
+                    onClick={() => {
+                      recordHistory();
+                      setCutouts((current) => current.filter((item) => item.id !== cutout.id));
+                    }}
                     className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-red-50 hover:text-red-500"
                   >
                     <CircleDot className="h-3 w-3" />

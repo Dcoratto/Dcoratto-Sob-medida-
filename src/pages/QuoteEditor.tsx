@@ -602,10 +602,26 @@ export const QuoteEditor: React.FC = () => {
                           setMaterialSearch(material.name);
                           setMaterialPickerOpen(false);
                         }}
-                        className={cn('w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', materialId === material.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
+                        className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', materialId === material.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
                       >
-                        <span className="block">{material.name}</span>
-                        <span className={cn('text-[11px] font-medium', materialId === material.id ? 'text-white/80' : 'text-slate-400')}>{material.provider || material.category || 'Material cadastrado'}</span>
+                        <div className={cn('h-12 w-12 shrink-0 overflow-hidden rounded-xl border', materialId === material.id ? 'border-white/30 bg-white/15' : 'border-slate-100 bg-slate-50')}>
+                          {material.imageUrl ?(
+                            <img src={material.imageUrl} alt={material.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase text-slate-300">Sem foto</div>
+                          )}
+                        </div>
+                        <span className="min-w-0">
+                          <span className="block truncate">{material.name}</span>
+                          <span className={cn('block text-[11px] font-medium', materialId === material.id ? 'text-white/80' : 'text-slate-400')}>
+                            {material.category || 'Sem categoria'}
+                          </span>
+                          {material.provider && (
+                            <span className={cn('block text-[10px] font-medium', materialId === material.id ? 'text-white/70' : 'text-slate-300')}>
+                              {material.provider}
+                            </span>
+                          )}
+                        </span>
                       </button>
                     ))}
                     {filteredMaterials.length === 0 && (
@@ -1175,6 +1191,7 @@ export const QuoteEditor: React.FC = () => {
                 initialSides={pieces.find(p => p.id === showDrawing)?.sides}
                 initialCutouts={pieces.find(p => p.id === showDrawing)?.cutouts}
                 saveButtonId={`save-drawing-${showDrawing}`}
+                fixtureCatalog={fixtureCatalog}
                 settings={settings}
                 onSave={({ json, area, previewUrl, sides, largestSide, cutouts: drawingCutouts }) => {
                   const currentPiece = pieces.find((piece) => piece.id === showDrawing);

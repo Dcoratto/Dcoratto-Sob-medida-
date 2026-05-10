@@ -131,6 +131,10 @@ export const AdminPage: React.FC = () => {
     category: FixtureCategory;
     brand: string;
     model: string;
+    width: string;
+    depth: string;
+    height: string;
+    diameter: string;
     imageUrl: string;
     notes: string;
   }>({
@@ -138,6 +142,10 @@ export const AdminPage: React.FC = () => {
     category: 'cooktop',
     brand: '',
     model: '',
+    width: '',
+    depth: '',
+    height: '',
+    diameter: '',
     imageUrl: '',
     notes: '',
   });
@@ -296,6 +304,10 @@ export const AdminPage: React.FC = () => {
         category: fixtureForm.category,
         brand: fixtureForm.brand.trim(),
         model: fixtureForm.model.trim(),
+        width: Number(fixtureForm.width.replace(',', '.')) || 0,
+        depth: Number(fixtureForm.depth.replace(',', '.')) || 0,
+        height: Number(fixtureForm.height.replace(',', '.')) || 0,
+        diameter: Number(fixtureForm.diameter.replace(',', '.')) || 0,
         imageUrl,
         notes: fixtureForm.notes.trim(),
         active: true,
@@ -306,6 +318,10 @@ export const AdminPage: React.FC = () => {
         category: fixtureForm.category,
         brand: '',
         model: '',
+        width: '',
+        depth: '',
+        height: '',
+        diameter: '',
         imageUrl: '',
         notes: '',
       });
@@ -562,6 +578,10 @@ export const AdminPage: React.FC = () => {
           </select>
           <input value={fixtureForm.brand} onChange={(e) => setFixtureForm((f) => ({...f, brand: e.target.value}))} placeholder="Marca" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input value={fixtureForm.model} onChange={(e) => setFixtureForm((f) => ({...f, model: e.target.value}))} placeholder="Modelo" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input value={fixtureForm.width} onChange={(e) => setFixtureForm((f) => ({...f, width: e.target.value}))} placeholder="Largura (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input value={fixtureForm.depth} onChange={(e) => setFixtureForm((f) => ({...f, depth: e.target.value}))} placeholder="Profundidade (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input value={fixtureForm.height} onChange={(e) => setFixtureForm((f) => ({...f, height: e.target.value}))} placeholder="Altura (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input value={fixtureForm.diameter} onChange={(e) => setFixtureForm((f) => ({...f, diameter: e.target.value}))} placeholder="Diâmetro (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input value={fixtureForm.imageUrl} onChange={(e) => setFixtureForm((f) => ({...f, imageUrl: e.target.value}))} placeholder="URL da imagem" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-2" />
           <label className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 cursor-pointer md:col-span-2 xl:col-span-1">
             {fixtureImageFile ? fixtureImageFile.name : 'Upload da imagem'}
@@ -590,10 +610,20 @@ export const AdminPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {fixtureCatalog.map((item) => (
             <div key={item.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+              {item.imageUrl ?(
+                <img src={item.imageUrl} alt={item.name} className="mb-3 h-32 w-full rounded-xl bg-white object-contain p-2" />
+              ) : (
+                <div className="mb-3 flex h-32 w-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white text-xs font-bold uppercase text-slate-300">
+                  Sem imagem
+                </div>
+              )}
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="font-bold text-slate-900">{item.name}</div>
                   <div className="text-xs text-slate-400">{item.category} · {[item.brand, item.model].filter(Boolean).join(' / ')}</div>
+                  <div className="mt-1 text-xs font-semibold text-slate-500">
+                    {[item.width ?`${item.width} cm largura` : '', item.depth ?`${item.depth} cm profundidade` : '', item.diameter ?`${item.diameter} cm diâmetro` : ''].filter(Boolean).join(' · ') || 'Sem medidas cadastradas'}
+                  </div>
                 </div>
                 <button type="button" onClick={() => toggleFixtureCatalogItem(item)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', item.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
                   {item.active ?'Ativo' : 'Inativo'}

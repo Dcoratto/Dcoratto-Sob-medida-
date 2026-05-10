@@ -180,6 +180,9 @@ export interface DrawingCutout {
   y: number;
   width: number;
   height: number;
+  fixtureId?: string;
+  fixtureName?: string;
+  fixtureImageUrl?: string;
 }
 
 export interface SculptedSink {

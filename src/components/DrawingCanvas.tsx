@@ -20,7 +20,7 @@ import {
   ZoomOut,
 } from 'lucide-react';
 import {cn} from '../lib/utils';
-import {DrawingCutout, PieceSide} from '../types';
+import {DrawingCutout, FixtureCatalogItem, PieceSide} from '../types';
 
 type DrawTool = 'select' | 'line' | 'move-point' | 'pan' | 'cutout';
 type CutoutType = 'cuba' | 'cooktop' | 'torneira' | 'lixeira' | 'torre_tomada';
@@ -62,6 +62,7 @@ interface DrawingCanvasProps {
   initialJson?: string;
   initialSides?: PieceSide[];
   initialCutouts?: DrawingCutout[];
+  fixtureCatalog?: FixtureCatalogItem[];
   className?: string;
   saveButtonId?: string;
   settings?: {
@@ -77,11 +78,11 @@ const MAX_ZOOM = 420;
 const BASE_SCALE = 110;
 const EMPTY_SIDES: PieceSide[] = [];
 const complementLabel = (type: ComplementType | PieceSide['type']) => {
-  if (type === 'frontao') return 'Front?o';
+  if (type === 'frontao') return 'Frontão';
   if (type === 'saia') return 'Saia';
   if (type === 'virada') return 'Virada';
-  if (type === 'pe') return 'P?';
-  if (type === 'guarnicao') return 'Guarni?o';
+  if (type === 'pe') return 'Pé';
+  if (type === 'guarnicao') return 'Guarnição';
   if (type === 'rebaixo_americano') return 'Rebaixo americano';
   if (type === 'rebaixo_italiano') return 'Rebaixo italiano';
   return String(type || '');
@@ -158,6 +159,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   initialJson,
   initialSides,
   initialCutouts,
+  fixtureCatalog = [],
   className,
   saveButtonId,
   settings,
@@ -188,8 +190,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const [complementos, setComplementos] = useState<PieceSide[]>(initialSides || EMPTY_SIDES);
   const [cutouts, setCutouts] = useState<DrawingCutout[]>(initialCutouts || EMPTY_CUTOUTS);
   const [cutoutType, setCutoutType] = useState<CutoutType>('cuba');
-  const [cutoutWidth, setCutoutWidth] = useState('0,50');
-  const [cutoutHeight, setCutoutHeight] = useState('0,40');
+  const [cutoutWidth, setCutoutWidth] = useState('50');
+  const [cutoutHeight, setCutoutHeight] = useState('40');
+  const [selectedFixtureId, setSelectedFixtureId] = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const [showPiecesPanel, setShowPiecesPanel] = useState(false);
 
@@ -228,6 +231,21 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const area = useMemo(() => closed ?polygonArea(drawPoints) : 0, [closed, drawPoints]);
   const majorSideM = useMemo(() => Math.max(0, ...technicalSides.map((side) => side.lengthM)), [technicalSides]);
   const additionalArea = useMemo(() => complementos.reduce((total, item) => total + (item.areaTotal || item.area || 0), 0), [complementos]);
+  const fixtureCategoryByCutoutType: Record<CutoutType, FixtureCatalogItem['category']> = {
+    cooktop: 'cooktop',
+    cuba: 'sink',
+    torneira: 'faucet',
+    lixeira: 'trashBin',
+    torre_tomada: 'popUpTower',
+  };
+  const availableFixtures = useMemo(
+    () => fixtureCatalog.filter((item) => item.active && item.category === fixtureCategoryByCutoutType[cutoutType]),
+    [cutoutType, fixtureCatalog],
+  );
+  const selectedFixture = useMemo(
+    () => availableFixtures.find((item) => item.id === selectedFixtureId),
+    [availableFixtures, selectedFixtureId],
+  );
   const totalArea = area + additionalArea;
   const editableSideLabels = useMemo(() => {
     const screenPoints = drawPoints.map(worldToScreen);
@@ -301,6 +319,18 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     setComplementos((current) => current.filter((item) => technicalSides.some((side) => side.key === item.side)));
   }, [closed, technicalSides]);
 
+  useEffect(() => {
+    setSelectedFixtureId('');
+  }, [cutoutType]);
+
+  useEffect(() => {
+    if (!selectedFixture) return;
+    const widthCm = selectedFixture.width || selectedFixture.diameter || 0;
+    const heightCm = selectedFixture.depth || selectedFixture.height || selectedFixture.diameter || selectedFixture.width || 0;
+    if (widthCm) setCutoutWidth(String(widthCm).replace('.', ','));
+    if (heightCm) setCutoutHeight(String(heightCm).replace('.', ','));
+  }, [selectedFixture]);
+
   const applyOrtho = useCallback((origin: Point, target: Point) => {
     if (!ortho) return target;
     const dx = Math.abs(target.x - origin.x);
@@ -369,10 +399,12 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     }
 
     if (drawTool === 'cutout') {
-      const width = Math.max(0.02, Number(cutoutWidth.replace(',', '.')) || 0.1);
+      const rawWidthCm = selectedFixture?.width || selectedFixture?.diameter || Number(cutoutWidth.replace(',', '.')) || 10;
+      const rawHeightCm = selectedFixture?.depth || selectedFixture?.height || selectedFixture?.diameter || selectedFixture?.width || Number(cutoutHeight.replace(',', '.')) || 10;
+      const width = Math.max(0.02, rawWidthCm / 100);
       const height = cutoutType === 'torneira' || cutoutType === 'torre_tomada'
         ?width
-        : Math.max(0.02, Number(cutoutHeight.replace(',', '.')) || 0.1);
+        : Math.max(0.02, rawHeightCm / 100);
       setCutouts((current) => [...current, {
         id: crypto.randomUUID(),
         type: cutoutType,
@@ -380,6 +412,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         y: world.y,
         width,
         height,
+        fixtureId: selectedFixture?.id,
+        fixtureName: selectedFixture?.name,
+        fixtureImageUrl: selectedFixture?.imageUrl,
       }]);
       return;
     }
@@ -823,7 +858,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       ctx.font = '700 11px Inter, sans-serif';
       ctx.fillStyle = '#334155';
       ctx.textAlign = 'center';
-      ctx.fillText(cutout.type.toUpperCase(), center.x, center.y - height / 2 - 8);
+      ctx.fillText((cutout.fixtureName || cutout.type).toUpperCase(), center.x, center.y - height / 2 - 8);
       ctx.restore();
     });
 
@@ -945,8 +980,19 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           <option value="lixeira">Lixeira de embutir</option>
           <option value="torre_tomada">Torre de tomada</option>
         </select>
-        <input value={cutoutWidth} onChange={(e) => setCutoutWidth(e.target.value)} className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Larg./diâm." />
-        <input value={cutoutHeight} onChange={(e) => setCutoutHeight(e.target.value)} className="w-20 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Altura" disabled={cutoutType === 'torneira' || cutoutType === 'torre_tomada'} />
+        <select value={selectedFixtureId} onChange={(e) => setSelectedFixtureId(e.target.value)} className="max-w-[260px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600">
+          <option value="">Peça cadastrada / medida manual</option>
+          {availableFixtures.map((fixture) => (
+            <option key={fixture.id} value={fixture.id}>
+              {fixture.name} {fixture.width || fixture.diameter ?`- ${fixture.width || fixture.diameter}x${fixture.depth || fixture.height || fixture.diameter || fixture.width} cm` : ''}
+            </option>
+          ))}
+        </select>
+        {selectedFixture?.imageUrl && (
+          <img src={selectedFixture.imageUrl} alt={selectedFixture.name} className="h-10 w-12 rounded-xl border border-slate-200 bg-white object-contain p-1" />
+        )}
+        <input value={cutoutWidth} onChange={(e) => setCutoutWidth(e.target.value)} className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Larg./diâm. cm" disabled={Boolean(selectedFixture)} />
+        <input value={cutoutHeight} onChange={(e) => setCutoutHeight(e.target.value)} className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Alt./prof. cm" disabled={Boolean(selectedFixture) || cutoutType === 'torneira' || cutoutType === 'torre_tomada'} />
 
         <button type="button" onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value * 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomIn className="h-4 w-4" /></button>
         <button type="button" onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value / 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomOut className="h-4 w-4" /></button>
@@ -1204,7 +1250,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                     className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-red-50 hover:text-red-500"
                   >
                     <CircleDot className="h-3 w-3" />
-                    {cutout.type} {cutout.width.toFixed(2)} x {cutout.height.toFixed(2)} m
+                    {cutout.fixtureName || cutout.type} {(cutout.width * 100).toFixed(0)} x {(cutout.height * 100).toFixed(0)} cm
                     <X className="h-3 w-3" />
                   </button>
                 ))}
@@ -1220,13 +1266,13 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
               <div className="font-mono text-xl font-bold text-slate-900">{majorSideM.toFixed(2)} m</div>
             </div>
             <div className="rounded-2xl bg-white p-4">
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Persist?ncia</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Persistência</div>
               <p className="mt-1 text-xs text-slate-500">O desenho salva pontos, lados, complementos, recortes, área, maior lado e preview PNG.</p>
             </div>
           </div>
           <div className="space-y-2">
             <button type="button" onClick={saveDrawing} disabled={!closed || drawPoints.length < 3} className="w-full rounded-2xl bg-brand-primary py-4 font-bold text-white shadow-lg shadow-brand-primary/20 disabled:opacity-50">
-              Adicionar ao or?amento
+              Adicionar ao orçamento
             </button>
             <button type="button" onClick={onCancel} className="w-full rounded-2xl bg-white py-3 text-sm font-bold text-slate-500 hover:bg-slate-100">
               Cancelar

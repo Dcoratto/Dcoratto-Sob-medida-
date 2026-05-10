@@ -45,8 +45,8 @@ export const QuoteEditor: React.FC = () => {
   const [clientId, setClientId] = useState('');
   const [clientSearch, setClientSearch] = useState('');
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
-  const [materialSearch, setMaterialSearch] = useState('');
-  const [materialPickerOpen, setMaterialPickerOpen] = useState(false);
+  const [pieceMaterialSearch, setPieceMaterialSearch] = useState<Record<string, string>>({});
+  const [pieceMaterialPickerOpen, setPieceMaterialPickerOpen] = useState<Record<string, boolean>>({});
   const [environment, setEnvironment] = useState('');
   const [responsible, setResponsible] = useState(user?.displayName || '');
   const [materialId, setMaterialId] = useState('');
@@ -65,13 +65,15 @@ export const QuoteEditor: React.FC = () => {
   const [statusHistory, setStatusHistory] = useState<QuoteStatusHistory[]>([]);
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
 
-  const selectedBaseMaterial = materials.find(m => m.id === materialId);
-  const selectedUserPrice = userMaterialPrices.find((price) => price.materialId === materialId);
-  const selectedMaterial = selectedBaseMaterial && selectedUserPrice
-    ?{...selectedBaseMaterial, marginPercentage: selectedUserPrice.marginPercentage, pricePerM2: selectedUserPrice.pricePerM2}
-    : selectedBaseMaterial;
+  const materialWithUserPrice = (idToFind?: string) => {
+    const baseMaterial = materials.find((material) => material.id === idToFind);
+    const userPrice = userMaterialPrices.find((price) => price.materialId === idToFind);
+    return baseMaterial && userPrice
+      ?{...baseMaterial, marginPercentage: userPrice.marginPercentage, pricePerM2: userPrice.pricePerM2}
+      : baseMaterial;
+  };
   const selectedClient = clients.find(c => c.id === clientId);
-  const { calculatePieceArea, calculateTotal, calculateSculptedSink } = useQuoteCalculator(settings, selectedMaterial);
+  const { calculatePieceArea, calculateTotal, calculateSculptedSink } = useQuoteCalculator(settings, (piece) => materialWithUserPrice(piece.materialId || materialId));
   const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
   
   const selectedPaymentAdjustment = settings.paymentMethods.find(m => m.name === paymentMethod)?.adjustment || 0;
@@ -95,9 +97,9 @@ export const QuoteEditor: React.FC = () => {
     const searchText = `${client.name} ${client.phone} ${client.email || ''} ${client.cpf || ''} ${client.rg || ''} ${client.address}`.toLowerCase();
     return searchText.includes(clientSearch.toLowerCase());
   });
-  const filteredMaterials = materials.filter((material) => {
+  const filteredMaterialsForPiece = (pieceId: string) => materials.filter((material) => {
     const searchText = `${material.name} ${material.provider || ''} ${material.category || ''}`.toLowerCase();
-    return searchText.includes(materialSearch.toLowerCase());
+    return searchText.includes((pieceMaterialSearch[pieceId] || '').toLowerCase());
   });
 
   const formatDateInput = (value: any) => {
@@ -155,7 +157,6 @@ export const QuoteEditor: React.FC = () => {
           setEnvironment(data.environment);
           setResponsible(data.responsible);
           setMaterialId(data.materialId);
-          setMaterialSearch(data.materialName || '');
           setPaymentMethod(data.paymentMethod);
           setDeliveryDays(data.deliveryDays);
           setMeasurementDate(formatDateInput(data.measurementDate));
@@ -164,7 +165,16 @@ export const QuoteEditor: React.FC = () => {
           setCommercialNotes(data.commercialNotes || '');
           setStatus(normalizeQuoteStatus(data.status));
           setOriginalStatus(normalizeQuoteStatus(data.status));
-          setPieces(data.pieces || []);
+          const loadedPieces = (data.pieces || []).map((piece) => ({
+            ...piece,
+            materialId: piece.materialId || data.materialId || '',
+          }));
+          setPieces(loadedPieces);
+          setPieceMaterialSearch(loadedPieces.reduce((acc, piece) => {
+            const material = materials.find((item) => item.id === piece.materialId);
+            if (material) acc[piece.id] = material.name;
+            return acc;
+          }, {} as Record<string, string>));
           setEmployeeAssignments(data.employeeAssignments || []);
           setStatusHistory(data.statusHistory || []);
           setCutouts({
@@ -209,17 +219,22 @@ export const QuoteEditor: React.FC = () => {
   }, [clientId, clientSearch, clients]);
 
   useEffect(() => {
-    if (materialId && !materialSearch) {
-      const found = materials.find((material) => material.id === materialId);
-      if (found) setMaterialSearch(found.name);
-    }
-  }, [materialId, materialSearch, materials]);
+    setPieceMaterialSearch((current) => {
+      const next = {...current};
+      pieces.forEach((piece) => {
+        if (!piece.materialId || next[piece.id]) return;
+        const found = materials.find((material) => material.id === piece.materialId);
+        if (found) next[piece.id] = found.name;
+      });
+      return next;
+    });
+  }, [materials, pieces]);
 
   const addPiece = () => {
     const newPiece: QuotePiece = {
       id: Math.random().toString(36).substr(2, 9),
       name: `Peça ${pieces.length + 1}`,
-      materialId: materialId,
+      materialId: '',
       unit: 'cm',
       width: 0,
       length: 0,
@@ -228,7 +243,7 @@ export const QuoteEditor: React.FC = () => {
       notes: '',
       sculptedSink: {
         active: false,
-        type: 'Simples',
+        drainType: 'Válvula oculta',
         quantity: 1,
         width: 0,
         depth: 0,
@@ -417,12 +432,18 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!clientId || !materialId) {
-      alert('Por favor, selecione um cliente e um material.');
+    if (!clientId) {
+      alert('Por favor, selecione um cliente.');
+      return;
+    }
+    if (pieces.some((piece) => !piece.materialId)) {
+      alert('Por favor, selecione o material de todas as peças.');
       return;
     }
     setSaving(true);
     const firstAssigned = employeeAssignments.find((item) => item.employeeId);
+    const primaryMaterialId = pieces[0]?.materialId || materialId || '';
+    const primaryMaterial = materialWithUserPrice(primaryMaterialId);
     
     const quoteData: Partial<Quote> = {
       clientId,
@@ -433,8 +454,8 @@ export const QuoteEditor: React.FC = () => {
       responsible,
       responsibleUserUid: user?.uid || '',
       responsibleUserName: currentUserName,
-      materialId,
-      materialName: selectedMaterial?.name || '',
+      materialId: primaryMaterialId,
+      materialName: primaryMaterial?.name || '',
       paymentMethod,
       deliveryDays,
       validityDate: Timestamp.fromDate(new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000)),
@@ -471,8 +492,8 @@ export const QuoteEditor: React.FC = () => {
           quoteStatus: status,
           clientId,
           clientName: selectedClient?.name || '',
-          materialId,
-          materialName: selectedMaterial?.name || '',
+          materialId: primaryMaterialId,
+          materialName: primaryMaterial?.name || '',
           userUid: user?.uid || '',
           userName: currentUserName,
           metadata: {totalArea, totalPrice, pieces: pieces.length},
@@ -490,8 +511,8 @@ export const QuoteEditor: React.FC = () => {
           quoteStatus: status,
           clientId,
           clientName: selectedClient?.name || '',
-          materialId,
-          materialName: selectedMaterial?.name || '',
+          materialId: primaryMaterialId,
+          materialName: primaryMaterial?.name || '',
           userUid: user?.uid || '',
           userName: currentUserName,
           metadata: {totalArea, totalPrice, pieces: pieces.length},
@@ -607,90 +628,6 @@ export const QuoteEditor: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Material</label>
-              <div className="relative">
-                <input
-                  value={materialSearch}
-                  onFocus={() => setMaterialPickerOpen(true)}
-                  onChange={(e) => {
-                    setMaterialSearch(e.target.value);
-                    setMaterialId('');
-                    setMaterialPickerOpen(true);
-                  }}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
-                  placeholder="Pesquisar material..."
-                />
-                <button type="button" onClick={() => setMaterialPickerOpen((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-                {materialPickerOpen && (
-                  <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-56 overflow-auto rounded-2xl border border-slate-100 bg-white p-2 shadow-xl">
-                    <button
-                      type="button"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        setMaterialId('');
-                        setMaterialSearch('');
-                        setMaterialPickerOpen(false);
-                      }}
-                      className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-500 hover:bg-slate-50"
-                    >
-                      Selecionar material
-                    </button>
-                    {filteredMaterials.map((material) => {
-                      const stock = materialStock(material.id);
-                      const available = stock.available > 0;
-                      return (
-                        <button
-                          key={material.id}
-                          type="button"
-                          onMouseDown={(event) => event.preventDefault()}
-                          onClick={() => {
-                            setMaterialId(material.id);
-                            setMaterialSearch(material.name);
-                            setMaterialPickerOpen(false);
-                          }}
-                          className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', materialId === material.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
-                        >
-                          <div className={cn('h-12 w-12 shrink-0 overflow-hidden rounded-xl border', materialId === material.id ? 'border-white/30 bg-white/15' : 'border-slate-100 bg-slate-50')}>
-                            {material.imageUrl ?(
-                              <img src={material.imageUrl} alt={material.name} className="h-full w-full object-cover" />
-                            ) : (
-                              <div className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase text-slate-300">Sem foto</div>
-                            )}
-                          </div>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate">{material.name}</span>
-                            <span className={cn('block text-[11px] font-medium', materialId === material.id ? 'text-white/80' : 'text-slate-400')}>
-                              {material.category || 'Sem categoria'}
-                            </span>
-                            {material.provider && (
-                              <span className={cn('block text-[10px] font-medium', materialId === material.id ? 'text-white/70' : 'text-slate-300')}>
-                                {material.provider}
-                              </span>
-                            )}
-                          </span>
-                          <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase', available ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600', materialId === material.id && 'bg-white/15 text-white')}>
-                            <span className={cn('h-2 w-2 rounded-full', available ?'bg-green-500' : 'bg-red-500')} />
-                            {available ?'Disponível' : 'Indisponível'}
-                          </span>
-                        </button>
-                      );
-                    })}
-                    {filteredMaterials.length === 0 && (
-                      <div className="px-3 py-3 text-sm font-semibold text-slate-400">Nenhum material encontrado.</div>
-                    )}
-                  </div>
-                )}
-              </div>
-              {materialId && (
-                <div className="text-[11px] text-slate-500">
-                  Estoque disponível: {materialStock(materialId).available.toFixed(2)} m²
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-1">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ambiente</label>
               <input
                 value={environment}
@@ -773,7 +710,13 @@ export const QuoteEditor: React.FC = () => {
               </div>
             )}
 
-            {pieces.map((piece, pIdx) => (
+            {pieces.map((piece, pIdx) => {
+              const pieceArea = calculatePieceArea(piece).totalArea;
+              const pieceMaterial = materialWithUserPrice(piece.materialId);
+              const stock = piece.materialId ?materialStock(piece.materialId) : {available: 0};
+              const hasMaterial = Boolean(piece.materialId);
+              const hasEnoughStock = hasMaterial && stock.available >= pieceArea;
+              return (
               <div key={piece.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <div className="bg-slate-50/50 px-8 py-4 border-b border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -826,6 +769,72 @@ export const QuoteEditor: React.FC = () => {
                     </div>
 
                     <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-1 md:col-span-3">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Material da peça</label>
+                        <div className="relative">
+                          <input
+                            value={pieceMaterialSearch[piece.id] || pieceMaterial?.name || ''}
+                            onFocus={() => setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: true}))}
+                            onChange={(e) => {
+                              setPieceMaterialSearch((current) => ({...current, [piece.id]: e.target.value}));
+                              updatePiece(piece.id, {materialId: ''});
+                              setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: true}));
+                            }}
+                            className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                            placeholder="Pesquisar material para esta peça..."
+                          />
+                          <button type="button" onClick={() => setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: !current[piece.id]}))} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
+                          {pieceMaterialPickerOpen[piece.id] && (
+                            <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-64 overflow-auto rounded-2xl border border-slate-100 bg-white p-2 shadow-xl">
+                              <button
+                                type="button"
+                                onMouseDown={(event) => event.preventDefault()}
+                                onClick={() => {
+                                  updatePiece(piece.id, {materialId: ''});
+                                  setPieceMaterialSearch((current) => ({...current, [piece.id]: ''}));
+                                  setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: false}));
+                                }}
+                                className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-500 hover:bg-slate-50"
+                              >
+                                Selecionar material
+                              </button>
+                              {filteredMaterialsForPiece(piece.id).map((material) => {
+                                const itemStock = materialStock(material.id);
+                                const available = itemStock.available > 0;
+                                return (
+                                  <button
+                                    key={material.id}
+                                    type="button"
+                                    onMouseDown={(event) => event.preventDefault()}
+                                    onClick={() => {
+                                      updatePiece(piece.id, {materialId: material.id});
+                                      setPieceMaterialSearch((current) => ({...current, [piece.id]: material.name}));
+                                      setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: false}));
+                                    }}
+                                    className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', piece.materialId === material.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
+                                  >
+                                    <div className={cn('h-12 w-12 shrink-0 overflow-hidden rounded-xl border', piece.materialId === material.id ? 'border-white/30 bg-white/15' : 'border-slate-100 bg-slate-50')}>
+                                      {material.imageUrl ? <img src={material.imageUrl} alt={material.name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase text-slate-300">Sem foto</div>}
+                                    </div>
+                                    <span className="min-w-0 flex-1">
+                                      <span className="block truncate">{material.name}</span>
+                                      <span className={cn('block text-[11px] font-medium', piece.materialId === material.id ? 'text-white/80' : 'text-slate-400')}>{material.category || 'Sem categoria'}</span>
+                                      {material.provider && <span className={cn('block text-[10px] font-medium', piece.materialId === material.id ? 'text-white/70' : 'text-slate-300')}>{material.provider}</span>}
+                                    </span>
+                                    <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase', available ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600', piece.materialId === material.id && 'bg-white/15 text-white')}>
+                                      <span className={cn('h-2 w-2 rounded-full', available ?'bg-green-500' : 'bg-red-500')} />
+                                      {available ?'Disponível' : 'Indisponível'}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                              {filteredMaterialsForPiece(piece.id).length === 0 && <div className="px-3 py-3 text-sm font-semibold text-slate-400">Nenhum material encontrado.</div>}
+                            </div>
+                          )}
+                        </div>
+                      </div>
                       <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Comp. (cm)</label>
                         <input 
@@ -849,7 +858,7 @@ export const QuoteEditor: React.FC = () => {
                         <div className="px-4 py-2.5 bg-slate-100 rounded-xl font-mono text-slate-600 flex flex-col items-end">
                           <div className="flex justify-between w-full items-center">
                             <span className="text-[9px] uppercase font-bold text-slate-400">Total:</span>
-                            <span className="font-bold text-slate-900">{calculatePieceArea(piece).totalArea.toFixed(4)}</span>
+                             <span className="font-bold text-slate-900">{pieceArea.toFixed(4)}</span>
                           </div>
                           {piece.sculptedSink?.active && (
                             <div className="text-[8px] text-slate-400 flex flex-col w-full">
@@ -872,6 +881,9 @@ export const QuoteEditor: React.FC = () => {
                           {piece.manualArea && (
                             <div className="w-2 h-2 bg-green-500 rounded-full mt-1" title="Calculado via desenho" />
                           )}
+                        </div>
+                        <div className={cn('mt-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide', !hasMaterial ?'bg-slate-100 text-slate-500' : hasEnoughStock ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600')}>
+                          {!hasMaterial ?'Selecione um material para validar o estoque' : hasEnoughStock ?`M² suficiente: ${stock.available.toFixed(2)} m² disponível` : `M² insuficiente: precisa ${pieceArea.toFixed(2)} m² e há ${stock.available.toFixed(2)} m²`}
                         </div>
                       </div>
                     </div>
@@ -1176,7 +1188,8 @@ export const QuoteEditor: React.FC = () => {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">

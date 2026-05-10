@@ -1,7 +1,7 @@
 import { QuotePiece, QuoteCutouts, Settings, Material, SculptedSink } from '../types';
 
-export const useQuoteCalculator = (settings: Settings, material?: Material) => {
-  const calculateSculptedSink = (sink: SculptedSink) => {
+export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece: QuotePiece) => Material | undefined) => {
+  const calculateSculptedSink = (sink: SculptedSink, pieceMaterial?: Material) => {
     if (!sink.active) return { area: 0, value: 0, materialValue: 0, laborValue: 0, extraSinkValue: 0, lossValue: 0 };
     
     const factor = sink.unit === 'cm' ?100 : 1;
@@ -21,7 +21,7 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
 
     const hiddenDrainArea = sink.drainType === 'Ralo oculto' ?areaFundo * sink.quantity : 0;
     const totalArea = (areaCuba * sink.quantity) + hiddenDrainArea;
-    const materialValue = totalArea * (material?.pricePerM2 || 0);
+    const materialValue = totalArea * (pieceMaterial?.pricePerM2 || 0);
     
     // Additional sinks (more than 1)
     const extraSinkValue = (sink.quantity - 1) * (settings.sculptedSinkRates?.extraSink || 0);
@@ -75,7 +75,7 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
     }, 0);
 
     // Sculpted sink area
-    const sinkResult = piece.sculptedSink ?calculateSculptedSink(piece.sculptedSink) : { area: 0, value: 0, additionalValue: 0 };
+    const sinkResult = piece.sculptedSink ?calculateSculptedSink(piece.sculptedSink, materialForPiece?.(piece)) : { area: 0, value: 0, additionalValue: 0 };
     const recessArea = calculateWetAreaRecess(piece);
 
     return { 
@@ -112,13 +112,13 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
   };
 
   const calculateTotal = (pieces: QuotePiece[], cutouts: QuoteCutouts, paymentMethodAdjustment: number) => {
-    if (!material) return 0;
-    
     const totals = pieces.map(p => calculatePieceArea(p));
-    const totalArea = totals.reduce((acc, t) => acc + t.totalArea, 0);
     const sinkAdditionalValue = totals.reduce((acc, t) => acc + (t.sinkAdditionalValue || 0), 0);
     
-    const stonesCost = totalArea * material.pricePerM2;
+    const stonesCost = pieces.reduce((acc, piece, index) => {
+      const pieceMaterial = materialForPiece?.(piece);
+      return acc + totals[index].totalArea * (pieceMaterial?.pricePerM2 || 0);
+    }, 0);
     const laborCost = calculateLabor(pieces);
     
     // Drawing cutouts update the quote cutout counters when the drawing is saved.

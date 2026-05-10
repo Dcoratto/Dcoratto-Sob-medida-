@@ -1,4 +1,4 @@
-import {deleteDoc, doc, serverTimestamp, setDoc} from 'firebase/firestore';
+import {collection, deleteDoc, doc, getDocs, query, serverTimestamp, setDoc, where} from 'firebase/firestore';
 import {db} from './firebase';
 import {Quote, QuoteStatus} from '../types';
 import {isQuoteApprovedOrBeyond, normalizeText} from './quoteStatus';
@@ -14,28 +14,48 @@ export const isApprovedOrBeyond = (status?: QuoteStatus | string) => {
 
 export const syncQuoteReservation = async (quoteId: string, quote: Partial<Quote>) => {
   if (!quoteId) return;
-  const reservationRef = doc(db, 'inventoryReservations', quoteId);
-  const area = Number(quote.totalArea || 0);
+  const existing = await getDocs(query(collection(db, 'inventoryReservations'), where('quoteId', '==', quoteId))).catch(() => null);
+  if (existing) {
+    await Promise.all(existing.docs.map((item) => deleteDoc(item.ref).catch(() => undefined)));
+  }
+  await deleteDoc(doc(db, 'inventoryReservations', quoteId)).catch(() => undefined);
 
-  if (!quote.materialId || area <= 0 || !shouldReserveStock(quote.status)) {
-    await deleteDoc(reservationRef).catch(() => undefined);
+  if (!shouldReserveStock(quote.status)) {
     return;
   }
 
-  await setDoc(reservationRef, {
+  const areasByMaterial = new Map<string, {name: string; area: number}>();
+  (quote.pieces || []).forEach((piece) => {
+    if (!piece.materialId) return;
+    const mainArea = piece.unit === 'cm' ?((piece.width || 0) * (piece.length || 0)) / 10000 : (piece.width || 0) * (piece.length || 0);
+    const sidesArea = (piece.sides || []).reduce((sum, side) => sum + ((side.length || 0) * (side.height || 0) * (side.quantity || 1)) / (piece.unit === 'cm' ?10000 : 1), 0);
+    const manualOrMain = piece.manualArea || mainArea;
+    const area = manualOrMain + sidesArea;
+    if (area <= 0) return;
+    const current = areasByMaterial.get(piece.materialId) || {name: piece.materialId, area: 0};
+    areasByMaterial.set(piece.materialId, {name: current.name, area: current.area + area});
+  });
+
+  if (areasByMaterial.size === 0 && quote.materialId && Number(quote.totalArea || 0) > 0) {
+    areasByMaterial.set(quote.materialId, {name: quote.materialName || quote.materialId, area: Number(quote.totalArea || 0)});
+  }
+
+  await Promise.all(Array.from(areasByMaterial.entries()).map(([materialId, data]) => setDoc(doc(db, 'inventoryReservations', `${quoteId}_${materialId}`), {
     quoteId,
-    materialId: quote.materialId,
-    materialName: quote.materialName || quote.materialId,
-    area,
+    materialId,
+    materialName: data.name,
+    area: data.area,
     quoteStatus: quote.status,
     clientName: quote.clientName || '',
     updatedAt: serverTimestamp(),
-  }, {merge: true});
+  }, {merge: true})));
 };
 
 export const releaseQuoteReservation = async (quoteId: string) => {
   if (!quoteId) return;
   await deleteDoc(doc(db, 'inventoryReservations', quoteId)).catch(() => undefined);
+  const existing = await getDocs(query(collection(db, 'inventoryReservations'), where('quoteId', '==', quoteId))).catch(() => null);
+  if (existing) await Promise.all(existing.docs.map((item) => deleteDoc(item.ref).catch(() => undefined)));
 };
 
 export const applyQuoteInventoryByStatusTransition = async (

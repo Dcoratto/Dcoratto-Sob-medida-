@@ -2,7 +2,7 @@ import React, {useEffect, useState} from 'react';
 import {EmailAuthProvider, reauthenticateWithCredential} from 'firebase/auth';
 import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from 'firebase/firestore';
 import {deleteObject, ref as storageRef} from 'firebase/storage';
-import {AlertTriangle, BriefcaseBusiness, CheckCircle2, Mail, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
+import {AlertTriangle, BriefcaseBusiness, CheckCircle2, Mail, Pencil, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
 import {auth, db, storage} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {useAuth} from '../contexts/AuthContext';
@@ -117,6 +117,7 @@ export const AdminPage: React.FC = () => {
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
   const [savingMaterial, setSavingMaterial] = useState(false);
   const [materialError, setMaterialError] = useState('');
+  const [editingMaterial, setEditingMaterial] = useState<Material | null>(null);
   const [materialImageFile, setMaterialImageFile] = useState<File | null>(null);
   const [materialForm, setMaterialForm] = useState({
     name: '',
@@ -125,6 +126,7 @@ export const AdminPage: React.FC = () => {
   });
   const [savingFixture, setSavingFixture] = useState(false);
   const [fixtureError, setFixtureError] = useState('');
+  const [editingFixture, setEditingFixture] = useState<FixtureCatalogItem | null>(null);
   const [fixtureImageFile, setFixtureImageFile] = useState<File | null>(null);
   const [fixtureForm, setFixtureForm] = useState<{
     name: string;
@@ -251,6 +253,60 @@ export const AdminPage: React.FC = () => {
     setEmployees((prev) => prev.filter((employee) => employee.id !== employeeId));
   };
 
+  const resetMaterialForm = () => {
+    setEditingMaterial(null);
+    setMaterialForm({name: '', provider: '', category: ''});
+    setMaterialImageFile(null);
+    setMaterialError('');
+  };
+
+  const startEditingMaterial = (material: Material) => {
+    setEditingMaterial(material);
+    setMaterialForm({
+      name: material.name || '',
+      provider: material.provider || '',
+      category: material.category || '',
+    });
+    setMaterialImageFile(null);
+    setMaterialError('');
+  };
+
+  const resetFixtureForm = (category: FixtureCategory = fixtureForm.category) => {
+    setEditingFixture(null);
+    setFixtureForm({
+      name: '',
+      category,
+      brand: '',
+      model: '',
+      width: '',
+      depth: '',
+      height: '',
+      diameter: '',
+      imageUrl: '',
+      notes: '',
+    });
+    setFixtureImageFile(null);
+    setFixtureError('');
+  };
+
+  const startEditingFixture = (item: FixtureCatalogItem) => {
+    setEditingFixture(item);
+    setFixtureForm({
+      name: item.name || '',
+      category: item.category,
+      brand: item.brand || '',
+      model: item.model || '',
+      width: item.width ?String(item.width).replace('.', ',') : '',
+      depth: item.depth ?String(item.depth).replace('.', ',') : '',
+      height: item.height ?String(item.height).replace('.', ',') : '',
+      diameter: item.diameter ?String(item.diameter).replace('.', ',') : '',
+      imageUrl: item.imageUrl || '',
+      notes: item.notes || '',
+    });
+    setFixtureImageFile(null);
+    setFixtureError('');
+  };
+
   const addMaterialCatalogItem = async (event: React.FormEvent) => {
     event.preventDefault();
     const name = materialForm.name.trim();
@@ -259,8 +315,8 @@ export const AdminPage: React.FC = () => {
     setSavingMaterial(true);
     setMaterialError('');
     try {
-      const materialId = slugify(name);
-      let imageUrl = '';
+      const materialId = editingMaterial?.id || slugify(name);
+      let imageUrl = editingMaterial?.imageUrl || '';
       if (materialImageFile) {
         imageUrl = await optimizeCatalogImage(materialImageFile);
       }
@@ -272,11 +328,10 @@ export const AdminPage: React.FC = () => {
         marginPercentage: 0,
         pricePerM2: 0,
         ...(imageUrl ?{imageUrl} : {}),
-        active: true,
+        active: editingMaterial?.active ?? true,
         updatedAt: serverTimestamp(),
       }, {merge: true});
-      setMaterialForm({name: '', provider: '', category: ''});
-      setMaterialImageFile(null);
+      resetMaterialForm();
     } catch (error: any) {
       console.error('Erro ao cadastrar pedra:', error);
       setMaterialError(getCatalogSaveErrorMessage(error, 'a pedra'));
@@ -299,7 +354,8 @@ export const AdminPage: React.FC = () => {
       if (fixtureImageFile) {
         imageUrl = await optimizeCatalogImage(fixtureImageFile);
       }
-      await addDoc(collection(db, 'fixtureCatalog'), {
+      const imagePayload = imageUrl ?{imageUrl} : {};
+      const fixturePayload = {
         name: fixtureForm.name.trim(),
         category: fixtureForm.category,
         brand: fixtureForm.brand.trim(),
@@ -308,24 +364,20 @@ export const AdminPage: React.FC = () => {
         depth: Number(fixtureForm.depth.replace(',', '.')) || 0,
         height: Number(fixtureForm.height.replace(',', '.')) || 0,
         diameter: Number(fixtureForm.diameter.replace(',', '.')) || 0,
-        imageUrl,
+        ...imagePayload,
         notes: fixtureForm.notes.trim(),
-        active: true,
-        createdAt: Timestamp.now(),
-      });
-      setFixtureForm({
-        name: '',
-        category: fixtureForm.category,
-        brand: '',
-        model: '',
-        width: '',
-        depth: '',
-        height: '',
-        diameter: '',
-        imageUrl: '',
-        notes: '',
-      });
-      setFixtureImageFile(null);
+        active: editingFixture?.active ?? true,
+        updatedAt: Timestamp.now(),
+      };
+      if (editingFixture) {
+        await updateDoc(doc(db, 'fixtureCatalog', editingFixture.id), fixturePayload);
+      } else {
+        await addDoc(collection(db, 'fixtureCatalog'), {
+          ...fixturePayload,
+          createdAt: Timestamp.now(),
+        });
+      }
+      resetFixtureForm(fixtureForm.category);
     } catch (error: any) {
       console.error('Erro ao cadastrar peça:', error);
       setFixtureError(getCatalogSaveErrorMessage(error, 'a peça'));
@@ -511,7 +563,7 @@ export const AdminPage: React.FC = () => {
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-6">
         <div>
           <h2 className="font-display text-xl font-bold text-slate-900">Catálogo de pedras</h2>
-          <p className="text-sm text-slate-400">Cadastre as pedras aqui para seleção no estoque, compras e orçamentos.</p>
+          <p className="text-sm text-slate-400">{editingMaterial ?`Editando: ${editingMaterial.name}` : 'Cadastre as pedras aqui para seleção no estoque, compras e orçamentos.'}</p>
         </div>
 
         <form onSubmit={addMaterialCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
@@ -531,8 +583,13 @@ export const AdminPage: React.FC = () => {
             />
           </label>
           <button type="submit" disabled={savingMaterial} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-white disabled:opacity-60">
-            {savingMaterial ?'Salvando...' : 'Cadastrar pedra'}
+            {savingMaterial ?'Salvando...' : editingMaterial ? 'Salvar pedra' : 'Cadastrar pedra'}
           </button>
+          {editingMaterial && (
+            <button type="button" onClick={resetMaterialForm} className="rounded-2xl bg-slate-100 px-4 py-3 font-bold text-slate-600 hover:bg-slate-200">
+              Cancelar edição
+            </button>
+          )}
         </form>
 
         {materialError && (
@@ -551,9 +608,14 @@ export const AdminPage: React.FC = () => {
                   <div className="text-xs text-slate-400">{material.category || 'Sem categoria'} · {material.provider || 'Sem fornecedor'}</div>
                   <div className="mt-1 text-xs font-semibold text-slate-500">Preço e margem definidos na aba Materiais.</div>
                 </div>
-                <button type="button" onClick={() => toggleMaterialCatalogItem(material)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', material.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
-                  {material.active ?'Ativo' : 'Inativo'}
-                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button type="button" onClick={() => startEditingMaterial(material)} className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/10 hover:text-brand-primary" title="Editar pedra" aria-label="Editar pedra">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => toggleMaterialCatalogItem(material)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', material.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
+                    {material.active ?'Ativo' : 'Inativo'}
+                  </button>
+                </div>
               </div>
             </div>
           ))}
@@ -564,7 +626,7 @@ export const AdminPage: React.FC = () => {
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-6">
         <div>
           <h2 className="font-display text-xl font-bold text-slate-900">Catálogo de peças do cliente</h2>
-          <p className="text-sm text-slate-400">Cadastre cooktop, cuba, torneira, torre de tomada e lixeira para seleção no orçamento.</p>
+          <p className="text-sm text-slate-400">{editingFixture ?`Editando: ${editingFixture.name}` : 'Cadastre cooktop, cuba, torneira, torre de tomada e lixeira para seleção no orçamento.'}</p>
         </div>
 
         <form onSubmit={addFixtureCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -597,8 +659,13 @@ export const AdminPage: React.FC = () => {
           </label>
           <input value={fixtureForm.notes} onChange={(e) => setFixtureForm((f) => ({...f, notes: e.target.value}))} placeholder="Informações" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-1" />
           <button type="submit" disabled={savingFixture} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-white disabled:opacity-60">
-            {savingFixture ?'Salvando...' : 'Cadastrar peça'}
+            {savingFixture ?'Salvando...' : editingFixture ? 'Salvar peça' : 'Cadastrar peça'}
           </button>
+          {editingFixture && (
+            <button type="button" onClick={() => resetFixtureForm()} className="rounded-2xl bg-slate-100 px-4 py-3 font-bold text-slate-600 hover:bg-slate-200">
+              Cancelar edição
+            </button>
+          )}
         </form>
 
         {fixtureError && (
@@ -625,9 +692,14 @@ export const AdminPage: React.FC = () => {
                     {[item.width ?`${item.width} cm largura` : '', item.depth ?`${item.depth} cm profundidade` : '', item.diameter ?`${item.diameter} cm diâmetro` : ''].filter(Boolean).join(' · ') || 'Sem medidas cadastradas'}
                   </div>
                 </div>
-                <button type="button" onClick={() => toggleFixtureCatalogItem(item)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', item.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
-                  {item.active ?'Ativo' : 'Inativo'}
-                </button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button type="button" onClick={() => startEditingFixture(item)} className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/10 hover:text-brand-primary" title="Editar peça" aria-label="Editar peça">
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => toggleFixtureCatalogItem(item)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', item.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
+                    {item.active ?'Ativo' : 'Inativo'}
+                  </button>
+                </div>
               </div>
             </div>
           ))}

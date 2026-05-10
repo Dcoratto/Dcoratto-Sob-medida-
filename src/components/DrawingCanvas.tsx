@@ -193,6 +193,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const [cutoutWidth, setCutoutWidth] = useState('50');
   const [cutoutHeight, setCutoutHeight] = useState('40');
   const [selectedFixtureId, setSelectedFixtureId] = useState('');
+  const [fixturePickerOpen, setFixturePickerOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showPiecesPanel, setShowPiecesPanel] = useState(false);
 
@@ -321,6 +322,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
   useEffect(() => {
     setSelectedFixtureId('');
+    setFixturePickerOpen(false);
   }, [cutoutType]);
 
   useEffect(() => {
@@ -980,17 +982,75 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           <option value="lixeira">Lixeira de embutir</option>
           <option value="torre_tomada">Torre de tomada</option>
         </select>
-        <select value={selectedFixtureId} onChange={(e) => setSelectedFixtureId(e.target.value)} className="max-w-[260px] rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600">
-          <option value="">Peça cadastrada / medida manual</option>
-          {availableFixtures.map((fixture) => (
-            <option key={fixture.id} value={fixture.id}>
-              {fixture.name} {fixture.width || fixture.diameter ?`- ${fixture.width || fixture.diameter}x${fixture.depth || fixture.height || fixture.diameter || fixture.width} cm` : ''}
-            </option>
-          ))}
-        </select>
-        {selectedFixture?.imageUrl && (
-          <img src={selectedFixture.imageUrl} alt={selectedFixture.name} className="h-10 w-12 rounded-xl border border-slate-200 bg-white object-contain p-1" />
-        )}
+        <div className="relative min-w-[280px]">
+          <button
+            type="button"
+            onClick={() => setFixturePickerOpen((value) => !value)}
+            className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-600"
+          >
+            <div className="flex h-10 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-100 bg-slate-50">
+              {selectedFixture?.imageUrl ?(
+                <img src={selectedFixture.imageUrl} alt={selectedFixture.name} className="h-full w-full object-contain p-1" />
+              ) : (
+                <Scissors className="h-4 w-4 text-slate-300" />
+              )}
+            </div>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate">{selectedFixture?.name || 'Peça cadastrada / medida manual'}</span>
+              <span className="block truncate text-[11px] font-medium text-slate-400">
+                {selectedFixture ?`${selectedFixture.width || selectedFixture.diameter || cutoutWidth} x ${selectedFixture.depth || selectedFixture.height || selectedFixture.diameter || selectedFixture.width || cutoutHeight} cm` : 'Escolha uma peça do Admin'}
+              </span>
+            </span>
+          </button>
+          {fixturePickerOpen && (
+            <div className="absolute left-0 top-[calc(100%+6px)] z-[140] max-h-72 w-full overflow-auto rounded-2xl border border-slate-100 bg-white p-2 shadow-2xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedFixtureId('');
+                  setFixturePickerOpen(false);
+                }}
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                <div className="flex h-12 w-14 shrink-0 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50">
+                  <Scissors className="h-4 w-4 text-slate-300" />
+                </div>
+                <span>
+                  <span className="block">Peça cadastrada / medida manual</span>
+                  <span className="block text-[11px] text-slate-400">Usar os campos de largura e altura</span>
+                </span>
+              </button>
+              {availableFixtures.map((fixture) => (
+                <button
+                  key={fixture.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedFixtureId(fixture.id);
+                    setFixturePickerOpen(false);
+                  }}
+                  className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', selectedFixtureId === fixture.id ?'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
+                >
+                  <div className={cn('flex h-12 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border', selectedFixtureId === fixture.id ?'border-white/30 bg-white/15' : 'border-slate-100 bg-slate-50')}>
+                    {fixture.imageUrl ?(
+                      <img src={fixture.imageUrl} alt={fixture.name} className="h-full w-full object-contain p-1" />
+                    ) : (
+                      <Scissors className="h-4 w-4 text-slate-300" />
+                    )}
+                  </div>
+                  <span className="min-w-0">
+                    <span className="block truncate">{fixture.name}</span>
+                    <span className={cn('block text-[11px] font-medium', selectedFixtureId === fixture.id ?'text-white/80' : 'text-slate-400')}>
+                      {fixture.width || fixture.diameter ?`${fixture.width || fixture.diameter} x ${fixture.depth || fixture.height || fixture.diameter || fixture.width} cm` : 'Sem medida cadastrada'}
+                    </span>
+                  </span>
+                </button>
+              ))}
+              {!availableFixtures.length && (
+                <div className="px-3 py-3 text-sm font-semibold text-slate-400">Nenhuma peça cadastrada para este tipo.</div>
+              )}
+            </div>
+          )}
+        </div>
         <input value={cutoutWidth} onChange={(e) => setCutoutWidth(e.target.value)} className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Larg./diâm. cm" disabled={Boolean(selectedFixture)} />
         <input value={cutoutHeight} onChange={(e) => setCutoutHeight(e.target.value)} className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Alt./prof. cm" disabled={Boolean(selectedFixture) || cutoutType === 'torneira' || cutoutType === 'torre_tomada'} />
 

@@ -11,11 +11,11 @@ import {normalizeQuoteStatus, quoteStatusColor} from '../lib/quoteStatus';
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
 const statusGroups: Record<ClientStage, {label: string; dot: string; bg: string; statuses: QuoteStatus[]}> = {
-  pre: {label: 'Orçamento', dot: 'bg-blue-500', bg: 'bg-blue-50 text-blue-700', statuses: ['Orçamento', 'Medição', 'Projeto']},
-  approved: {label: 'Aprovado', dot: 'bg-violet-500', bg: 'bg-violet-50 text-violet-700', statuses: ['Aprovado']},
-  production: {label: 'Produção', dot: 'bg-zinc-900', bg: 'bg-zinc-100 text-zinc-700', statuses: ['Produção']},
-  ready: {label: 'Acabamento/Entrega', dot: 'bg-amber-700', bg: 'bg-amber-50 text-amber-800', statuses: ['Acabamento', 'Entrega']},
-  done: {label: 'Finalizado', dot: 'bg-emerald-500', bg: 'bg-emerald-50 text-emerald-700', statuses: ['Finalizado']},
+  pre: {label: 'Orçamento', dot: 'bg-[#B0BEC5]', bg: 'bg-[#B0BEC5]/20 text-[#455A64]', statuses: ['Orçamento']},
+  approved: {label: 'Orçamento Aprovado', dot: 'bg-[#66BB6A]', bg: 'bg-[#66BB6A]/20 text-[#2E7D32]', statuses: ['Orçamento Aprovado', 'Medição', 'Projeto']},
+  production: {label: 'Produção', dot: 'bg-[#E53935]', bg: 'bg-[#E53935]/15 text-[#B71C1C]', statuses: ['Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada']},
+  ready: {label: 'Conferência/Entrega', dot: 'bg-[#00838F]', bg: 'bg-[#00838F]/15 text-[#006064]', statuses: ['Conferência Final', 'Entrega']},
+  done: {label: 'Finalizado', dot: 'bg-[#0B3D0B]', bg: 'bg-[#0B3D0B] text-white', statuses: ['Finalizado']},
   none: {label: 'Sem orçamento', dot: 'bg-slate-300', bg: 'bg-slate-50 text-slate-500', statuses: []},
 };
 
@@ -26,16 +26,16 @@ const isClosedSale = (status?: string) => {
   if (text.includes('pre') || text.includes('orcamento') || text.includes('aguardando') || text.includes('medido') || text.includes('enviado') || text.includes('recusado')) {
     return false;
   }
-  return text.includes('aprovado') || text.includes('producao') || text.includes('acabamento') || text.includes('entrega') || text.includes('finalizado') || text.includes('concluido');
+  return text.includes('aprovado') || text.includes('corte') || text.includes('montagem') || text.includes('producao') || text.includes('acabamento') || text.includes('conferencia') || text.includes('entrega') || text.includes('finalizado') || text.includes('concluido');
 };
 
 const quoteStage = (quote?: Quote): ClientStage => {
   if (!quote) return 'none';
   const status = normalizeStatus(quote.status);
   if (status === 'Finalizado') return 'done';
-  if (status === 'Acabamento' || status === 'Entrega') return 'ready';
-  if (status === 'Produção') return 'production';
-  if (status === 'Aprovado') return 'approved';
+  if (['Conferência Final', 'Entrega'].includes(status)) return 'ready';
+  if (['Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada'].includes(status)) return 'production';
+  if (['Orçamento Aprovado', 'Medição', 'Projeto'].includes(status)) return 'approved';
   return 'pre';
 };
 
@@ -276,7 +276,7 @@ export const Dashboard: React.FC = () => {
 
   const stats = [
     {label: 'Orçamentos', value: quotes.length, icon: FileText, color: 'text-brand-primary', bg: 'bg-brand-primary/10', path: '/quotes'},
-    {label: 'Projetos', value: quotes.filter((quote) => { const s = normalizeStatus(quote.status); return s === 'Aprovado' || s === 'Produção' || s === 'Acabamento' || s === 'Entrega' || s === 'Finalizado'; }).length, icon: FolderKanban, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/projects'},
+    {label: 'Projetos', value: quotes.filter((quote) => { const s = normalizeStatus(quote.status); return ['Orçamento Aprovado', 'Medição', 'Projeto', 'Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada', 'Conferência Final', 'Entrega', 'Finalizado'].includes(s); }).length, icon: FolderKanban, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/projects'},
     {label: 'Clientes', value: clients.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/clients'},
     {label: 'Materiais', value: materialsCount, icon: Package, color: 'text-purple-600', bg: 'bg-purple-50', path: '/materials'},
     {label: 'Itens em Estoque', value: inventory.length, icon: Database, color: 'text-amber-600', bg: 'bg-amber-50', path: '/inventory'},

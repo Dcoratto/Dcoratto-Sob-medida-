@@ -30,11 +30,11 @@ const normalize = (value: unknown) =>
     .replace(/[\u0300-\u036f]/g, '');
 
 const stageMeta: Record<ClientStage, {label: string; dot: string; chip: string}> = {
-  pre: {label: 'Orçamento', dot: 'bg-blue-500', chip: 'bg-blue-50 text-blue-700'},
-  approved: {label: 'Aprovado', dot: 'bg-violet-500', chip: 'bg-violet-50 text-violet-700'},
-  production: {label: 'Produção', dot: 'bg-zinc-900', chip: 'bg-zinc-100 text-zinc-700'},
-  ready: {label: 'Acabamento', dot: 'bg-amber-700', chip: 'bg-amber-50 text-amber-800'},
-  done: {label: 'Concluído', dot: 'bg-violet-500', chip: 'bg-violet-50 text-violet-700'},
+  pre: {label: 'Orçamento', dot: 'bg-[#B0BEC5]', chip: 'bg-[#B0BEC5]/20 text-[#455A64]'},
+  approved: {label: 'Orçamento Aprovado', dot: 'bg-[#66BB6A]', chip: 'bg-[#66BB6A]/20 text-[#2E7D32]'},
+  production: {label: 'Produção', dot: 'bg-[#E53935]', chip: 'bg-[#E53935]/15 text-[#B71C1C]'},
+  ready: {label: 'Conferência/Entrega', dot: 'bg-[#00838F]', chip: 'bg-[#00838F]/15 text-[#006064]'},
+  done: {label: 'Finalizado', dot: 'bg-[#0B3D0B]', chip: 'bg-[#0B3D0B] text-white'},
   none: {label: 'Sem projeto', dot: 'bg-zinc-300', chip: 'bg-zinc-100 text-zinc-500'},
 };
 
@@ -42,9 +42,9 @@ const quoteStage = (quote?: Quote): ClientStage => {
   if (!quote) return 'none';
   const status = normalizeQuoteStatus(quote.status);
   if (status === 'Finalizado') return 'done';
-  if (status === 'Produção') return 'production';
-  if (status === 'Acabamento' || status === 'Entrega') return 'ready';
-  if (status === 'Aprovado') return 'approved';
+  if (['Conferência Final', 'Entrega'].includes(status)) return 'ready';
+  if (['Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada'].includes(status)) return 'production';
+  if (['Orçamento Aprovado', 'Medição', 'Projeto'].includes(status)) return 'approved';
   return 'pre';
 };
 

@@ -153,11 +153,15 @@ export interface QuoteStatusHistory {
 
 export type QuoteStatus =
   | 'Orçamento'
+  | 'Orçamento Aprovado'
   | 'Medição'
   | 'Projeto'
-  | 'Aprovado'
-  | 'Produção'
+  | 'Projeto Aprovado'
+  | 'Corte'
   | 'Acabamento'
+  | 'Montagem'
+  | 'Produção Finalizada'
+  | 'Conferência Final'
   | 'Entrega'
   | 'Finalizado';
 

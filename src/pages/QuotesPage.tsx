@@ -35,7 +35,7 @@ export const QuotesPage: React.FC = () => {
 
   const filteredQuotes = quotes.filter((quote) => {
     const normalizedStatus = normalizeText(normalizeQuoteStatus(quote.status));
-    const isOpenScope = ['orcamento', 'medicao', 'projeto', 'aprovado', 'producao', 'acabamento', 'entrega'].includes(normalizedStatus);
+    const isOpenScope = ['orcamento', 'orcamento aprovado', 'medicao', 'projeto', 'projeto aprovado', 'corte', 'acabamento', 'montagem', 'producao finalizada', 'conferencia final', 'entrega'].includes(normalizedStatus);
     const matchesScope = scope === 'open' ?isOpenScope : true;
 
     const searchable = [

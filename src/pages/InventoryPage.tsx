@@ -1,10 +1,11 @@
 ﻿import React, {useEffect, useState} from 'react';
 import {addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc} from 'firebase/firestore';
-import {AlertTriangle, CheckCircle2, Edit2, Filter, ImagePlus, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
+import {AlertTriangle, CheckCircle2, Edit2, Eye, Filter, ImagePlus, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
+import {useNavigate} from 'react-router-dom';
 import {getDownloadURL, ref, uploadBytes} from 'firebase/storage';
 import {db, storage} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
-import {InventoryItem, InventoryPurchase, InventoryReservation, Material} from '../types';
+import {InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote} from '../types';
 import {cn, formatCurrency, formatNumber} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
@@ -37,7 +38,19 @@ const emptyPurchaseSlab = (): PurchaseSlabForm => ({
 
 const isApprovedReservation = (reservation: InventoryReservation) => {
   const status = normalizeStatus(reservation.quoteStatus);
-  return ['aprovado', 'em producao', 'pronto para entrega', 'entregue'].includes(status);
+  return [
+    'orcamento aprovado',
+    'medicao',
+    'projeto',
+    'projeto aprovado',
+    'corte',
+    'acabamento',
+    'montagem',
+    'producao finalizada',
+    'conferencia final',
+    'entrega',
+    'finalizado',
+  ].includes(status);
 };
 
 const isActiveReservation = (reservation: InventoryReservation) => {
@@ -47,14 +60,17 @@ const isActiveReservation = (reservation: InventoryReservation) => {
 
 export const InventoryPage: React.FC = () => {
   const {user, profile} = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [reservations, setReservations] = useState<InventoryReservation[]>([]);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
   const [purchases, setPurchases] = useState<InventoryPurchase[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [reservationMaterialId, setReservationMaterialId] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -101,6 +117,11 @@ export const InventoryPage: React.FC = () => {
       setReservations(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryReservation)));
     });
 
+    const qQuotes = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
+    const unsubscribeQuotes = onSnapshot(qQuotes, (snapshot) => {
+      setQuotes(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as Quote)));
+    });
+
     const qPurchases = query(collection(db, 'inventoryPurchases'), orderBy('purchasedAt', 'desc'));
     const unsubscribePurchases = onSnapshot(qPurchases, (snapshot) => {
       setPurchases(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryPurchase)));
@@ -110,6 +131,7 @@ export const InventoryPage: React.FC = () => {
       unsubscribeItems();
       unsubscribeMaterials();
       unsubscribeReservations();
+      unsubscribeQuotes();
       unsubscribePurchases();
     };
   }, []);
@@ -421,6 +443,8 @@ export const InventoryPage: React.FC = () => {
     reservations
       .filter((reservation) => reservation.materialId === materialId)
       .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+  const activeReservationsByMaterial = (materialId: string) =>
+    reservations.filter((reservation) => reservation.materialId === materialId && isActiveReservation(reservation));
   const activeReservedAreaByMaterial = (materialId: string) =>
     reservations
       .filter((reservation) => reservation.materialId === materialId && isActiveReservation(reservation))
@@ -464,6 +488,16 @@ export const InventoryPage: React.FC = () => {
   const totalPendingPurchaseArea = pendingPurchases.reduce((acc, item) => acc + item.missing, 0);
   const activePurchases = purchases.filter((purchase) => purchase.status === 'Pedido');
   const materialImageById = (materialId: string) => materials.find((material) => material.id === materialId)?.imageUrl || '';
+  const selectedReservationMaterial = reservationMaterialId
+    ? materials.find((material) => material.id === reservationMaterialId) || items.find((item) => item.materialId === reservationMaterialId)
+    : null;
+  const selectedReservationMaterialName = selectedReservationMaterial
+    ? 'name' in selectedReservationMaterial
+      ? selectedReservationMaterial.name
+      : selectedReservationMaterial.materialName
+    : '';
+  const selectedReservations = reservationMaterialId ? activeReservationsByMaterial(reservationMaterialId) : [];
+  const quoteById = (quoteId: string) => quotes.find((quote) => quote.id === quoteId);
   const selectedPurchaseMaterial = materials.find((material) => material.id === purchaseMaterialId);
   const purchaseQuantityNumber = Math.max(1, Number(purchaseQuantity) || 1);
   const purchaseSlabRows = purchaseSlabs.slice(0, purchaseQuantityNumber);
@@ -682,9 +716,14 @@ export const InventoryPage: React.FC = () => {
                         {item.status}
                       </span>
                       {reservedAreaByMaterial(item.materialId) > 0 && (
-                        <div className="mt-1 text-[10px] font-semibold text-amber-600">
+                        <button
+                          type="button"
+                          onClick={() => setReservationMaterialId(item.materialId)}
+                          className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700 hover:bg-amber-100 transition-all"
+                        >
+                          <Eye className="h-3 w-3" />
                           {formatNumber(reservedAreaByMaterial(item.materialId))} m² em orçamentos
-                        </div>
+                        </button>
                       )}
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -744,6 +783,52 @@ export const InventoryPage: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {reservationMaterialId && selectedReservationMaterial && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl p-8 space-y-6 animate-in fade-in zoom-in duration-300">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-display font-bold text-slate-900">Reservas em orçamento</h2>
+                <p className="text-sm text-slate-500 mt-1">{selectedReservationMaterialName}</p>
+              </div>
+              <button type="button" onClick={() => setReservationMaterialId(null)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+              {selectedReservations.length === 0 ? (
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Nenhum orçamento reservando este material.</div>
+              ) : (
+                selectedReservations.map((reservation) => {
+                  const quote = quoteById(reservation.quoteId);
+                  return (
+                    <button
+                      key={reservation.id}
+                      type="button"
+                      onClick={() => navigate(`/quotes/edit/${reservation.quoteId}`)}
+                      className="w-full rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left hover:border-brand-primary/30 hover:bg-brand-primary/5 transition-all"
+                    >
+                      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
+                        <div>
+                          <div className="font-bold text-slate-900">{reservation.clientName || quote?.clientName || 'Cliente não informado'}</div>
+                          <div className="mt-1 text-xs text-slate-400">Orçamento #{reservation.quoteId.slice(0, 8)} · {reservation.quoteStatus}</div>
+                          {quote?.environment && <div className="mt-1 text-xs text-slate-500">Ambiente: {quote.environment}</div>}
+                        </div>
+                        <div className="rounded-xl bg-white px-3 py-2 text-right">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Usando</div>
+                          <div className="font-mono font-bold text-amber-700">{formatNumber(reservation.area || 0)} m²</div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -995,3 +1080,5 @@ export const InventoryPage: React.FC = () => {
     </div>
   );
 };
+
+

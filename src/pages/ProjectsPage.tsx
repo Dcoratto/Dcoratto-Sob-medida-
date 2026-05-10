@@ -14,7 +14,7 @@ const normalize = (value: unknown) =>
     .replace(/[\u0300-\u036f]/g, '');
 
 const isProjectStatus = (status: string) => {
-  return ['Aprovado', 'Produção', 'Acabamento', 'Entrega', 'Finalizado'].includes(normalizeQuoteStatus(status));
+  return ['Orçamento Aprovado', 'Medição', 'Projeto', 'Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada', 'Conferência Final', 'Entrega', 'Finalizado'].includes(normalizeQuoteStatus(status));
 };
 
 export const ProjectsPage: React.FC = () => {

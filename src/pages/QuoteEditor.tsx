@@ -409,6 +409,8 @@ export const QuoteEditor: React.FC = () => {
     { value: 'left', label: `Largura esquerda (${piece.width || 0} cm)`, length: piece.width },
     { value: 'right', label: `Largura direita (${piece.width || 0} cm)`, length: piece.width },
   ];
+  const sideDimensionLabel = (type?: PieceSide['type']) =>
+    ['frontao', 'saia', 'pe'].includes(String(type)) ? 'Altura' : 'Profundidade';
 
   const addSide = (pieceId: string, type: PieceSide['type']) => {
     setPieces(pieces.map(p => {
@@ -1157,7 +1159,7 @@ export const QuoteEditor: React.FC = () => {
                             </div>
                           </div>
                           <div className="w-16 space-y-1">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">Altura</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">{sideDimensionLabel(side.type)}</span>
                             <input 
                               type="number" 
                               value={side.height}

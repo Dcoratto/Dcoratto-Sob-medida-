@@ -51,7 +51,7 @@ const periodLabel = (period: Period) => {
 const statusLabel = (status: string) => normalizeQuoteStatus(status);
 
 const isClosedSale = (status: string) =>
-  ['Aprovado', 'Produção', 'Acabamento', 'Entrega', 'Finalizado'].includes(statusLabel(status));
+  ['Orçamento Aprovado', 'Medição', 'Projeto', 'Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada', 'Conferência Final', 'Entrega', 'Finalizado'].includes(statusLabel(status));
 
 export const ReportsPage: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
@@ -103,7 +103,7 @@ export const ReportsPage: React.FC = () => {
     .filter((quote) => isClosedSale(quote.status))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
   const openValue = filteredQuotes
-    .filter((quote) => ['Orçamento', 'Medição', 'Projeto'].includes(statusLabel(quote.status)))
+    .filter((quote) => ['Orçamento', 'Orçamento Aprovado', 'Medição', 'Projeto'].includes(statusLabel(quote.status)))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
   const refusedValue = filteredQuotes
     .filter((quote) => statusLabel(quote.status) === '__none__')

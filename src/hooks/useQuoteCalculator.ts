@@ -14,21 +14,13 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
     const areaFrenteTraseira = 2 * l * h;
     const areaCuba = areaFundo + areaLaterais + areaFrenteTraseira;
 
-    let typeFactor = 1.0;
     let laborBase = settings.sculptedSinkRates?.simple || 0;
-
-    if (sink.type === 'Com rampa') {
-      typeFactor = 1.15;
-      laborBase = settings.sculptedSinkRates?.ramp || 0;
-    } else if (sink.type === 'Válvula oculta') {
-      typeFactor = 1.25;
+    if (sink.drainType === 'Válvula oculta') {
       laborBase = settings.sculptedSinkRates?.hiddenValve || 0;
-    } else if (sink.type === 'Cuba dupla') {
-      typeFactor = 1.10;
-      laborBase = settings.sculptedSinkRates?.simple || 0; // Or another logic
     }
 
-    const totalArea = areaCuba * sink.quantity * typeFactor;
+    const hiddenDrainArea = sink.drainType === 'Ralo oculto' ?areaFundo * sink.quantity : 0;
+    const totalArea = (areaCuba * sink.quantity) + hiddenDrainArea;
     const materialValue = totalArea * (material?.pricePerM2 || 0);
     
     // Additional sinks (more than 1)
@@ -55,9 +47,16 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
         fundo: areaFundo,
         laterais: areaLaterais,
         frenteTraseira: areaFrenteTraseira,
-        fator: typeFactor
+        raloOculto: hiddenDrainArea
       }
     };
+  };
+
+  const calculateWetAreaRecess = (piece: QuotePiece) => {
+    const recess = piece.wetAreaRecess;
+    if (!recess?.active) return 0;
+    const factor = recess.unit === 'cm' ?100 : 1;
+    return Math.max(0, recess.width / factor) * Math.max(0, recess.depth / factor);
   };
 
   const calculatePieceArea = (piece: QuotePiece) => {
@@ -77,14 +76,16 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
 
     // Sculpted sink area
     const sinkResult = piece.sculptedSink ?calculateSculptedSink(piece.sculptedSink) : { area: 0, value: 0, additionalValue: 0 };
+    const recessArea = calculateWetAreaRecess(piece);
 
     return { 
       mainArea: piece.manualArea || mainArea, 
       sidesArea, 
       sinkArea: sinkResult.area,
+      recessArea,
       sinkValue: sinkResult.value,
       sinkAdditionalValue: sinkResult.additionalValue,
-      totalArea: (piece.manualArea || mainArea) + sidesArea + sinkResult.area 
+      totalArea: (piece.manualArea || mainArea) + sidesArea + sinkResult.area + recessArea
     };
   };
 

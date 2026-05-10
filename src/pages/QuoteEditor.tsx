@@ -280,6 +280,13 @@ export const QuoteEditor: React.FC = () => {
     setPieces(pieces.map(p => p.id === id ?{ ...p, ...data } : p));
   };
 
+  const calculateWetAreaRecessArea = (piece: QuotePiece) => {
+    const recess = piece.wetAreaRecess;
+    if (!recess?.active) return 0;
+    const factor = recess.unit === 'cm' ?100 : 1;
+    return Math.max(0, (recess.width || 0) / factor) * Math.max(0, (recess.depth || 0) / factor);
+  };
+
   const updateFirstPieceFixture = (fixtureKey: 'trashBin' | 'popUpTower', field: 'brand' | 'model' | 'diameter' | 'width' | 'depth' | 'height' | 'notes', value: string | number | undefined) => {
     if (!pieces.length) return;
     const firstPiece = pieces[0];
@@ -395,8 +402,6 @@ export const QuoteEditor: React.FC = () => {
       const defaultHeight =
         type === 'frontao' ? settings.defaultFrontonHeight :
         type === 'saia' ? settings.defaultSkirtHeight :
-        type === 'rebaixo_americano' ? 2 :
-        type === 'rebaixo_italiano' ? 3 :
         settings.defaultTurnHeight;
       const newSide: PieceSide = {
         type,
@@ -858,6 +863,12 @@ export const QuoteEditor: React.FC = () => {
                               </div>
                             </div>
                           )}
+                          {piece.wetAreaRecess?.active && (
+                            <div className="text-[8px] text-slate-400 flex justify-between w-full">
+                              <span>Rebaixo:</span>
+                              <span>{calculatePieceArea(piece).recessArea.toFixed(4)}</span>
+                            </div>
+                          )}
                           {piece.manualArea && (
                             <div className="w-2 h-2 bg-green-500 rounded-full mt-1" title="Calculado via desenho" />
                           )}
@@ -872,9 +883,9 @@ export const QuoteEditor: React.FC = () => {
                       <div className="flex items-center gap-3">
                         <label className="text-sm font-bold text-slate-700">Pia Esculpida:</label>
                         <div className="flex bg-slate-100 p-1 rounded-xl">
-                          <button 
+                            <button 
                             onClick={() => updatePiece(piece.id, { sculptedSink: { ...(piece.sculptedSink || {
-                              type: 'Simples', quantity: 1, width: 0, depth: 0, height: 0, unit: 'cm'
+                              drainType: 'Válvula oculta', quantity: 1, width: 0, depth: 0, height: 0, unit: 'cm'
                             }), active: true } as any })}
                             className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", piece.sculptedSink?.active ?"bg-white text-brand-primary shadow-sm" : "text-slate-400")}
                           >Sim</button>
@@ -890,16 +901,15 @@ export const QuoteEditor: React.FC = () => {
                       <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-6 space-y-6 animate-in slide-in-from-top-2">
                         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                           <div className="space-y-1">
-                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tipo de Cuba</label>
+                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tipo de ralo</label>
                             <select 
-                              value={piece.sculptedSink.type}
-                              onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, type: e.target.value as any } })}
+                              value={piece.sculptedSink.drainType || 'Válvula oculta'}
+                              onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, drainType: e.target.value as any } })}
                               className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium outline-none"
                             >
-                              <option value="Simples">Simples</option>
-                              <option value="Com rampa">Com rampa</option>
-                                <option value="Válvula oculta">Válvula oculta</option>
-                              <option value="Cuba dupla">Cuba dupla</option>
+                              <option value="Válvula oculta">Válvula oculta</option>
+                              <option value="Ralo click">Ralo click</option>
+                              <option value="Ralo oculto">Ralo oculto</option>
                             </select>
                           </div>
                           <div className="space-y-1">
@@ -967,6 +977,10 @@ export const QuoteEditor: React.FC = () => {
                                     <div className="text-slate-900 font-mono font-bold">{calc.area.toFixed(4)}</div>
                                   </div>
                                   <div className="space-y-0.5">
+                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Ralo</span>
+                                    <div className="text-slate-900 font-mono font-bold">{piece.sculptedSink.drainType || 'Válvula oculta'}</div>
+                                  </div>
+                                  <div className="space-y-0.5">
                             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Mão de Obra</span>
                                     <div className="text-slate-900 font-mono font-bold">{formatCurrency(calc.laborValue + calc.extraSinkValue)}</div>
                                   </div>
@@ -987,10 +1001,67 @@ export const QuoteEditor: React.FC = () => {
                     )}
                   </div>
 
+                  <div className="pt-4 border-t border-slate-50 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <label className="text-sm font-bold text-slate-700">Rebaixo área molhada:</label>
+                        <div className="flex bg-slate-100 p-1 rounded-xl">
+                          <button
+                            type="button"
+                            onClick={() => updatePiece(piece.id, { wetAreaRecess: { ...(piece.wetAreaRecess || {type: 'americano', width: 0, depth: 0, unit: 'cm'}), active: true } as any })}
+                            className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", piece.wetAreaRecess?.active ?"bg-white text-brand-primary shadow-sm" : "text-slate-400")}
+                          >Sim</button>
+                          <button
+                            type="button"
+                            onClick={() => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess, active: false } as any })}
+                            className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", !piece.wetAreaRecess?.active ?"bg-white text-brand-primary shadow-sm" : "text-slate-400")}
+                          >Não</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {piece.wetAreaRecess?.active && (
+                      <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-6 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tipo de rebaixo</label>
+                            <select
+                              value={piece.wetAreaRecess.type}
+                              onChange={(e) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, type: e.target.value as any } })}
+                              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium outline-none"
+                            >
+                              <option value="americano">Americano</option>
+                              <option value="italiano">Italiano</option>
+                            </select>
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura ({piece.wetAreaRecess.unit})</label>
+                            <input type="number" value={piece.wetAreaRecess.width} onChange={(e) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, width: Number(e.target.value) } })} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Profundidade ({piece.wetAreaRecess.unit})</label>
+                            <input type="number" value={piece.wetAreaRecess.depth} onChange={(e) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, depth: Number(e.target.value) } })} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none" />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Unidade</label>
+                            <select value={piece.wetAreaRecess.unit} onChange={(e) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, unit: e.target.value as any } })} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium outline-none">
+                              <option value="cm">cm</option>
+                              <option value="m">m</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Área do rebaixo (m²)</span>
+                          <div className="text-brand-primary font-mono font-bold">{calculateWetAreaRecessArea(piece).toFixed(4)}</div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Adicionais - Frontão, Saia, etc */}
                   <div className="space-y-4 pt-4 border-t border-slate-50">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Adicionais (Frontao/Saia/Virada/Pe)</h3>
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Adicionais (Frontão/Saia/Virada/Pé)</h3>
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
@@ -1027,20 +1098,6 @@ export const QuoteEditor: React.FC = () => {
                         >
                         + Guarnição
                         </button>
-                        <button 
-                          type="button"
-                          onClick={() => addSide(piece.id, 'rebaixo_americano')}
-                          className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg text-xs font-bold transition-colors"
-                        >
-                          + Rebaixo americano
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={() => addSide(piece.id, 'rebaixo_italiano')}
-                          className="px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-lg text-xs font-bold transition-colors"
-                        >
-                          + Rebaixo italiano
-                        </button>
                       </div>
                     </div>
 
@@ -1058,8 +1115,6 @@ export const QuoteEditor: React.FC = () => {
                                   newSides[sIdx].height =
                                     e.target.value === 'frontao' ? settings.defaultFrontonHeight :
                                     e.target.value === 'saia' ? settings.defaultSkirtHeight :
-                                    e.target.value === 'rebaixo_americano' ? 2 :
-                                    e.target.value === 'rebaixo_italiano' ? 3 :
                                     settings.defaultTurnHeight;
                                   updatePiece(piece.id, { sides: newSides });
                                 }}
@@ -1070,8 +1125,6 @@ export const QuoteEditor: React.FC = () => {
                                 <option value="virada">Virada</option>
                               <option value="pe">Pé de bancada</option>
                               <option value="guarnicao">Guarnição</option>
-                                <option value="rebaixo_americano">Rebaixo americano</option>
-                                <option value="rebaixo_italiano">Rebaixo italiano</option>
                               </select>
                               <select 
                                 value={side.side}
@@ -1180,26 +1233,6 @@ export const QuoteEditor: React.FC = () => {
                 })}
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rebaixo Amer. (Qtd)</label>
-                <input
-                  type="number"
-                  value={cutouts.wetAreaAmericanRecess}
-                  onChange={(e) => setCutouts({ ...cutouts, wetAreaAmericanRecess: Number(e.target.value) })}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rebaixo Ital. (Qtd)</label>
-                <input
-                  type="number"
-                  value={cutouts.wetAreaItalianRecess}
-                  onChange={(e) => setCutouts({ ...cutouts, wetAreaItalianRecess: Number(e.target.value) })}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                />
-              </div>
-            </div>
           </section>
 
           <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-4">

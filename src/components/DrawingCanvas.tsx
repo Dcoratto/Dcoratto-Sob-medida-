@@ -24,7 +24,7 @@ import {DrawingCutout, FixtureCatalogItem, PieceSide} from '../types';
 
 type DrawTool = 'select' | 'line' | 'move-point' | 'pan' | 'cutout';
 type CutoutType = 'cuba' | 'cooktop' | 'torneira' | 'lixeira' | 'torre_tomada';
-type ComplementType = 'frontao' | 'saia' | 'virada' | 'pe' | 'guarnicao' | 'rebaixo_americano' | 'rebaixo_italiano';
+type ComplementType = 'frontao' | 'saia' | 'virada' | 'pe' | 'guarnicao';
 
 interface Point {
   x: number;
@@ -92,8 +92,6 @@ const complementLabel = (type: ComplementType | PieceSide['type']) => {
   if (type === 'virada') return 'Virada';
   if (type === 'pe') return 'Pé';
   if (type === 'guarnicao') return 'Guarnição';
-  if (type === 'rebaixo_americano') return 'Rebaixo americano';
-  if (type === 'rebaixo_italiano') return 'Rebaixo italiano';
   return String(type || '');
 };
 
@@ -157,8 +155,6 @@ const makeSideKey = (index: number) => `side:${index}`;
 const defaultHeightFor = (type: ComplementType, settings?: DrawingCanvasProps['settings']) => {
   if (type === 'frontao') return settings?.defaultFrontonHeight ?? 10;
   if (type === 'saia') return settings?.defaultSkirtHeight ?? 4;
-  if (type === 'rebaixo_americano') return 2;
-  if (type === 'rebaixo_italiano') return 3;
   return settings?.defaultTurnHeight ?? 2;
 };
 
@@ -1182,7 +1178,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                       </label>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                      {(['frontao', 'saia', 'virada', 'pe', 'guarnicao', 'rebaixo_americano', 'rebaixo_italiano'] as ComplementType[]).map((type) => {
+                      {(['frontao', 'saia', 'virada', 'pe', 'guarnicao'] as ComplementType[]).map((type) => {
                         const selected = sideComplements.some((item) => item.type === type);
                         return (
                           <button
@@ -1339,7 +1335,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                       </td>
                       <td className="px-3 py-2">
                         <div className="flex flex-wrap gap-1">
-                          {(['frontao', 'saia', 'virada', 'pe', 'guarnicao', 'rebaixo_americano', 'rebaixo_italiano'] as ComplementType[]).map((type) => (
+                          {(['frontao', 'saia', 'virada', 'pe', 'guarnicao'] as ComplementType[]).map((type) => (
                             <button
                               key={type}
                               type="button"

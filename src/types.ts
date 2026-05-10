@@ -188,7 +188,8 @@ export interface DrawingCutout {
 
 export interface SculptedSink {
   active: boolean;
-  type: 'Simples' | 'Com rampa' | 'Válvula oculta' | 'Cuba dupla';
+  type?: 'Simples' | 'Com rampa' | 'Válvula oculta' | 'Cuba dupla';
+  drainType?: 'Válvula oculta' | 'Ralo click' | 'Ralo oculto';
   quantity: number;
   width: number;
   depth: number;
@@ -196,6 +197,14 @@ export interface SculptedSink {
   unit: 'cm' | 'm';
   calculatedArea: number;
   calculatedValue: number;
+}
+
+export interface WetAreaRecess {
+  active: boolean;
+  type: 'americano' | 'italiano';
+  width: number;
+  depth: number;
+  unit: 'cm' | 'm';
 }
 
 export interface QuotePiece {
@@ -216,6 +225,7 @@ export interface QuotePiece {
   proposalImageUrl?: string;
   cutouts?: DrawingCutout[];
   sculptedSink?: SculptedSink;
+  wetAreaRecess?: WetAreaRecess;
   purchasedFixtures?: {
     sink?: FixtureInfo;
     faucet?: FixtureInfo;

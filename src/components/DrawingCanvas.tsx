@@ -192,6 +192,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const [cutoutType, setCutoutType] = useState<CutoutType>('cuba');
   const [cutoutWidth, setCutoutWidth] = useState('50');
   const [cutoutHeight, setCutoutHeight] = useState('40');
+  const [cutoutRotation, setCutoutRotation] = useState<0 | 90>(0);
   const [selectedFixtureId, setSelectedFixtureId] = useState('');
   const [fixturePickerOpen, setFixturePickerOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -403,10 +404,12 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     if (drawTool === 'cutout') {
       const rawWidthCm = selectedFixture?.width || selectedFixture?.diameter || Number(cutoutWidth.replace(',', '.')) || 10;
       const rawHeightCm = selectedFixture?.depth || selectedFixture?.height || selectedFixture?.diameter || selectedFixture?.width || Number(cutoutHeight.replace(',', '.')) || 10;
-      const width = Math.max(0.02, rawWidthCm / 100);
-      const height = cutoutType === 'torneira' || cutoutType === 'torre_tomada'
-        ?width
+      const baseWidth = Math.max(0.02, rawWidthCm / 100);
+      const baseHeight = cutoutType === 'torneira' || cutoutType === 'torre_tomada'
+        ?baseWidth
         : Math.max(0.02, rawHeightCm / 100);
+      const width = cutoutRotation === 90 ?baseHeight : baseWidth;
+      const height = cutoutRotation === 90 ?baseWidth : baseHeight;
       setCutouts((current) => [...current, {
         id: crypto.randomUUID(),
         type: cutoutType,
@@ -414,6 +417,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         y: world.y,
         width,
         height,
+        rotation: cutoutRotation,
         fixtureId: selectedFixture?.id,
         fixtureName: selectedFixture?.name,
         fixtureImageUrl: selectedFixture?.imageUrl,
@@ -1053,6 +1057,14 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         </div>
         <input value={cutoutWidth} onChange={(e) => setCutoutWidth(e.target.value)} className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Larg./diâm. cm" disabled={Boolean(selectedFixture)} />
         <input value={cutoutHeight} onChange={(e) => setCutoutHeight(e.target.value)} className="w-24 rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold" placeholder="Alt./prof. cm" disabled={Boolean(selectedFixture) || cutoutType === 'torneira' || cutoutType === 'torre_tomada'} />
+        <button
+          type="button"
+          onClick={() => setCutoutRotation((value) => (value === 0 ?90 : 0))}
+          className={cn('rounded-xl px-3 py-2 text-xs font-bold uppercase', cutoutRotation === 90 ?'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')}
+          title="Girar recorte"
+        >
+          {cutoutRotation === 90 ?'Vertical' : 'Horizontal'}
+        </button>
 
         <button type="button" onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value * 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomIn className="h-4 w-4" /></button>
         <button type="button" onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value / 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomOut className="h-4 w-4" /></button>

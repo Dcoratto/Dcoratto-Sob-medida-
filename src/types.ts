@@ -180,6 +180,7 @@ export interface DrawingCutout {
   y: number;
   width: number;
   height: number;
+  rotation?: 0 | 90;
   fixtureId?: string;
   fixtureName?: string;
   fixtureImageUrl?: string;

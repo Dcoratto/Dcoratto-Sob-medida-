@@ -305,6 +305,46 @@ export const QuoteEditor: React.FC = () => {
     popUpTower: 'popUpTowerCutout',
     trashBin: 'trashBinCutout',
   };
+  const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
+    cooktop: 'cooktop',
+    cuba: 'sink',
+    torneira: 'faucet',
+    lixeira: 'trashBin',
+    torre_tomada: 'popUpTower',
+  };
+  const cutoutCountByFixtureKey = (fixtureKey: 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin') =>
+    Number(cutouts[cutoutFieldByFixtureKey[fixtureKey]] || 0);
+
+  const drawingFixtureIdForKey = (fixtureKey: 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin') => {
+    for (const piece of pieces) {
+      const match = piece.cutouts?.find((cutout) => fixtureKeyByCutoutType[cutout.type] === fixtureKey && cutout.fixtureId);
+      if (match?.fixtureId) return match.fixtureId;
+    }
+    return '';
+  };
+
+  const fixturePatchFromDrawingCutouts = (drawingCutouts?: QuotePiece['cutouts']) => {
+    const selectedFixtureIds: QuotePiece['selectedFixtureIds'] = {};
+    const purchasedFixtures: QuotePiece['purchasedFixtures'] = {};
+    (drawingCutouts || []).forEach((cutout) => {
+      const fixtureKey = fixtureKeyByCutoutType[cutout.type];
+      if (!fixtureKey || !cutout.fixtureId || selectedFixtureIds?.[fixtureKey]) return;
+      const selected = fixtureCatalog.find((item) => item.id === cutout.fixtureId);
+      selectedFixtureIds[fixtureKey] = cutout.fixtureId;
+      if (selected) {
+        purchasedFixtures[fixtureKey] = {
+          brand: selected.brand,
+          model: selected.model,
+          width: selected.width,
+          depth: selected.depth,
+          height: selected.height,
+          diameter: selected.diameter,
+          notes: selected.notes,
+        };
+      }
+    });
+    return {selectedFixtureIds, purchasedFixtures};
+  };
 
   const selectCatalogFixtureForFirstPiece = (
     fixtureKey: 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin',
@@ -592,38 +632,46 @@ export const QuoteEditor: React.FC = () => {
                     >
                       Selecionar material
                     </button>
-                    {filteredMaterials.map((material) => (
-                      <button
-                        key={material.id}
-                        type="button"
-                        onMouseDown={(event) => event.preventDefault()}
-                        onClick={() => {
-                          setMaterialId(material.id);
-                          setMaterialSearch(material.name);
-                          setMaterialPickerOpen(false);
-                        }}
-                        className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', materialId === material.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
-                      >
-                        <div className={cn('h-12 w-12 shrink-0 overflow-hidden rounded-xl border', materialId === material.id ? 'border-white/30 bg-white/15' : 'border-slate-100 bg-slate-50')}>
-                          {material.imageUrl ?(
-                            <img src={material.imageUrl} alt={material.name} className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase text-slate-300">Sem foto</div>
-                          )}
-                        </div>
-                        <span className="min-w-0">
-                          <span className="block truncate">{material.name}</span>
-                          <span className={cn('block text-[11px] font-medium', materialId === material.id ? 'text-white/80' : 'text-slate-400')}>
-                            {material.category || 'Sem categoria'}
-                          </span>
-                          {material.provider && (
-                            <span className={cn('block text-[10px] font-medium', materialId === material.id ? 'text-white/70' : 'text-slate-300')}>
-                              {material.provider}
+                    {filteredMaterials.map((material) => {
+                      const stock = materialStock(material.id);
+                      const available = stock.available > 0;
+                      return (
+                        <button
+                          key={material.id}
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => {
+                            setMaterialId(material.id);
+                            setMaterialSearch(material.name);
+                            setMaterialPickerOpen(false);
+                          }}
+                          className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', materialId === material.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
+                        >
+                          <div className={cn('h-12 w-12 shrink-0 overflow-hidden rounded-xl border', materialId === material.id ? 'border-white/30 bg-white/15' : 'border-slate-100 bg-slate-50')}>
+                            {material.imageUrl ?(
+                              <img src={material.imageUrl} alt={material.name} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase text-slate-300">Sem foto</div>
+                            )}
+                          </div>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate">{material.name}</span>
+                            <span className={cn('block text-[11px] font-medium', materialId === material.id ? 'text-white/80' : 'text-slate-400')}>
+                              {material.category || 'Sem categoria'}
                             </span>
-                          )}
-                        </span>
-                      </button>
-                    ))}
+                            {material.provider && (
+                              <span className={cn('block text-[10px] font-medium', materialId === material.id ? 'text-white/70' : 'text-slate-300')}>
+                                {material.provider}
+                              </span>
+                            )}
+                          </span>
+                          <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase', available ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600', materialId === material.id && 'bg-white/15 text-white')}>
+                            <span className={cn('h-2 w-2 rounded-full', available ?'bg-green-500' : 'bg-red-500')} />
+                            {available ?'Disponível' : 'Indisponível'}
+                          </span>
+                        </button>
+                      );
+                    })}
                     {filteredMaterials.length === 0 && (
                       <div className="px-3 py-3 text-sm font-semibold text-slate-400">Nenhum material encontrado.</div>
                     )}
@@ -1094,11 +1142,17 @@ export const QuoteEditor: React.FC = () => {
                   { key: 'popUpTower', label: 'Torre de tomada', category: 'popUpTower' },
                 ] as const).map((fixtureConfig) => {
                   const options = fixturesByCategory(fixtureConfig.category);
-                  const selectedId = pieces[0]?.selectedFixtureIds?.[fixtureConfig.key] || '';
+                  const selectedId = pieces[0]?.selectedFixtureIds?.[fixtureConfig.key] || drawingFixtureIdForKey(fixtureConfig.key);
                   const selectedItem = options.find((item) => item.id === selectedId);
+                  const totalLinkedCutouts = cutoutCountByFixtureKey(fixtureConfig.key);
                   return (
                     <div key={fixtureConfig.key} className="space-y-2 rounded-2xl bg-slate-50 p-4 border border-slate-100">
-                      <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{fixtureConfig.label}</div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{fixtureConfig.label}</div>
+                        <span className={cn('rounded-full px-2 py-1 text-[10px] font-bold uppercase', totalLinkedCutouts > 0 ?'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-400')}>
+                          {totalLinkedCutouts} no orçamento
+                        </span>
+                      </div>
                       <select
                         value={selectedId}
                         onChange={(e) => selectCatalogFixtureForFirstPiece(fixtureConfig.key, e.target.value)}
@@ -1195,6 +1249,7 @@ export const QuoteEditor: React.FC = () => {
                 settings={settings}
                 onSave={({ json, area, previewUrl, sides, largestSide, cutouts: drawingCutouts }) => {
                   const currentPiece = pieces.find((piece) => piece.id === showDrawing);
+                  const fixturePatch = fixturePatchFromDrawingCutouts(drawingCutouts);
                   applyCutoutDiff(currentPiece?.cutouts, drawingCutouts);
                   updatePiece(showDrawing, { 
                     drawingJson: json, 
@@ -1202,7 +1257,15 @@ export const QuoteEditor: React.FC = () => {
                     previewUrl, 
                     sides, 
                     largestSide, 
-                    cutouts: drawingCutouts 
+                    cutouts: drawingCutouts,
+                    selectedFixtureIds: {
+                      ...currentPiece?.selectedFixtureIds,
+                      ...fixturePatch.selectedFixtureIds,
+                    },
+                    purchasedFixtures: {
+                      ...currentPiece?.purchasedFixtures,
+                      ...fixturePatch.purchasedFixtures,
+                    },
                   });
                   setShowDrawing(null);
                 }}

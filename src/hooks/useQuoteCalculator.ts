@@ -120,19 +120,9 @@ export const useQuoteCalculator = (settings: Settings, material?: Material) => {
     const stonesCost = totalArea * material.pricePerM2;
     const laborCost = calculateLabor(pieces);
     
-    // Sum global cutouts AND cutouts defined inside pieces (from drawing)
+    // Drawing cutouts update the quote cutout counters when the drawing is saved.
+    // Charging only from the counters avoids duplicating the same recorte.
     let totalCutoutsCost = calculateCutouts(cutouts);
-    pieces.forEach(p => {
-      if (p.cutouts) {
-        p.cutouts.forEach(c => {
-          if (c.type === 'cooktop') totalCutoutsCost += (settings.cutoutPrices?.cooktop || 0);
-          if (c.type === 'cuba') totalCutoutsCost += (settings.cutoutPrices?.sinkUnder || 0); // Assuming under-mount for drawn sinks
-          if (c.type === 'torneira') totalCutoutsCost += (settings.cutoutPrices?.faucetHole || 0);
-          if (c.type === 'lixeira') totalCutoutsCost += (settings.cutoutPrices?.trashBinCutout || 0);
-          if (c.type === 'torre_tomada') totalCutoutsCost += (settings.cutoutPrices?.popUpTowerCutout || 0);
-        });
-      }
-    });
 
     const subtotal = stonesCost + laborCost + totalCutoutsCost + sinkAdditionalValue;
     const adjustmentValue = subtotal * (paymentMethodAdjustment / 100);

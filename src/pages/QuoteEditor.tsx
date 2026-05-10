@@ -298,11 +298,25 @@ export const QuoteEditor: React.FC = () => {
   const fixturesByCategory = (category: FixtureCategory) =>
     fixtureCatalog.filter((item) => item.active && item.category === category);
 
+  const cutoutFieldByFixtureKey: Record<'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin', keyof QuoteCutoutState> = {
+    cooktop: 'cooktop',
+    sink: 'sinkUnder',
+    faucet: 'faucetHole',
+    popUpTower: 'popUpTowerCutout',
+    trashBin: 'trashBinCutout',
+  };
+
   const selectCatalogFixtureForFirstPiece = (
     fixtureKey: 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin',
     fixtureId: string,
   ) => {
     if (!pieces.length) return;
+    const cutoutField = cutoutFieldByFixtureKey[fixtureKey];
+    setCutouts((current) => ({
+      ...current,
+      [cutoutField]: fixtureId ? 1 : 0,
+      ...(fixtureKey === 'sink' ? {sinkOver: 0} : {}),
+    }));
     const firstPiece = pieces[0];
     const selected = fixtureCatalog.find((item) => item.id === fixtureId);
     updatePiece(firstPiece.id, {
@@ -656,28 +670,15 @@ export const QuoteEditor: React.FC = () => {
                 className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
               >
                 <option value="">Selecionar forma de pagamento</option>
-                {settings.paymentMethods.map((method) => (
-                  <option key={method.name} value={method.name}>{method.name}</option>
+                {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
+                  <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
                 ))}
               </select>
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status</label>
-              <select
-                value={status}
-                onChange={(e) => setStatus(normalizeQuoteStatus(e.target.value) as QuoteStatus)}
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
-              >
-                <option value="Orçamento">Orçamento</option>
-                <option value="Medição">Medição</option>
-                <option value="Projeto">Projeto</option>
-                <option value="Aprovado">Aprovado</option>
-                <option value="Produção">Produção</option>
-                <option value="Acabamento">Acabamento</option>
-                <option value="Entrega">Entrega</option>
-                <option value="Finalizado">Finalizado</option>
-              </select>
+              {paymentMethod && (
+                <div className="text-[11px] text-slate-500">
+                  Ajuste aplicado: {selectedPaymentAdjustment > 0 ? '+' : ''}{selectedPaymentAdjustment}%
+                </div>
+              )}
             </div>
           </section>
         </div>
@@ -797,17 +798,6 @@ export const QuoteEditor: React.FC = () => {
                             <div className="w-2 h-2 bg-green-500 rounded-full mt-1" title="Calculado via desenho" />
                           )}
                         </div>
-                      </div>
-                      <div className="space-y-1 md:col-span-3">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Imagem da proposta premium</label>
-                        <input
-                          type="url"
-                          value={piece.proposalImageUrl || ''}
-                          onChange={(e) => updatePiece(piece.id, { proposalImageUrl: e.target.value })}
-                          placeholder="Cole aqui o link da imagem, render ou planta desta peça"
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all"
-                        />
-                  <p className="text-[11px] text-slate-400">Essa imagem aparece na proposta premium. Se ficar vazio, o sistema usa o desenho técnico salvo.</p>
                       </div>
                     </div>
                   </div>
@@ -1074,91 +1064,12 @@ export const QuoteEditor: React.FC = () => {
 
           <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
             <h2 className="font-display font-bold text-xl text-slate-800">Recortes e Acabamentos Especiais</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-6">
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cooktop (Qtd)</label>
-                <input 
-                  type="number" 
-                  value={cutouts.cooktop}
-                  onChange={(e) => setCutouts({ ...cutouts, cooktop: Number(e.target.value) })}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cuba Emb. (Qtd)</label>
-                <input 
-                  type="number" 
-                  value={cutouts.sinkUnder}
-                  onChange={(e) => setCutouts({ ...cutouts, sinkUnder: Number(e.target.value) })}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cuba Sobr. (Qtd)</label>
-                <input 
-                  type="number" 
-                  value={cutouts.sinkOver}
-                  onChange={(e) => setCutouts({ ...cutouts, sinkOver: Number(e.target.value) })}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Furação Torneira (Qtd)</label>
-                <input
-                  type="number"
-                  value={cutouts.faucetHole}
-                  onChange={(e) => setCutouts({ ...cutouts, faucetHole: Number(e.target.value) })}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Lixeira Emb. (Qtd)</label>
-                <input
-                  type="number"
-                  value={cutouts.trashBinCutout}
-                  onChange={(e) => setCutouts({ ...cutouts, trashBinCutout: Number(e.target.value) })}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Torre Tomada (Qtd)</label>
-                <input
-                  type="number"
-                  value={cutouts.popUpTowerCutout}
-                  onChange={(e) => setCutouts({ ...cutouts, popUpTowerCutout: Number(e.target.value) })}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rebaixo Amer. (Qtd)</label>
-                <input
-                  type="number"
-                  value={cutouts.wetAreaAmericanRecess}
-                  onChange={(e) => setCutouts({ ...cutouts, wetAreaAmericanRecess: Number(e.target.value) })}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rebaixo Ital. (Qtd)</label>
-                <input
-                  type="number"
-                  value={cutouts.wetAreaItalianRecess}
-                  onChange={(e) => setCutouts({ ...cutouts, wetAreaItalianRecess: Number(e.target.value) })}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                />
-              </div>
-            </div>
-          </section>
-
-          <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
-            <h2 className="font-display font-bold text-xl text-slate-800">Especificações do cliente</h2>
-            <p className="text-xs text-slate-400">No card do cliente são exibidas somente peças previamente cadastradas no Admin.</p>
             {!pieces.length ?(
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                Adicione ao menos uma peça para vincular os itens do catálogo.
+                Adicione ao menos uma peça para vincular os recortes cadastrados no Admin.
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
                 {([
                   { key: 'cooktop', label: 'Cooktop', category: 'cooktop' },
                   { key: 'sink', label: 'Cuba', category: 'sink' },
@@ -1177,7 +1088,7 @@ export const QuoteEditor: React.FC = () => {
                         onChange={(e) => selectCatalogFixtureForFirstPiece(fixtureConfig.key, e.target.value)}
                         className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
                       >
-                        <option value="">Selecionar peça cadastrada</option>
+                        <option value="">Sem recorte</option>
                         {options.map((item) => (
                           <option key={item.id} value={item.id}>
                             {item.name} {item.brand ?`- ${item.brand}` : ''} {item.model ?`(${item.model})` : ''}
@@ -1188,16 +1099,36 @@ export const QuoteEditor: React.FC = () => {
                         <div className="space-y-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
                           <div><span className="font-semibold text-slate-600">Marca:</span> {selectedItem.brand || '-'}</div>
                           <div><span className="font-semibold text-slate-600">Modelo:</span> {selectedItem.model || '-'}</div>
-                          <div><span className="font-semibold text-slate-600">Imagem:</span> {selectedItem.imageUrl || '-'}</div>
+                          {selectedItem.imageUrl && <img src={selectedItem.imageUrl} alt={selectedItem.name} className="mt-2 h-20 w-full rounded-lg object-contain bg-slate-50" />}
                         </div>
+                      )}
+                      {!options.length && (
+                        <div className="text-xs text-slate-400">Cadastre opções no Admin.</div>
                       )}
                     </div>
                   );
                 })}
               </div>
             )}
-            <div className="text-xs text-slate-400">
-              Se não encontrar um item aqui, cadastre primeiro na aba Admin em Catálogo de peças.
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rebaixo Amer. (Qtd)</label>
+                <input
+                  type="number"
+                  value={cutouts.wetAreaAmericanRecess}
+                  onChange={(e) => setCutouts({ ...cutouts, wetAreaAmericanRecess: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Rebaixo Ital. (Qtd)</label>
+                <input
+                  type="number"
+                  value={cutouts.wetAreaItalianRecess}
+                  onChange={(e) => setCutouts({ ...cutouts, wetAreaItalianRecess: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
+                />
+              </div>
             </div>
           </section>
 

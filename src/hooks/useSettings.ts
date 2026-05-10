@@ -48,16 +48,18 @@ export const useSettings = () => {
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, 'settings', 'global'), (snapshot) => {
       if (snapshot.exists()) {
+        const data = snapshot.data() as Partial<Settings>;
         setSettings({
           ...DEFAULT_SETTINGS,
-          ...snapshot.data(),
+          ...data,
           cutoutPrices: {
             ...DEFAULT_SETTINGS.cutoutPrices,
-            ...(snapshot.data().cutoutPrices || {}),
+            ...(data.cutoutPrices || {}),
           },
+          paymentMethods: data.paymentMethods?.length ? data.paymentMethods : DEFAULT_SETTINGS.paymentMethods,
           sculptedSinkRates: {
             ...DEFAULT_SETTINGS.sculptedSinkRates,
-            ...(snapshot.data().sculptedSinkRates || {}),
+            ...(data.sculptedSinkRates || {}),
           },
         } as Settings);
       }

@@ -43,7 +43,15 @@ export const SettingsPage: React.FC = () => {
     if (!isAdmin) return;
     setSaving(true);
     try {
-      await setDoc(doc(db, 'settings', 'global'), settings);
+      const sanitizedPaymentMethods = settings.paymentMethods
+        .map((method) => ({name: method.name.trim(), adjustment: Number(method.adjustment) || 0}))
+        .filter((method) => method.name);
+      const nextSettings = {
+        ...settings,
+        paymentMethods: sanitizedPaymentMethods.length ? sanitizedPaymentMethods : DEFAULT_SETTINGS.paymentMethods,
+      };
+      await setDoc(doc(db, 'settings', 'global'), nextSettings);
+      setSettings(nextSettings);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {

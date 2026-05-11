@@ -3,7 +3,7 @@ import {addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, T
 import {useNavigate} from 'react-router-dom';
 import {AlertCircle, CheckCircle2, Clock, Database, FileText, FolderKanban, Package, Plus, StickyNote, Trash2, TrendingUp, Users} from 'lucide-react';
 import {db} from '../lib/firebase';
-import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote, QuoteStatus} from '../types';
+import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Profile, Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {normalizeQuoteStatus, quoteStatusColor} from '../lib/quoteStatus';
@@ -58,6 +58,8 @@ interface DashboardNote {
   createdAt?: any;
   userUid?: string;
   userName?: string;
+  targetUid?: string;
+  targetName?: string;
 }
 
 interface ManualCalendarEvent {
@@ -92,7 +94,9 @@ export const Dashboard: React.FC = () => {
   const [purchases, setPurchases] = useState<InventoryPurchase[]>([]);
   const [manualEvents, setManualEvents] = useState<ManualCalendarEvent[]>([]);
   const [notes, setNotes] = useState<DashboardNote[]>([]);
+  const [users, setUsers] = useState<Profile[]>([]);
   const [newNote, setNewNote] = useState('');
+  const [noteTargetUid, setNoteTargetUid] = useState('');
   const [savingNote, setSavingNote] = useState(false);
   const [loading, setLoading] = useState(true);
   const [selectedDeadlineEvent, setSelectedDeadlineEvent] = useState<DashboardCalendarEvent | null>(null);
@@ -131,6 +135,9 @@ export const Dashboard: React.FC = () => {
     const unsubNotes = onSnapshot(query(collection(db, 'dashboardNotes'), orderBy('createdAt', 'desc'), limit(12)), (snap) => {
       setNotes(snap.docs.map((item) => ({id: item.id, ...item.data()} as DashboardNote)));
     });
+    const unsubUsers = onSnapshot(query(collection(db, 'profiles'), orderBy('name', 'asc')), (snap) => {
+      setUsers(snap.docs.map((item) => ({uid: item.id, ...item.data()} as Profile)));
+    });
     const unsubManualEvents = onSnapshot(collection(db, 'calendarEvents'), (snap) => {
       setManualEvents(snap.docs.map((item) => ({id: item.id, ...item.data()} as ManualCalendarEvent)));
     });
@@ -144,6 +151,7 @@ export const Dashboard: React.FC = () => {
       unsubReservations();
       unsubPurchases();
       unsubNotes();
+      unsubUsers();
       unsubManualEvents();
     };
   }, []);
@@ -154,13 +162,17 @@ export const Dashboard: React.FC = () => {
 
     setSavingNote(true);
     try {
+      const targetUser = users.find((item) => item.uid === noteTargetUid);
       await addDoc(collection(db, 'dashboardNotes'), {
         text,
         createdAt: Timestamp.now(),
         userUid: user.uid,
         userName: profile?.name || user.displayName || user.email || 'Usuario',
+        targetUid: targetUser?.uid || '',
+        targetName: targetUser?.name || '',
       });
       setNewNote('');
+      setNoteTargetUid('');
     } finally {
       setSavingNote(false);
     }
@@ -179,6 +191,7 @@ export const Dashboard: React.FC = () => {
       return acc;
     }, {});
   }, [quotes]);
+  const visibleNotes = notes.filter((note) => !note.targetUid || note.targetUid === user?.uid || note.userUid === user?.uid || isAdmin);
 
   const stageCounts = useMemo(() => {
     const base: Record<ClientStage, number> = {pre: 0, approved: 0, production: 0, ready: 0, done: 0, none: 0};
@@ -437,9 +450,19 @@ export const Dashboard: React.FC = () => {
               <StickyNote className="w-5 h-5 text-amber-600" />
               Quadro de avisos da equipe
             </h2>
-            <p className="text-sm text-slate-400">Anotacoes compartilhadas entre usuarios no dashboard.</p>
+            <p className="text-sm text-slate-400">Anotações compartilhadas ou direcionadas para usuários no dashboard.</p>
           </div>
           <div className="w-full lg:max-w-xl space-y-2">
+            <select
+              value={noteTargetUid}
+              onChange={(event) => setNoteTargetUid(event.target.value)}
+              className="w-full rounded-2xl border border-amber-100 bg-amber-50/40 px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-amber-200"
+            >
+              <option value="">Aviso para toda a equipe</option>
+              {users.filter((item) => !item.blocked).map((item) => (
+                <option key={item.uid} value={item.uid}>{item.name || item.email}</option>
+              ))}
+            </select>
             <textarea
               value={newNote}
               onChange={(event) => setNewNote(event.target.value)}
@@ -463,7 +486,7 @@ export const Dashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {notes.map((note, index) => {
+          {visibleNotes.map((note, index) => {
             const createdAt = toDate(note.createdAt);
             const canDelete = isAdmin || note.userUid === user?.uid;
             const palette = [
@@ -475,7 +498,12 @@ export const Dashboard: React.FC = () => {
             return (
               <article key={note.id} className={cn('rounded-2xl border p-4 shadow-sm', palette[index % palette.length])}>
                 <div className="mb-2 flex items-start justify-between gap-2">
-                  <div className="text-xs font-bold uppercase tracking-widest text-slate-500">{note.userName || 'Usuario'}</div>
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-500">{note.userName || 'Usuário'}</div>
+                    <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      {note.targetName ?`Para: ${note.targetName}` : 'Para: toda a equipe'}
+                    </div>
+                  </div>
                   {canDelete && (
                     <button
                       type="button"
@@ -494,7 +522,7 @@ export const Dashboard: React.FC = () => {
               </article>
             );
           })}
-          {notes.length === 0 && (
+          {visibleNotes.length === 0 && (
             <div className="md:col-span-2 xl:col-span-3 rounded-2xl border border-slate-100 bg-slate-50 p-6 text-center text-sm font-semibold text-slate-400">
               Nenhum aviso publicado ainda.
             </div>

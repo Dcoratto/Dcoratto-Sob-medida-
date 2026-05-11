@@ -3,7 +3,7 @@ import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDo
 import {CheckCircle2, ClipboardList, Edit2, MapPin, Phone, Plus, Search, Trash2, User, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
-import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureInfo, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
+import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureInfo, InventoryItem, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
@@ -85,6 +85,9 @@ export const ClientsPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [condominiums, setCondominiums] = useState<CondominiumRule[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ClientStage | 'all'>('all');
@@ -128,6 +131,18 @@ export const ClientsPage: React.FC = () => {
       setEmployees(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Employee)));
     });
 
+    const unsubFixtures = onSnapshot(collection(db, 'fixtureCatalog'), (snapshot) => {
+      setFixtureCatalog(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as FixtureCatalogItem)));
+    });
+
+    const unsubInventory = onSnapshot(collection(db, 'inventory'), (snapshot) => {
+      setInventory(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem)));
+    });
+
+    const unsubMaterials = onSnapshot(collection(db, 'materials'), (snapshot) => {
+      setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material)));
+    });
+
     const unsubCondominiums = onSnapshot(collection(db, 'condominiums'), (snapshot) => {
       setCondominiums(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as CondominiumRule)));
     });
@@ -136,6 +151,9 @@ export const ClientsPage: React.FC = () => {
       unsubClients();
       unsubQuotes();
       unsubEmployees();
+      unsubFixtures();
+      unsubInventory();
+      unsubMaterials();
       unsubCondominiums();
     };
   }, []);
@@ -158,6 +176,55 @@ export const ClientsPage: React.FC = () => {
 
   const selectedQuote = selectedClientQuotes.find((quote) => quote.id === selectedQuoteId) || selectedClientQuotes[0];
   const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
+  const fixtureById = (id?: string) => fixtureCatalog.find((item) => item.id === id);
+  const materialById = (id?: string) => materials.find((item) => item.id === id);
+  const pieceFixtureCards = (piece: QuotePiece) => {
+    const config: Array<{key: FixtureCategory; label: string; legacyKey: 'sink' | 'faucet' | 'cooktop' | 'trashBin' | 'popUpTower'}> = [
+      {key: 'sink', label: 'Cuba', legacyKey: 'sink'},
+      {key: 'faucet', label: 'Torneira', legacyKey: 'faucet'},
+      {key: 'cooktop', label: 'Cooktop', legacyKey: 'cooktop'},
+      {key: 'trashBin', label: 'Lixeira de embutir', legacyKey: 'trashBin'},
+      {key: 'popUpTower', label: 'Torre de tomada', legacyKey: 'popUpTower'},
+    ];
+    return config.map((item) => {
+      const catalogItem = fixtureById(piece.selectedFixtureIds?.[item.key]);
+      const fixture = piece.purchasedFixtures?.[item.legacyKey] || {};
+      const name = catalogItem?.name || fixture.name || fixture.model || item.label;
+      const imageUrl = catalogItem?.imageUrl || fixture.imageUrl || '';
+      const brand = catalogItem?.brand || fixture.brand || '';
+      const model = catalogItem?.model || fixture.model || '';
+      const width = catalogItem?.width ?? fixture.width;
+      const depth = catalogItem?.depth ?? fixture.depth;
+      const height = catalogItem?.height ?? fixture.height;
+      const diameter = catalogItem?.diameter ?? fixture.diameter;
+      const notes = catalogItem?.notes || fixture.notes || '';
+      const hasInfo = catalogItem || brand || model || width || depth || height || diameter || notes;
+      return {...item, name, imageUrl, brand, model, width, depth, height, diameter, notes, hasInfo};
+    }).filter((item) => item.hasInfo);
+  };
+  const selectedQuoteMaterialUsage = (selectedQuote?.pieces || []).reduce((map, piece) => {
+    if (!piece.materialId) return map;
+    const area = piece.totalArea || piece.manualArea || piece.area || 0;
+    const current = map.get(piece.materialId) || {area: 0, pieces: 0};
+    map.set(piece.materialId, {area: current.area + area, pieces: current.pieces + 1});
+    return map;
+  }, new Map<string, {area: number; pieces: number}>());
+  const selectedQuoteSlabRows = Array.from(selectedQuoteMaterialUsage.entries()).map(([materialId, usage]) => {
+    const material = materialById(materialId);
+    const stockItems = inventory.filter((item) => item.materialId === materialId && !['Usada', 'Descarte'].includes(item.status));
+    const stockArea = stockItems.reduce((sum, item) => sum + (item.area || 0), 0);
+    return {
+      materialId,
+      materialName: material?.name || stockItems[0]?.materialName || materialId,
+      imageUrl: material?.imageUrl || stockItems.find((item) => item.photoUrl)?.photoUrl || '',
+      category: material?.category || stockItems[0]?.category || 'Sem categoria',
+      neededArea: usage.area,
+      pieces: usage.pieces,
+      slabCount: stockItems.length,
+      stockArea,
+      stockItems,
+    };
+  });
 
   const resetForm = () => {
     setName('');
@@ -419,20 +486,39 @@ export const ClientsPage: React.FC = () => {
     });
   };
 
+  const updateTeamCount = async (quote: Quote, step: ProductionStep, countValue: string) => {
+    const count = Math.max(1, Number(countValue) || 1);
+    const stepAssignments = (quote.employeeAssignments || []).filter((item) => item.step === step).slice(0, count);
+    const nextAssignments = [
+      ...(quote.employeeAssignments || []).filter((item) => item.step !== step),
+      ...stepAssignments,
+    ];
+    await updateDoc(doc(db, 'quotes', quote.id), {
+      teamCounts: {...(quote.teamCounts || {}), [step]: count},
+      employeeAssignments: nextAssignments,
+    });
+  };
 
-  const updateAssignment = async (quote: Quote, step: ProductionStep, employeeId: string) => {
+  const updateAssignment = async (quote: Quote, step: ProductionStep, employeeId: string, slotIndex = 0) => {
     const employee = employees.find((item) => item.id === employeeId);
-    const nextAssignments = (quote.employeeAssignments || []).filter((item) => item.step !== step);
+    const otherAssignments = (quote.employeeAssignments || []).filter((item) => item.step !== step);
+    const stepAssignments = [...(quote.employeeAssignments || []).filter((item) => item.step === step)];
     if (employee) {
-      nextAssignments.push({
+      stepAssignments[slotIndex] = {
         step,
         employeeId: employee.id,
         employeeName: employee.name,
-        startedAt: Timestamp.now(),
-      });
+        startedAt: stepAssignments[slotIndex]?.startedAt || Timestamp.now(),
+        finishedAt: stepAssignments[slotIndex]?.finishedAt,
+      };
+    } else {
+      stepAssignments.splice(slotIndex, 1);
     }
+    const nextAssignments = [...otherAssignments, ...stepAssignments.filter((item) => item?.employeeId)];
+    const nextTeamCount = Math.max(Number(quote.teamCounts?.[step] || 1), slotIndex + 1, nextAssignments.filter((item) => item.step === step).length || 1);
 
     await updateDoc(doc(db, 'quotes', quote.id), {
+      teamCounts: {...(quote.teamCounts || {}), [step]: nextTeamCount},
       employeeAssignments: nextAssignments,
       statusHistory: [
         ...(quote.statusHistory || []),
@@ -561,7 +647,7 @@ export const ClientsPage: React.FC = () => {
   const updatePieceFixture = async (
     quote: Quote,
     pieceId: string,
-    fixtureType: 'sink' | 'faucet' | 'cooktop',
+    fixtureType: FixtureCategory,
     field: keyof FixtureInfo,
     value: string,
   ) => {
@@ -855,86 +941,174 @@ export const ClientsPage: React.FC = () => {
                                   <div className="text-xs text-slate-400">Informe modelos e medidas reais para projeto e produção.</div>
                                 </div>
                               </div>
-                              <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-                                <FixtureFields quote={selectedQuote} piece={piece} type="sink" title="Cuba" onChange={updatePieceFixture} />
-                                <FixtureFields quote={selectedQuote} piece={piece} type="faucet" title="Torneira" onChange={updatePieceFixture} />
-                                <FixtureFields quote={selectedQuote} piece={piece} type="cooktop" title="Cooktop" onChange={updatePieceFixture} />
-                              </div>
+                              {pieceFixtureCards(piece).length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                  {pieceFixtureCards(piece).map((fixture) => (
+                                    <FixtureFields
+                                      key={fixture.key}
+                                      quote={selectedQuote}
+                                      piece={piece}
+                                      type={fixture.key}
+                                      legacyKey={fixture.legacyKey}
+                                      title={fixture.label}
+                                      imageUrl={fixture.imageUrl}
+                                      displayName={fixture.name}
+                                      description={[fixture.brand, fixture.model, fixture.notes].filter(Boolean).join(' · ')}
+                                      onChange={updatePieceFixture}
+                                    />
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="rounded-2xl bg-white p-4 text-sm font-semibold text-slate-400">Nenhum item cadastrado para esta peça.</div>
+                              )}
                             </div>
                           ))}
                         </div>
                       </section>
 
                       <section className="rounded-3xl border border-slate-100 p-5">
+                        <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Chapas usadas no projeto</h3>
+                        {selectedQuoteSlabRows.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {selectedQuoteSlabRows.map((row) => (
+                              <div key={row.materialId} className="rounded-2xl bg-slate-50 p-4">
+                                <div className="flex gap-4">
+                                  <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white flex items-center justify-center">
+                                    {row.imageUrl ? (
+                                      <img src={row.imageUrl} alt={row.materialName} className="h-full w-full object-cover" />
+                                    ) : (
+                                      <ClipboardList className="h-8 w-8 text-slate-300" />
+                                    )}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                    <div className="font-bold text-slate-900">{row.materialName}</div>
+                                    <div className="text-xs text-slate-400">{row.category}</div>
+                                    <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                                      <div className="rounded-xl bg-white p-2">
+                                        <div className="font-bold text-slate-400 uppercase">Qtd.</div>
+                                        <div className="font-mono font-bold text-slate-900">{row.slabCount}</div>
+                                      </div>
+                                      <div className="rounded-xl bg-white p-2">
+                                        <div className="font-bold text-slate-400 uppercase">Usando</div>
+                                        <div className="font-mono font-bold text-brand-primary">{row.neededArea.toFixed(4)} m²</div>
+                                      </div>
+                                      <div className="rounded-xl bg-white p-2">
+                                        <div className="font-bold text-slate-400 uppercase">Estoque</div>
+                                        <div className="font-mono font-bold text-slate-900">{row.stockArea.toFixed(2)} m²</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                {row.stockItems.length > 0 && (
+                                  <div className="mt-3 flex flex-wrap gap-2">
+                                    {row.stockItems.slice(0, 6).map((item) => (
+                                      <span key={item.id} className="rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                                        {item.code || 'Sem lote'} · {item.area.toFixed(2)} m²
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhuma chapa vinculada às peças deste orçamento.</div>
+                        )}
+                      </section>
+
+                      <section className="rounded-3xl border border-slate-100 p-5">
                         <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Etapas e responsáveis</h3>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                           {productionSteps.map((step) => {
-                            const assignment = selectedQuote.employeeAssignments?.find((item) => item.step === step.key);
-                            const evaluation = assignment
-                              ?selectedQuote.employeeEvaluations?.find((item) => item.step === step.key && item.employeeId === assignment.employeeId)
-                              : undefined;
+                            const stepAssignments = selectedQuote.employeeAssignments?.filter((item) => item.step === step.key) || [];
+                            const teamCount = Math.max(1, Number(selectedQuote.teamCounts?.[step.key] || stepAssignments.length || 1));
                             return (
                               <div key={step.key} className="rounded-2xl bg-slate-50 p-4 space-y-3">
                                 <div className="flex items-center justify-between gap-3">
                                   <div>
                                     <div className="font-bold text-slate-900">{step.label}</div>
                                     <div className="text-xs text-slate-400">
-                                      {assignment?.startedAt  ? `Iniciado em ${stepDate(assignment.startedAt)}` : 'Sem início registrado'}
+                                      {stepAssignments.length > 0 ? `${stepAssignments.length} colaborador(es) definido(s)` : 'Sem responsáveis registrados'}
                                     </div>
                                   </div>
-                                  {assignment?.finishedAt && <CheckCircle2 className="w-5 h-5 text-green-600" />}
+                                  {stepAssignments.length > 0 && stepAssignments.every((assignment) => assignment.finishedAt) && <CheckCircle2 className="w-5 h-5 text-green-600" />}
                                 </div>
-                                <select
-                                  value={assignment?.employeeId || ''}
-                                  onChange={(event) => updateAssignment(selectedQuote, step.key, event.target.value)}
-                                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
-                                >
-                                  <option value="">Selecionar profissional</option>
-                                  {employees.filter((employee) => employee.active).map((employee) => (
-                                    <option key={employee.id} value={employee.id}>{employee.name} · {employee.role}</option>
-                                  ))}
-                                </select>
-                                {assignment && (
-                                  <div className="space-y-3">
-                                    <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-xs font-bold text-slate-600">
-                                      <input
-                                        type="checkbox"
-                                        checked={Boolean(assignment.finishedAt)}
-                                        onChange={() => toggleStepDone(selectedQuote, assignment)}
-                                        className="h-4 w-4 accent-brand-primary"
-                                      />
-                                      {assignment.finishedAt  ? `Finalizado em ${stepDate(assignment.finishedAt)}` : 'Marcar etapa finalizada'}
-                                    </label>
-
-                                    <div className="rounded-xl bg-white p-3 space-y-2">
+                                <label className="block space-y-1">
+                                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Quantos colaboradores nesta etapa?</span>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="20"
+                                    value={teamCount}
+                                    onChange={(event) => updateTeamCount(selectedQuote, step.key, event.target.value)}
+                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
+                                  />
+                                </label>
+                                {Array.from({length: teamCount}, (_, index) => {
+                                  const assignment = stepAssignments[index];
+                                  const evaluation = assignment
+                                    ?selectedQuote.employeeEvaluations?.find((item) => item.step === step.key && item.employeeId === assignment.employeeId)
+                                    : undefined;
+                                  return (
+                                    <div key={`${step.key}-${index}`} className="rounded-xl bg-white p-3 space-y-3">
                                       <div className="flex items-center justify-between gap-2">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Avaliação</span>
-                                        <div className="flex gap-1">
-                                          {[1, 2, 3, 4, 5].map((rating) => (
-                                            <button
-                                              key={rating}
-                                              type="button"
-                                              onClick={() => updateEvaluation(selectedQuote, assignment, rating)}
-                                              className={cn(
-                                                'h-8 w-8 rounded-full text-sm transition-all',
-                                                (evaluation?.rating || 0) >= rating  ? 'bg-green-500 text-white shadow-sm' : 'bg-slate-50 text-slate-300 hover:text-brand-primary',
-                                              )}
-                                              title={`${rating} ponto(s)`}
-                                            >
-                                              {rating <= 2 ?'☹' : rating === 3 ?'○' : '☺'}
-                                            </button>
-                                          ))}
-                                        </div>
+                                        <span className="text-xs font-bold text-slate-500">Colaborador {index + 1}</span>
+                                        {assignment?.startedAt && <span className="text-[10px] font-semibold text-slate-400">Iniciado em {stepDate(assignment.startedAt)}</span>}
                                       </div>
-                                      <input
-                                        value={evaluation?.notes || ''}
-                                        onChange={(event) => updateEvaluation(selectedQuote, assignment, evaluation?.rating || 3, event.target.value)}
-                                        placeholder="Observação da etapa"
-                                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-primary/20"
-                                      />
+                                      <select
+                                        value={assignment?.employeeId || ''}
+                                        onChange={(event) => updateAssignment(selectedQuote, step.key, event.target.value, index)}
+                                        className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
+                                      >
+                                        <option value="">Selecionar profissional</option>
+                                        {employees.filter((employee) => employee.active).map((employee) => (
+                                          <option key={employee.id} value={employee.id}>{employee.name} · {employee.role}</option>
+                                        ))}
+                                      </select>
+                                      {assignment && (
+                                        <>
+                                          <label className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600">
+                                            <input
+                                              type="checkbox"
+                                              checked={Boolean(assignment.finishedAt)}
+                                              onChange={() => toggleStepDone(selectedQuote, assignment)}
+                                              className="h-4 w-4 accent-brand-primary"
+                                            />
+                                            {assignment.finishedAt  ? `Finalizado em ${stepDate(assignment.finishedAt)}` : 'Marcar etapa finalizada'}
+                                          </label>
+
+                                          <div className="rounded-xl bg-slate-50 p-3 space-y-2">
+                                            <div className="flex items-center justify-between gap-2">
+                                              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Avaliação</span>
+                                              <div className="flex gap-1">
+                                                {[1, 2, 3, 4, 5].map((rating) => (
+                                                  <button
+                                                    key={rating}
+                                                    type="button"
+                                                    onClick={() => updateEvaluation(selectedQuote, assignment, rating)}
+                                                    className={cn(
+                                                      'h-8 w-8 rounded-full text-sm transition-all',
+                                                      (evaluation?.rating || 0) >= rating  ? 'bg-green-500 text-white shadow-sm' : 'bg-white text-slate-300 hover:text-brand-primary',
+                                                    )}
+                                                    title={`${rating} ponto(s)`}
+                                                  >
+                                                    {rating <= 2 ?'☹' : rating === 3 ?'○' : '☺'}
+                                                  </button>
+                                                ))}
+                                              </div>
+                                            </div>
+                                            <input
+                                              value={evaluation?.notes || ''}
+                                              onChange={(event) => updateEvaluation(selectedQuote, assignment, evaluation?.rating || 3, event.target.value)}
+                                              placeholder="Observação da etapa"
+                                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-primary/20"
+                                            />
+                                          </div>
+                                        </>
+                                      )}
                                     </div>
-                                  </div>
-                                )}
+                                  );
+                                })}
                               </div>
                             );
                           })}
@@ -1120,21 +1294,42 @@ const FixtureFields = ({
   quote,
   piece,
   type,
+  legacyKey,
   title,
+  imageUrl,
+  displayName,
+  description,
   onChange,
 }: {
   quote: Quote;
   piece: QuotePiece;
-  type: 'sink' | 'faucet' | 'cooktop';
+  type: FixtureCategory;
+  legacyKey: 'sink' | 'faucet' | 'cooktop' | 'trashBin' | 'popUpTower';
   title: string;
-  onChange: (quote: Quote, pieceId: string, fixtureType: 'sink' | 'faucet' | 'cooktop', field: keyof FixtureInfo, value: string) => void;
+  imageUrl?: string;
+  displayName: string;
+  description?: string;
+  onChange: (quote: Quote, pieceId: string, fixtureType: FixtureCategory, field: keyof FixtureInfo, value: string) => void;
 }) => {
-  const fixture = piece.purchasedFixtures?.[type] || {};
+  const fixture = piece.purchasedFixtures?.[legacyKey] || {};
   const showDiameter = type === 'faucet';
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-4 space-y-3">
-      <div className="text-sm font-bold text-slate-900">{title}</div>
+      <div className="flex gap-3">
+        <div className="h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-slate-100 bg-slate-50 flex items-center justify-center">
+          {imageUrl ? (
+            <img src={imageUrl} alt={displayName} className="h-full w-full object-cover" />
+          ) : (
+            <ClipboardList className="h-7 w-7 text-slate-300" />
+          )}
+        </div>
+        <div className="min-w-0">
+          <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{title}</div>
+          <div className="font-bold text-slate-900 line-clamp-2">{displayName}</div>
+          {description && <div className="mt-1 text-xs text-slate-500 line-clamp-2">{description}</div>}
+        </div>
+      </div>
       <FixtureInput label="Modelo" value={fixture.model || ''} onBlur={(value) => onChange(quote, piece.id, type, 'model', value)} />
       <FixtureInput label="Marca" value={fixture.brand || ''} onBlur={(value) => onChange(quote, piece.id, type, 'brand', value)} />
       {showDiameter ?(

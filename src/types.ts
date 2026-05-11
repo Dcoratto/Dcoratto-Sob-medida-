@@ -249,6 +249,8 @@ export interface QuotePiece {
 export interface FixtureInfo {
   model?: string;
   brand?: string;
+  name?: string;
+  imageUrl?: string;
   width?: number;
   depth?: number;
   height?: number;
@@ -311,6 +313,7 @@ export interface Quote {
   cutouts: QuoteCutouts;
   createdAt: any;
   createdBy: string;
+  teamCounts?: Partial<Record<ProductionStep, number>>;
   employeeAssignments?: EmployeeAssignment[];
   employeeEvaluations?: EmployeeEvaluation[];
   statusHistory?: QuoteStatusHistory[];

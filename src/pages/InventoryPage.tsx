@@ -70,6 +70,7 @@ export const InventoryPage: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [showLossModal, setShowLossModal] = useState(false);
   const [reservationMaterialId, setReservationMaterialId] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(true);
@@ -100,6 +101,11 @@ export const InventoryPage: React.FC = () => {
   const [purchaseCost, setPurchaseCost] = useState('');
   const [purchaseSlabs, setPurchaseSlabs] = useState<PurchaseSlabForm[]>([emptyPurchaseSlab()]);
   const [purchaseNotes, setPurchaseNotes] = useState('');
+  const [lossQuoteId, setLossQuoteId] = useState('');
+  const [lossPieceId, setLossPieceId] = useState('');
+  const [lossInventoryId, setLossInventoryId] = useState('');
+  const [lossReason, setLossReason] = useState('Quebra');
+  const [lossNotes, setLossNotes] = useState('');
 
   useEffect(() => {
     const qItems = query(collection(db, 'inventory'), orderBy('code', 'asc'));
@@ -169,6 +175,14 @@ export const InventoryPage: React.FC = () => {
     setPurchaseCost('');
     setPurchaseSlabs([emptyPurchaseSlab()]);
     setPurchaseNotes('');
+  };
+
+  const resetLossForm = () => {
+    setLossQuoteId('');
+    setLossPieceId('');
+    setLossInventoryId('');
+    setLossReason('Quebra');
+    setLossNotes('');
   };
 
   const updatePurchaseQuantity = (value: string) => {
@@ -421,6 +435,61 @@ export const InventoryPage: React.FC = () => {
     });
   };
 
+  const selectedLossQuote = quotes.find((quote) => quote.id === lossQuoteId);
+  const selectedLossPiece = selectedLossQuote?.pieces?.find((piece) => piece.id === lossPieceId);
+  const lossInventoryOptions = items.filter((item) => {
+    const usable = !['usada', 'descarte'].includes(normalizeStatus(item.status));
+    if (!usable) return false;
+    if (!selectedLossPiece?.materialId) return true;
+    return item.materialId === selectedLossPiece.materialId;
+  });
+
+  const handleLossSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const quote = selectedLossQuote;
+    const piece = selectedLossPiece;
+    const inventoryItem = items.find((item) => item.id === lossInventoryId);
+    if (!quote || !piece || !inventoryItem) {
+      alert('Selecione o cliente/projeto, a peça perdida e a chapa do estoque.');
+      return;
+    }
+
+    await updateDoc(doc(db, 'inventory', inventoryItem.id), {
+      status: 'Descarte',
+      lossReason,
+      lossNotes,
+      lossQuoteId: quote.id,
+      lossClientId: quote.clientId,
+      lossClientName: quote.clientName,
+      lossPieceId: piece.id,
+      lossPieceName: piece.name,
+      lostByUid: user?.uid || '',
+      lostByName: currentUserName,
+      lostAt: serverTimestamp(),
+      notes: [inventoryItem.notes, `Perda registrada: ${lossReason} - ${quote.clientName} / ${piece.name}${lossNotes ?` - ${lossNotes}` : ''}`].filter(Boolean).join('\n'),
+    });
+
+    await logSystemEvent({
+      type: 'inventory_updated',
+      title: 'Perda de peça registrada',
+      description: `${quote.clientName} - ${piece.name} (${lossReason})`,
+      entityType: 'inventory',
+      entityId: inventoryItem.id,
+      quoteId: quote.id,
+      quoteStatus: quote.status,
+      clientId: quote.clientId,
+      clientName: quote.clientName,
+      materialId: inventoryItem.materialId,
+      materialName: inventoryItem.materialName,
+      userUid: user?.uid || '',
+      userName: currentUserName,
+      metadata: {reason: lossReason, notes: lossNotes, area: inventoryItem.area, pieceId: piece.id, pieceName: piece.name},
+    });
+
+    setShowLossModal(false);
+    resetLossForm();
+  };
+
   const filteredItems = items.filter((item) => {
     const searchText = `${item.materialName} ${item.code} ${item.provider} ${item.category || ''}`.toLowerCase();
     const matchesSearch = searchText.includes(search.toLowerCase());
@@ -514,17 +583,41 @@ export const InventoryPage: React.FC = () => {
           <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Estoque</h1>
           <p className="text-slate-500 mt-1">Entrada, compra e controle das pedras cadastradas no Admin.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            resetPurchaseForm();
-            setShowPurchaseModal(true);
-          }}
-          className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-5 py-3 text-sm font-bold text-white hover:bg-amber-700 transition-all"
-        >
-          <ShoppingCart className="h-4 w-4" />
-          Comprar chapa
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              resetForm();
+              setShowModal(true);
+            }}
+            className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white hover:bg-brand-primary/90 transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            Adicionar chapa
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              resetLossForm();
+              setShowLossModal(true);
+            }}
+            className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-red-700 transition-all"
+          >
+            <AlertTriangle className="h-4 w-4" />
+            Adicionar perda
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              resetPurchaseForm();
+              setShowPurchaseModal(true);
+            }}
+            className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-5 py-3 text-sm font-bold text-white hover:bg-amber-700 transition-all"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            Comprar chapa
+          </button>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
@@ -725,6 +818,12 @@ export const InventoryPage: React.FC = () => {
                           {formatNumber(reservedAreaByMaterial(item.materialId))} m² em orçamentos
                         </button>
                       )}
+                      {item.lossReason && (
+                        <div className="mt-1 max-w-[220px] rounded-lg bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-700">
+                          Perda: {item.lossReason}
+                          {item.lossClientName ?` · ${item.lossClientName}` : ''}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -829,6 +928,123 @@ export const InventoryPage: React.FC = () => {
                 })
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {showLossModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-3xl rounded-[32px] shadow-2xl p-8 space-y-6 animate-in fade-in zoom-in duration-300 overflow-y-auto max-h-[90vh]">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-display font-bold text-slate-900">Registrar perda</h2>
+                <p className="mt-1 text-sm text-slate-400">Informe qual peça de qual cliente foi perdida e o motivo.</p>
+              </div>
+              <button type="button" onClick={() => { setShowLossModal(false); resetLossForm(); }} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleLossSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-slate-500 font-medium text-sm">Cliente / orçamento</label>
+                  <select
+                    required
+                    value={lossQuoteId}
+                    onChange={(e) => {
+                      setLossQuoteId(e.target.value);
+                      setLossPieceId('');
+                      setLossInventoryId('');
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                  >
+                    <option value="">Selecionar cliente e orçamento</option>
+                    {quotes.map((quote) => (
+                      <option key={quote.id} value={quote.id}>
+                        {quote.clientName} · {quote.environment || 'Sem ambiente'} · {formatCurrency(quote.totalPrice || 0)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Peça perdida</label>
+                  <select
+                    required
+                    value={lossPieceId}
+                    onChange={(e) => {
+                      setLossPieceId(e.target.value);
+                      setLossInventoryId('');
+                    }}
+                    disabled={!selectedLossQuote}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium disabled:opacity-60"
+                  >
+                    <option value="">Selecionar peça</option>
+                    {(selectedLossQuote?.pieces || []).map((piece) => (
+                      <option key={piece.id} value={piece.id}>
+                        {piece.name} · {(piece.totalArea || piece.manualArea || piece.area || 0).toFixed(4)} m²
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Chapa afetada</label>
+                  <select
+                    required
+                    value={lossInventoryId}
+                    onChange={(e) => setLossInventoryId(e.target.value)}
+                    disabled={!selectedLossPiece}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium disabled:opacity-60"
+                  >
+                    <option value="">Selecionar chapa do estoque</option>
+                    {lossInventoryOptions.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.materialName} · {item.code || 'Sem lote'} · {formatNumber(item.area)} m²
+                      </option>
+                    ))}
+                  </select>
+                  {selectedLossPiece && lossInventoryOptions.length === 0 && (
+                    <p className="text-xs font-semibold text-red-600">Nenhuma chapa disponível para o material desta peça.</p>
+                  )}
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Motivo da perda</label>
+                  <select
+                    value={lossReason}
+                    onChange={(e) => setLossReason(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                  >
+                    <option value="Quebra">Quebra</option>
+                    <option value="Erro na medida">Erro na medida</option>
+                    <option value="Erro de material">Erro de material</option>
+                    <option value="Defeito da chapa">Defeito da chapa</option>
+                    <option value="Erro de corte">Erro de corte</option>
+                    <option value="Outro">Outro</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1.5 md:col-span-2">
+                  <label className="text-slate-500 font-medium text-sm">Observações</label>
+                  <textarea
+                    value={lossNotes}
+                    onChange={(e) => setLossNotes(e.target.value)}
+                    placeholder="Ex: peça quebrou durante transporte, medida errada na pia, material trincado..."
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium min-h-[90px]"
+                  />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-sm text-red-700">
+                Ao salvar, a chapa selecionada será marcada como <strong>Descarte</strong> e deixará de contar como área disponível no estoque.
+              </div>
+
+              <button type="submit" className="w-full bg-red-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-red-600/20 hover:bg-red-700 transition-all active:scale-95">
+                Registrar perda
+              </button>
+            </form>
           </div>
         </div>
       )}

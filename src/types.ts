@@ -334,6 +334,16 @@ export interface InventoryItem {
   status: 'Disponível' | 'Reservada' | 'Usada' | 'Retalho' | 'Descarte';
   notes: string;
   photoUrl?: string;
+  lossReason?: string;
+  lossNotes?: string;
+  lossQuoteId?: string;
+  lossClientId?: string;
+  lossClientName?: string;
+  lossPieceId?: string;
+  lossPieceName?: string;
+  lostByUid?: string;
+  lostByName?: string;
+  lostAt?: any;
 }
 
 export interface InventoryReservation {

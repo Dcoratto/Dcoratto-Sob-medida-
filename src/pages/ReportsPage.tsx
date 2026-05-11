@@ -1,13 +1,26 @@
 ﻿import React, {useEffect, useMemo, useState} from 'react';
 import {collection, limit, onSnapshot, orderBy, query} from 'firebase/firestore';
 import {AlertCircle, BarChart3, Boxes, FileDown, Gauge, TrendingUp, Users} from 'lucide-react';
-import {Client, Employee, InventoryItem, Material, ProductionStep, Quote, SystemEvent} from '../types';
+import {Client, Employee, InventoryItem, InventoryPurchase, InventoryReservation, Material, ProductionStep, Quote, SystemEvent} from '../types';
 import {db} from '../lib/firebase';
 import {cn, formatCurrency} from '../lib/utils';
 import {generateReportPDF} from '../lib/reportPdfGenerator';
 import {QUOTE_STATUSES, normalizeQuoteStatus} from '../lib/quoteStatus';
 
 type Period = 'all' | 'today' | 'week' | 'month' | 'year';
+
+interface ManualCalendarEvent {
+  id: string;
+  title: string;
+  description?: string;
+  date: any;
+  dateKey?: string;
+  eventTime?: string;
+  clientId?: string;
+  clientName?: string;
+  city?: string;
+  createdByName?: string;
+}
 
 const productionStepLabels: Record<ProductionStep, string> = {
   medicao: 'Medição',
@@ -99,6 +112,25 @@ export const ReportsPage: React.FC = () => {
     });
   }, [period, systemEvents]);
 
+  const filteredCalendarEvents = useMemo(() => {
+    const start = periodStart(period);
+    if (!start) return calendarEvents;
+    return calendarEvents.filter((event) => {
+      const eventDate = toDate(event.date);
+      return eventDate ?eventDate >= start : true;
+    });
+  }, [calendarEvents, period]);
+
+  const filteredPurchases = useMemo(() => {
+    const start = periodStart(period);
+    if (!start) return purchases;
+    return purchases.filter((purchase) => {
+      const purchasedAt = toDate(purchase.purchasedAt);
+      const receivedAt = toDate(purchase.receivedAt);
+      return (purchasedAt ?purchasedAt >= start : false) || (receivedAt ?receivedAt >= start : false);
+    });
+  }, [period, purchases]);
+
   const totalSold = filteredQuotes
     .filter((quote) => isClosedSale(quote.status))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
@@ -110,6 +142,18 @@ export const ReportsPage: React.FC = () => {
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
   const approvedCount = filteredQuotes.filter((quote) => isClosedSale(quote.status)).length;
   const conversionRate = filteredQuotes.length ?Math.round((approvedCount / filteredQuotes.length) * 100) : 0;
+  const inventoryArea = inventory.reduce((sum, item) => sum + (item.area || 0), 0);
+  const inventoryCost = inventory.reduce((sum, item) => sum + (item.cost || 0), 0);
+  const reservedArea = reservations.reduce((sum, item) => sum + (item.area || 0), 0);
+  const lossItems = inventory.filter((item) => normalize(item.status) === 'descarte' || item.lossReason);
+  const lossArea = lossItems.reduce((sum, item) => sum + (item.area || 0), 0);
+  const purchasePendingArea = purchases.filter((purchase) => purchase.status === 'Pedido').reduce((sum, item) => sum + (item.area || 0), 0);
+  const quoteDetails = filteredQuotes.map((quote) => ({
+    quote,
+    pieces: quote.pieces?.length || 0,
+    cutoutsTotal: Object.values(quote.cutouts || {}).reduce((sum, value) => sum + (typeof value === 'number' ? value : value ? 1 : 0), 0),
+    fixtures: (quote.pieces || []).reduce((sum, piece) => sum + Object.values(piece.selectedFixtureIds || {}).filter(Boolean).length, 0),
+  }));
 
   const statusCounts = QUOTE_STATUSES
     .map((status) => ({status, count: filteredQuotes.filter((quote) => statusLabel(quote.status) === status).length}));
@@ -158,6 +202,10 @@ export const ReportsPage: React.FC = () => {
     quotes: filteredQuotes,
     materials,
     inventory,
+    purchases: filteredPurchases,
+    reservations,
+    calendarEvents: filteredCalendarEvents,
+    systemEvents: filteredSystemEvents,
     totalSold,
     openValue,
     refusedValue,
@@ -202,6 +250,81 @@ export const ReportsPage: React.FC = () => {
         <ReportCard icon={Users} label="Clientes" value={String(clients.length)} tone="blue" />
         <ReportCard icon={Boxes} label="Itens em estoque" value={String(inventory.length)} tone="amber" />
       </div>
+
+      <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        <div className="xl:col-span-2 bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
+          <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Orçamentos detalhados</h2>
+          <div className="space-y-3">
+            {quoteDetails.slice(0, 20).map(({quote, pieces, cutoutsTotal, fixtures}) => (
+              <div key={quote.id} className="rounded-2xl bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="font-bold text-slate-900">{quote.clientName}</div>
+                    <div className="text-sm text-slate-500">{quote.environment || 'Sem ambiente'} · {quote.status}</div>
+                    <div className="mt-1 text-xs text-slate-400">{pieces} peça(s) · {cutoutsTotal} recorte(s) · {fixtures} item(ns) cadastrados</div>
+                  </div>
+                  <div className="text-left md:text-right">
+                    <div className="font-mono font-bold text-brand-primary">{formatCurrency(quote.totalPrice || 0)}</div>
+                    <div className="text-xs text-slate-400">{(quote.totalArea || 0).toFixed(4)} m²</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {quoteDetails.length === 0 && <EmptyText>Nenhum orçamento no período.</EmptyText>}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
+          <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Resumo do estoque</h2>
+          <div className="space-y-3">
+            <MoneyLine label="Custo em estoque" value={inventoryCost} className="text-slate-900" />
+            <InfoLine label="Área total" value={`${inventoryArea.toFixed(2)} m²`} />
+            <InfoLine label="Reservado em orçamentos" value={`${reservedArea.toFixed(2)} m²`} />
+            <InfoLine label="Compra pendente" value={`${purchasePendingArea.toFixed(2)} m²`} />
+            <InfoLine label="Perdas/descarte" value={`${lossArea.toFixed(2)} m²`} danger />
+          </div>
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
+          <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Calendário operacional</h2>
+          <div className="space-y-3">
+            {filteredCalendarEvents.slice(0, 20).map((event) => {
+              const date = toDate(event.date);
+              return (
+                <div key={event.id} className="rounded-2xl bg-slate-50 p-4">
+                  <div className="font-bold text-slate-900">{[event.title, event.clientName].filter(Boolean).join(' · ')}</div>
+                  <div className="text-sm text-slate-500">{date ?date.toLocaleDateString('pt-BR') : '-'} {event.eventTime ?`às ${event.eventTime}` : ''}</div>
+                  <div className="mt-1 text-xs text-slate-400">{[event.city, event.createdByName, event.description].filter(Boolean).join(' · ')}</div>
+                </div>
+              );
+            })}
+            {filteredCalendarEvents.length === 0 && <EmptyText>Nenhum evento manual no período.</EmptyText>}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
+          <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Compras, reservas e perdas</h2>
+          <div className="space-y-3">
+            {filteredPurchases.slice(0, 10).map((purchase) => (
+              <div key={purchase.id} className="rounded-2xl bg-slate-50 p-4">
+                <div className="font-bold text-slate-900">{purchase.materialName}</div>
+                <div className="text-sm text-slate-500">{purchase.status} · {purchase.code || 'Sem lote'} · {(purchase.area || 0).toFixed(2)} m²</div>
+                <div className="mt-1 text-xs text-slate-400">Comprou: {purchase.purchasedByName || '-'} · Recebeu: {purchase.receivedByName || '-'}</div>
+              </div>
+            ))}
+            {lossItems.slice(0, 8).map((item) => (
+              <div key={`loss-${item.id}`} className="rounded-2xl bg-red-50 p-4">
+                <div className="font-bold text-red-900">Perda: {item.materialName}</div>
+                <div className="text-sm text-red-700">{item.lossReason || 'Descarte'} · {item.lossClientName || 'Sem cliente'} · {(item.area || 0).toFixed(2)} m²</div>
+                <div className="mt-1 text-xs text-red-500">{item.lossNotes || item.notes || '-'}</div>
+              </div>
+            ))}
+            {filteredPurchases.length === 0 && lossItems.length === 0 && <EmptyText>Nenhuma compra ou perda no período.</EmptyText>}
+          </div>
+        </div>
+      </section>
 
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
@@ -415,7 +538,15 @@ const MoneyLine = ({label, value, className}: {label: string; value: number; cla
   </div>
 );
 
+const InfoLine = ({label, value, danger}: {label: string; value: string; danger?: boolean}) => (
+  <div className={cn('flex items-center justify-between rounded-2xl px-4 py-3', danger ?'bg-red-50' : 'bg-slate-50')}>
+    <span className={cn('text-sm font-semibold', danger ?'text-red-600' : 'text-slate-500')}>{label}</span>
+    <span className={cn('font-mono font-bold', danger ?'text-red-700' : 'text-slate-900')}>{value}</span>
+  </div>
+);
+
 const EmptyText = ({children}: {children: React.ReactNode}) => (
   <div className="rounded-2xl bg-slate-50 p-5 text-center text-sm font-semibold text-slate-400">{children}</div>
 );
+
 

@@ -1,6 +1,6 @@
 import {jsPDF} from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import {Employee, InventoryItem, Material, ProductionStep, Quote} from '../types';
+import {Employee, InventoryItem, InventoryPurchase, InventoryReservation, Material, ProductionStep, Quote, SystemEvent} from '../types';
 
 type PdfColor = [number, number, number];
 
@@ -52,6 +52,10 @@ export interface ReportPdfData {
   quotes: Quote[];
   materials: Material[];
   inventory: InventoryItem[];
+  purchases?: InventoryPurchase[];
+  reservations?: InventoryReservation[];
+  calendarEvents?: Array<{id: string; title: string; clientName?: string; date: any; eventTime?: string; description?: string; city?: string}>;
+  systemEvents?: SystemEvent[];
   totalSold: number;
   openValue: number;
   refusedValue: number;
@@ -259,6 +263,81 @@ export const generateReportPDF = (data: ReportPdfData) => {
     headStyles: {fillColor: primary, textColor: [255, 255, 255], fontSize: 8},
     styles: {fontSize: 8, cellPadding: 3, lineColor: [226, 232, 240], lineWidth: 0.2},
     columnStyles: {2: {halign: 'right', fontStyle: 'bold'}},
+  });
+  y = (doc as any).lastAutoTable.finalY + 12;
+
+  if (y > 205) {
+    doc.addPage();
+    y = 20;
+  }
+  sectionTitle(doc, 'Estoque completo', y, primary);
+  autoTable(doc, {
+    startY: y + 6,
+    head: [['Pedra', 'Lote', 'Status', 'Área', 'Custo', 'Perda/cliente']],
+    body: data.inventory.length
+      ?data.inventory.slice(0, 40).map((item) => [
+        item.materialName,
+        item.code || '-',
+        item.status,
+        `${(item.area || 0).toFixed(2)} m2`,
+        money(item.cost || 0),
+        [item.lossReason, item.lossClientName].filter(Boolean).join(' - ') || '-',
+      ])
+      : [['Sem estoque', '-', '-', '-', '-', '-']],
+    headStyles: {fillColor: primary, textColor: [255, 255, 255], fontSize: 7.2},
+    styles: {fontSize: 6.8, cellPadding: 2.2, lineColor: [226, 232, 240], lineWidth: 0.2, valign: 'top'},
+  });
+  y = (doc as any).lastAutoTable.finalY + 12;
+
+  if (y > 205) {
+    doc.addPage();
+    y = 20;
+  }
+  sectionTitle(doc, 'Compras e reservas', y, primary);
+  autoTable(doc, {
+    startY: y + 6,
+    head: [['Tipo', 'Material/Cliente', 'Detalhe', 'Área', 'Status']],
+    body: [
+      ...(data.purchases || []).slice(0, 25).map((purchase) => [
+        'Compra',
+        purchase.materialName,
+        `${purchase.code || '-'} | ${purchase.purchasedByName || '-'}`,
+        `${(purchase.area || 0).toFixed(2)} m2`,
+        purchase.status,
+      ]),
+      ...(data.reservations || []).slice(0, 25).map((reservation) => [
+        'Reserva',
+        reservation.clientName || reservation.materialName,
+        reservation.materialName,
+        `${(reservation.area || 0).toFixed(2)} m2`,
+        reservation.quoteStatus,
+      ]),
+    ].length ? [
+      ...(data.purchases || []).slice(0, 25).map((purchase) => ['Compra', purchase.materialName, `${purchase.code || '-'} | ${purchase.purchasedByName || '-'}`, `${(purchase.area || 0).toFixed(2)} m2`, purchase.status]),
+      ...(data.reservations || []).slice(0, 25).map((reservation) => ['Reserva', reservation.clientName || reservation.materialName, reservation.materialName, `${(reservation.area || 0).toFixed(2)} m2`, reservation.quoteStatus]),
+    ] : [['Sem compras/reservas', '-', '-', '-', '-']],
+    headStyles: {fillColor: dark, textColor: [255, 255, 255], fontSize: 7.2},
+    styles: {fontSize: 6.8, cellPadding: 2.2, lineColor: [226, 232, 240], lineWidth: 0.2, valign: 'top'},
+  });
+
+  doc.addPage();
+  y = 20;
+  sectionTitle(doc, 'Calendário operacional', y, primary);
+  autoTable(doc, {
+    startY: y + 6,
+    head: [['Data', 'Hora', 'Evento', 'Cliente', 'Cidade', 'Descrição']],
+    body: (data.calendarEvents || []).length
+      ?(data.calendarEvents || []).slice(0, 40).map((event) => [
+        dateText(event.date),
+        event.eventTime || '-',
+        event.title || '-',
+        event.clientName || '-',
+        event.city || '-',
+        event.description || '-',
+      ])
+      : [['Sem eventos no período', '-', '-', '-', '-', '-']],
+    headStyles: {fillColor: primary, textColor: [255, 255, 255], fontSize: 7.2},
+    styles: {fontSize: 6.8, cellPadding: 2.2, lineColor: [226, 232, 240], lineWidth: 0.2, valign: 'top'},
   });
 
   doc.addPage();

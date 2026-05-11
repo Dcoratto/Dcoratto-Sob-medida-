@@ -85,6 +85,10 @@ const startOfMonthGrid = (date: Date) => {
 
 const eventLabel = (type: EventType) => type === 'entrega' ? 'Entrega' : type === 'medicao' ? 'Medição' : 'Evento';
 const eventTimeLabel = (date: Date, eventTime?: string) => eventTime || date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+const calendarEventTitle = (event: CalendarEvent) => {
+  if (event.type === 'manual') return [event.title || 'Evento', event.clientName].filter(Boolean).join(' · ');
+  return `${eventLabel(event.type)} · ${event.clientName || event.title || 'Cliente'}`;
+};
 
 export const CalendarPage: React.FC = () => {
   const {user, profile} = useAuth();
@@ -450,7 +454,7 @@ export const CalendarPage: React.FC = () => {
                 <div className="mt-2 space-y-1">
                   {dayEvents.slice(0, 3).map((ev) => (
                     <button key={ev.id} type="button" onClick={() => setSelectedEvent(ev)} className="w-full rounded-lg px-2 py-1.5 text-left text-[11px] font-semibold bg-slate-50 text-slate-600 hover:bg-slate-100">
-                      {eventLabel(ev.type)} · {ev.clientName || ev.title}
+                      {calendarEventTitle(ev)}
                       <div className="text-[10px] font-semibold opacity-80">{eventTimeLabel(ev.date, ev.eventTime)}</div>
                     </button>
                   ))}
@@ -467,7 +471,7 @@ export const CalendarPage: React.FC = () => {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{eventLabel(selectedEvent.type)}</div>
-                <h3 className="mt-1 text-xl font-display font-bold text-slate-900">{selectedEvent.clientName || selectedEvent.title}</h3>
+                <h3 className="mt-1 text-xl font-display font-bold text-slate-900">{calendarEventTitle(selectedEvent)}</h3>
                 <div className="mt-1 text-sm font-semibold text-slate-500">{selectedEvent.date.toLocaleDateString('pt-BR')} · {eventTimeLabel(selectedEvent.date, selectedEvent.eventTime)} · {selectedEvent.status || 'Sem status'}</div>
               </div>
               <button type="button" onClick={() => setSelectedEvent(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>

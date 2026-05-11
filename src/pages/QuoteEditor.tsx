@@ -100,6 +100,22 @@ export const QuoteEditor: React.FC = () => {
     const reserved = manualReserved + quoteReserved;
     return {total: physicalTotal, reserved, available: Math.max(0, physicalTotal - reserved)};
   };
+  const materialLotInfo = (materialIdToCheck: string, requiredArea: number) => {
+    const lots = inventory
+      .filter((item) => item.materialId === materialIdToCheck && !['usada', 'descarte', 'reservada'].includes(normalizeStockStatus(item.status)))
+      .map((item) => ({...item, availableArea: item.area || 0}))
+      .sort((a, b) => b.availableArea - a.availableArea);
+    const singleLot = lots.find((item) => item.availableArea >= requiredArea);
+    return {
+      lots,
+      singleLot,
+      canUseSingleLot: Boolean(singleLot),
+      lotCountNeeded: singleLot ?1 : lots.reduce((acc, item) => {
+        if (acc.area >= requiredArea) return acc;
+        return {area: acc.area + item.availableArea, count: acc.count + 1};
+      }, {area: 0, count: 0}).count,
+    };
+  };
   const filteredClients = clients.filter((client) => {
     const searchText = `${client.name} ${client.phone} ${client.email || ''} ${client.cpf || ''} ${client.rg || ''} ${client.address}`.toLowerCase();
     return searchText.includes(clientSearch.toLowerCase());
@@ -747,6 +763,7 @@ export const QuoteEditor: React.FC = () => {
               const stock = piece.materialId ?materialStock(piece.materialId) : {available: 0};
               const hasMaterial = Boolean(piece.materialId);
               const hasEnoughStock = hasMaterial && stock.available >= pieceArea;
+              const lotInfo = hasMaterial ?materialLotInfo(piece.materialId, pieceArea) : null;
               return (
               <div key={piece.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <div className="bg-slate-50/50 px-8 py-4 border-b border-slate-100 flex items-center justify-between">
@@ -914,8 +931,20 @@ export const QuoteEditor: React.FC = () => {
                           )}
                         </div>
                         <div className={cn('mt-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide', !hasMaterial ?'bg-slate-100 text-slate-500' : hasEnoughStock ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600')}>
-                          {!hasMaterial ?'Selecione um material para validar o estoque' : hasEnoughStock ?`MÂ² suficiente: ${stock.available.toFixed(2)} mÂ² disponÃ­vel` : `MÂ² insuficiente: precisa ${pieceArea.toFixed(2)} mÂ² e hÃ¡ ${stock.available.toFixed(2)} mÂ²`}
+                          {!hasMaterial ?'Selecione um material para validar o estoque' : hasEnoughStock ?`M² suficiente: ${stock.available.toFixed(2)} m² disponível` : `M² insuficiente: precisa ${pieceArea.toFixed(2)} m² e há ${stock.available.toFixed(2)} m²`}
                         </div>
+                        {hasMaterial && hasEnoughStock && lotInfo && (
+                          <div className={cn('mt-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide', lotInfo.canUseSingleLot ?'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700')}>
+                            {lotInfo.canUseSingleLot
+                              ? `Mesmo lote: cabe na chapa ${lotInfo.singleLot?.code || 'sem lote'} (${lotInfo.singleLot?.availableArea.toFixed(2)} m²)`
+                              : `Lotes diferentes: precisa combinar ${lotInfo.lotCountNeeded || 2} chapas para ${pieceArea.toFixed(2)} m²`}
+                          </div>
+                        )}
+                        {hasMaterial && !hasEnoughStock && (
+                          <div className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-red-600">
+                            Não há lote suficiente para esta peça.
+                        </div>
+                        )}
                       </div>
                     </div>
                   </div>

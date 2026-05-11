@@ -56,8 +56,8 @@ export const QuoteEditor: React.FC = () => {
   const [deliveryDate, setDeliveryDate] = useState('');
   const [validityDays, setValidityDays] = useState(15);
   const [commercialNotes, setCommercialNotes] = useState('');
-  const [status, setStatus] = useState<QuoteStatus>('OrÃ§amento');
-  const [originalStatus, setOriginalStatus] = useState<QuoteStatus>('OrÃ§amento');
+  const [status, setStatus] = useState<QuoteStatus>('Orçamento');
+  const [originalStatus, setOriginalStatus] = useState<QuoteStatus>('Orçamento');
   const [pieces, setPieces] = useState<QuotePiece[]>([]);
   const [cutouts, setCutouts] = useState<QuoteCutoutState>({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
   const [showDrawing, setShowDrawing] = useState<string | null>(null);
@@ -74,7 +74,7 @@ export const QuoteEditor: React.FC = () => {
   };
   const selectedClient = clients.find(c => c.id === clientId);
   const { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink } = useQuoteCalculator(settings, (piece) => materialWithUserPrice(piece.materialId || materialId));
-  const currentUserName = profile?.name || user?.displayName || user?.email || 'UsuÃ¡rio';
+  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
   
   const selectedPaymentAdjustment = settings.paymentMethods.find(m => m.name === paymentMethod)?.adjustment || 0;
   const totalPrice = calculateTotal(pieces, cutouts, selectedPaymentAdjustment);
@@ -229,7 +229,7 @@ export const QuoteEditor: React.FC = () => {
   }, [id, user?.uid]);
 
   useEffect(() => {
-    if (!id && !responsible && currentUserName !== 'UsuÃ¡rio') {
+    if (!id && !responsible && currentUserName !== 'Usuário') {
       setResponsible(currentUserName);
     }
   }, [currentUserName, id, responsible]);
@@ -256,7 +256,7 @@ export const QuoteEditor: React.FC = () => {
   const addPiece = () => {
     const newPiece: QuotePiece = {
       id: Math.random().toString(36).substr(2, 9),
-      name: `PeÃ§a ${pieces.length + 1}`,
+      name: `Peça ${pieces.length + 1}`,
       materialId: '',
       unit: 'cm',
       width: 0,
@@ -266,7 +266,7 @@ export const QuoteEditor: React.FC = () => {
       notes: '',
       sculptedSink: {
         active: false,
-        drainType: 'VÃ¡lvula oculta',
+        drainType: 'Válvula oculta',
         quantity: 1,
         width: 0,
         depth: 0,
@@ -462,7 +462,7 @@ export const QuoteEditor: React.FC = () => {
       return;
     }
     if (pieces.some((piece) => !piece.materialId)) {
-      alert('Por favor, selecione o material de todas as peÃ§as.');
+      alert('Por favor, selecione o material de todas as peças.');
       return;
     }
     setSaving(true);
@@ -509,7 +509,7 @@ export const QuoteEditor: React.FC = () => {
         await applyQuoteInventoryByStatusTransition(id, originalStatus, status, quoteData);
         await logSystemEvent({
           type: 'quote_updated',
-          title: 'OrÃ§amento atualizado',
+          title: 'Orçamento atualizado',
           description: `${selectedClient?.name || 'Cliente'} - ${environment || 'Sem ambiente'}`,
           entityType: 'quote',
           entityId: id,
@@ -525,10 +525,10 @@ export const QuoteEditor: React.FC = () => {
         });
       } else {
         const createdRef = await addDoc(collection(db, 'quotes'), quoteData);
-        await applyQuoteInventoryByStatusTransition(createdRef.id, 'OrÃ§amento', status, quoteData);
+        await applyQuoteInventoryByStatusTransition(createdRef.id, 'Orçamento', status, quoteData);
         await logSystemEvent({
           type: 'quote_created',
-          title: 'OrÃ§amento criado',
+          title: 'Orçamento criado',
           description: `${selectedClient?.name || 'Cliente'} - ${environment || 'Sem ambiente'}`,
           entityType: 'quote',
           entityId: createdRef.id,
@@ -563,9 +563,9 @@ export const QuoteEditor: React.FC = () => {
           </button>
           <div>
             <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">
-              {id ?'Editar OrÃ§amento' : 'Novo OrÃ§amento'}
+              {id ?'Editar Orçamento' : 'Novo Orçamento'}
             </h1>
-          <p className="text-slate-500 mt-1">Configure as peÃ§as, materiais e condiÃ§Ãµes.</p>
+          <p className="text-slate-500 mt-1">Configure as peças, materiais e condições.</p>
           </div>
         </div>
         <button
@@ -574,7 +574,7 @@ export const QuoteEditor: React.FC = () => {
           className="flex items-center gap-2 bg-brand-primary text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95 disabled:opacity-50"
         >
           <Save className="w-5 h-5" />
-          {saving ?'Salvando...' : 'Salvar OrÃ§amento'}
+          {saving ?'Salvando...' : 'Salvar Orçamento'}
         </button>
       </header>
 
@@ -590,9 +590,9 @@ export const QuoteEditor: React.FC = () => {
               {formatCurrency(totalPrice)}
             </div>
             <div className="space-y-2 text-sm font-medium text-white/75">
-              <div className="flex justify-between gap-3"><span>Ãrea final total</span><strong>{formatNumber(totalArea, 4)} mÂ²</strong></div>
+              <div className="flex justify-between gap-3"><span>Área final total</span><strong>{formatNumber(totalArea, 4)} m²</strong></div>
               <div className="flex justify-between gap-3"><span>Pedras</span><strong>{formatCurrency(stonesCost)}</strong></div>
-              <div className="flex justify-between gap-3"><span>MÃ£o de obra</span><strong>{formatCurrency(laborCost)}</strong></div>
+              <div className="flex justify-between gap-3"><span>Mão de obra</span><strong>{formatCurrency(laborCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Recortes</span><strong>{formatCurrency(cutoutsCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pia esculpida</span><strong>{formatCurrency(sculptedLaborCost)}</strong></div>
               <div className="flex justify-between gap-3 border-t border-white/15 pt-2"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong>{formatCurrency(adjustmentValue)}</strong></div>
@@ -605,11 +605,11 @@ export const QuoteEditor: React.FC = () => {
                     <span>{formatCurrency(totals.totalArea * (material?.pricePerM2 || 0))}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 opacity-80">
-                    <span>Bancada: {formatNumber(totals.mainArea, 4)} mÂ²</span>
-                    <span>Cuba: {formatNumber(totals.sinkArea || 0, 4)} mÂ²</span>
-                    <span>Adicionais: {formatNumber(totals.sidesArea + totals.recessArea, 4)} mÂ²</span>
-                    <span>Perda: {formatNumber(totals.lossArea || 0, 4)} mÂ²</span>
-                    <span className="col-span-2">Final: {formatNumber(totals.totalArea, 4)} mÂ² Â· {material?.name || 'Sem material'}</span>
+                    <span>Bancada: {formatNumber(totals.mainArea, 4)} m²</span>
+                    <span>Cuba: {formatNumber(totals.sinkArea || 0, 4)} m²</span>
+                    <span>Adicionais: {formatNumber(totals.sidesArea + totals.recessArea, 4)} m²</span>
+                    <span>Perda: {formatNumber(totals.lossArea || 0, 4)} m²</span>
+                    <span className="col-span-2">Final: {formatNumber(totals.totalArea, 4)} m² · {material?.name || 'Sem material'}</span>
                   </div>
                 </div>
               ))}
@@ -617,7 +617,7 @@ export const QuoteEditor: React.FC = () => {
           </section>
 
           <section className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
-            <h2 className="font-display font-bold text-xl text-slate-800">Dados do orÃ§amento</h2>
+            <h2 className="font-display font-bold text-xl text-slate-800">Dados do orçamento</h2>
 
             <div className="space-y-1">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cliente</label>
@@ -685,12 +685,12 @@ export const QuoteEditor: React.FC = () => {
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">ResponsÃ¡vel</label>
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Responsável</label>
               <input
                 value={responsible}
                 onChange={(e) => setResponsible(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
-                placeholder="Nome do responsÃ¡vel"
+                placeholder="Nome do responsável"
               />
             </div>
 
@@ -739,12 +739,12 @@ export const QuoteEditor: React.FC = () => {
         {/* Right Column: Pieces */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-2xl font-display font-bold text-slate-900">PeÃ§as do OrÃ§amento</h2>
+            <h2 className="text-2xl font-display font-bold text-slate-900">Peças do Orçamento</h2>
             <button 
               onClick={addPiece}
               className="flex items-center gap-2 text-brand-primary font-bold hover:underline"
             >
-              <Plus className="w-5 h-5" /> Adicionar PeÃ§a
+              <Plus className="w-5 h-5" /> Adicionar Peça
             </button>
           </div>
 
@@ -752,8 +752,8 @@ export const QuoteEditor: React.FC = () => {
             {pieces.length === 0 && (
               <div className="bg-slate-50 border-2 border-dashed border-slate-200 p-12 rounded-[32px] text-center space-y-4">
                 <Layers className="w-12 h-12 text-slate-300 mx-auto" />
-                <div className="text-slate-500 font-medium tracking-tight">Nenhuma peÃ§a adicionada ainda.</div>
-                <button onClick={addPiece} className="text-brand-primary font-bold">Clique aqui para comeÃ§ar</button>
+                <div className="text-slate-500 font-medium tracking-tight">Nenhuma peça adicionada ainda.</div>
+                <button onClick={addPiece} className="text-brand-primary font-bold">Clique aqui para começar</button>
               </div>
             )}
 
@@ -780,8 +780,8 @@ export const QuoteEditor: React.FC = () => {
                   </div>
                   <button 
                     type="button"
-                    aria-label="Remover peÃ§a"
-                    title="Remover peÃ§a"
+                    aria-label="Remover peça"
+                    title="Remover peça"
                     onClick={() => removePiece(piece.id)} 
                     className="p-2 text-slate-300 hover:text-red-500 transition-all"
                   >
@@ -803,7 +803,7 @@ export const QuoteEditor: React.FC = () => {
                           <div className="absolute inset-0 bg-brand-primary/0 group-hover:bg-brand-primary/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-2xl">
                             <PenTool className="w-5 h-5 text-brand-primary" />
                           </div>
-                <div className="absolute bottom-2 right-2 bg-green-500 w-3 h-3 rounded-full border-2 border-white shadow-sm" title="Desenho tÃ©cnico disponÃ­vel" />
+                <div className="absolute bottom-2 right-2 bg-green-500 w-3 h-3 rounded-full border-2 border-white shadow-sm" title="Desenho técnico disponível" />
                         </div>
                       ) : (
                         <button 
@@ -811,14 +811,14 @@ export const QuoteEditor: React.FC = () => {
                           className="w-full aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-brand-primary hover:border-brand-primary/20 hover:bg-white transition-all"
                         >
                           <Pencil className="w-8 h-8 opacity-50" />
-                          <span className="text-[10px] uppercase font-bold tracking-widest">Desenhar PeÃ§a</span>
+                          <span className="text-[10px] uppercase font-bold tracking-widest">Desenhar Peça</span>
                         </button>
                       )}
                     </div>
 
                     <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="space-y-1 md:col-span-3">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Material da peÃ§a</label>
+                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Material da peça</label>
                         <div className="relative">
                           <input
                             value={pieceMaterialSearch[piece.id] || pieceMaterial?.name || ''}
@@ -829,7 +829,7 @@ export const QuoteEditor: React.FC = () => {
                               setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: true}));
                             }}
                             className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
-                            placeholder="Pesquisar material para esta peÃ§a..."
+                            placeholder="Pesquisar material para esta peça..."
                           />
                           <button type="button" onClick={() => setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: !current[piece.id]}))} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
                             <ChevronDown className="h-4 w-4" />
@@ -873,7 +873,7 @@ export const QuoteEditor: React.FC = () => {
                                     </span>
                                     <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase', available ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600', piece.materialId === material.id && 'bg-white/15 text-white')}>
                                       <span className={cn('h-2 w-2 rounded-full', available ?'bg-green-500' : 'bg-red-500')} />
-                                      {available ?'DisponÃ­vel' : 'IndisponÃ­vel'}
+                                      {available ?'Disponível' : 'Indisponível'}
                                     </span>
                                   </button>
                                 );
@@ -902,7 +902,7 @@ export const QuoteEditor: React.FC = () => {
                         />
                       </div>
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ã¡rea Total (mÂ²)</label>
+                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">área Total (m²)</label>
                         <div className="px-4 py-2.5 bg-slate-100 rounded-xl font-mono text-slate-600 flex flex-col items-end">
                           <div className="flex justify-between w-full items-center">
                             <span className="text-[9px] uppercase font-bold text-slate-400">Total:</span>
@@ -911,7 +911,7 @@ export const QuoteEditor: React.FC = () => {
                           {piece.sculptedSink?.active && (
                             <div className="text-[8px] text-slate-400 flex flex-col w-full">
                               <div className="flex justify-between">
-                                <span>PeÃ§a:</span>
+                                <span>Peça:</span>
                                 <span>{calculatePieceArea(piece).mainArea.toFixed(4)}</span>
                               </div>
                               <div className="flex justify-between">
@@ -957,14 +957,14 @@ export const QuoteEditor: React.FC = () => {
                         <div className="flex bg-slate-100 p-1 rounded-xl">
                             <button 
                             onClick={() => updatePiece(piece.id, { sculptedSink: { ...(piece.sculptedSink || {
-                              drainType: 'VÃ¡lvula oculta', quantity: 1, width: 0, depth: 0, height: 0, unit: 'cm'
+                              drainType: 'Válvula oculta', quantity: 1, width: 0, depth: 0, height: 0, unit: 'cm'
                             }), active: true } as any })}
                             className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", piece.sculptedSink?.active ?"bg-white text-brand-primary shadow-sm" : "text-slate-400")}
                           >Sim</button>
                           <button 
                             onClick={() => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink, active: false } as any })}
                             className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", !piece.sculptedSink?.active ?"bg-white text-brand-primary shadow-sm" : "text-slate-400")}
-                          >NÃ£o</button>
+                          >Não</button>
                         </div>
                       </div>
                     </div>
@@ -975,11 +975,11 @@ export const QuoteEditor: React.FC = () => {
                           <div className="space-y-1">
                             <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tipo de ralo</label>
                             <select 
-                              value={piece.sculptedSink.drainType || 'VÃ¡lvula oculta'}
+                              value={piece.sculptedSink.drainType || 'Válvula oculta'}
                               onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, drainType: e.target.value as any } })}
                               className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium outline-none"
                             >
-                              <option value="VÃ¡lvula oculta">VÃ¡lvula oculta</option>
+                              <option value="Válvula oculta">Válvula oculta</option>
                               <option value="Ralo click">Ralo click</option>
                               <option value="Ralo oculto">Ralo oculto</option>
                             </select>
@@ -1090,7 +1090,7 @@ export const QuoteEditor: React.FC = () => {
                   <div className="pt-4 border-t border-slate-50 space-y-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <label className="text-sm font-bold text-slate-700">Rebaixo Ã¡rea molhada:</label>
+                        <label className="text-sm font-bold text-slate-700">Rebaixo área molhada:</label>
                         <div className="flex bg-slate-100 p-1 rounded-xl">
                           <button
                             type="button"
@@ -1101,7 +1101,7 @@ export const QuoteEditor: React.FC = () => {
                             type="button"
                             onClick={() => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess, active: false } as any })}
                             className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", !piece.wetAreaRecess?.active ?"bg-white text-brand-primary shadow-sm" : "text-slate-400")}
-                          >NÃ£o</button>
+                          >Não</button>
                         </div>
                       </div>
                     </div>
@@ -1137,24 +1137,24 @@ export const QuoteEditor: React.FC = () => {
                           </div>
                         </div>
                         <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Ãrea do rebaixo (mÂ²)</span>
+                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Área do rebaixo (m²)</span>
                           <div className="text-brand-primary font-mono font-bold">{calculateWetAreaRecessArea(piece).toFixed(4)}</div>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Adicionais - FrontÃ£o, Saia, etc */}
+                  {/* Adicionais - Frontão, Saia, etc */}
                   <div className="space-y-4 pt-4 border-t border-slate-50">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Adicionais (FrontÃ£o/Saia/Virada/PÃ©)</h3>
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Adicionais (Frontão/Saia/Virada/Pé)</h3>
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
                           onClick={() => addSide(piece.id, 'frontao')}
                           className="px-3 py-2 rounded-xl bg-brand-primary/10 text-brand-primary text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary/15 transition-all"
                         >
-                          + FrontÃ£o
+                          + Frontão
                         </button>
                         <button
                           type="button"
@@ -1175,14 +1175,14 @@ export const QuoteEditor: React.FC = () => {
                           onClick={() => addSide(piece.id, 'pe')}
                           className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
                         >
-                        + PÃ© de bancada
+                        + Pé de bancada
                         </button>
                         <button
                           type="button"
                           onClick={() => addSide(piece.id, 'guarnicao')}
                           className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
                         >
-                        + GuarniÃ§Ã£o
+                        + Guarnição
                         </button>
                       </div>
                     </div>
@@ -1206,11 +1206,11 @@ export const QuoteEditor: React.FC = () => {
                                 }}
                                 className="min-w-0 bg-white border border-slate-200 rounded-lg text-xs p-1"
                               >
-                                <option value="frontao">FrontÃ£o</option>
+                                <option value="frontao">Frontão</option>
                                 <option value="saia">Saia</option>
                                 <option value="virada">Virada</option>
-                              <option value="pe">PÃ© de bancada</option>
-                              <option value="guarnicao">GuarniÃ§Ã£o</option>
+                              <option value="pe">Pé de bancada</option>
+                              <option value="guarnicao">Guarnição</option>
                               </select>
                               <select 
                                 value={side.side}
@@ -1270,7 +1270,7 @@ export const QuoteEditor: React.FC = () => {
             <h2 className="font-display font-bold text-xl text-slate-800">Recortes e Acabamentos Especiais</h2>
             {!pieces.length ?(
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                Adicione ao menos uma peÃ§a para vincular os recortes cadastrados no Admin.
+                Adicione ao menos uma peça para vincular os recortes cadastrados no Admin.
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
@@ -1290,7 +1290,7 @@ export const QuoteEditor: React.FC = () => {
                       <div className="flex items-center justify-between gap-2">
                         <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500">{fixtureConfig.label}</div>
                         <span className={cn('rounded-full px-2 py-1 text-[10px] font-bold uppercase', totalLinkedCutouts > 0 ?'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-400')}>
-                          {totalLinkedCutouts} no orÃ§amento
+                          {totalLinkedCutouts} no orçamento
                         </span>
                       </div>
                       <select
@@ -1313,7 +1313,7 @@ export const QuoteEditor: React.FC = () => {
                         </div>
                       )}
                       {!options.length && (
-                        <div className="text-xs text-slate-400">Cadastre opÃ§Ãµes no Admin.</div>
+                        <div className="text-xs text-slate-400">Cadastre opções no Admin.</div>
                       )}
                     </div>
                   );
@@ -1323,11 +1323,11 @@ export const QuoteEditor: React.FC = () => {
           </section>
 
           <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
-            <h2 className="font-display font-bold text-xl text-slate-800">ObservaÃ§Ãµes Comerciais</h2>
+            <h2 className="font-display font-bold text-xl text-slate-800">Observações Comerciais</h2>
             <textarea 
               value={commercialNotes}
               onChange={(e) => setCommercialNotes(e.target.value)}
-              placeholder="InformaÃ§Ãµes sobre entrega, instalaÃ§Ã£o, etc..."
+              placeholder="Informações sobre entrega, instalação, etc..."
               className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 outline-none focus:ring-2 focus:ring-brand-primary/10 transition-all min-h-[120px]"
             />
           </section>
@@ -1339,8 +1339,8 @@ export const QuoteEditor: React.FC = () => {
           <div className="w-full max-w-5xl bg-white rounded-[40px] shadow-2xl flex flex-col h-[90vh]">
             <div className="p-8 border-b border-slate-100 flex items-center justify-between">
               <div>
-                <h3 className="text-2xl font-display font-bold text-slate-900">Desenho TÃ©cnico</h3>
-                <p className="text-slate-400 text-sm">PeÃ§a: {pieces.find(p => p.id === showDrawing)?.name}</p>
+                <h3 className="text-2xl font-display font-bold text-slate-900">Desenho Técnico</h3>
+                <p className="text-slate-400 text-sm">Peça: {pieces.find(p => p.id === showDrawing)?.name}</p>
               </div>
               <div className="flex items-center gap-3">
                 <button
@@ -1349,7 +1349,7 @@ export const QuoteEditor: React.FC = () => {
                   className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all"
                 >
                   <Save className="w-4 h-4" />
-                  Salvar peÃ§a
+                  Salvar peça
                 </button>
                 <button
                   onClick={() => setShowDrawing(null)}
@@ -1401,6 +1401,8 @@ export const QuoteEditor: React.FC = () => {
 };
 
 const X = ({ className }: any) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
+
+
 
 
 

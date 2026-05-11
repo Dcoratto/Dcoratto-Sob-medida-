@@ -71,6 +71,9 @@ export const ReportsPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [purchases, setPurchases] = useState<InventoryPurchase[]>([]);
+  const [reservations, setReservations] = useState<InventoryReservation[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<ManualCalendarEvent[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [systemEvents, setSystemEvents] = useState<SystemEvent[]>([]);
   const [period, setPeriod] = useState<Period>('month');
@@ -80,6 +83,9 @@ export const ReportsPage: React.FC = () => {
     const unsubClients = onSnapshot(collection(db, 'clients'), (snapshot) => setClients(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Client))));
     const unsubMaterials = onSnapshot(collection(db, 'materials'), (snapshot) => setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material))));
     const unsubInventory = onSnapshot(collection(db, 'inventory'), (snapshot) => setInventory(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem))));
+    const unsubPurchases = onSnapshot(collection(db, 'inventoryPurchases'), (snapshot) => setPurchases(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryPurchase))));
+    const unsubReservations = onSnapshot(collection(db, 'inventoryReservations'), (snapshot) => setReservations(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryReservation))));
+    const unsubCalendarEvents = onSnapshot(collection(db, 'calendarEvents'), (snapshot) => setCalendarEvents(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as ManualCalendarEvent))));
     const unsubEmployees = onSnapshot(collection(db, 'employees'), (snapshot) => setEmployees(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Employee))));
     const unsubSystemEvents = onSnapshot(query(collection(db, 'systemEvents'), orderBy('createdAt', 'desc'), limit(60)), (snapshot) => {
       setSystemEvents(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as SystemEvent)));
@@ -89,6 +95,9 @@ export const ReportsPage: React.FC = () => {
       unsubClients();
       unsubMaterials();
       unsubInventory();
+      unsubPurchases();
+      unsubReservations();
+      unsubCalendarEvents();
       unsubEmployees();
       unsubSystemEvents();
     };
@@ -223,7 +232,7 @@ export const ReportsPage: React.FC = () => {
     <div className="space-y-8 pb-20">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Relatérios</h1>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Relatórios</h1>
           <p className="text-slate-500 mt-1">Visão geral da marmoraria, produção, prazos, materiais e equipe.</p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -246,7 +255,7 @@ export const ReportsPage: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <ReportCard icon={TrendingUp} label="Valor vendido" value={formatCurrency(totalSold)} tone="brand" />
-        <ReportCard icon={Gauge} label="Convers?o" value={`${conversionRate}%`} tone="green" />
+        <ReportCard icon={Gauge} label="Conversão" value={`${conversionRate}%`} tone="green" />
         <ReportCard icon={Users} label="Clientes" value={String(clients.length)} tone="blue" />
         <ReportCard icon={Boxes} label="Itens em estoque" value={String(inventory.length)} tone="amber" />
       </div>
@@ -478,7 +487,7 @@ export const ReportsPage: React.FC = () => {
               </div>
             </div>
           ))}
-          {employeeStats.length === 0 && <EmptyText>Nenhum funcion?rio cadastrado.</EmptyText>}
+          {employeeStats.length === 0 && <EmptyText>Nenhum funcionário cadastrado.</EmptyText>}
         </div>
       </section>
 

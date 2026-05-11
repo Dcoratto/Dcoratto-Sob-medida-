@@ -490,6 +490,46 @@ export const InventoryPage: React.FC = () => {
     resetLossForm();
   };
 
+  const openEditLossModal = (item: InventoryItem) => {
+    setLossQuoteId(item.lossQuoteId || '');
+    setLossPieceId(item.lossPieceId || '');
+    setLossInventoryId(item.id);
+    setLossReason(item.lossReason || 'Quebra');
+    setLossNotes(item.lossNotes || '');
+    setShowLossModal(true);
+  };
+
+  const restoreLoss = async (item: InventoryItem) => {
+    const confirmed = window.confirm('Retirar esta perda e voltar a chapa para Disponível?');
+    if (!confirmed) return;
+    await updateDoc(doc(db, 'inventory', item.id), {
+      status: 'Disponível',
+      lossReason: '',
+      lossNotes: '',
+      lossQuoteId: '',
+      lossClientId: '',
+      lossClientName: '',
+      lossPieceId: '',
+      lossPieceName: '',
+      lostByUid: '',
+      lostByName: '',
+      lostAt: null,
+      notes: item.notes || '',
+    });
+    await logSystemEvent({
+      type: 'inventory_updated',
+      title: 'Perda retirada',
+      description: `${item.materialName} - ${item.code || 'Sem lote'}`,
+      entityType: 'inventory',
+      entityId: item.id,
+      materialId: item.materialId,
+      materialName: item.materialName,
+      userUid: user?.uid || '',
+      userName: currentUserName,
+      metadata: {area: item.area, status: 'Disponível'},
+    });
+  };
+
   const filteredItems = items.filter((item) => {
     const searchText = `${item.materialName} ${item.code} ${item.provider} ${item.category || ''}`.toLowerCase();
     const matchesSearch = searchText.includes(search.toLowerCase());
@@ -827,6 +867,16 @@ export const InventoryPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {item.lossReason && (
+                          <>
+                            <button type="button" onClick={() => openEditLossModal(item)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Editar perda">
+                              <AlertTriangle className="w-4 h-4" />
+                            </button>
+                            <button type="button" onClick={() => restoreLoss(item)} className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all" title="Retirar perda">
+                              <CheckCircle2 className="w-4 h-4" />
+                            </button>
+                          </>
+                        )}
                         <button type="button" onClick={() => handleEdit(item)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-all">
                           <Edit2 className="w-4 h-4" />
                         </button>

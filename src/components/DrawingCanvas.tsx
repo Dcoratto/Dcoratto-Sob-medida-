@@ -1253,9 +1253,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         </div>
         <div className="absolute right-4 top-4 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl">
           <div className="text-xs font-bold uppercase tracking-widest text-slate-400">área principal</div>
-          <div className="text-2xl font-display font-bold text-brand-primary">{area.toFixed(4)} m?</div>
-          <div className="mt-2 text-xs text-slate-500">Adicionais: {additionalArea.toFixed(4)} m?</div>
-          <div className="text-xs font-bold text-slate-700">Total: {totalArea.toFixed(4)} m?</div>
+          <div className="text-2xl font-display font-bold text-brand-primary">{area.toFixed(4)} m²</div>
+          <div className="mt-2 text-xs text-slate-500">Adicionais: {additionalArea.toFixed(4)} m²</div>
+          <div className="text-xs font-bold text-slate-700">Total: {totalArea.toFixed(4)} m²</div>
         </div>
         {showHelp && (
           <div className="absolute left-4 top-4 w-56 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl">
@@ -1265,9 +1265,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             </div>
             <div className="space-y-2 text-xs font-semibold text-slate-500">
               <div>Scroll: zoom</div>
-              <div>Bot?o do meio: pan</div>
+              <div>Botão do meio: pan</div>
               <div>Enter: confirmar medida</div>
-              <div>Esc ou Espa?o: parar desenho</div>
+              <div>Esc ou Espaço: parar desenho</div>
             </div>
           </div>
         )}
@@ -1437,6 +1437,7 @@ const ToolButton = ({icon: Icon, label, active, onClick}: {icon: any; label: str
     <span className="hidden xl:inline">{label}</span>
   </button>
 );
+
 
 
 

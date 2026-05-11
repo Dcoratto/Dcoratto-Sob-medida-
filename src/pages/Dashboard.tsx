@@ -167,7 +167,7 @@ export const Dashboard: React.FC = () => {
         text,
         createdAt: Timestamp.now(),
         userUid: user.uid,
-        userName: profile?.name || user.displayName || user.email || 'Usuario',
+        userName: profile?.name || user.displayName || user.email || 'Usuário',
         targetUid: targetUser?.uid || '',
         targetName: targetUser?.name || '',
       });
@@ -383,7 +383,7 @@ export const Dashboard: React.FC = () => {
               <button
                 key={`${event.id}-dashboard-alert`}
                 type="button"
-                onClick={() => event.quoteId ? navigate(`/quotes/edit/${event.quoteId}`) : navigate('/calendar')}
+                onClick={() => setSelectedDeadlineEvent(event)}
                 className="w-full rounded-2xl bg-slate-50 p-3 text-left hover:bg-slate-100 transition-all"
               >
                 <div className="font-bold text-sm text-slate-900">{event.clientName || 'Evento'}</div>
@@ -653,7 +653,7 @@ export const Dashboard: React.FC = () => {
                 <button
                   key={`${event.id}-dashboard-hidden`}
                   type="button"
-                  onClick={() => event.quoteId ? navigate(`/quotes/edit/${event.quoteId}`) : navigate('/calendar')}
+                  onClick={() => setSelectedDeadlineEvent(event)}
                   className="w-full rounded-2xl bg-slate-50 p-3 text-left hover:bg-slate-100 transition-all"
                 >
                   <div className="font-bold text-sm text-slate-900">{event.clientName || 'Evento'}</div>
@@ -686,7 +686,7 @@ export const Dashboard: React.FC = () => {
             <div>
               <h3 className="font-display font-bold text-lg text-slate-800">Em Aberto</h3>
               <p className="text-slate-400 text-sm">
-                Voc? possui {openQuotes.length} orçamentos aguardando aprovado.
+                Você possui {openQuotes.length} orçamentos aguardando aprovado.
               </p>
             </div>
           </button>
@@ -765,5 +765,7 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+
+
 
 

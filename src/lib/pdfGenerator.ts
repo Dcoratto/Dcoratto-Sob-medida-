@@ -1,4 +1,4 @@
-import {jsPDF} from 'jspdf';
+﻿import {jsPDF} from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
@@ -44,7 +44,7 @@ const addFooter = (doc: jsPDF, settings: Settings, primary: PdfColor) => {
     doc.setTextColor(120, 130, 145);
     doc.text(`${settings.companyName} | ${settings.phone} | ${settings.email}`, 14, 287);
     doc.setTextColor(primary[0], primary[1], primary[2]);
-    doc.text(`P?gina ${page} de ${pages}`, 196, 287, {align: 'right'});
+    doc.text(`Página ${page} de ${pages}`, 196, 287, {align: 'right'});
   }
 };
 
@@ -81,7 +81,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
-  doc.text('OR?AMENTO T?CNICO', 171, 17, {align: 'center'});
+  doc.text('ORÇAMENTO TÉCNICO', 171, 17, {align: 'center'});
   doc.setFontSize(7);
   doc.text(format(toDate(quote.createdAt), 'dd/MM/yyyy', {locale: ptBR}), 171, 23, {align: 'center'});
 
@@ -126,7 +126,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
   addSectionTitle(doc, 'Peças e medidas', cursorY, primary);
   autoTable(doc, {
     startY: cursorY + 6,
-    head: [['Item', 'Peça', 'Dimensóes', 'área', 'Adicionais', 'Observaçóes']],
+    head: [['Item', 'Peça', 'Dimensões', 'área', 'Adicionais', 'Observações']],
     body: quote.pieces.map((piece, index) => {
       const additions = (piece.sides || [])
         .filter((side) => side.type && side.type !== 'none')
@@ -160,7 +160,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
       doc.addPage();
       cursorY = 20;
     }
-    addSectionTitle(doc, 'Desenhos t?cnicos', cursorY, primary);
+    addSectionTitle(doc, 'Desenhos técnicos', cursorY, primary);
     cursorY += 8;
     previews.slice(0, 4).forEach((piece, index) => {
       const x = index % 2 === 0 ?14 : 106;
@@ -175,7 +175,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
         doc.addImage(piece.previewUrl, 'PNG', x + 4, y + 9, 78, 36, undefined, 'FAST');
       } catch {
         doc.setTextColor(muted[0], muted[1], muted[2]);
-        doc.text('Preview indispon?vel', x + 43, y + 28, {align: 'center'});
+        doc.text('Preview indisponível', x + 43, y + 28, {align: 'center'});
       }
     });
     cursorY += Math.ceil(previews.slice(0, 4).length / 2) * 58 + 4;
@@ -186,7 +186,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
     cursorY = 22;
   }
 
-  addSectionTitle(doc, 'Recortes e condiçóes', cursorY, primary);
+  addSectionTitle(doc, 'Recortes e condições', cursorY, primary);
   autoTable(doc, {
     startY: cursorY + 6,
     head: [['Tipo', 'Quantidade']],
@@ -219,7 +219,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
   if (quote.commercialNotes) {
     const noteY = cursorY + 34;
     if (noteY < 265) {
-      addSectionTitle(doc, 'Observaçóes comerciais', noteY, primary);
+      addSectionTitle(doc, 'Observações comerciais', noteY, primary);
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(8.5);
       doc.setTextColor(muted[0], muted[1], muted[2]);
@@ -230,3 +230,5 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
   addFooter(doc, settings, primary);
   doc.save(`Orcamento_${quote.clientName.replace(/\s+/g, '_')}.pdf`);
 };
+
+

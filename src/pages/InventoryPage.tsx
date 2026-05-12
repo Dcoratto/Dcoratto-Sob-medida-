@@ -62,7 +62,7 @@ const isActiveReservation = (reservation: InventoryReservation) => {
 };
 
 export const InventoryPage: React.FC = () => {
-  const {user, profile} = useAuth();
+  const {user, profile, hasPermission} = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -204,6 +204,10 @@ export const InventoryPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (editingItem ?!hasPermission('estoque', 'editar') : !hasPermission('estoque', 'adicionar')) {
+      alert('Você não tem permissão para alterar o estoque. Fale com o administrador.');
+      return;
+    }
     if (!selectedMaterialId) {
       alert('Selecione uma pedra cadastrada no Admin.');
       return;
@@ -275,6 +279,7 @@ export const InventoryPage: React.FC = () => {
   };
 
   const handleEdit = (item: InventoryItem) => {
+    if (!hasPermission('estoque', 'editar')) return;
     setEditingItem(item);
     setSelectedMaterialId(item.materialId || '');
     setMaterialName(item.materialName);
@@ -294,6 +299,10 @@ export const InventoryPage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!hasPermission('estoque', 'excluir')) {
+      alert('Você não tem permissão para excluir itens do estoque. Fale com o administrador.');
+      return;
+    }
     const confirmed = window.confirm('Tem certeza que deseja excluir este item do estoque?');
     if (!confirmed) return;
 
@@ -319,6 +328,7 @@ export const InventoryPage: React.FC = () => {
   };
 
   const openPurchaseModal = (item: {materialId: string; materialName: string; missing: number}) => {
+    if (!hasPermission('estoque', 'adicionar')) return;
     const inventoryItem = items.find((stockItem) => stockItem.materialId === item.materialId);
     const material = materials.find((stockMaterial) => stockMaterial.id === item.materialId);
     setPurchaseMaterialId(item.materialId);
@@ -411,6 +421,10 @@ export const InventoryPage: React.FC = () => {
   };
 
   const receivePurchase = async (purchase: InventoryPurchase) => {
+    if (!hasPermission('estoque', 'movimentar')) {
+      alert('Você não tem permissão para movimentar o estoque. Fale com o administrador.');
+      return;
+    }
     if (purchase.status === 'Entregue') return;
     const inventoryRef = doc(collection(db, 'inventory'));
     await setDoc(inventoryRef, {
@@ -461,6 +475,10 @@ export const InventoryPage: React.FC = () => {
 
   const handleLossSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hasPermission('estoque', 'movimentar')) {
+      alert('Você não tem permissão para registrar perdas. Fale com o administrador.');
+      return;
+    }
     const quote = selectedLossQuote;
     const piece = selectedLossPiece;
     const inventoryItem = items.find((item) => item.id === lossInventoryId);
@@ -506,6 +524,7 @@ export const InventoryPage: React.FC = () => {
   };
 
   const openEditLossModal = (item: InventoryItem) => {
+    if (!hasPermission('estoque', 'movimentar')) return;
     setLossQuoteId(item.lossQuoteId || '');
     setLossPieceId(item.lossPieceId || '');
     setLossInventoryId(item.id);
@@ -515,6 +534,10 @@ export const InventoryPage: React.FC = () => {
   };
 
   const restoreLoss = async (item: InventoryItem) => {
+    if (!hasPermission('estoque', 'movimentar')) {
+      alert('Você não tem permissão para movimentar o estoque. Fale com o administrador.');
+      return;
+    }
     const confirmed = window.confirm('Retirar esta perda e voltar a chapa para Disponível?');
     if (!confirmed) return;
     await updateDoc(doc(db, 'inventory', item.id), {
@@ -650,39 +673,45 @@ export const InventoryPage: React.FC = () => {
           <p className="text-slate-500 mt-1">Entrada, compra e controle das pedras cadastradas no Admin.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              resetForm();
-              setShowModal(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white hover:bg-brand-primary/90 transition-all"
-          >
-            <Plus className="h-4 w-4" />
-            Adicionar chapa
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              resetLossForm();
-              setShowLossModal(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-red-700 transition-all"
-          >
-            <AlertTriangle className="h-4 w-4" />
-            Adicionar perda
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              resetPurchaseForm();
-              setShowPurchaseModal(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-5 py-3 text-sm font-bold text-white hover:bg-amber-700 transition-all"
-          >
-            <ShoppingCart className="h-4 w-4" />
-            Comprar chapa
-          </button>
+          {hasPermission('estoque', 'adicionar') && (
+            <button
+              type="button"
+              onClick={() => {
+                resetForm();
+                setShowModal(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white hover:bg-brand-primary/90 transition-all"
+            >
+              <Plus className="h-4 w-4" />
+              Adicionar chapa
+            </button>
+          )}
+          {hasPermission('estoque', 'movimentar') && (
+            <button
+              type="button"
+              onClick={() => {
+                resetLossForm();
+                setShowLossModal(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-2xl bg-red-600 px-5 py-3 text-sm font-bold text-white hover:bg-red-700 transition-all"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Adicionar perda
+            </button>
+          )}
+          {hasPermission('estoque', 'adicionar') && (
+            <button
+              type="button"
+              onClick={() => {
+                resetPurchaseForm();
+                setShowPurchaseModal(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-2xl bg-amber-600 px-5 py-3 text-sm font-bold text-white hover:bg-amber-700 transition-all"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Comprar chapa
+            </button>
+          )}
         </div>
       </header>
 
@@ -728,14 +757,16 @@ export const InventoryPage: React.FC = () => {
                   <div key={item.materialId} className="rounded-2xl border border-amber-100 bg-white/70 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="font-bold text-slate-900">{item.materialName}</div>
-                      <button
-                        type="button"
-                        onClick={() => openPurchaseModal(item)}
-                        className="inline-flex items-center gap-1 rounded-xl bg-amber-600 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-amber-700 transition-all"
-                      >
-                        <ShoppingCart className="h-3.5 w-3.5" />
-                        Comprar
-                      </button>
+                      {hasPermission('estoque', 'adicionar') && (
+                        <button
+                          type="button"
+                          onClick={() => openPurchaseModal(item)}
+                          className="inline-flex items-center gap-1 rounded-xl bg-amber-600 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-amber-700 transition-all"
+                        >
+                          <ShoppingCart className="h-3.5 w-3.5" />
+                          Comprar
+                        </button>
+                      )}
                     </div>
                     <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
                       <div>
@@ -780,14 +811,16 @@ export const InventoryPage: React.FC = () => {
                         <div className="font-bold text-slate-900">{purchase.materialName}</div>
                         <div className="mt-1 text-xs text-slate-400">{purchase.code || 'Sem lote'} · {formatNumber(purchase.area)} m²</div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => receivePurchase(purchase)}
-                        className="inline-flex items-center gap-1 rounded-xl bg-green-600 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-green-700 transition-all"
-                      >
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Receber
-                      </button>
+                      {hasPermission('estoque', 'movimentar') && (
+                        <button
+                          type="button"
+                          onClick={() => receivePurchase(purchase)}
+                          className="inline-flex items-center gap-1 rounded-xl bg-green-600 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-green-700 transition-all"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Receber
+                        </button>
+                      )}
                     </div>
                     <div className="mt-3 text-xs text-slate-500">
                       Comprado por <strong>{purchase.purchasedByName}</strong>
@@ -901,7 +934,7 @@ export const InventoryPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {item.lossReason && (
+                        {item.lossReason && hasPermission('estoque', 'movimentar') && (
                           <>
                             <button type="button" onClick={() => openEditLossModal(item)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Editar perda">
                               <AlertTriangle className="w-4 h-4" />
@@ -911,12 +944,16 @@ export const InventoryPage: React.FC = () => {
                             </button>
                           </>
                         )}
-                        <button type="button" onClick={() => handleEdit(item)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-all">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button type="button" aria-label="Excluir" title="Excluir" onClick={() => handleDelete(item.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {hasPermission('estoque', 'editar') && (
+                          <button type="button" onClick={() => handleEdit(item)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-all">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        {hasPermission('estoque', 'excluir') && (
+                          <button type="button" aria-label="Excluir" title="Excluir" onClick={() => handleDelete(item.id)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

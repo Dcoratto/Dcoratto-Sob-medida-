@@ -19,19 +19,19 @@ import { cn } from '../../lib/utils';
 import { Logo } from './Logo';
 
 export const Sidebar: React.FC = () => {
-  const { isAdmin, profile, user } = useAuth();
+  const { isAdmin, profile, user, accessUser, hasPermission } = useAuth();
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-    { icon: FileText, label: 'Orçamentos', path: '/quotes' },
-    { icon: FolderKanban, label: 'Projetos', path: '/projects' },
-    { icon: Users, label: 'Clientes', path: '/clients' },
-    { icon: CalendarDays, label: 'Calendário', path: '/calendar' },
-    { icon: History, label: 'Histórico', path: '/history' },
-    { icon: BarChart3, label: 'Relatórios', path: '/reports' },
-    { icon: Package, label: 'Materiais', path: '/materials' },
-    { icon: Database, label: 'Estoque', path: '/inventory' },
-  ];
+    hasPermission('orcamento', 'visualizar') ?{ icon: FileText, label: 'Orçamentos', path: '/quotes' } : null,
+    hasPermission('projeto', 'visualizar') ?{ icon: FolderKanban, label: 'Projetos', path: '/projects' } : null,
+    hasPermission('cliente', 'visualizar') ?{ icon: Users, label: 'Clientes', path: '/clients' } : null,
+    hasPermission('medicao', 'visualizar') ?{ icon: CalendarDays, label: 'Calendário', path: '/calendar' } : null,
+    hasPermission('orcamento', 'visualizar') ?{ icon: History, label: 'Histórico', path: '/history' } : null,
+    hasPermission('relatorios', 'visualizar') ?{ icon: BarChart3, label: 'Relatórios', path: '/reports' } : null,
+    hasPermission('estoque', 'visualizar') ?{ icon: Package, label: 'Materiais', path: '/materials' } : null,
+    hasPermission('estoque', 'visualizar') ?{ icon: Database, label: 'Estoque', path: '/inventory' } : null,
+  ].filter(Boolean) as Array<{icon: any; label: string; path: string}>;
 
   if (isAdmin) {
     menuItems.push({ icon: ShieldAlert, label: 'Admin', path: '/admin' });
@@ -77,8 +77,8 @@ export const Sidebar: React.FC = () => {
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-900 truncate">{profile?.name || 'Usuário'}</p>
-            <p className="text-xs text-slate-500 truncate">{profile?.position || user?.email}</p>
+            <p className="text-sm font-semibold text-slate-900 truncate">{accessUser?.nome || profile?.name || 'Usuário'}</p>
+            <p className="text-xs text-slate-500 truncate">{profile?.position || accessUser?.role || user?.email}</p>
           </div>
         </NavLink>
         <button

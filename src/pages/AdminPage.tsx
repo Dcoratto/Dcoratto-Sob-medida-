@@ -6,9 +6,11 @@ import {AlertTriangle, BriefcaseBusiness, CheckCircle2, Mail, Pencil, Plus, Shie
 import {auth, db, storage} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {useAuth} from '../contexts/AuthContext';
-import {Employee, EmployeeRole, FixtureCatalogItem, FixtureCategory, Material, Profile} from '../types';
+import {AccessRole, AccessUser, Employee, EmployeeRole, FixtureCatalogItem, FixtureCategory, Material, PermissionMap} from '../types';
 import {cn} from '../lib/utils';
 import { SettingsPage } from './SettingsPage';
+import {ACCESS_ROLES, getDefaultPermissions, hasPermission, isMasterAdmin, mergePermissions, PERMISSION_LABELS, roleLabel} from '../lib/permissions';
+import {logAuditEvent} from '../lib/auditLogs';
 
 const employeeRoles: EmployeeRole[] = ['Vendedor', 'Medidor', 'Cortador', 'Acabador', 'Instalador', 'Entregador', 'Administrativo'];
 const slugify = (value: string) =>
@@ -97,8 +99,8 @@ const getCatalogSaveErrorMessage = (error: any, itemName: string) => {
 };
 
 export const AdminPage: React.FC = () => {
-  const {isAdmin} = useAuth();
-  const [users, setUsers] = useState<Profile[]>([]);
+  const {isAdmin, accessUser, user: authUser, isMasterAdmin: masterAdmin} = useAuth();
+  const [users, setUsers] = useState<AccessUser[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,10 +155,10 @@ export const AdminPage: React.FC = () => {
   });
 
   useEffect(() => {
-    const q = query(collection(db, 'profiles'), orderBy('email', 'asc'));
+    const q = query(collection(db, 'users'), orderBy('email', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const allUsers = snapshot.docs.map((item) => ({uid: item.id, ...item.data()} as Profile));
-      const uniqueUsers = allUsers.reduce((acc: Profile[], current) => {
+      const allUsers = snapshot.docs.map((item) => ({uid: item.id, ...item.data()} as AccessUser));
+      const uniqueUsers = allUsers.reduce((acc: AccessUser[], current) => {
         const exists = acc.find((item) => item.email === current.email);
         return exists ?acc : acc.concat([current]);
       }, []);
@@ -198,20 +200,62 @@ export const AdminPage: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  const toggleBlock = async (userId: string, isBlocked: boolean) => {
-    await updateDoc(doc(db, 'profiles', userId), {blocked: !isBlocked});
+  const canAlterUsers = masterAdmin && hasPermission(accessUser, 'admin', 'alterarPermissoes');
+
+  const toggleBlock = async (target: AccessUser) => {
+    if (isMasterAdmin(target) || !masterAdmin) return;
+    await updateDoc(doc(db, 'users', target.uid), {
+      blocked: !target.blocked,
+      updatedAt: serverTimestamp(),
+      updatedByUid: authUser?.uid || '',
+      updatedByEmail: authUser?.email || '',
+      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuário',
+    });
+    await logAuditEvent({user: accessUser || authUser, action: 'toggle_user_block', module: 'admin', targetId: target.uid, oldValue: target.blocked, newValue: !target.blocked});
   };
 
-  const changeRole = async (userId: string, newRole: 'admin' | 'user') => {
-    await updateDoc(doc(db, 'profiles', userId), {role: newRole});
+  const changeRole = async (target: AccessUser, newRole: AccessRole) => {
+    if (isMasterAdmin(target) || !masterAdmin) return;
+    const nextPermissions = getDefaultPermissions(newRole);
+    await updateDoc(doc(db, 'users', target.uid), {
+      role: newRole,
+      permissions: nextPermissions,
+      updatedAt: serverTimestamp(),
+      updatedByUid: authUser?.uid || '',
+      updatedByEmail: authUser?.email || '',
+      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuário',
+    });
+    await logAuditEvent({user: accessUser || authUser, action: 'change_user_role', module: 'admin', targetId: target.uid, oldValue: target.role, newValue: newRole});
   };
 
-  const deleteUserProfile = async (userId: string) => {
+  const updateUserPermission = async (target: AccessUser, module: keyof PermissionMap, action: string, checked: boolean) => {
+    if (isMasterAdmin(target) || !masterAdmin) return;
+    const currentPermissions = mergePermissions(target);
+    const nextPermissions = {
+      ...currentPermissions,
+      [module]: {
+        ...(currentPermissions[module] as any),
+        [action]: checked,
+      },
+    };
+    await updateDoc(doc(db, 'users', target.uid), {
+      permissions: nextPermissions,
+      updatedAt: serverTimestamp(),
+      updatedByUid: authUser?.uid || '',
+      updatedByEmail: authUser?.email || '',
+      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuário',
+    });
+    await logAuditEvent({user: accessUser || authUser, action: 'change_user_permission', module: 'admin', targetId: target.uid, oldValue: target.permissions?.[module]?.[action as never], newValue: checked});
+  };
+
+  const deleteUserProfile = async (target: AccessUser) => {
+    if (isMasterAdmin(target) || !masterAdmin) return;
     const confirmed = window.confirm('Tem certeza que deseja excluir este perfil?');
     if (!confirmed) return;
-    const ok = await deleteFirestoreDoc('profiles', userId);
+    const ok = await deleteFirestoreDoc('users', target.uid);
     if (!ok) return;
-    setUsers((prev) => prev.filter((user) => user.uid !== userId));
+    await logAuditEvent({user: accessUser || authUser, action: 'delete_user_access', module: 'admin', targetId: target.uid, oldValue: target, newValue: null});
+    setUsers((prev) => prev.filter((user) => user.uid !== target.uid));
   };
 
   const addEmployee = async (event: React.FormEvent) => {
@@ -773,56 +817,118 @@ export const AdminPage: React.FC = () => {
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
         <div className="p-4">
-          <h2 className="font-display text-xl font-bold text-slate-900">Usuários do sistema</h2>
-          <p className="text-sm text-slate-400">Controle de acesso ao sistema.</p>
+          <h2 className="font-display text-xl font-bold text-slate-900">Usu?rios do sistema</h2>
+          <p className="text-sm text-slate-400">Controle cargos, permiss?es individuais e bloqueios de acesso.</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-50">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Usuário</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Função</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Usu?rio</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Fun??o</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Permiss?es</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">A??es</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ?(
-                <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400">Carregando usuários...</td></tr>
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Carregando usu?rios...</td></tr>
               ) : (
-                users.map((user) => (
-                  <tr key={user.uid} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-900">{user.name}</div>
-                      <div className="text-xs text-slate-400 flex items-center gap-1">
-                        <Mail className="w-3 h-3" /> {user.email}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <select
-                        value={user.role}
-                        onChange={(event) => changeRole(user.uid, event.target.value as 'admin' | 'user')}
-                        className={cn('px-3 py-1 rounded-full text-[10px] font-bold uppercase outline-none', user.role === 'admin' ?'bg-purple-50 text-purple-600' : 'bg-slate-100 text-slate-500')}
-                      >
-                        <option value="user">Usuário</option>
-                        <option value="admin">Administrador</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => toggleBlock(user.uid, user.blocked)}
-                        className={cn('inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all', user.blocked ?'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100')}
-                      >
-                        {user.blocked ?<><XCircle className="w-3 h-3" /> Bloqueado</> : <><CheckCircle2 className="w-3 h-3" /> Ativo</>}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button type="button" aria-label="Excluir" title="Excluir" onClick={() => deleteUserProfile(user.uid)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                users.map((user) => {
+                  const userIsMaster = isMasterAdmin(user);
+                  const effectivePermissions = mergePermissions(user);
+                  const displayName = user.nome || user.email || 'Usu?rio';
+                  const updatedBy = user.updatedByName || user.updatedByEmail;
+                  const canEditThisUser = canAlterUsers && !userIsMaster;
+
+                  return (
+                    <tr key={user.uid} className="align-top hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4 min-w-[260px]">
+                        <div className="flex items-center gap-2">
+                          <div className="font-semibold text-slate-900">{displayName}</div>
+                          {userIsMaster && (
+                            <span className="rounded-full bg-brand-primary px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                              Super admin
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-xs text-slate-400 flex items-center gap-1">
+                          <Mail className="w-3 h-3" /> {user.email}
+                        </div>
+                        <div className="mt-2 text-[11px] text-slate-400">
+                          Atualizado por: {updatedBy || 'N?o informado'}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 min-w-[190px]">
+                        <select
+                          value={user.role || 'vendedor'}
+                          disabled={!canEditThisUser}
+                          onChange={(event) => changeRole(user, event.target.value as AccessRole)}
+                          className={cn(
+                            'w-full rounded-2xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold uppercase outline-none disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-400',
+                            userIsMaster ?'border-brand-primary/30 bg-brand-primary/5 text-brand-primary' : 'text-slate-700'
+                          )}
+                        >
+                          {ACCESS_ROLES.map((role) => (
+                            <option key={role} value={role}>{roleLabel(role)}</option>
+                          ))}
+                        </select>
+                        {userIsMaster && <p className="mt-2 text-[11px] font-semibold text-brand-primary">Acesso total permanente.</p>}
+                      </td>
+                      <td className="px-6 py-4 min-w-[140px]">
+                        <button
+                          type="button"
+                          disabled={!canEditThisUser}
+                          onClick={() => toggleBlock(user)}
+                          className={cn(
+                            'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase transition-all disabled:cursor-not-allowed disabled:opacity-50',
+                            user.blocked ?'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'
+                          )}
+                        >
+                          {user.blocked ?<><XCircle className="w-3 h-3" /> Bloqueado</> : <><CheckCircle2 className="w-3 h-3" /> Ativo</>}
+                        </button>
+                      </td>
+                      <td className="px-6 py-4 min-w-[560px]">
+                        <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                          {Object.entries(effectivePermissions).map(([moduleName, actions]) => (
+                            <div key={moduleName} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-3">
+                              <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">
+                                {PERMISSION_LABELS[moduleName as keyof PermissionMap]?.label || moduleName}
+                              </div>
+                              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                {Object.entries(actions).map(([actionName, allowed]) => (
+                                  <label key={moduleName + '-' + actionName} className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                                    <input
+                                      type="checkbox"
+                                      checked={Boolean(allowed)}
+                                      disabled={!canEditThisUser}
+                                      onChange={(event) => updateUserPermission(user, moduleName as keyof PermissionMap, actionName, event.target.checked)}
+                                      className="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary disabled:cursor-not-allowed"
+                                    />
+                                    <span>{PERMISSION_LABELS[moduleName as keyof PermissionMap]?.actions[actionName] || actionName}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <button
+                          type="button"
+                          aria-label="Excluir"
+                          title={userIsMaster ?'O super admin n?o pode ser exclu?do' : 'Excluir'}
+                          disabled={!canEditThisUser}
+                          onClick={() => deleteUserProfile(user)}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

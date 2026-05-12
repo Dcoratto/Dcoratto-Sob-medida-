@@ -6,6 +6,7 @@ import {db} from '../lib/firebase';
 import {cn, formatCurrency} from '../lib/utils';
 import {generateReportPDF} from '../lib/reportPdfGenerator';
 import {QUOTE_STATUSES, normalizeQuoteStatus} from '../lib/quoteStatus';
+import {useAuth} from '../contexts/AuthContext';
 
 type Period = 'all' | 'today' | 'week' | 'month' | 'year';
 
@@ -67,6 +68,7 @@ const isClosedSale = (status: string) =>
   ['Orçamento Aprovado', 'Medição', 'Projeto', 'Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada', 'Conferência Final', 'Entrega', 'Finalizado'].includes(statusLabel(status));
 
 export const ReportsPage: React.FC = () => {
+  const {hasPermission} = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -211,7 +213,12 @@ export const ReportsPage: React.FC = () => {
     .sort((a, b) => (toDate(b.item.changedAt)?.getTime() || 0) - (toDate(a.item.changedAt)?.getTime() || 0))
     .slice(0, 20);
 
-  const exportReport = () => generateReportPDF({
+  const exportReport = () => {
+    if (!hasPermission('relatorios', 'exportar')) {
+      alert('Você não tem permissão para exportar relatórios. Fale com o administrador.');
+      return;
+    }
+    generateReportPDF({
     periodLabel: periodLabel(period),
     quotes: filteredQuotes,
     materials,
@@ -231,7 +238,8 @@ export const ReportsPage: React.FC = () => {
     evaluationHistory,
     productionHistory,
     productionStepLabels,
-  });
+    });
+  };
 
   return (
     <div className="space-y-8 pb-20">
@@ -251,10 +259,12 @@ export const ReportsPage: React.FC = () => {
               {item === 'today' ?'Hoje' : item === 'week' ?'Semana' : item === 'month' ?'Mês' : item === 'year' ?'Ano' : 'Tudo'}
             </button>
           ))}
-          <button type="button" onClick={exportReport} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold uppercase text-white">
-            <FileDown className="w-4 h-4" />
-            PDF
-          </button>
+          {hasPermission('relatorios', 'exportar') && (
+            <button type="button" onClick={exportReport} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold uppercase text-white">
+              <FileDown className="w-4 h-4" />
+              PDF
+            </button>
+          )}
         </div>
       </header>
 

@@ -1,20 +1,116 @@
-rules_version = '2';
+﻿rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     function signedIn() {
       return request.auth != null;
     }
 
-    function isAdmin() {
-      return signedIn()
-        && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
-        && get(/databases/$(database)/documents/profiles/$(request.auth.uid)).data.role == 'admin';
+    function masterEmail() {
+      return 'brian_takiya77@outlook.com';
+    }
+
+    function isMasterAdmin() {
+      return signedIn() && request.auth.token.email == masterEmail();
+    }
+
+    function userPath() {
+      return /databases/$(database)/documents/users/$(request.auth.uid);
+    }
+
+    function hasUserDoc() {
+      return signedIn() && exists(userPath());
+    }
+
+    function currentUser() {
+      return get(userPath()).data;
+    }
+
+    function isNotBlocked() {
+      return isMasterAdmin() || (hasUserDoc() && currentUser().blocked != true);
+    }
+
+    function role() {
+      return hasUserDoc() ? currentUser().role : 'vendedor';
+    }
+
+    function roleAllows(module, action) {
+      return (
+        role() == 'vendedor'
+        && (
+          (module == 'orcamento' && action in ['visualizar', 'criar', 'editar']) ||
+          (module == 'cliente' && action in ['visualizar', 'editarDados', 'alterarEtapa', 'anexarArquivos']) ||
+          (module == 'medicao' && action in ['visualizar', 'criar', 'editar']) ||
+          (module == 'projeto' && action in ['visualizar', 'criar', 'editar']) ||
+          (module == 'producao' && action in ['visualizar', 'alterarEtapa'])
+        )
+      ) || (
+        role() == 'coordenador'
+        && (
+          (module == 'orcamento' && action in ['visualizar', 'criar', 'editar', 'excluir', 'aprovar']) ||
+          (module == 'relatorios' && action in ['visualizar', 'exportar', 'verFaturamento', 'verProdutividade']) ||
+          (module == 'cliente' && action in ['visualizar', 'editarDados', 'alterarEtapa', 'anexarArquivos', 'avaliarFuncionarios']) ||
+          (module == 'medicao' && action in ['visualizar', 'criar', 'editar']) ||
+          (module == 'projeto' && action in ['visualizar', 'criar', 'editar', 'aprovar']) ||
+          (module == 'producao' && action in ['visualizar', 'alterarEtapa', 'conferirMedidas', 'finalizarProducao']) ||
+          (module == 'liberacao' && action in ['visualizar', 'aprovar', 'reprovar'])
+        )
+      ) || (
+        role() == 'liberacao'
+        && (
+          (module == 'liberacao' && action in ['visualizar', 'aprovar', 'reprovar']) ||
+          (module == 'cliente' && action in ['visualizar', 'alterarEtapa']) ||
+          (module == 'producao' && action in ['visualizar', 'conferirMedidas']) ||
+          (module == 'projeto' && action in ['visualizar', 'aprovar'])
+        )
+      ) || (
+        role() == 'administrativo'
+        && (
+          (module == 'estoque' && action in ['visualizar', 'adicionar', 'editar', 'excluir', 'movimentar']) ||
+          (module == 'relatorios' && action in ['visualizar', 'exportar', 'verFaturamento', 'verProdutividade']) ||
+          (module == 'cliente' && action in ['visualizar', 'editarDados', 'anexarArquivos']) ||
+          (module == 'admin' && action in ['visualizarUsuarios']) ||
+          (module == 'medicao' && action in ['visualizar']) ||
+          (module == 'projeto' && action in ['visualizar']) ||
+          (module == 'producao' && action in ['visualizar'])
+        )
+      );
+    }
+
+    function customAllows(module, action) {
+      return hasUserDoc()
+        && currentUser().permissions is map
+        && currentUser().permissions[module] is map
+        && currentUser().permissions[module][action] == true;
+    }
+
+    function hasPermission(module, action) {
+      return isMasterAdmin() || (signedIn() && isNotBlocked() && (customAllows(module, action) || roleAllows(module, action)));
+    }
+
+    function canEvaluateEmployees() {
+      return isMasterAdmin() || (signedIn() && isNotBlocked() && (role() == 'coordenador' || hasPermission('cliente', 'avaliarFuncionarios')));
+    }
+
+    match /users/{userId} {
+      allow create: if isMasterAdmin() || (signedIn() && request.auth.uid == userId && request.resource.data.email == request.auth.token.email);
+      allow read: if isMasterAdmin() || (signedIn() && request.auth.uid == userId) || hasPermission('admin', 'visualizarUsuarios');
+      allow update: if isMasterAdmin()
+        && resource.data.email != masterEmail()
+        && request.resource.data.email != masterEmail();
+      allow delete: if isMasterAdmin() && resource.data.email != masterEmail();
     }
 
     match /profiles/{userId} {
       allow create: if signedIn() && request.auth.uid == userId;
-      allow read, update: if signedIn() && (request.auth.uid == userId || isAdmin());
-      allow delete: if isAdmin() && request.auth.uid != userId;
+      allow read: if signedIn() && (request.auth.uid == userId || hasPermission('admin', 'visualizarUsuarios'));
+      allow update: if isMasterAdmin() || (signedIn() && request.auth.uid == userId);
+      allow delete: if isMasterAdmin() && request.auth.uid != userId;
+    }
+
+    match /auditLogs/{logId} {
+      allow create: if signedIn();
+      allow read: if isMasterAdmin() || hasPermission('admin', 'visualizarUsuarios') || hasPermission('relatorios', 'visualizar');
+      allow update, delete: if isMasterAdmin();
     }
 
     match /userMaterialPrices/{priceId} {
@@ -27,56 +123,86 @@ service cloud.firestore {
     }
 
     match /clients/{document} {
-      allow read, write: if signedIn();
+      allow read: if hasPermission('cliente', 'visualizar');
+      allow create: if hasPermission('cliente', 'editarDados');
+      allow update: if hasPermission('cliente', 'editarDados') || hasPermission('cliente', 'alterarEtapa');
+      allow delete: if isMasterAdmin() || hasPermission('cliente', 'editarDados');
     }
 
     match /quotes/{document} {
-      allow read, write: if signedIn();
+      allow read: if hasPermission('orcamento', 'visualizar') || hasPermission('cliente', 'visualizar') || hasPermission('producao', 'visualizar') || hasPermission('liberacao', 'visualizar');
+      allow create: if hasPermission('orcamento', 'criar');
+      allow update: if hasPermission('orcamento', 'editar') || hasPermission('orcamento', 'aprovar') || hasPermission('projeto', 'editar') || hasPermission('producao', 'alterarEtapa') || hasPermission('liberacao', 'aprovar') || canEvaluateEmployees();
+      allow delete: if hasPermission('orcamento', 'excluir');
     }
 
     match /employees/{document} {
-      allow read, write: if signedIn();
+      allow read: if hasPermission('cliente', 'visualizar') || hasPermission('producao', 'visualizar');
+      allow write: if isMasterAdmin() || hasPermission('admin', 'alterarPermissoes');
+    }
+
+    match /employeeEvaluations/{document} {
+      allow read: if hasPermission('cliente', 'visualizar');
+      allow create, update, delete: if canEvaluateEmployees();
     }
 
     match /inventory/{document} {
-      allow read, write: if signedIn();
+      allow read: if hasPermission('estoque', 'visualizar');
+      allow create: if hasPermission('estoque', 'adicionar');
+      allow update: if hasPermission('estoque', 'editar') || hasPermission('estoque', 'movimentar');
+      allow delete: if hasPermission('estoque', 'excluir');
     }
 
     match /inventoryReservations/{document} {
-      allow read, write: if signedIn();
+      allow read: if hasPermission('estoque', 'visualizar') || hasPermission('orcamento', 'visualizar') || hasPermission('relatorios', 'visualizar');
+      allow create, update: if hasPermission('estoque', 'movimentar') || hasPermission('orcamento', 'editar') || hasPermission('orcamento', 'aprovar');
+      allow delete: if hasPermission('estoque', 'movimentar') || hasPermission('orcamento', 'excluir');
     }
 
     match /inventoryPurchases/{document} {
-      allow read, write: if signedIn();
+      allow read: if hasPermission('estoque', 'visualizar') || hasPermission('relatorios', 'visualizar');
+      allow create: if hasPermission('estoque', 'adicionar');
+      allow update: if hasPermission('estoque', 'editar') || hasPermission('estoque', 'movimentar');
+      allow delete: if hasPermission('estoque', 'excluir');
     }
 
     match /materials/{document} {
-      allow read, write: if signedIn();
+      allow read: if hasPermission('estoque', 'visualizar') || hasPermission('orcamento', 'visualizar');
+      allow create, update: if hasPermission('estoque', 'editar') || hasPermission('estoque', 'adicionar');
+      allow delete: if hasPermission('estoque', 'excluir');
     }
 
     match /fixtureCatalog/{document} {
-      allow read, write: if signedIn();
+      allow read: if signedIn();
+      allow write: if isMasterAdmin() || hasPermission('admin', 'alterarPermissoes') || hasPermission('projeto', 'editar');
     }
 
     match /settings/{document} {
-      allow read, write: if signedIn();
+      allow read: if signedIn();
+      allow write: if isMasterAdmin() || hasPermission('admin', 'alterarPermissoes');
     }
 
     match /condominiums/{document} {
-      allow read, write: if signedIn();
+      allow read: if signedIn();
+      allow write: if isMasterAdmin() || hasPermission('admin', 'alterarPermissoes') || hasPermission('cliente', 'editarDados');
     }
 
     match /calendarEvents/{document} {
-      allow read, write: if signedIn();
+      allow read: if hasPermission('medicao', 'visualizar') || hasPermission('cliente', 'visualizar');
+      allow create: if hasPermission('medicao', 'criar');
+      allow update, delete: if hasPermission('medicao', 'editar');
     }
 
     match /systemEvents/{document} {
-      allow read, create: if signedIn();
-      allow update, delete: if isAdmin();
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update, delete: if isMasterAdmin() || hasPermission('admin', 'alterarPermissoes');
     }
 
     match /dashboardNotes/{document} {
-      allow read, write: if signedIn();
+      allow read: if signedIn();
+      allow create: if signedIn();
+      allow update, delete: if isMasterAdmin() || resource.data.userUid == request.auth.uid || hasPermission('admin', 'alterarPermissoes');
     }
   }
 }

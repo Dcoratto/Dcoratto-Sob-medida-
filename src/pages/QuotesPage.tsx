@@ -14,7 +14,7 @@ import {logSystemEvent} from '../lib/systemEvents';
 import {QUOTE_STATUSES, normalizeQuoteStatus, normalizeText, quoteStatusColor} from '../lib/quoteStatus';
 
 export const QuotesPage: React.FC = () => {
-  const {user, profile} = useAuth();
+  const {user, profile, hasPermission} = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -51,6 +51,14 @@ export const QuotesPage: React.FC = () => {
   });
 
   const handleStatusChange = async (quote: Quote, status: QuoteStatus) => {
+    if (!hasPermission('orcamento', 'editar')) {
+      alert('Você não tem permissão para alterar orçamentos. Fale com o administrador.');
+      return;
+    }
+    if (isApprovedOrBeyond(status) && !hasPermission('orcamento', 'aprovar')) {
+      alert('Você não tem permissão para aprovar orçamentos. Fale com o administrador.');
+      return;
+    }
     try {
       if (!isApprovedOrBeyond(quote.status) && isApprovedOrBeyond(status)) {
         await applyQuoteInventoryByStatusTransition(quote.id, quote.status, status, quote);
@@ -92,6 +100,10 @@ export const QuotesPage: React.FC = () => {
   };
 
   const handleDuplicate = async (quote: Quote) => {
+    if (!hasPermission('orcamento', 'criar')) {
+      alert('Você não tem permissão para criar orçamentos. Fale com o administrador.');
+      return;
+    }
     const {id, ...data} = quote;
     const duplicatedQuote = {
       ...data,
@@ -119,6 +131,10 @@ export const QuotesPage: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
+    if (!hasPermission('orcamento', 'excluir')) {
+      alert('Você não tem permissão para excluir orçamentos. Fale com o administrador.');
+      return;
+    }
     const confirmed = window.confirm('Tem certeza que deseja excluir este orçamento?');
     if (!confirmed) return;
 
@@ -154,14 +170,16 @@ export const QuotesPage: React.FC = () => {
           <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Orçamentos</h1>
           <p className="text-slate-500 mt-1">Crie e gerencie orçamentos e pedidos.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/quotes/new')}
-          className="flex items-center gap-2 bg-brand-primary text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95"
-        >
-          <Plus className="w-5 h-5" />
-          Novo Orçamento
-        </button>
+        {hasPermission('orcamento', 'criar') && (
+          <button
+            type="button"
+            onClick={() => navigate('/quotes/new')}
+            className="flex items-center gap-2 bg-brand-primary text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95"
+          >
+            <Plus className="w-5 h-5" />
+            Novo Or?amento
+          </button>
+        )}
       </header>
 
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
@@ -223,8 +241,9 @@ export const QuotesPage: React.FC = () => {
                       <select
                         value={normalizeQuoteStatus(quote.status)}
                         onChange={(e) => handleStatusChange(quote, e.target.value as QuoteStatus)}
+                        disabled={!hasPermission('orcamento', 'editar')}
                         className={cn(
-                          'max-w-[180px] cursor-pointer rounded-full border px-3 py-1 text-[10px] font-bold uppercase outline-none transition-all',
+                          'max-w-[180px] cursor-pointer rounded-full border px-3 py-1 text-[10px] font-bold uppercase outline-none transition-all disabled:cursor-not-allowed disabled:opacity-60',
                           quoteStatusColor(quote.status),
                         )}
                       >
@@ -243,15 +262,21 @@ export const QuotesPage: React.FC = () => {
                         >
                           <FileText className="w-4 h-4" />
                         </button>
-                        <button type="button" title="Editar" onClick={() => navigate(`/quotes/edit/${quote.id}`)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button type="button" title="Duplicar" onClick={() => handleDuplicate(quote)} className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg">
-                          <Copy className="w-4 h-4" />
-                        </button>
-                        <button type="button" aria-label="Excluir" title="Excluir" onClick={() => handleDelete(quote.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {hasPermission('orcamento', 'editar') && (
+                          <button type="button" title="Editar" onClick={() => navigate(`/quotes/edit/${quote.id}`)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        {hasPermission('orcamento', 'criar') && (
+                          <button type="button" title="Duplicar" onClick={() => handleDuplicate(quote)} className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg">
+                            <Copy className="w-4 h-4" />
+                          </button>
+                        )}
+                        {hasPermission('orcamento', 'excluir') && (
+                          <button type="button" aria-label="Excluir" title="Excluir" onClick={() => handleDelete(quote.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

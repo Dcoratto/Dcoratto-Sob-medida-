@@ -8,6 +8,7 @@ import {cn, formatCurrency} from '../lib/utils';
 import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
+import {logAuditEvent} from '../lib/auditLogs';
 import {QUOTE_STATUSES, normalizeQuoteStatus, quoteStatusColor} from '../lib/quoteStatus';
 import {getHolidayInfo} from '../lib/holidays';
 
@@ -87,7 +88,7 @@ const addDaysToInputDate = (value: string, days: number) => {
 };
 
 export const ClientsPage: React.FC = () => {
-  const {user, profile} = useAuth();
+  const {user, profile, canEvaluateEmployees} = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -617,6 +618,10 @@ export const ClientsPage: React.FC = () => {
   };
 
   const updateEvaluation = async (quote: Quote, assignment: EmployeeAssignment, rating: number, notes?: string) => {
+    if (!canEvaluateEmployees) {
+      alert('Você não tem permissão para avaliar funcionários. Fale com o administrador.');
+      return;
+    }
     const currentEvaluation = quote.employeeEvaluations?.find((item) => item.step === assignment.step && item.employeeId === assignment.employeeId);
     const nextEvaluation: EmployeeEvaluation = {
       step: assignment.step,
@@ -663,6 +668,14 @@ export const ClientsPage: React.FC = () => {
       userUid: user?.uid || '',
       userName: currentUserName,
       metadata: {step: assignment.step, rating, notes: notes ?? currentEvaluation?.notes ?? ''},
+    });
+    await logAuditEvent({
+      user: user ?{uid: user.uid, email: user.email || '', nome: currentUserName} : null,
+      action: 'update_employee_evaluation',
+      module: 'cliente',
+      targetId: quote.id,
+      oldValue: currentEvaluation || null,
+      newValue: nextEvaluation,
     });
   };
 
@@ -1102,29 +1115,41 @@ export const ClientsPage: React.FC = () => {
                                           <div className="rounded-xl bg-slate-50 p-3 space-y-2">
                                             <div className="flex items-center justify-between gap-2">
                                               <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Avaliação</span>
-                                              <div className="flex gap-1">
-                                                {[1, 2, 3, 4, 5].map((rating) => (
-                                                  <button
-                                                    key={rating}
-                                                    type="button"
-                                                    onClick={() => updateEvaluation(selectedQuote, assignment, rating)}
-                                                    className={cn(
-                                                      'h-8 w-8 rounded-full text-sm transition-all',
-                                                      (evaluation?.rating || 0) >= rating  ? 'bg-green-500 text-white shadow-sm' : 'bg-white text-slate-300 hover:text-brand-primary',
-                                                    )}
-                                                    title={`${rating} ponto(s)`}
-                                                  >
-                                                    {rating <= 2 ?'☹' : rating === 3 ?'○' : '☺'}
-                                                  </button>
-                                                ))}
-                                              </div>
+                                              {canEvaluateEmployees ? (
+                                                <div className="flex gap-1">
+                                                  {[1, 2, 3, 4, 5].map((rating) => (
+                                                    <button
+                                                      key={rating}
+                                                      type="button"
+                                                      onClick={() => updateEvaluation(selectedQuote, assignment, rating)}
+                                                      className={cn(
+                                                        'h-8 w-8 rounded-full text-sm transition-all',
+                                                        (evaluation?.rating || 0) >= rating  ? 'bg-green-500 text-white shadow-sm' : 'bg-white text-slate-300 hover:text-brand-primary',
+                                                      )}
+                                                      title={`${rating} ponto(s)`}
+                                                    >
+                                                      {rating <= 2 ?'☹' : rating === 3 ?'○' : '☺'}
+                                                    </button>
+                                                  ))}
+                                                </div>
+                                              ) : (
+                                                <span className="text-[10px] font-bold uppercase text-slate-400">
+                                                  Somente coordenador
+                                                </span>
+                                              )}
                                             </div>
-                                            <input
-                                              value={evaluation?.notes || ''}
-                                              onChange={(event) => updateEvaluation(selectedQuote, assignment, evaluation?.rating || 3, event.target.value)}
-                                              placeholder="Observação da etapa"
-                                              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-primary/20"
-                                            />
+                                            {canEvaluateEmployees ? (
+                                              <input
+                                                value={evaluation?.notes || ''}
+                                                onChange={(event) => updateEvaluation(selectedQuote, assignment, evaluation?.rating || 3, event.target.value)}
+                                                placeholder="Observação da etapa"
+                                                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-primary/20"
+                                              />
+                                            ) : (
+                                              <div className="rounded-xl border border-slate-100 bg-white px-3 py-2 text-xs text-slate-500">
+                                                {evaluation ?`${evaluation.rating}/5 - ${evaluation.notes || 'Sem observação'}` : 'Sem avaliação registrada.'}
+                                              </div>
+                                            )}
                                           </div>
                                         </>
                                       )}

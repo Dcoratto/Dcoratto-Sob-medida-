@@ -21,9 +21,29 @@ import { ReportsPage } from './pages/ReportsPage';
 import { PremiumProposalPage } from './pages/PremiumProposalPage';
 import { ProjectsPage } from './pages/ProjectsPage';
 import { CalendarPage } from './pages/CalendarPage';
+import {PermissionModule} from './lib/permissions';
 
-const ProtectedRoute = ({ children, adminOnly = false, shell = true }: { children: React.ReactNode, adminOnly?: boolean, shell?: boolean }) => {
-  const { user, loading, isAdmin } = useAuth();
+const NoPermission = () => (
+  <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+    <div className="max-w-lg rounded-[32px] border border-slate-100 bg-white p-8 text-center shadow-sm">
+      <h1 className="font-display text-2xl font-bold text-slate-900">Acesso bloqueado</h1>
+      <p className="mt-3 text-slate-500">Você não tem permissão para acessar esta área. Fale com o administrador.</p>
+    </div>
+  </div>
+);
+
+const ProtectedRoute = ({
+  children,
+  adminOnly = false,
+  shell = true,
+  permission,
+}: {
+  children: React.ReactNode,
+  adminOnly?: boolean,
+  shell?: boolean,
+  permission?: [PermissionModule, string],
+}) => {
+  const { user, loading, isAdmin, isMasterAdmin, accessUser, hasPermission } = useAuth();
   
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-white">
@@ -32,7 +52,9 @@ const ProtectedRoute = ({ children, adminOnly = false, shell = true }: { childre
   );
   
   if (!user) return <Navigate to="/login" />;
-  if (adminOnly && !isAdmin) return <Navigate to="/" />;
+  if (!isMasterAdmin && accessUser?.blocked) return <NoPermission />;
+  if (adminOnly && !isAdmin) return <NoPermission />;
+  if (permission && !hasPermission(permission[0], permission[1])) return <NoPermission />;
   
   return shell ?<Shell>{children}</Shell> : <>{children}</>;
 };
@@ -46,18 +68,18 @@ export default function App() {
           
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           
-          <Route path="/quotes" element={<ProtectedRoute><QuotesPage /></ProtectedRoute>} />
-          <Route path="/quotes/new" element={<ProtectedRoute><QuoteEditor /></ProtectedRoute>} />
-          <Route path="/quotes/edit/:id" element={<ProtectedRoute><QuoteEditor /></ProtectedRoute>} />
-          <Route path="/quotes/proposal/:id" element={<ProtectedRoute shell={false}><PremiumProposalPage /></ProtectedRoute>} />
-          <Route path="/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
-          <Route path="/calendar" element={<ProtectedRoute><CalendarPage /></ProtectedRoute>} />
+          <Route path="/quotes" element={<ProtectedRoute permission={['orcamento', 'visualizar']}><QuotesPage /></ProtectedRoute>} />
+          <Route path="/quotes/new" element={<ProtectedRoute permission={['orcamento', 'criar']}><QuoteEditor /></ProtectedRoute>} />
+          <Route path="/quotes/edit/:id" element={<ProtectedRoute permission={['orcamento', 'editar']}><QuoteEditor /></ProtectedRoute>} />
+          <Route path="/quotes/proposal/:id" element={<ProtectedRoute shell={false} permission={['orcamento', 'visualizar']}><PremiumProposalPage /></ProtectedRoute>} />
+          <Route path="/projects" element={<ProtectedRoute permission={['projeto', 'visualizar']}><ProjectsPage /></ProtectedRoute>} />
+          <Route path="/calendar" element={<ProtectedRoute permission={['medicao', 'visualizar']}><CalendarPage /></ProtectedRoute>} />
           
-          <Route path="/clients" element={<ProtectedRoute><ClientsPage /></ProtectedRoute>} />
-          <Route path="/history" element={<ProtectedRoute><QuotesPage /></ProtectedRoute>} />
-          <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
-          <Route path="/materials" element={<ProtectedRoute><MaterialsPage /></ProtectedRoute>} />
-          <Route path="/inventory" element={<ProtectedRoute><InventoryPage /></ProtectedRoute>} />
+          <Route path="/clients" element={<ProtectedRoute permission={['cliente', 'visualizar']}><ClientsPage /></ProtectedRoute>} />
+          <Route path="/history" element={<ProtectedRoute permission={['orcamento', 'visualizar']}><QuotesPage /></ProtectedRoute>} />
+          <Route path="/reports" element={<ProtectedRoute permission={['relatorios', 'visualizar']}><ReportsPage /></ProtectedRoute>} />
+          <Route path="/materials" element={<ProtectedRoute permission={['estoque', 'visualizar']}><MaterialsPage /></ProtectedRoute>} />
+          <Route path="/inventory" element={<ProtectedRoute permission={['estoque', 'visualizar']}><InventoryPage /></ProtectedRoute>} />
           <Route path="/settings" element={<Navigate to="/admin" replace />} />
           <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />

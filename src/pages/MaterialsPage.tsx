@@ -28,7 +28,7 @@ const normalizeStatus = (value: unknown) =>
     .replace(/[\u0300-\u036f]/g, '');
 
 export const MaterialsPage: React.FC = () => {
-  const {user} = useAuth();
+  const {user, hasPermission} = useAuth();
   const navigate = useNavigate();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -142,6 +142,7 @@ export const MaterialsPage: React.FC = () => {
     .filter((material) => material.stockArea > 0);
 
   const handleEdit = (material: MaterialWithUserPrice) => {
+    if (!hasPermission('materiais', 'editar')) return;
     setEditingMaterial(material);
     setMarginPercentage(String(material.userMarginPercentage ?? 0));
     setSalePricePerM2(String(material.userPricePerM2 || 0));
@@ -152,6 +153,10 @@ export const MaterialsPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMaterial) return;
+    if (!hasPermission('materiais', 'editar')) {
+      alert('Voce nao tem permissao para editar materiais. Fale com o administrador.');
+      return;
+    }
 
     const margin = Number(marginPercentage);
     const baseCost = editingMaterial.baseCostPerM2 ?? 0;
@@ -179,6 +184,10 @@ export const MaterialsPage: React.FC = () => {
   };
 
   const handleStatusChange = async (material: Material, nextActive: boolean) => {
+    if (!hasPermission('materiais', 'editar')) {
+      alert('Voce nao tem permissao para editar materiais. Fale com o administrador.');
+      return;
+    }
     await updateDoc(doc(db, 'materials', material.id), {active: nextActive});
   };
 
@@ -307,6 +316,7 @@ export const MaterialsPage: React.FC = () => {
                       <select
                         value={material.active ? 'active' : 'inactive'}
                         onChange={(e) => handleStatusChange(material, e.target.value === 'active')}
+                        disabled={!hasPermission('materiais', 'editar')}
                         className={cn(
                           'cursor-pointer rounded-full border px-3 py-1 text-[10px] font-bold uppercase outline-none',
                           material.active ? 'bg-green-50 text-green-600 border-green-100' : 'bg-red-50 text-red-600 border-red-100',
@@ -318,7 +328,7 @@ export const MaterialsPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button type="button" onClick={() => handleEdit(material)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-all">
+                        <button type="button" onClick={() => handleEdit(material)} disabled={!hasPermission('materiais', 'editar')} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-40">
                           <Edit2 className="w-4 h-4" />
                         </button>
                       </div>

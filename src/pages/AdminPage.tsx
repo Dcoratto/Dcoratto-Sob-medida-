@@ -817,28 +817,28 @@ export const AdminPage: React.FC = () => {
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
         <div className="p-4">
-          <h2 className="font-display text-xl font-bold text-slate-900">Usu?rios do sistema</h2>
-          <p className="text-sm text-slate-400">Controle cargos, permiss?es individuais e bloqueios de acesso.</p>
+          <h2 className="font-display text-xl font-bold text-slate-900">Usuarios do sistema</h2>
+          <p className="text-sm text-slate-400">Controle cargos, permissoes individuais e bloqueios de acesso.</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-50">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Usu?rio</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Fun??o</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Usuario</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Funcao</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Permiss?es</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">A??es</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Permissoes</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Acoes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ?(
-                <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Carregando usu?rios...</td></tr>
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Carregando usuarios...</td></tr>
               ) : (
                 users.map((user) => {
                   const userIsMaster = isMasterAdmin(user);
                   const effectivePermissions = mergePermissions(user);
-                  const displayName = user.nome || user.email || 'Usu?rio';
+                  const displayName = user.nome || user.email || 'Usuario';
                   const updatedBy = user.updatedByName || user.updatedByEmail;
                   const canEditThisUser = canAlterUsers && !userIsMaster;
 
@@ -857,7 +857,7 @@ export const AdminPage: React.FC = () => {
                           <Mail className="w-3 h-3" /> {user.email}
                         </div>
                         <div className="mt-2 text-[11px] text-slate-400">
-                          Atualizado por: {updatedBy || 'N?o informado'}
+                          Atualizado por: {updatedBy || 'Nao informado'}
                         </div>
                       </td>
                       <td className="px-6 py-4 min-w-[190px]">
@@ -918,7 +918,7 @@ export const AdminPage: React.FC = () => {
                         <button
                           type="button"
                           aria-label="Excluir"
-                          title={userIsMaster ?'O super admin n?o pode ser exclu?do' : 'Excluir'}
+                          title={userIsMaster ?'O super admin nao pode ser excluido' : 'Excluir'}
                           disabled={!canEditThisUser}
                           onClick={() => deleteUserProfile(user)}
                           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-40"

@@ -7,7 +7,10 @@ export type PermissionModule = keyof PermissionMap;
 export type PermissionAction<M extends PermissionModule = PermissionModule> = keyof PermissionMap[M];
 
 const fullPermissions: PermissionMap = {
+  dashboard: {visualizar: true},
   orcamento: {visualizar: true, criar: true, editar: true, excluir: true, aprovar: true},
+  historico: {visualizar: true},
+  materiais: {visualizar: true, editar: true},
   estoque: {visualizar: true, adicionar: true, editar: true, excluir: true, movimentar: true},
   relatorios: {visualizar: true, exportar: true, verFaturamento: true, verProdutividade: true},
   admin: {visualizarUsuarios: true, alterarPermissoes: true, excluirUsuarios: true},
@@ -19,7 +22,10 @@ const fullPermissions: PermissionMap = {
 };
 
 const noPermissions: PermissionMap = {
+  dashboard: {visualizar: false},
   orcamento: {visualizar: false, criar: false, editar: false, excluir: false, aprovar: false},
+  historico: {visualizar: false},
+  materiais: {visualizar: false, editar: false},
   estoque: {visualizar: false, adicionar: false, editar: false, excluir: false, movimentar: false},
   relatorios: {visualizar: false, exportar: false, verFaturamento: false, verProdutividade: false},
   admin: {visualizarUsuarios: false, alterarPermissoes: false, excluirUsuarios: false},
@@ -42,14 +48,20 @@ const withPermissions = (patch: Partial<{[Module in keyof PermissionMap]: Partia
 
 export const DEFAULT_ROLE_PERMISSIONS: Record<AccessRole, PermissionMap> = {
   vendedor: withPermissions({
+    dashboard: {visualizar: true},
     orcamento: {visualizar: true, criar: true, editar: true},
+    historico: {visualizar: true},
+    materiais: {visualizar: true},
     cliente: {visualizar: true, editarDados: true, alterarEtapa: true, anexarArquivos: true},
     medicao: {visualizar: true, criar: true, editar: true},
     projeto: {visualizar: true, criar: true, editar: true},
     producao: {visualizar: true},
   }),
   coordenador: withPermissions({
+    dashboard: {visualizar: true},
     orcamento: {visualizar: true, criar: true, editar: true, aprovar: true},
+    historico: {visualizar: true},
+    materiais: {visualizar: true, editar: true},
     relatorios: {visualizar: true, exportar: true, verProdutividade: true},
     cliente: {visualizar: true, editarDados: true, alterarEtapa: true, anexarArquivos: true, avaliarFuncionarios: true},
     medicao: {visualizar: true, criar: true, editar: true},
@@ -58,12 +70,17 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<AccessRole, PermissionMap> = {
     liberacao: {visualizar: true, aprovar: true, reprovar: true},
   }),
   liberacao: withPermissions({
+    dashboard: {visualizar: true},
     cliente: {visualizar: true},
+    historico: {visualizar: true},
     projeto: {visualizar: true, aprovar: true},
     producao: {visualizar: true, conferirMedidas: true},
     liberacao: {visualizar: true, aprovar: true, reprovar: true},
   }),
   administrativo: withPermissions({
+    dashboard: {visualizar: true},
+    historico: {visualizar: true},
+    materiais: {visualizar: true, editar: true},
     estoque: {visualizar: true, adicionar: true, editar: true, excluir: true, movimentar: true},
     relatorios: {visualizar: true, exportar: true, verFaturamento: true},
     cliente: {visualizar: true, editarDados: true, anexarArquivos: true},
@@ -75,7 +92,10 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<AccessRole, PermissionMap> = {
 export const ACCESS_ROLES: AccessRole[] = ['vendedor', 'coordenador', 'liberacao', 'administrativo'];
 
 export const MODULE_LABELS: Record<PermissionModule, string> = {
+  dashboard: 'Dashboard',
   orcamento: 'Orcamento',
+  historico: 'Historico',
+  materiais: 'Materiais',
   estoque: 'Estoque',
   relatorios: 'Relatorios',
   admin: 'Admin',

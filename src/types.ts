@@ -2,7 +2,10 @@ export type AccessRole = 'vendedor' | 'coordenador' | 'liberacao' | 'administrat
 export type UserRole = 'admin' | 'user';
 
 export type PermissionMap = {
+  dashboard: { visualizar: boolean; };
   orcamento: { visualizar: boolean; criar: boolean; editar: boolean; excluir: boolean; aprovar: boolean; };
+  historico: { visualizar: boolean; };
+  materiais: { visualizar: boolean; editar: boolean; };
   estoque: { visualizar: boolean; adicionar: boolean; editar: boolean; excluir: boolean; movimentar: boolean; };
   relatorios: { visualizar: boolean; exportar: boolean; verFaturamento: boolean; verProdutividade: boolean; };
   admin: { visualizarUsuarios: boolean; alterarPermissoes: boolean; excluirUsuarios: boolean; };
@@ -197,16 +200,16 @@ export interface QuoteStatusHistory {
 }
 
 export type QuoteStatus =
-  | 'Orçamento'
-  | 'Orçamento Aprovado'
-  | 'Medição'
+  | 'OrÃ§amento'
+  | 'OrÃ§amento Aprovado'
+  | 'MediÃ§Ã£o'
   | 'Projeto'
   | 'Projeto Aprovado'
   | 'Corte'
   | 'Acabamento'
   | 'Montagem'
-  | 'Produção Finalizada'
-  | 'Conferência Final'
+  | 'ProduÃ§Ã£o Finalizada'
+  | 'ConferÃªncia Final'
   | 'Entrega'
   | 'Finalizado';
 
@@ -237,8 +240,8 @@ export interface DrawingCutout {
 
 export interface SculptedSink {
   active: boolean;
-  type?: 'Simples' | 'Com rampa' | 'Válvula oculta' | 'Cuba dupla';
-  drainType?: 'Válvula oculta' | 'Ralo click' | 'Ralo oculto';
+  type?: 'Simples' | 'Com rampa' | 'VÃ¡lvula oculta' | 'Cuba dupla';
+  drainType?: 'VÃ¡lvula oculta' | 'Ralo click' | 'Ralo oculto';
   quantity: number;
   width: number;
   depth: number;
@@ -393,7 +396,7 @@ export interface InventoryItem {
   area: number;
   cost: number;
   minimumSalePrice?: number;
-  status: 'Disponível' | 'Reservada' | 'Usada' | 'Retalho' | 'Descarte';
+  status: 'DisponÃ­vel' | 'Reservada' | 'Usada' | 'Retalho' | 'Descarte';
   notes: string;
   photoUrl?: string;
   lossReason?: string;

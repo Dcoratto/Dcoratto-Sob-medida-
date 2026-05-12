@@ -1,7 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import React, {createContext, useContext, useEffect, useState} from 'react';
+import {onAuthStateChanged, User} from 'firebase/auth';
+import {doc, getDoc, onSnapshot, setDoc} from 'firebase/firestore';
+import {auth, db} from '../lib/firebase';
 import {AccessUser, Profile} from '../types';
 import {getDefaultPermissions, isMasterAdmin, MASTER_ADMIN_EMAIL} from '../lib/permissions';
 
@@ -27,7 +27,7 @@ const AuthContext = createContext<AuthContextType>({
   canEvaluateEmployees: false,
 });
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [accessUser, setAccessUser] = useState<AccessUser | null>(null);
@@ -37,9 +37,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let unsubscribeProfile: (() => void) | undefined;
     let unsubscribeAccessUser: (() => void) | undefined;
 
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      
+    const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
+      setUser(authUser);
+
       if (unsubscribeProfile) {
         unsubscribeProfile();
         unsubscribeProfile = undefined;
@@ -49,77 +49,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         unsubscribeAccessUser = undefined;
       }
 
-      if (user) {
-        // First check if profile exists, if not create it
-        const profileRef = doc(db, 'profiles', user.uid);
-        const profileDoc = await getDoc(profileRef);
-        
-        if (!profileDoc.exists()) {
-          const adminEmails = ['brian_takiya77@outlook.com', 'briank.o.t2019@gmail.com'];
-          const isInitialAdmin = adminEmails.includes(user.email || '');
-          const newProfile: Profile = {
-            uid: user.uid,
-            name: user.displayName || user.email?.split('@')[0] || 'User',
-            email: user.email || '',
-            role: isInitialAdmin ?'admin' : 'user',
-            blocked: false,
-            phone: '',
-          };
-          await setDoc(profileRef, newProfile);
-        }
-
-        const accessUserRef = doc(db, 'users', user.uid);
-        const accessUserDoc = await getDoc(accessUserRef);
-        const master = isMasterAdmin(user);
-        if (!accessUserDoc.exists()) {
-          const role = master ?'administrativo' : 'vendedor';
-          await setDoc(accessUserRef, {
-            uid: user.uid,
-            nome: user.displayName || user.email?.split('@')[0] || 'Usuário',
-            name: user.displayName || user.email?.split('@')[0] || 'Usuário',
-            email: user.email || '',
-            role,
-            permissions: master ?getDefaultPermissions('administrativo') : getDefaultPermissions('vendedor'),
-            blocked: false,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          });
-        }
-
-        // Subscribe to real-time updates
-        unsubscribeProfile = onSnapshot(profileRef, (doc) => {
-          if (doc.exists()) {
-            setProfile(doc.data() as Profile);
-          }
-          setLoading(false);
-        }, (error) => {
-          console.error("Error listening to profile:", error);
-          setLoading(false);
-        });
-        unsubscribeAccessUser = onSnapshot(accessUserRef, (snapshot) => {
-          if (snapshot.exists()) {
-            setAccessUser({uid: user.uid, ...snapshot.data()} as AccessUser);
-          } else if (master) {
-            setAccessUser({
-              uid: user.uid,
-              nome: user.displayName || MASTER_ADMIN_EMAIL,
-              name: user.displayName || MASTER_ADMIN_EMAIL,
-              email: user.email || MASTER_ADMIN_EMAIL,
-              role: 'administrativo',
-              permissions: getDefaultPermissions('administrativo'),
-              blocked: false,
-            });
-          }
-          setLoading(false);
-        }, (error) => {
-          console.error('Error listening to access user:', error);
-          setLoading(false);
-        });
-      } else {
+      if (!authUser) {
         setProfile(null);
         setAccessUser(null);
         setLoading(false);
+        return;
       }
+
+      const profileRef = doc(db, 'profiles', authUser.uid);
+      const existingProfile = await getDoc(profileRef);
+
+      if (!existingProfile.exists()) {
+        const adminEmails = ['brian_takiya77@outlook.com', 'briank.o.t2019@gmail.com'];
+        const isInitialAdmin = adminEmails.includes(authUser.email || '');
+        const newProfile: Profile = {
+          uid: authUser.uid,
+          name: authUser.displayName || authUser.email?.split('@')[0] || 'Usuario',
+          email: authUser.email || '',
+          role: isInitialAdmin ?'admin' : 'user',
+          blocked: false,
+          phone: '',
+        };
+        await setDoc(profileRef, newProfile);
+      }
+
+      const accessUserRef = doc(db, 'users', authUser.uid);
+      const accessUserDoc = await getDoc(accessUserRef);
+      const master = isMasterAdmin(authUser);
+
+      if (!accessUserDoc.exists()) {
+        const role = master ?'administrativo' : 'vendedor';
+        const fallbackName = authUser.displayName || authUser.email?.split('@')[0] || 'Usuario';
+        await setDoc(accessUserRef, {
+          uid: authUser.uid,
+          nome: fallbackName,
+          name: fallbackName,
+          email: authUser.email || '',
+          role,
+          permissions: master ?getDefaultPermissions('administrativo') : getDefaultPermissions('vendedor'),
+          blocked: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+
+      unsubscribeProfile = onSnapshot(profileRef, (snapshot) => {
+        if (snapshot.exists()) {
+          setProfile(snapshot.data() as Profile);
+        }
+        setLoading(false);
+      }, (error) => {
+        console.error('Error listening to profile:', error);
+        setLoading(false);
+      });
+
+      unsubscribeAccessUser = onSnapshot(accessUserRef, (snapshot) => {
+        if (snapshot.exists()) {
+          setAccessUser({uid: authUser.uid, ...snapshot.data()} as AccessUser);
+        } else if (master) {
+          const fallbackName = authUser.displayName || MASTER_ADMIN_EMAIL;
+          setAccessUser({
+            uid: authUser.uid,
+            nome: fallbackName,
+            name: fallbackName,
+            email: authUser.email || MASTER_ADMIN_EMAIL,
+            role: 'administrativo',
+            permissions: getDefaultPermissions('administrativo'),
+            blocked: false,
+          });
+        }
+        setLoading(false);
+      }, (error) => {
+        console.error('Error listening to access user:', error);
+        setLoading(false);
+      });
     });
 
     return () => {
@@ -137,11 +140,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const defaults = getDefaultPermissions(accessUser?.role || 'vendedor') as any;
     return Boolean(defaults?.[modulo]?.[acao]);
   };
+
   const isAdmin = masterAdmin || profile?.role === 'admin' || hasPermission('admin', 'visualizarUsuarios');
   const canEvaluate = masterAdmin || accessUser?.role === 'coordenador' || hasPermission('cliente', 'avaliarFuncionarios');
 
   return (
-    <AuthContext.Provider value={{ user, profile, accessUser, loading, isAdmin, isMasterAdmin: masterAdmin, hasPermission, canEvaluateEmployees: canEvaluate }}>
+    <AuthContext.Provider value={{user, profile, accessUser, loading, isAdmin, isMasterAdmin: masterAdmin, hasPermission, canEvaluateEmployees: canEvaluate}}>
       {children}
     </AuthContext.Provider>
   );

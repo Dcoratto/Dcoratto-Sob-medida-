@@ -1,91 +1,93 @@
-﻿import React from 'react';
-import { NavLink } from 'react-router-dom';
-import { 
-  FileText, 
-  Users, 
-  History, 
-  Package, 
-  Database, 
-  ShieldAlert,
-  LogOut,
-  LayoutDashboard,
+import React from 'react';
+import {NavLink} from 'react-router-dom';
+import {
   BarChart3,
+  CalendarDays,
+  Database,
+  FileText,
   FolderKanban,
-  CalendarDays
+  History,
+  LayoutDashboard,
+  LogOut,
+  Package,
+  ShieldAlert,
+  Users,
 } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
-import { auth } from '../../lib/firebase';
-import { cn } from '../../lib/utils';
-import { Logo } from './Logo';
+import {useAuth} from '../../contexts/AuthContext';
+import {auth} from '../../lib/firebase';
+import {cn} from '../../lib/utils';
+import {Logo} from './Logo';
+import {roleLabel} from '../../lib/permissions';
 
 export const Sidebar: React.FC = () => {
-  const { isAdmin, profile, user, accessUser, hasPermission } = useAuth();
+  const {isAdmin, profile, user, accessUser, hasPermission} = useAuth();
 
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-    hasPermission('orcamento', 'visualizar') ?{ icon: FileText, label: 'Orçamentos', path: '/quotes' } : null,
-    hasPermission('projeto', 'visualizar') ?{ icon: FolderKanban, label: 'Projetos', path: '/projects' } : null,
-    hasPermission('cliente', 'visualizar') ?{ icon: Users, label: 'Clientes', path: '/clients' } : null,
-    hasPermission('medicao', 'visualizar') ?{ icon: CalendarDays, label: 'Calendário', path: '/calendar' } : null,
-    hasPermission('orcamento', 'visualizar') ?{ icon: History, label: 'Histórico', path: '/history' } : null,
-    hasPermission('relatorios', 'visualizar') ?{ icon: BarChart3, label: 'Relatórios', path: '/reports' } : null,
-    hasPermission('estoque', 'visualizar') ?{ icon: Package, label: 'Materiais', path: '/materials' } : null,
-    hasPermission('estoque', 'visualizar') ?{ icon: Database, label: 'Estoque', path: '/inventory' } : null,
+    hasPermission('dashboard', 'visualizar') ?{icon: LayoutDashboard, label: 'Dashboard', path: '/'} : null,
+    hasPermission('orcamento', 'visualizar') ?{icon: FileText, label: 'Orcamentos', path: '/quotes'} : null,
+    hasPermission('projeto', 'visualizar') ?{icon: FolderKanban, label: 'Projetos', path: '/projects'} : null,
+    hasPermission('cliente', 'visualizar') ?{icon: Users, label: 'Clientes', path: '/clients'} : null,
+    hasPermission('medicao', 'visualizar') ?{icon: CalendarDays, label: 'Calendario', path: '/calendar'} : null,
+    hasPermission('historico', 'visualizar') ?{icon: History, label: 'Historico', path: '/history'} : null,
+    hasPermission('relatorios', 'visualizar') ?{icon: BarChart3, label: 'Relatorios', path: '/reports'} : null,
+    hasPermission('materiais', 'visualizar') ?{icon: Package, label: 'Materiais', path: '/materials'} : null,
+    hasPermission('estoque', 'visualizar') ?{icon: Database, label: 'Estoque', path: '/inventory'} : null,
   ].filter(Boolean) as Array<{icon: any; label: string; path: string}>;
 
   if (isAdmin) {
-    menuItems.push({ icon: ShieldAlert, label: 'Admin', path: '/admin' });
+    menuItems.push({icon: ShieldAlert, label: 'Admin', path: '/admin'});
   }
 
+  const displayName = profile?.name || accessUser?.nome || user?.email?.split('@')[0] || 'Usuario';
+  const displayRole = profile?.position || (accessUser?.role ?roleLabel(accessUser.role) : user?.email || '');
+
   return (
-    <aside className="w-64 bg-white border-r border-slate-200 h-screen flex flex-col sticky top-0">
+    <aside className="sticky top-0 flex h-screen w-64 flex-col border-r border-slate-200 bg-white">
       <div className="p-6">
         <Logo />
       </div>
 
-      <nav className="flex-1 px-4 space-y-1">
+      <nav className="flex-1 space-y-1 px-4">
         {menuItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
-            className={({ isActive }) => cn(
-              "flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 group text-sm font-medium",
-              isActive 
-                ?"bg-brand-primary text-white shadow-lg shadow-brand-primary/20" 
-                : "text-slate-600 hover:bg-slate-50 hover:text-brand-primary"
+            className={({isActive}) => cn(
+              'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200',
+              isActive ?'bg-brand-primary text-white shadow-lg shadow-brand-primary/20' : 'text-slate-600 hover:bg-slate-50 hover:text-brand-primary',
             )}
           >
-            <item.icon className="w-5 h-5" />
+            <item.icon className="h-5 w-5" />
             {item.label}
           </NavLink>
         ))}
       </nav>
 
-      <div className="p-4 border-t border-slate-100">
+      <div className="border-t border-slate-100 p-4">
         <NavLink
           to="/profile"
-          className={({ isActive }) => cn(
-            "flex items-center gap-3 px-3 py-4 mb-2 rounded-xl transition-all group",
-            isActive ?"bg-slate-50" : "hover:bg-slate-50"
+          className={({isActive}) => cn(
+            'group mb-2 flex items-center gap-3 rounded-xl px-3 py-4 transition-all',
+            isActive ?'bg-slate-50' : 'hover:bg-slate-50',
           )}
         >
-          <div className="w-10 h-10 rounded-full bg-brand-primary/10 flex items-center justify-center text-brand-primary font-bold overflow-hidden">
+          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-brand-primary/10 font-bold text-brand-primary">
             {profile?.photoUrl ?(
-              <img src={profile.photoUrl} alt={profile.name} className="w-full h-full object-cover" />
+              <img src={profile.photoUrl} alt={displayName} className="h-full w-full object-cover" />
             ) : (
-              profile?.name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase()
+              displayName.charAt(0).toUpperCase()
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-slate-900 truncate">{accessUser?.nome || profile?.name || 'Usuário'}</p>
-            <p className="text-xs text-slate-500 truncate">{profile?.position || accessUser?.role || user?.email}</p>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold text-slate-900">{displayName}</p>
+            <p className="truncate text-xs text-slate-500">{displayRole}</p>
           </div>
         </NavLink>
         <button
           onClick={() => auth.signOut()}
-          className="flex items-center gap-3 w-full px-3 py-2.5 text-sm font-medium text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all group"
+          className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition-all hover:bg-red-50 hover:text-red-600"
         >
-          <LogOut className="w-5 h-5 transition-transform group-hover:-translate-x-1" />
+          <LogOut className="h-5 w-5 transition-transform group-hover:-translate-x-1" />
           Sair
         </button>
       </div>

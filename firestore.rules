@@ -37,7 +37,10 @@ service cloud.firestore {
       return (
         role() == 'vendedor'
         && (
+          (module == 'dashboard' && action in ['visualizar']) ||
           (module == 'orcamento' && action in ['visualizar', 'criar', 'editar']) ||
+          (module == 'historico' && action in ['visualizar']) ||
+          (module == 'materiais' && action in ['visualizar']) ||
           (module == 'cliente' && action in ['visualizar', 'editarDados', 'alterarEtapa', 'anexarArquivos']) ||
           (module == 'medicao' && action in ['visualizar', 'criar', 'editar']) ||
           (module == 'projeto' && action in ['visualizar', 'criar', 'editar']) ||
@@ -46,7 +49,10 @@ service cloud.firestore {
       ) || (
         role() == 'coordenador'
         && (
+          (module == 'dashboard' && action in ['visualizar']) ||
           (module == 'orcamento' && action in ['visualizar', 'criar', 'editar', 'excluir', 'aprovar']) ||
+          (module == 'historico' && action in ['visualizar']) ||
+          (module == 'materiais' && action in ['visualizar', 'editar']) ||
           (module == 'relatorios' && action in ['visualizar', 'exportar', 'verFaturamento', 'verProdutividade']) ||
           (module == 'cliente' && action in ['visualizar', 'editarDados', 'alterarEtapa', 'anexarArquivos', 'avaliarFuncionarios']) ||
           (module == 'medicao' && action in ['visualizar', 'criar', 'editar']) ||
@@ -57,6 +63,8 @@ service cloud.firestore {
       ) || (
         role() == 'liberacao'
         && (
+          (module == 'dashboard' && action in ['visualizar']) ||
+          (module == 'historico' && action in ['visualizar']) ||
           (module == 'liberacao' && action in ['visualizar', 'aprovar', 'reprovar']) ||
           (module == 'cliente' && action in ['visualizar', 'alterarEtapa']) ||
           (module == 'producao' && action in ['visualizar', 'conferirMedidas']) ||
@@ -65,6 +73,9 @@ service cloud.firestore {
       ) || (
         role() == 'administrativo'
         && (
+          (module == 'dashboard' && action in ['visualizar']) ||
+          (module == 'historico' && action in ['visualizar']) ||
+          (module == 'materiais' && action in ['visualizar', 'editar']) ||
           (module == 'estoque' && action in ['visualizar', 'adicionar', 'editar', 'excluir', 'movimentar']) ||
           (module == 'relatorios' && action in ['visualizar', 'exportar', 'verFaturamento', 'verProdutividade']) ||
           (module == 'cliente' && action in ['visualizar', 'editarDados', 'anexarArquivos']) ||
@@ -94,9 +105,18 @@ service cloud.firestore {
     match /users/{userId} {
       allow create: if isMasterAdmin() || (signedIn() && request.auth.uid == userId && request.resource.data.email == request.auth.token.email);
       allow read: if isMasterAdmin() || (signedIn() && request.auth.uid == userId) || hasPermission('admin', 'visualizarUsuarios');
-      allow update: if isMasterAdmin()
-        && resource.data.email != masterEmail()
-        && request.resource.data.email != masterEmail();
+      allow update: if (
+          isMasterAdmin()
+          && resource.data.email != masterEmail()
+          && request.resource.data.email != masterEmail()
+        ) || (
+          signedIn()
+          && request.auth.uid == userId
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.email == resource.data.email
+          && request.resource.data.permissions == resource.data.permissions
+          && request.resource.data.blocked == resource.data.blocked
+        );
       allow delete: if isMasterAdmin() && resource.data.email != masterEmail();
     }
 
@@ -167,9 +187,9 @@ service cloud.firestore {
     }
 
     match /materials/{document} {
-      allow read: if hasPermission('estoque', 'visualizar') || hasPermission('orcamento', 'visualizar');
-      allow create, update: if hasPermission('estoque', 'editar') || hasPermission('estoque', 'adicionar');
-      allow delete: if hasPermission('estoque', 'excluir');
+      allow read: if hasPermission('materiais', 'visualizar') || hasPermission('orcamento', 'visualizar');
+      allow create, update: if hasPermission('materiais', 'editar') || hasPermission('estoque', 'editar') || hasPermission('estoque', 'adicionar');
+      allow delete: if hasPermission('materiais', 'editar') || hasPermission('estoque', 'excluir');
     }
 
     match /fixtureCatalog/{document} {

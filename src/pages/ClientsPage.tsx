@@ -62,6 +62,12 @@ const stepDate = (value: any) => {
   return date.toLocaleDateString('pt-BR');
 };
 
+const orderedAssignmentsForStep = (assignments: EmployeeAssignment[] | undefined, step: ProductionStep) =>
+  (assignments || [])
+    .filter((item) => item.step === step)
+    .map((item, index) => ({...item, slotIndex: item.slotIndex ?? index}))
+    .sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0));
+
 const formatDateInput = (value: any) => {
   if (!value) return '';
   const date = typeof value.toDate === 'function' ?value.toDate() : value;
@@ -176,6 +182,10 @@ export const ClientsPage: React.FC = () => {
 
   const selectedQuote = selectedClientQuotes.find((quote) => quote.id === selectedQuoteId) || selectedClientQuotes[0];
   const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
+  const activeEmployees = useMemo(
+    () => employees.filter((employee) => employee.active !== false),
+    [employees],
+  );
   const fixtureById = (id?: string) => fixtureCatalog.find((item) => item.id === id);
   const materialById = (id?: string) => materials.find((item) => item.id === id);
   const pieceFixtureCards = (piece: QuotePiece) => {
@@ -488,7 +498,9 @@ export const ClientsPage: React.FC = () => {
 
   const updateTeamCount = async (quote: Quote, step: ProductionStep, countValue: string) => {
     const count = Math.max(1, Number(countValue) || 1);
-    const stepAssignments = (quote.employeeAssignments || []).filter((item) => item.step === step).slice(0, count);
+    const stepAssignments = orderedAssignmentsForStep(quote.employeeAssignments, step)
+      .slice(0, count)
+      .map((item, index) => ({...item, slotIndex: index}));
     const nextAssignments = [
       ...(quote.employeeAssignments || []).filter((item) => item.step !== step),
       ...stepAssignments,
@@ -502,19 +514,23 @@ export const ClientsPage: React.FC = () => {
   const updateAssignment = async (quote: Quote, step: ProductionStep, employeeId: string, slotIndex = 0) => {
     const employee = employees.find((item) => item.id === employeeId);
     const otherAssignments = (quote.employeeAssignments || []).filter((item) => item.step !== step);
-    const stepAssignments = [...(quote.employeeAssignments || []).filter((item) => item.step === step)];
+    const stepAssignments = orderedAssignmentsForStep(quote.employeeAssignments, step);
+    const previousAssignment = stepAssignments.find((item) => item.slotIndex === slotIndex);
+    const nextStepAssignments = stepAssignments.filter((item) => item.slotIndex !== slotIndex);
     if (employee) {
-      stepAssignments[slotIndex] = {
+      nextStepAssignments.push({
         step,
         employeeId: employee.id,
         employeeName: employee.name,
-        startedAt: stepAssignments[slotIndex]?.startedAt || Timestamp.now(),
-        finishedAt: stepAssignments[slotIndex]?.finishedAt,
-      };
-    } else {
-      stepAssignments.splice(slotIndex, 1);
+        slotIndex,
+        startedAt: previousAssignment?.startedAt || Timestamp.now(),
+        finishedAt: previousAssignment?.finishedAt,
+      });
     }
-    const nextAssignments = [...otherAssignments, ...stepAssignments.filter((item) => item?.employeeId)];
+    const orderedStepAssignments = nextStepAssignments
+      .filter((item) => item?.employeeId)
+      .sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0));
+    const nextAssignments = [...otherAssignments, ...orderedStepAssignments];
     const nextTeamCount = Math.max(Number(quote.teamCounts?.[step] || 1), slotIndex + 1, nextAssignments.filter((item) => item.step === step).length || 1);
 
     await updateDoc(doc(db, 'quotes', quote.id), {
@@ -555,7 +571,7 @@ export const ClientsPage: React.FC = () => {
   const toggleStepDone = async (quote: Quote, assignment: EmployeeAssignment) => {
     const finished = Boolean(assignment.finishedAt);
     const nextAssignments = (quote.employeeAssignments || []).map((item) => (
-      item.step === assignment.step && item.employeeId === assignment.employeeId
+      item.step === assignment.step && item.employeeId === assignment.employeeId && (item.slotIndex ?? 0) === (assignment.slotIndex ?? 0)
         ?{...item, finishedAt: finished ?null : Timestamp.now()}
         : item
     ));
@@ -1020,7 +1036,7 @@ export const ClientsPage: React.FC = () => {
                         <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Etapas e responsáveis</h3>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                           {productionSteps.map((step) => {
-                            const stepAssignments = selectedQuote.employeeAssignments?.filter((item) => item.step === step.key) || [];
+                            const stepAssignments = orderedAssignmentsForStep(selectedQuote.employeeAssignments, step.key);
                             const teamCount = Math.max(1, Number(selectedQuote.teamCounts?.[step.key] || stepAssignments.length || 1));
                             return (
                               <div key={step.key} className="rounded-2xl bg-slate-50 p-4 space-y-3">
@@ -1045,7 +1061,7 @@ export const ClientsPage: React.FC = () => {
                                   />
                                 </label>
                                 {Array.from({length: teamCount}, (_, index) => {
-                                  const assignment = stepAssignments[index];
+                                  const assignment = stepAssignments.find((item) => item.slotIndex === index);
                                   const evaluation = assignment
                                     ?selectedQuote.employeeEvaluations?.find((item) => item.step === step.key && item.employeeId === assignment.employeeId)
                                     : undefined;
@@ -1061,7 +1077,7 @@ export const ClientsPage: React.FC = () => {
                                         className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
                                       >
                                         <option value="">Selecionar profissional</option>
-                                        {employees.filter((employee) => employee.active).map((employee) => (
+                                        {activeEmployees.map((employee) => (
                                           <option key={employee.id} value={employee.id}>{employee.name} · {employee.role}</option>
                                         ))}
                                       </select>

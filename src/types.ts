@@ -125,6 +125,7 @@ export interface EmployeeAssignment {
   step: ProductionStep;
   employeeId: string;
   employeeName: string;
+  slotIndex?: number;
   startedAt?: any;
   finishedAt?: any;
 }

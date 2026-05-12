@@ -215,6 +215,21 @@ export interface WetAreaRecess {
   unit: 'cm' | 'm';
 }
 
+export interface StairConfig {
+  active: boolean;
+  unit: 'cm' | 'm';
+  stepCount: number;
+  stepWidth: number;
+  treadDepth: number;
+  riserHeight: number;
+  landingCount: number;
+  landingWidth: number;
+  landingDepth: number;
+  leftBaseboard: boolean;
+  rightBaseboard: boolean;
+  baseboardHeight: number;
+}
+
 export interface QuotePiece {
   id: string;
   name: string;
@@ -232,6 +247,7 @@ export interface QuotePiece {
   previewUrl?: string;
   proposalImageUrl?: string;
   cutouts?: DrawingCutout[];
+  stair?: StairConfig;
   sculptedSink?: SculptedSink;
   wetAreaRecess?: WetAreaRecess;
   purchasedFixtures?: {

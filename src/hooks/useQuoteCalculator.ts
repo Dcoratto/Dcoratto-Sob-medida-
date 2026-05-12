@@ -61,10 +61,44 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
     return Math.max(0, recess.width / factor) * Math.max(0, recess.depth / factor);
   };
 
+  const calculateStairArea = (piece: QuotePiece) => {
+    const stair = piece.stair;
+    if (!stair?.active) return {
+      treadArea: 0,
+      riserArea: 0,
+      landingArea: 0,
+      baseboardArea: 0,
+      totalArea: 0,
+    };
+
+    const factor = stair.unit === 'cm' ?100 : 1;
+    const stepCount = Math.max(0, stair.stepCount || 0);
+    const stepWidth = Math.max(0, stair.stepWidth || 0) / factor;
+    const treadDepth = Math.max(0, stair.treadDepth || 0) / factor;
+    const riserHeight = Math.max(0, stair.riserHeight || 0) / factor;
+    const landingCount = Math.max(0, stair.landingCount || 0);
+    const landingWidth = Math.max(0, stair.landingWidth || 0) / factor;
+    const landingDepth = Math.max(0, stair.landingDepth || 0) / factor;
+    const baseboardHeight = Math.max(0, stair.baseboardHeight || 0) / factor;
+    const sideCount = Number(Boolean(stair.leftBaseboard)) + Number(Boolean(stair.rightBaseboard));
+
+    const treadArea = stepCount * stepWidth * treadDepth;
+    const riserArea = stepCount * stepWidth * riserHeight;
+    const landingArea = landingCount * landingWidth * landingDepth;
+    const baseboardLinear = (stepCount * treadDepth) + (landingCount * landingDepth);
+    const baseboardArea = sideCount * baseboardLinear * baseboardHeight;
+    const totalArea = treadArea + riserArea + landingArea + baseboardArea;
+
+    return {treadArea, riserArea, landingArea, baseboardArea, totalArea};
+  };
+
   const calculatePieceArea = (piece: QuotePiece) => {
     // Area of main stone
     let mainArea = 0;
-    if (piece.unit === 'cm') {
+    const stairArea = calculateStairArea(piece);
+    if (piece.stair?.active) {
+      mainArea = stairArea.totalArea;
+    } else if (piece.unit === 'cm') {
       mainArea = (piece.width * piece.length) / 10000;
     } else {
       mainArea = piece.width * piece.length;
@@ -86,6 +120,8 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
       mainArea: piece.manualArea || mainArea, 
       sidesArea, 
       sinkArea: sinkResult.baseArea,
+      stairArea: stairArea.totalArea,
+      stairDetails: stairArea,
       lossArea: pieceLossArea,
       recessArea,
       sinkValue: sinkResult.value,
@@ -97,8 +133,9 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
   const calculateLabor = (pieces: QuotePiece[]) => {
     return pieces.reduce((acc, p) => {
       // Labor per linear meter * largest side
-      const largestDim = p.largestSide || Math.max(p.width, p.length);
-      const largestSideM = largestDim / (p.unit === 'cm' ?100 : 1);
+      const largestDim = p.stair?.active ?Math.max(p.stair.stepWidth || 0, (p.stair.stepCount || 0) * (p.stair.treadDepth || 0)) : p.largestSide || Math.max(p.width, p.length);
+      const unit = p.stair?.active ?p.stair.unit : p.unit;
+      const largestSideM = largestDim / (unit === 'cm' ?100 : 1);
       return acc + (settings.laborRatePerLinearMeter * largestSideM);
     }, 0);
   };
@@ -136,5 +173,5 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
     return subtotal + adjustmentValue;
   };
 
-  return { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink };
+  return { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink, calculateStairArea };
 };

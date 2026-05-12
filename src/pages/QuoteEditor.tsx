@@ -85,7 +85,7 @@ export const QuoteEditor: React.FC = () => {
         : undefined;
   };
   const selectedClient = clients.find(c => c.id === clientId);
-  const { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink } = useQuoteCalculator(settings, (piece) => materialWithUserPrice(piece.materialId || materialId));
+  const { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithUserPrice(piece.materialId || materialId));
   const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
   
   const selectedPaymentAdjustment = settings.paymentMethods.find(m => m.name === paymentMethod)?.adjustment || 0;
@@ -265,10 +265,25 @@ export const QuoteEditor: React.FC = () => {
     });
   }, [materials, pieces]);
 
-  const addPiece = () => {
+  const defaultStairConfig = (): QuotePiece['stair'] => ({
+    active: true,
+    unit: 'cm',
+    stepCount: 0,
+    stepWidth: 0,
+    treadDepth: 0,
+    riserHeight: 0,
+    landingCount: 0,
+    landingWidth: 0,
+    landingDepth: 0,
+    leftBaseboard: false,
+    rightBaseboard: false,
+    baseboardHeight: 10,
+  });
+
+  const addPiece = (asStair = false) => {
     const newPiece: QuotePiece = {
       id: Math.random().toString(36).substr(2, 9),
-      name: `Peça ${pieces.length + 1}`,
+      name: asStair ?`Escada ${pieces.filter((piece) => piece.stair?.active).length + 1}` : `Peça ${pieces.length + 1}`,
       materialId: '',
       unit: 'cm',
       width: 0,
@@ -286,7 +301,8 @@ export const QuoteEditor: React.FC = () => {
         unit: 'cm',
         calculatedArea: 0,
         calculatedValue: 0
-      }
+      },
+      stair: asStair ?defaultStairConfig() : {active: false, unit: 'cm', stepCount: 0, stepWidth: 0, treadDepth: 0, riserHeight: 0, landingCount: 0, landingWidth: 0, landingDepth: 0, leftBaseboard: false, rightBaseboard: false, baseboardHeight: 10}
     };
     setPieces([...pieces, newPiece]);
   };
@@ -752,12 +768,22 @@ export const QuoteEditor: React.FC = () => {
         <div className="lg:col-span-2 space-y-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-2xl font-display font-bold text-slate-900">Peças do Orçamento</h2>
-            <button 
-              onClick={addPiece}
-              className="flex items-center gap-2 text-brand-primary font-bold hover:underline"
-            >
-              <Plus className="w-5 h-5" /> Adicionar Peça
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => addPiece(false)}
+                className="flex items-center gap-2 text-brand-primary font-bold hover:underline"
+              >
+                <Plus className="w-5 h-5" /> Adicionar Peça
+              </button>
+              <button
+                type="button"
+                onClick={() => addPiece(true)}
+                className="rounded-2xl bg-brand-primary px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-brand-primary/90"
+              >
+                Adicionar Escada
+              </button>
+            </div>
           </div>
 
           <div className="space-y-6">
@@ -765,12 +791,16 @@ export const QuoteEditor: React.FC = () => {
               <div className="bg-slate-50 border-2 border-dashed border-slate-200 p-12 rounded-[32px] text-center space-y-4">
                 <Layers className="w-12 h-12 text-slate-300 mx-auto" />
                 <div className="text-slate-500 font-medium tracking-tight">Nenhuma peça adicionada ainda.</div>
-                <button onClick={addPiece} className="text-brand-primary font-bold">Clique aqui para começar</button>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button type="button" onClick={() => addPiece(false)} className="text-brand-primary font-bold">Adicionar peça normal</button>
+                  <button type="button" onClick={() => addPiece(true)} className="text-brand-primary font-bold">Adicionar escada</button>
+                </div>
               </div>
             )}
 
             {pieces.map((piece, pIdx) => {
               const pieceArea = calculatePieceArea(piece).totalArea;
+              const stairDetails = calculateStairArea(piece);
               const pieceMaterial = materialWithUserPrice(piece.materialId);
               const stock = piece.materialId ?materialStock(piece.materialId) : {available: 0};
               const hasMaterial = Boolean(piece.materialId);
@@ -789,6 +819,22 @@ export const QuoteEditor: React.FC = () => {
                       onChange={(e) => updatePiece(piece.id, { name: e.target.value })}
                       className="bg-transparent font-display font-bold text-slate-800 outline-none focus:text-brand-primary transition-all w-48"
                     />
+                    <div className="hidden md:flex rounded-xl bg-white p-1 border border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => updatePiece(piece.id, {stair: {...(piece.stair || defaultStairConfig()), active: false}})}
+                        className={cn('px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', !piece.stair?.active ?'bg-brand-primary text-white shadow-sm' : 'text-slate-400 hover:text-slate-700')}
+                      >
+                        Peça
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updatePiece(piece.id, {stair: {...defaultStairConfig(), ...(piece.stair || {}), active: true}, sculptedSink: {...piece.sculptedSink, active: false} as any, wetAreaRecess: {...piece.wetAreaRecess, active: false} as any})}
+                        className={cn('px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', piece.stair?.active ?'bg-brand-primary text-white shadow-sm' : 'text-slate-400 hover:text-slate-700')}
+                      >
+                        Escada
+                      </button>
+                    </div>
                   </div>
                   <button 
                     type="button"
@@ -895,6 +941,82 @@ export const QuoteEditor: React.FC = () => {
                           )}
                         </div>
                       </div>
+                      {piece.stair?.active && (
+                        <div className="md:col-span-3 rounded-3xl border border-amber-100 bg-amber-50/40 p-5 space-y-4">
+                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                            <div>
+                              <h3 className="font-display text-lg font-bold text-slate-900">Orçamento de escada</h3>
+                              <p className="text-xs text-slate-500">Calcula piso, espelho, patamar e rodapé lateral da escada.</p>
+                            </div>
+                            <select
+                              value={piece.stair.unit}
+                              onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, unit: e.target.value as 'cm' | 'm'}})}
+                              className="rounded-xl border border-amber-100 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+                            >
+                              <option value="cm">cm</option>
+                              <option value="m">m</option>
+                            </select>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                            <label className="space-y-1">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Qtd. degraus</span>
+                              <input type="number" min="0" value={piece.stair.stepCount} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, stepCount: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura degrau</span>
+                              <input type="number" min="0" value={piece.stair.stepWidth} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, stepWidth: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Profundidade piso</span>
+                              <input type="number" min="0" value={piece.stair.treadDepth} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, treadDepth: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Altura espelho</span>
+                              <input type="number" min="0" value={piece.stair.riserHeight} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, riserHeight: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                            </label>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <label className="space-y-1">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Qtd. patamares</span>
+                              <input type="number" min="0" value={piece.stair.landingCount} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, landingCount: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura patamar</span>
+                              <input type="number" min="0" value={piece.stair.landingWidth} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, landingWidth: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Profundidade patamar</span>
+                              <input type="number" min="0" value={piece.stair.landingDepth} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, landingDepth: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                            </label>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-slate-600">
+                              <input type="checkbox" checked={piece.stair.leftBaseboard} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, leftBaseboard: e.target.checked}})} className="h-4 w-4 accent-brand-primary" />
+                              Rodapé esquerdo
+                            </label>
+                            <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-slate-600">
+                              <input type="checkbox" checked={piece.stair.rightBaseboard} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, rightBaseboard: e.target.checked}})} className="h-4 w-4 accent-brand-primary" />
+                              Rodapé direito
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Altura rodapé</span>
+                              <input type="number" min="0" value={piece.stair.baseboardHeight} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, baseboardHeight: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                            </label>
+                          </div>
+
+                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
+                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Pisos</span><strong>{formatNumber(stairDetails.treadArea, 4)} m²</strong></div>
+                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Espelhos</span><strong>{formatNumber(stairDetails.riserArea, 4)} m²</strong></div>
+                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Patamar</span><strong>{formatNumber(stairDetails.landingArea, 4)} m²</strong></div>
+                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Rodapé</span><strong>{formatNumber(stairDetails.baseboardArea, 4)} m²</strong></div>
+                            <div className="rounded-2xl bg-brand-primary p-3 text-white"><span className="block font-bold uppercase text-white/70">Total escada</span><strong>{formatNumber(stairDetails.totalArea, 4)} m²</strong></div>
+                          </div>
+                        </div>
+                      )}
+                      {!piece.stair?.active && (
                       <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Comp. (cm)</label>
                         <input 
@@ -904,6 +1026,8 @@ export const QuoteEditor: React.FC = () => {
                           className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
                         />
                       </div>
+                      )}
+                      {!piece.stair?.active && (
                       <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura (cm)</label>
                         <input 
@@ -913,6 +1037,7 @@ export const QuoteEditor: React.FC = () => {
                           className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
                         />
                       </div>
+                      )}
                       <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">área Total (m²)</label>
                         <div className="px-4 py-2.5 bg-slate-100 rounded-xl font-mono text-slate-600 flex flex-col items-end">

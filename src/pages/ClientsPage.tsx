@@ -518,14 +518,15 @@ export const ClientsPage: React.FC = () => {
     const previousAssignment = stepAssignments.find((item) => item.slotIndex === slotIndex);
     const nextStepAssignments = stepAssignments.filter((item) => item.slotIndex !== slotIndex);
     if (employee) {
-      nextStepAssignments.push({
+      const nextAssignment: EmployeeAssignment = {
         step,
         employeeId: employee.id,
         employeeName: employee.name,
         slotIndex,
         startedAt: previousAssignment?.startedAt || Timestamp.now(),
-        finishedAt: previousAssignment?.finishedAt,
-      });
+      };
+      if (previousAssignment?.finishedAt) nextAssignment.finishedAt = previousAssignment.finishedAt;
+      nextStepAssignments.push(nextAssignment);
     }
     const orderedStepAssignments = nextStepAssignments
       .filter((item) => item?.employeeId)
@@ -533,23 +534,28 @@ export const ClientsPage: React.FC = () => {
     const nextAssignments = [...otherAssignments, ...orderedStepAssignments];
     const nextTeamCount = Math.max(Number(quote.teamCounts?.[step] || 1), slotIndex + 1, nextAssignments.filter((item) => item.step === step).length || 1);
 
-    await updateDoc(doc(db, 'quotes', quote.id), {
+    const nextStatusHistory = [
+      ...(quote.statusHistory || []),
+      {
+        status: quote.status,
+        changedAt: Timestamp.now(),
+        changedByUid: user?.uid || '',
+        changedByName: currentUserName,
+        responsibleEmployeeId: employee?.id || '',
+        responsibleEmployeeName: employee?.name || '',
+        step,
+        note: employee  ? `${employee.name} assumiu ${productionSteps.find((item) => item.key === step)?.label}` : `Responsável removido de ${step}`,
+      },
+    ];
+    const updatePayload = {
       teamCounts: {...(quote.teamCounts || {}), [step]: nextTeamCount},
       employeeAssignments: nextAssignments,
-      statusHistory: [
-        ...(quote.statusHistory || []),
-        {
-          status: quote.status,
-          changedAt: Timestamp.now(),
-          changedByUid: user?.uid || '',
-          changedByName: currentUserName,
-          responsibleEmployeeId: employee?.id || '',
-          responsibleEmployeeName: employee?.name || '',
-          step,
-          note: employee  ? `${employee.name} assumiu ${productionSteps.find((item) => item.key === step)?.label}` : `Responsável removido de ${step}`,
-        },
-      ],
-    });
+      statusHistory: nextStatusHistory,
+    };
+
+    setQuotes((current) => current.map((item) => item.id === quote.id ?{...item, ...updatePayload} : item));
+
+    await updateDoc(doc(db, 'quotes', quote.id), updatePayload);
     await logSystemEvent({
       type: 'production_assignment_changed',
       title: employee ?'Responsável de produção definido' : 'Responsável de produção removido',

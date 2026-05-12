@@ -291,8 +291,7 @@ export const MaterialsPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-sm text-slate-600">
-                      <div>{formatCurrency(material.baseMinimumSalePerM2 ?? 0)}</div>
-                      <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Compra {formatCurrency(material.baseCostPerM2 ?? 0)}</div>
+                      {formatCurrency(material.baseMinimumSalePerM2 ?? 0)}
                     </td>
                     <td className="px-6 py-4 font-mono text-sm text-slate-900">{material.userMarginPercentage ?? 0}%</td>
                     <td className="px-6 py-4 font-mono font-bold text-brand-primary">{formatCurrency(material.userPricePerM2 || 0)}</td>
@@ -343,12 +342,6 @@ export const MaterialsPage: React.FC = () => {
                   <label className="text-slate-500 font-medium text-sm">Mínimo de venda por m²</label>
                   <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono text-slate-600">
                     {formatCurrency(editingMaterial.baseMinimumSalePerM2 ?? 0)}
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Compra por m²</label>
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono text-slate-600">
-                    {formatCurrency(editingMaterial.baseCostPerM2 ?? 0)}
                   </div>
                 </div>
                 <div className="space-y-1.5">

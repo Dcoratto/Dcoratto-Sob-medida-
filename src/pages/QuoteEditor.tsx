@@ -65,12 +65,24 @@ export const QuoteEditor: React.FC = () => {
   const [statusHistory, setStatusHistory] = useState<QuoteStatusHistory[]>([]);
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
 
+  const minimumSalePerM2FromInventory = (materialIdToFind?: string) => {
+    if (!materialIdToFind) return 0;
+    const stockItems = inventory.filter((item) => item.materialId === materialIdToFind && !['usada', 'descarte'].includes(normalizeStockStatus(item.status)));
+    const stockArea = stockItems.reduce((sum, item) => sum + (item.area || 0), 0);
+    const minimumSaleTotal = stockItems.reduce((sum, item) => sum + (item.minimumSalePrice ?? item.cost ?? 0), 0);
+    return stockArea > 0 ? minimumSaleTotal / stockArea : 0;
+  };
+
   const materialWithUserPrice = (idToFind?: string) => {
     const baseMaterial = materials.find((material) => material.id === idToFind);
     const userPrice = userMaterialPrices.find((price) => price.materialId === idToFind);
+    const minimumSalePerM2 = minimumSalePerM2FromInventory(idToFind);
+    const fallbackPrice = minimumSalePerM2 || baseMaterial?.pricePerM2 || 0;
     return baseMaterial && userPrice
-      ?{...baseMaterial, marginPercentage: userPrice.marginPercentage, pricePerM2: userPrice.pricePerM2}
-      : baseMaterial;
+      ?{...baseMaterial, baseMinimumSalePerM2: minimumSalePerM2, marginPercentage: userPrice.marginPercentage, pricePerM2: userPrice.pricePerM2}
+      : baseMaterial
+        ?{...baseMaterial, baseMinimumSalePerM2: minimumSalePerM2, pricePerM2: fallbackPrice}
+        : undefined;
   };
   const selectedClient = clients.find(c => c.id === clientId);
   const { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink } = useQuoteCalculator(settings, (piece) => materialWithUserPrice(piece.materialId || materialId));

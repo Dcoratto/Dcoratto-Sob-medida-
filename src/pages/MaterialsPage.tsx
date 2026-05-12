@@ -10,10 +10,12 @@ import {useAuth} from '../contexts/AuthContext';
 type MaterialWithUserPrice = Material & {
   stockArea: number;
   stockCost: number;
+  stockMinimumSale: number;
   manualReservedArea: number;
   quoteReservedArea: number;
   availableArea: number;
   missingArea: number;
+  baseMinimumSalePerM2: number;
   userMarginPercentage: number;
   userPricePerM2: number;
 };
@@ -37,6 +39,7 @@ export const MaterialsPage: React.FC = () => {
   const [reservationMaterialId, setReservationMaterialId] = useState<string | null>(null);
   const [editingMaterial, setEditingMaterial] = useState<MaterialWithUserPrice | null>(null);
   const [marginPercentage, setMarginPercentage] = useState('');
+  const [salePricePerM2, setSalePricePerM2] = useState('');
   const [active, setActive] = useState(true);
   const [loading, setLoading] = useState(true);
 
@@ -95,6 +98,7 @@ export const MaterialsPage: React.FC = () => {
       const stockItems = activeStockItems.filter((item) => item.materialId === material.id);
       const stockArea = stockItems.reduce((acc, item) => acc + (item.area || 0), 0);
       const stockCost = stockItems.reduce((acc, item) => acc + (item.cost || 0), 0);
+      const stockMinimumSale = stockItems.reduce((acc, item) => acc + (item.minimumSalePrice ?? item.cost ?? 0), 0);
       const manualReservedArea = stockItems
         .filter((item) => normalizeStatus(item.status) === 'reservada')
         .reduce((acc, item) => acc + (item.area || 0), 0);
@@ -104,9 +108,10 @@ export const MaterialsPage: React.FC = () => {
       const availableArea = Math.max(0, stockArea - manualReservedArea - quoteReservedArea);
       const missingArea = Math.max(0, quoteReservedArea - Math.max(0, stockArea - manualReservedArea));
       const baseCostPerM2 = stockArea > 0 ? stockCost / stockArea : 0;
+      const baseMinimumSalePerM2 = stockArea > 0 ? stockMinimumSale / stockArea : baseCostPerM2;
       const userPrice = userPrices.find((price) => price.materialId === material.id);
       const margin = userPrice?.marginPercentage ?? 0;
-      const pricePerM2 = userPrice?.pricePerM2 ?? baseCostPerM2 * (1 + margin / 100);
+      const pricePerM2 = userPrice?.pricePerM2 ?? baseMinimumSalePerM2 * (1 + margin / 100);
       const imageUrl = material.imageUrl || stockItems.find((item) => item.photoUrl)?.photoUrl || '';
 
       return {
@@ -116,12 +121,14 @@ export const MaterialsPage: React.FC = () => {
         imageUrl,
         stockArea,
         stockCost,
+        stockMinimumSale,
         manualReservedArea,
         quoteReservedArea,
         availableArea,
         missingArea,
         baseCostPerM2,
-        pricePerM2: baseCostPerM2,
+        baseMinimumSalePerM2,
+        pricePerM2: baseMinimumSalePerM2,
         userMarginPercentage: margin,
         userPricePerM2: pricePerM2,
       };
@@ -131,6 +138,7 @@ export const MaterialsPage: React.FC = () => {
   const handleEdit = (material: MaterialWithUserPrice) => {
     setEditingMaterial(material);
     setMarginPercentage(String(material.userMarginPercentage ?? 0));
+    setSalePricePerM2(String(material.userPricePerM2 || 0));
     setActive(material.active);
     setShowModal(true);
   };
@@ -141,15 +149,18 @@ export const MaterialsPage: React.FC = () => {
 
     const margin = Number(marginPercentage);
     const baseCost = editingMaterial.baseCostPerM2 ?? 0;
-    const pricePerM2 = baseCost * (1 + margin / 100);
+    const baseMinimumSale = editingMaterial.baseMinimumSalePerM2 ?? baseCost;
+    const pricePerM2 = Number(salePricePerM2) || baseMinimumSale * (1 + margin / 100);
 
     if (user?.uid) {
       await setDoc(doc(db, 'userMaterialPrices', `${user.uid}_${editingMaterial.id}`), {
         userId: user.uid,
         materialId: editingMaterial.id,
         baseCostPerM2: baseCost,
+        baseMinimumSalePerM2: baseMinimumSale,
         marginPercentage: margin,
         pricePerM2,
+        finalPricePerM2: pricePerM2,
         updatedAt: serverTimestamp(),
       }, {merge: true});
     }
@@ -158,6 +169,7 @@ export const MaterialsPage: React.FC = () => {
 
     setShowModal(false);
     setEditingMaterial(null);
+    setSalePricePerM2('');
   };
 
   const handleStatusChange = async (material: Material, nextActive: boolean) => {
@@ -222,7 +234,7 @@ export const MaterialsPage: React.FC = () => {
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Reservado</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Disponível</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Faltando</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Custo/m²</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Mínimo venda/m²</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Margem</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Venda/m²</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
@@ -278,7 +290,10 @@ export const MaterialsPage: React.FC = () => {
                         {formatNumber(material.missingArea)} m²
                       </span>
                     </td>
-                    <td className="px-6 py-4 font-mono text-sm text-slate-600">{formatCurrency(material.baseCostPerM2 ?? 0)}</td>
+                    <td className="px-6 py-4 font-mono text-sm text-slate-600">
+                      <div>{formatCurrency(material.baseMinimumSalePerM2 ?? 0)}</div>
+                      <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">Compra {formatCurrency(material.baseCostPerM2 ?? 0)}</div>
+                    </td>
                     <td className="px-6 py-4 font-mono text-sm text-slate-900">{material.userMarginPercentage ?? 0}%</td>
                     <td className="px-6 py-4 font-mono font-bold text-brand-primary">{formatCurrency(material.userPricePerM2 || 0)}</td>
                     <td className="px-6 py-4">
@@ -323,9 +338,15 @@ export const MaterialsPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Custo por m²</label>
+                  <label className="text-slate-500 font-medium text-sm">Mínimo de venda por m²</label>
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono text-slate-600">
+                    {formatCurrency(editingMaterial.baseMinimumSalePerM2 ?? 0)}
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Compra por m²</label>
                   <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono text-slate-600">
                     {formatCurrency(editingMaterial.baseCostPerM2 ?? 0)}
                   </div>
@@ -336,17 +357,40 @@ export const MaterialsPage: React.FC = () => {
                     type="number"
                     step="0.01"
                     value={marginPercentage}
-                    onChange={(e) => setMarginPercentage(e.target.value)}
+                    onChange={(e) => {
+                      const nextMargin = e.target.value;
+                      const base = editingMaterial.baseMinimumSalePerM2 ?? 0;
+                      setMarginPercentage(nextMargin);
+                      setSalePricePerM2(String(base * (1 + Number(nextMargin || 0) / 100)));
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Venda final por m²</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={salePricePerM2}
+                    onChange={(e) => {
+                      const nextPrice = e.target.value;
+                      const base = editingMaterial.baseMinimumSalePerM2 ?? 0;
+                      setSalePricePerM2(nextPrice);
+                      if (base > 0) {
+                        setMarginPercentage(String(((Number(nextPrice || 0) / base) - 1) * 100));
+                      }
+                    }}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono"
                   />
                 </div>
               </div>
 
               <div className="bg-brand-primary/5 border border-brand-primary/10 rounded-2xl p-4">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Preço de venda calculado</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Preço de venda final</div>
                 <div className="text-2xl font-display font-bold text-brand-primary mt-1">
-                  {formatCurrency((editingMaterial.baseCostPerM2 ?? 0) * (1 + Number(marginPercentage || 0) / 100))}
+                  {formatCurrency(Number(salePricePerM2) || 0)}
                 </div>
+                <p className="mt-1 text-xs text-slate-500">A margem é aplicada em cima do valor mínimo de venda, não mais sobre o custo de compra.</p>
               </div>
 
               <div className="flex items-center gap-2 pt-2">

@@ -53,6 +53,7 @@ export interface Material {
   name: string;
   pricePerM2: number;
   baseCostPerM2?: number;
+  baseMinimumSalePerM2?: number;
   marginPercentage?: number;
   provider: string;
   category: string;
@@ -67,8 +68,10 @@ export interface UserMaterialPrice {
   userId: string;
   materialId: string;
   baseCostPerM2: number;
+  baseMinimumSalePerM2?: number;
   marginPercentage: number;
   pricePerM2: number;
+  finalPricePerM2?: number;
   updatedAt?: any;
 }
 
@@ -332,6 +335,7 @@ export interface InventoryItem {
   thickness: number;
   area: number;
   cost: number;
+  minimumSalePrice?: number;
   status: 'Disponível' | 'Reservada' | 'Usada' | 'Retalho' | 'Descarte';
   notes: string;
   photoUrl?: string;
@@ -372,6 +376,7 @@ export interface InventoryPurchase {
   thickness: number;
   area: number;
   cost: number;
+  minimumSalePrice?: number;
   photoUrl?: string;
   purchaseGroupId?: string;
   purchaseIndex?: number;

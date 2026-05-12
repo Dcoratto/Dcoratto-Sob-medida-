@@ -26,6 +26,7 @@ type PurchaseSlabForm = {
   width: string;
   thickness: string;
   cost: string;
+  minimumSalePrice: string;
 };
 
 const emptyPurchaseSlab = (): PurchaseSlabForm => ({
@@ -34,6 +35,7 @@ const emptyPurchaseSlab = (): PurchaseSlabForm => ({
   width: '',
   thickness: '',
   cost: '',
+  minimumSalePrice: '',
 });
 
 const isApprovedReservation = (reservation: InventoryReservation) => {
@@ -84,6 +86,7 @@ export const InventoryPage: React.FC = () => {
   const [width, setWidth] = useState('');
   const [thickness, setThickness] = useState('');
   const [cost, setCost] = useState('');
+  const [minimumSalePrice, setMinimumSalePrice] = useState('');
   const [status, setStatus] = useState<InventoryItem['status']>('Disponível');
   const [notes, setNotes] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -99,6 +102,7 @@ export const InventoryPage: React.FC = () => {
   const [purchaseWidth, setPurchaseWidth] = useState('');
   const [purchaseThickness, setPurchaseThickness] = useState('');
   const [purchaseCost, setPurchaseCost] = useState('');
+  const [purchaseMinimumSalePrice, setPurchaseMinimumSalePrice] = useState('');
   const [purchaseSlabs, setPurchaseSlabs] = useState<PurchaseSlabForm[]>([emptyPurchaseSlab()]);
   const [purchaseNotes, setPurchaseNotes] = useState('');
   const [lossQuoteId, setLossQuoteId] = useState('');
@@ -152,6 +156,7 @@ export const InventoryPage: React.FC = () => {
     setWidth('');
     setThickness('');
     setCost('');
+    setMinimumSalePrice('');
     setStatus('Disponível');
     setNotes('');
     setPhotoFile(null);
@@ -173,6 +178,7 @@ export const InventoryPage: React.FC = () => {
     setPurchaseWidth('');
     setPurchaseThickness('');
     setPurchaseCost('');
+    setPurchaseMinimumSalePrice('');
     setPurchaseSlabs([emptyPurchaseSlab()]);
     setPurchaseNotes('');
   };
@@ -204,6 +210,7 @@ export const InventoryPage: React.FC = () => {
 
     const area = (Number(length) * Number(width)) / 10000;
     const totalCost = Number(cost);
+    const minimumSale = Number(minimumSalePrice || cost);
     const inventoryRef = editingItem ?doc(db, 'inventory', editingItem.id) : doc(collection(db, 'inventory'));
     const materialId = selectedMaterialId;
     const selectedMaterial = materials.find((material) => material.id === materialId);
@@ -226,6 +233,7 @@ export const InventoryPage: React.FC = () => {
       thickness: Number(thickness),
       area,
       cost: totalCost,
+      minimumSalePrice: minimumSale,
       status,
       notes,
       photoUrl,
@@ -243,7 +251,7 @@ export const InventoryPage: React.FC = () => {
         materialName: data.materialName,
         userUid: user?.uid || '',
         userName: currentUserName,
-        metadata: {area, cost: totalCost, status},
+        metadata: {area, cost: totalCost, minimumSalePrice: minimumSale, status},
       });
     } else {
       await setDoc(inventoryRef, data);
@@ -257,7 +265,7 @@ export const InventoryPage: React.FC = () => {
         materialName: data.materialName,
         userUid: user?.uid || '',
         userName: currentUserName,
-        metadata: {area, cost: totalCost, status},
+        metadata: {area, cost: totalCost, minimumSalePrice: minimumSale, status},
       });
     }
 
@@ -276,6 +284,7 @@ export const InventoryPage: React.FC = () => {
     setWidth(item.width.toString());
     setThickness(item.thickness.toString());
     setCost(item.cost.toString());
+    setMinimumSalePrice(String(item.minimumSalePrice ?? item.cost ?? ''));
     setStatus(item.status);
     setNotes(item.notes);
     setPhotoFile(null);
@@ -321,6 +330,7 @@ export const InventoryPage: React.FC = () => {
     setPurchaseWidth('');
     setPurchaseThickness(inventoryItem?.thickness ?String(inventoryItem.thickness) : '');
     setPurchaseCost('');
+    setPurchaseMinimumSalePrice('');
     setPurchaseCode('');
     setPurchaseNotes(`Compra pendente sugerida: ${formatNumber(item.missing)} m²`);
     setShowPurchaseModal(true);
@@ -342,14 +352,15 @@ export const InventoryPage: React.FC = () => {
         width: purchaseWidth,
         thickness: purchaseThickness,
         cost: purchaseCost,
+        minimumSalePrice: purchaseMinimumSalePrice || purchaseCost,
       }))
       : purchaseSlabs.slice(0, quantity).map((slab, index) => ({
         ...slab,
         code: slab.code.trim() || (purchaseCode.trim() ?`${purchaseCode.trim()}-${index + 1}` : ''),
       }));
 
-    if (slabs.some((slab) => !Number(slab.length) || !Number(slab.width) || !Number(slab.cost))) {
-      alert('Preencha comprimento, largura e custo de todas as chapas.');
+    if (slabs.some((slab) => !Number(slab.length) || !Number(slab.width) || !Number(slab.cost) || !Number(slab.minimumSalePrice || slab.cost))) {
+      alert('Preencha comprimento, largura, valor de compra e valor mínimo de venda de todas as chapas.');
       return;
     }
 
@@ -367,6 +378,7 @@ export const InventoryPage: React.FC = () => {
         thickness: Number(slab.thickness),
         area,
         cost: Number(slab.cost),
+        minimumSalePrice: Number(slab.minimumSalePrice || slab.cost),
         photoUrl: selectedMaterial?.imageUrl || '',
         purchaseGroupId,
         purchaseIndex: index + 1,
@@ -380,6 +392,7 @@ export const InventoryPage: React.FC = () => {
     }));
     const totalArea = slabs.reduce((acc, slab) => acc + (Number(slab.length) * Number(slab.width)) / 10000, 0);
     const totalCost = slabs.reduce((acc, slab) => acc + Number(slab.cost), 0);
+    const totalMinimumSale = slabs.reduce((acc, slab) => acc + Number(slab.minimumSalePrice || slab.cost), 0);
     await logSystemEvent({
       type: 'purchase_ordered',
       title: 'Compra de material lançada',
@@ -390,7 +403,7 @@ export const InventoryPage: React.FC = () => {
       materialName: selectedMaterialName,
       userUid: user?.uid || '',
       userName: currentUserName,
-      metadata: {area: totalArea, cost: totalCost, quantity, status: 'Pedido'},
+      metadata: {area: totalArea, cost: totalCost, minimumSalePrice: totalMinimumSale, quantity, status: 'Pedido'},
     });
     setShowPurchaseModal(false);
     resetPurchaseForm();
@@ -410,6 +423,7 @@ export const InventoryPage: React.FC = () => {
       thickness: purchase.thickness,
       area: purchase.area,
       cost: purchase.cost,
+      minimumSalePrice: purchase.minimumSalePrice ?? purchase.cost,
       status: 'Disponível',
       notes: purchase.notes || '',
       photoUrl: purchase.photoUrl || materials.find((material) => material.id === purchase.materialId)?.imageUrl || '',
@@ -431,7 +445,7 @@ export const InventoryPage: React.FC = () => {
       materialName: purchase.materialName,
       userUid: user?.uid || '',
       userName: currentUserName,
-      metadata: {area: purchase.area, cost: purchase.cost, inventoryItemId: inventoryRef.id, status: 'Entregue'},
+      metadata: {area: purchase.area, cost: purchase.cost, minimumSalePrice: purchase.minimumSalePrice ?? purchase.cost, inventoryItemId: inventoryRef.id, status: 'Entregue'},
     });
   };
 
@@ -611,10 +625,11 @@ export const InventoryPage: React.FC = () => {
   const purchaseQuantityNumber = Math.max(1, Number(purchaseQuantity) || 1);
   const purchaseSlabRows = purchaseSlabs.slice(0, purchaseQuantityNumber);
   const purchasePreviewSlabs = purchaseMeasureMode === 'same'
-    ? Array.from({length: purchaseQuantityNumber}, () => ({length: purchaseLength, width: purchaseWidth, cost: purchaseCost}))
+    ? Array.from({length: purchaseQuantityNumber}, () => ({length: purchaseLength, width: purchaseWidth, cost: purchaseCost, minimumSalePrice: purchaseMinimumSalePrice || purchaseCost}))
     : purchaseSlabRows;
   const purchaseTotalArea = purchasePreviewSlabs.reduce((acc, slab) => acc + ((Number(slab.length) * Number(slab.width)) / 10000), 0);
   const purchaseTotalCost = purchasePreviewSlabs.reduce((acc, slab) => acc + Number(slab.cost || 0), 0);
+  const purchaseTotalMinimumSale = purchasePreviewSlabs.reduce((acc, slab) => acc + Number(slab.minimumSalePrice || slab.cost || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -806,7 +821,7 @@ export const InventoryPage: React.FC = () => {
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Pedra / Lote</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Dimensões (cm)</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Área</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Custo</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Compra / mínimo</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
               </tr>
@@ -837,7 +852,10 @@ export const InventoryPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">{item.length} x {item.width} x {item.thickness}</td>
                     <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(item.area)} m²</td>
-                    <td className="px-6 py-4 font-mono text-sm">{formatCurrency(item.cost)}</td>
+                    <td className="px-6 py-4 font-mono text-sm">
+                      <div>{formatCurrency(item.cost)}</div>
+                      <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-green-700">Mín. {formatCurrency(item.minimumSalePrice ?? item.cost)}</div>
+                    </td>
                     <td className="px-6 py-4">
                       <span className={cn(
                         'inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase',
@@ -1177,11 +1195,12 @@ export const InventoryPage: React.FC = () => {
                 {purchaseMeasureMode === 'same' ? (
                   <div className="md:col-span-2 rounded-3xl border border-slate-100 bg-slate-50 p-4">
                     <div className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">Medida usada em todas as chapas</div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                       <input type="number" required value={purchaseLength} onChange={(e) => setPurchaseLength(e.target.value)} placeholder="Comprimento (cm)" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                       <input type="number" required value={purchaseWidth} onChange={(e) => setPurchaseWidth(e.target.value)} placeholder="Largura (cm)" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                       <input type="number" value={purchaseThickness} onChange={(e) => setPurchaseThickness(e.target.value)} placeholder="Espessura (cm)" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
-                      <input type="number" step="0.01" required value={purchaseCost} onChange={(e) => setPurchaseCost(e.target.value)} placeholder="Custo por chapa" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                      <input type="number" step="0.01" required value={purchaseCost} onChange={(e) => setPurchaseCost(e.target.value)} placeholder="Compra por chapa" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                      <input type="number" step="0.01" required value={purchaseMinimumSalePrice} onChange={(e) => setPurchaseMinimumSalePrice(e.target.value)} placeholder="Mínimo de venda" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                     </div>
                   </div>
                 ) : (
@@ -1189,26 +1208,31 @@ export const InventoryPage: React.FC = () => {
                     {purchaseSlabRows.map((slab, index) => (
                       <div key={index} className="rounded-3xl border border-slate-100 bg-slate-50 p-4">
                         <div className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">Chapa {index + 1}</div>
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                           <input type="text" value={slab.code} onChange={(e) => updatePurchaseSlab(index, 'code', e.target.value)} placeholder={`Lote ${index + 1}`} className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
                           <input type="number" required value={slab.length} onChange={(e) => updatePurchaseSlab(index, 'length', e.target.value)} placeholder="Comprimento" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                           <input type="number" required value={slab.width} onChange={(e) => updatePurchaseSlab(index, 'width', e.target.value)} placeholder="Largura" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                           <input type="number" value={slab.thickness} onChange={(e) => updatePurchaseSlab(index, 'thickness', e.target.value)} placeholder="Espessura" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
-                          <input type="number" step="0.01" required value={slab.cost} onChange={(e) => updatePurchaseSlab(index, 'cost', e.target.value)} placeholder="Custo" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                          <input type="number" step="0.01" required value={slab.cost} onChange={(e) => updatePurchaseSlab(index, 'cost', e.target.value)} placeholder="Compra" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                          <input type="number" step="0.01" required value={slab.minimumSalePrice} onChange={(e) => updatePurchaseSlab(index, 'minimumSalePrice', e.target.value)} placeholder="Venda mín." className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
 
-                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="rounded-2xl bg-slate-100 border border-slate-200 px-4 py-3">
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Área total calculada</div>
                     <div className="mt-1 font-mono text-xl font-bold text-slate-800">{formatNumber(purchaseTotalArea)} m²</div>
                   </div>
                   <div className="rounded-2xl bg-slate-100 border border-slate-200 px-4 py-3">
-                    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Custo total calculado</div>
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Compra total calculada</div>
                     <div className="mt-1 font-mono text-xl font-bold text-slate-800">{formatCurrency(purchaseTotalCost)}</div>
+                  </div>
+                  <div className="rounded-2xl bg-green-50 border border-green-100 px-4 py-3">
+                    <div className="text-xs font-bold uppercase tracking-widest text-green-700">Mínimo total de venda</div>
+                    <div className="mt-1 font-mono text-xl font-bold text-green-800">{formatCurrency(purchaseTotalMinimumSale)}</div>
                   </div>
                 </div>
 
@@ -1296,8 +1320,12 @@ export const InventoryPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Custo Total da Pedra</label>
+                  <label className="text-slate-500 font-medium text-sm">Valor de compra da chapa</label>
                   <input type="number" step="0.01" required value={cost} onChange={(e) => setCost(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Valor mínimo de venda</label>
+                  <input type="number" step="0.01" required value={minimumSalePrice} onChange={(e) => setMinimumSalePrice(e.target.value)} placeholder="Mínimo para vender esta chapa" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
                   <label className="text-slate-500 font-medium text-sm">Imagem da pedra</label>

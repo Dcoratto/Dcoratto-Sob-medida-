@@ -9,7 +9,7 @@ import {useAuth} from '../contexts/AuthContext';
 import {AccessRole, AccessUser, Employee, EmployeeRole, FixtureCatalogItem, FixtureCategory, Material, PermissionMap} from '../types';
 import {cn} from '../lib/utils';
 import { SettingsPage } from './SettingsPage';
-import {ACCESS_ROLES, getDefaultPermissions, hasPermission, isMasterAdmin, mergePermissions, PERMISSION_LABELS, roleLabel} from '../lib/permissions';
+import {ACCESS_ROLES, ACTION_LABELS, getDefaultPermissions, hasPermission, isMasterAdmin, mergePermissions, MODULE_LABELS, roleLabel} from '../lib/permissions';
 import {logAuditEvent} from '../lib/auditLogs';
 
 const employeeRoles: EmployeeRole[] = ['Vendedor', 'Medidor', 'Cortador', 'Acabador', 'Instalador', 'Entregador', 'Administrativo'];
@@ -894,7 +894,7 @@ export const AdminPage: React.FC = () => {
                           {Object.entries(effectivePermissions).map(([moduleName, actions]) => (
                             <div key={moduleName} className="rounded-2xl border border-slate-100 bg-slate-50/60 p-3">
                               <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-slate-500">
-                                {PERMISSION_LABELS[moduleName as keyof PermissionMap]?.label || moduleName}
+                                {MODULE_LABELS[moduleName as keyof PermissionMap] || moduleName}
                               </div>
                               <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                                 {Object.entries(actions).map(([actionName, allowed]) => (
@@ -906,7 +906,7 @@ export const AdminPage: React.FC = () => {
                                       onChange={(event) => updateUserPermission(user, moduleName as keyof PermissionMap, actionName, event.target.checked)}
                                       className="h-4 w-4 rounded border-slate-300 text-brand-primary focus:ring-brand-primary disabled:cursor-not-allowed"
                                     />
-                                    <span>{PERMISSION_LABELS[moduleName as keyof PermissionMap]?.actions[actionName] || actionName}</span>
+                                    <span>{ACTION_LABELS[actionName] || actionName}</span>
                                   </label>
                                 ))}
                               </div>

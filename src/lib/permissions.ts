@@ -74,16 +74,19 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<AccessRole, PermissionMap> = {
 
 export const ACCESS_ROLES: AccessRole[] = ['vendedor', 'coordenador', 'liberacao', 'administrativo'];
 
-export const PERMISSION_LABELS: Record<string, string> = {
-  orcamento: 'Orçamento',
+export const MODULE_LABELS: Record<PermissionModule, string> = {
+  orcamento: 'Orcamento',
   estoque: 'Estoque',
-  relatorios: 'Relatórios',
+  relatorios: 'Relatorios',
   admin: 'Admin',
   cliente: 'Cliente',
-  medicao: 'Medição',
+  medicao: 'Medicao',
   projeto: 'Projeto',
-  producao: 'Produção',
-  liberacao: 'Liberação',
+  producao: 'Producao',
+  liberacao: 'Liberacao',
+};
+
+export const ACTION_LABELS: Record<string, string> = {
   visualizar: 'Visualizar',
   criar: 'Criar',
   editar: 'Editar',
@@ -94,15 +97,15 @@ export const PERMISSION_LABELS: Record<string, string> = {
   exportar: 'Exportar',
   verFaturamento: 'Ver faturamento',
   verProdutividade: 'Ver produtividade',
-  visualizarUsuarios: 'Ver usuários',
-  alterarPermissoes: 'Alterar permissões',
-  excluirUsuarios: 'Excluir usuários',
+  visualizarUsuarios: 'Ver usuarios',
+  alterarPermissoes: 'Alterar permissoes',
+  excluirUsuarios: 'Excluir usuarios',
   editarDados: 'Editar dados',
   alterarEtapa: 'Alterar etapa',
   anexarArquivos: 'Anexar arquivos',
-  avaliarFuncionarios: 'Avaliar funcionários',
+  avaliarFuncionarios: 'Avaliar funcionarios',
   conferirMedidas: 'Conferir medidas',
-  finalizarProducao: 'Finalizar produção',
+  finalizarProducao: 'Finalizar producao',
   reprovar: 'Reprovar',
 };
 
@@ -140,7 +143,7 @@ export const canEvaluateEmployees = (user?: AccessUser | User | null) =>
 
 export const roleLabel = (role?: AccessRole) => {
   if (role === 'coordenador') return 'Coordenador';
-  if (role === 'liberacao') return 'Liberação';
+  if (role === 'liberacao') return 'Liberacao';
   if (role === 'administrativo') return 'Administrativo';
   return 'Vendedor';
 };

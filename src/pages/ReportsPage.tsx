@@ -153,7 +153,12 @@ export const ReportsPage: React.FC = () => {
   const conversionRate = filteredQuotes.length ?Math.round((approvedCount / filteredQuotes.length) * 100) : 0;
   const inventoryArea = inventory.reduce((sum, item) => sum + (item.area || 0), 0);
   const inventoryCost = inventory.reduce((sum, item) => sum + (item.cost || 0), 0);
-  const reservedArea = reservations.reduce((sum, item) => sum + (item.area || 0), 0);
+  const reservedArea = reservations
+    .filter((item) => !['recusado', 'cancelado', 'finalizado'].includes(normalize(item.quoteStatus)))
+    .reduce((sum, item) => sum + (item.area || 0), 0);
+  const soldArea = reservations
+    .filter((item) => normalize(item.quoteStatus) === 'finalizado')
+    .reduce((sum, item) => sum + (item.area || 0), 0);
   const lossItems = inventory.filter((item) => normalize(item.status) === 'descarte' || item.lossReason);
   const lossArea = lossItems.reduce((sum, item) => sum + (item.area || 0), 0);
   const purchasePendingArea = purchases.filter((purchase) => purchase.status === 'Pedido').reduce((sum, item) => sum + (item.area || 0), 0);
@@ -289,6 +294,7 @@ export const ReportsPage: React.FC = () => {
             <MoneyLine label="Custo em estoque" value={inventoryCost} className="text-slate-900" />
             <InfoLine label="Área total" value={`${inventoryArea.toFixed(2)} m²`} />
             <InfoLine label="Reservado em orçamentos" value={`${reservedArea.toFixed(2)} m²`} />
+            <InfoLine label="Vendido/finalizado" value={`${soldArea.toFixed(2)} m²`} />
             <InfoLine label="Compra pendente" value={`${purchasePendingArea.toFixed(2)} m²`} />
             <InfoLine label="Perdas/descarte" value={`${lossArea.toFixed(2)} m²`} danger />
           </div>

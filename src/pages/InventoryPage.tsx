@@ -51,13 +51,14 @@ const isApprovedReservation = (reservation: InventoryReservation) => {
     'producao finalizada',
     'conferencia final',
     'entrega',
-    'finalizado',
   ].includes(status);
 };
 
+const isSoldReservation = (reservation: InventoryReservation) => normalizeStatus(reservation.quoteStatus) === 'finalizado';
+
 const isActiveReservation = (reservation: InventoryReservation) => {
   const status = normalizeStatus(reservation.quoteStatus);
-  return !['recusado', 'cancelado'].includes(status);
+  return !['recusado', 'cancelado', 'finalizado'].includes(status);
 };
 
 export const InventoryPage: React.FC = () => {
@@ -551,7 +552,12 @@ export const InventoryPage: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const quoteReservedArea = reservations.reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+  const quoteReservedArea = reservations
+    .filter((reservation) => isActiveReservation(reservation))
+    .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+  const quoteSoldArea = reservations
+    .filter((reservation) => isSoldReservation(reservation))
+    .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
   const manualReservedArea = items
     .filter((item) => normalizeStatus(item.status) === 'reservada')
     .reduce((acc, item) => acc + item.area, 0);
@@ -559,12 +565,16 @@ export const InventoryPage: React.FC = () => {
   const totalPhysicalArea = items
     .filter((item) => !['usada', 'descarte'].includes(normalizeStatus(item.status)))
     .reduce((acc, item) => acc + item.area, 0);
-  const totalAvailableArea = Math.max(0, totalPhysicalArea - totalReservedArea);
+  const totalAvailableArea = Math.max(0, totalPhysicalArea - totalReservedArea - quoteSoldArea);
 
   const totalInventoryCost = items.reduce((acc, item) => acc + item.cost, 0);
   const reservedAreaByMaterial = (materialId: string) =>
     reservations
-      .filter((reservation) => reservation.materialId === materialId)
+      .filter((reservation) => reservation.materialId === materialId && isActiveReservation(reservation))
+      .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+  const soldAreaByMaterial = (materialId: string) =>
+    reservations
+      .filter((reservation) => reservation.materialId === materialId && isSoldReservation(reservation))
       .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
   const activeReservationsByMaterial = (materialId: string) =>
     reservations.filter((reservation) => reservation.materialId === materialId && isActiveReservation(reservation));
@@ -592,7 +602,8 @@ export const InventoryPage: React.FC = () => {
     const reserved = activeReservedAreaByMaterial(materialId);
     const sold = approvedReservedAreaByMaterial(materialId);
     const preReserved = Math.max(0, reserved - sold);
-    const available = physicalAreaByMaterial(materialId);
+    const finalizedSold = soldAreaByMaterial(materialId);
+    const available = Math.max(0, physicalAreaByMaterial(materialId) - finalizedSold);
     const ordered = orderedAreaByMaterial(materialId);
     const missing = Math.max(0, reserved - available - ordered);
     const inventoryItem = items.find((item) => item.materialId === materialId);
@@ -689,8 +700,8 @@ export const InventoryPage: React.FC = () => {
           <div className="text-3xl font-display font-bold text-amber-600">{formatNumber(totalReservedArea)} m²</div>
         </div>
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Custo em Estoque</div>
-          <div className="text-3xl font-display font-bold text-slate-900">{formatCurrency(totalInventoryCost)}</div>
+          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Área Vendida</div>
+          <div className="text-3xl font-display font-bold text-green-700">{formatNumber(quoteSoldArea)} m²</div>
         </div>
         <div className={cn(
           'p-6 rounded-[32px] border shadow-sm',
@@ -875,6 +886,11 @@ export const InventoryPage: React.FC = () => {
                           <Eye className="h-3 w-3" />
                           {formatNumber(reservedAreaByMaterial(item.materialId))} m² em orçamentos
                         </button>
+                      )}
+                      {soldAreaByMaterial(item.materialId) > 0 && (
+                        <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-[10px] font-semibold text-green-700">
+                          {formatNumber(soldAreaByMaterial(item.materialId))} m² vendido/finalizado
+                        </div>
                       )}
                       {item.lossReason && (
                         <div className="mt-1 max-w-[220px] rounded-lg bg-red-50 px-2 py-1 text-[10px] font-semibold text-red-700">

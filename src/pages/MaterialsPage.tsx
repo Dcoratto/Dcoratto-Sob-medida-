@@ -13,6 +13,7 @@ type MaterialWithUserPrice = Material & {
   stockMinimumSale: number;
   manualReservedArea: number;
   quoteReservedArea: number;
+  soldArea: number;
   availableArea: number;
   missingArea: number;
   baseMinimumSalePerM2: number;
@@ -91,7 +92,8 @@ export const MaterialsPage: React.FC = () => {
   }, [user?.uid]);
 
   const activeStockItems = inventory.filter((item) => !['usada', 'descarte'].includes(normalizeStatus(item.status)));
-  const activeReservations = reservations.filter((reservation) => !['recusado', 'cancelado'].includes(normalizeStatus(reservation.quoteStatus)));
+  const activeReservations = reservations.filter((reservation) => !['recusado', 'cancelado', 'finalizado'].includes(normalizeStatus(reservation.quoteStatus)));
+  const soldReservations = reservations.filter((reservation) => normalizeStatus(reservation.quoteStatus) === 'finalizado');
 
   const materialRows: MaterialWithUserPrice[] = materials
     .map((material) => {
@@ -105,8 +107,11 @@ export const MaterialsPage: React.FC = () => {
       const quoteReservedArea = activeReservations
         .filter((reservation) => reservation.materialId === material.id)
         .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
-      const availableArea = Math.max(0, stockArea - manualReservedArea - quoteReservedArea);
-      const missingArea = Math.max(0, quoteReservedArea - Math.max(0, stockArea - manualReservedArea));
+      const soldArea = soldReservations
+        .filter((reservation) => reservation.materialId === material.id)
+        .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+      const availableArea = Math.max(0, stockArea - manualReservedArea - quoteReservedArea - soldArea);
+      const missingArea = Math.max(0, quoteReservedArea - Math.max(0, stockArea - manualReservedArea - soldArea));
       const baseCostPerM2 = stockArea > 0 ? stockCost / stockArea : 0;
       const baseMinimumSalePerM2 = stockArea > 0 ? stockMinimumSale / stockArea : baseCostPerM2;
       const userPrice = userPrices.find((price) => price.materialId === material.id);
@@ -124,6 +129,7 @@ export const MaterialsPage: React.FC = () => {
         stockMinimumSale,
         manualReservedArea,
         quoteReservedArea,
+        soldArea,
         availableArea,
         missingArea,
         baseCostPerM2,
@@ -232,6 +238,7 @@ export const MaterialsPage: React.FC = () => {
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Material</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Estoque</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Reservado</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Vendido</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Disponível</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Faltando</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Mínimo venda/m²</th>
@@ -243,9 +250,9 @@ export const MaterialsPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan={10} className="px-6 py-10 text-center text-slate-400">Carregando materiais...</td></tr>
+                <tr><td colSpan={11} className="px-6 py-10 text-center text-slate-400">Carregando materiais...</td></tr>
               ) : filteredMaterials.length === 0 ? (
-                <tr><td colSpan={10} className="px-6 py-10 text-center text-slate-400">Nenhum material encontrado. Compre ou adicione uma chapa no estoque primeiro.</td></tr>
+                <tr><td colSpan={11} className="px-6 py-10 text-center text-slate-400">Nenhum material encontrado. Compre ou adicione uma chapa no estoque primeiro.</td></tr>
               ) : (
                 filteredMaterials.map((material) => (
                   <tr key={material.id} className="hover:bg-slate-50/50 transition-colors group">
@@ -284,6 +291,7 @@ export const MaterialsPage: React.FC = () => {
                         <span className="text-sm text-slate-400">0,00 m²</span>
                       )}
                     </td>
+                    <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.soldArea)} m²</td>
                     <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.availableArea)} m²</td>
                     <td className="px-6 py-4">
                       <span className={cn('font-mono text-sm font-bold', material.missingArea > 0 ?'text-red-600' : 'text-slate-400')}>

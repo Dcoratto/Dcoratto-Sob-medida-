@@ -302,7 +302,14 @@ export const Dashboard: React.FC = () => {
     reservations
       .filter((reservation) => {
         const status = (reservation.quoteStatus || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-        return reservation.materialId === materialId && !['recusado', 'cancelado'].includes(status);
+        return reservation.materialId === materialId && !['recusado', 'cancelado', 'finalizado'].includes(status);
+      })
+      .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+  const finalizedSoldAreaByMaterial = (materialId: string) =>
+    reservations
+      .filter((reservation) => {
+        const status = (reservation.quoteStatus || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        return reservation.materialId === materialId && status === 'finalizado';
       })
       .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
   const physicalAreaByMaterial = (materialId: string) =>
@@ -319,7 +326,7 @@ export const Dashboard: React.FC = () => {
     ...purchases.map((purchase) => purchase.materialId),
   ])).map((materialId) => {
     const reserved = purchaseRelevantReservedAreaByMaterial(materialId);
-    const available = physicalAreaByMaterial(materialId);
+    const available = Math.max(0, physicalAreaByMaterial(materialId) - finalizedSoldAreaByMaterial(materialId));
     const ordered = orderedAreaByMaterial(materialId);
     const missing = Math.max(0, reserved - available - ordered);
     const material = inventory.find((item) => item.materialId === materialId)?.materialName || materialId;

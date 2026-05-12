@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+﻿import React, {useEffect, useState} from 'react';
 import {EmailAuthProvider, reauthenticateWithCredential} from 'firebase/auth';
 import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from 'firebase/firestore';
 import {deleteObject, ref as storageRef} from 'firebase/storage';
@@ -40,10 +40,10 @@ const IMAGE_MAX_SIDE = 900;
 
 const assertValidImage = (file: File) => {
   if (!file.type.startsWith('image/')) {
-    throw new Error('Selecione um arquivo de imagem válido.');
+    throw new Error('Selecione um arquivo de imagem valido.');
   }
   if (file.size > MAX_IMAGE_SIZE_MB * 1024 * 1024) {
-    throw new Error(`A imagem deve ter no máximo ${MAX_IMAGE_SIZE_MB} MB.`);
+    throw new Error(`A imagem deve ter no maximo ${MAX_IMAGE_SIZE_MB} MB.`);
   }
 };
 
@@ -51,7 +51,7 @@ const readFileAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Não foi possível ler a imagem selecionada.'));
+    reader.onerror = () => reject(new Error('Nao foi possivel ler a imagem selecionada.'));
     reader.readAsDataURL(file);
   });
 
@@ -64,7 +64,7 @@ const optimizeCatalogImage = async (file: File) => {
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Não foi possível carregar a imagem selecionada.'));
+    img.onerror = () => reject(new Error('Nao foi possivel carregar a imagem selecionada.'));
     img.src = source;
   });
 
@@ -74,7 +74,7 @@ const optimizeCatalogImage = async (file: File) => {
   canvas.height = Math.max(1, Math.round(image.height * scale));
   const context = canvas.getContext('2d');
   if (!context) {
-    throw new Error('Não foi possível preparar a imagem.');
+    throw new Error('Nao foi possivel preparar a imagem.');
   }
 
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
@@ -93,9 +93,9 @@ const getCatalogSaveErrorMessage = (error: any, itemName: string) => {
   const message = String(error?.message || '');
   const code = String(error?.code || '');
   if (code.includes('permission-denied') || message.includes('Missing or insufficient permissions')) {
-    return `Sem permissão para salvar ${itemName}. Publique as regras atualizadas do Firestore e faça login novamente.`;
+    return `Sem permissao para salvar ${itemName}. Publique as regras atualizadas do Firestore e faca login novamente.`;
   }
-  return message || `Não foi possível cadastrar ${itemName}.`;
+  return message || `Nao foi possivel cadastrar ${itemName}.`;
 };
 
 export const AdminPage: React.FC = () => {
@@ -209,7 +209,7 @@ export const AdminPage: React.FC = () => {
       updatedAt: serverTimestamp(),
       updatedByUid: authUser?.uid || '',
       updatedByEmail: authUser?.email || '',
-      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuário',
+      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuario',
     });
     await logAuditEvent({user: accessUser || authUser, action: 'toggle_user_block', module: 'admin', targetId: target.uid, oldValue: target.blocked, newValue: !target.blocked});
   };
@@ -223,7 +223,7 @@ export const AdminPage: React.FC = () => {
       updatedAt: serverTimestamp(),
       updatedByUid: authUser?.uid || '',
       updatedByEmail: authUser?.email || '',
-      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuário',
+      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuario',
     });
     await logAuditEvent({user: accessUser || authUser, action: 'change_user_role', module: 'admin', targetId: target.uid, oldValue: target.role, newValue: newRole});
   };
@@ -243,7 +243,7 @@ export const AdminPage: React.FC = () => {
       updatedAt: serverTimestamp(),
       updatedByUid: authUser?.uid || '',
       updatedByEmail: authUser?.email || '',
-      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuário',
+      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuario',
     });
     await logAuditEvent({user: accessUser || authUser, action: 'change_user_permission', module: 'admin', targetId: target.uid, oldValue: target.permissions?.[module]?.[action as never], newValue: checked});
   };
@@ -290,7 +290,7 @@ export const AdminPage: React.FC = () => {
   };
 
   const deleteEmployee = async (employeeId: string) => {
-    const confirmed = window.confirm('Tem certeza que deseja excluir este funcionário?');
+    const confirmed = window.confirm('Tem certeza que deseja excluir este funcionario?');
     if (!confirmed) return;
     const ok = await deleteFirestoreDoc('employees', employeeId);
     if (!ok) return;
@@ -423,8 +423,8 @@ export const AdminPage: React.FC = () => {
       }
       resetFixtureForm(fixtureForm.category);
     } catch (error: any) {
-      console.error('Erro ao cadastrar peça:', error);
-      setFixtureError(getCatalogSaveErrorMessage(error, 'a peça'));
+      console.error('Erro ao cadastrar peca:', error);
+      setFixtureError(getCatalogSaveErrorMessage(error, 'a peca'));
     } finally {
       setSavingFixture(false);
     }
@@ -526,15 +526,15 @@ export const AdminPage: React.FC = () => {
   return (
     <div className="space-y-6 pb-20">
       <header>
-        <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Administração</h1>
-        <p className="text-slate-500 mt-1">Gerencie usuários, permissões e funcionários da produção.</p>
+        <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Administracao</h1>
+        <p className="text-slate-500 mt-1">Gerencie usuarios, permissoes e funcionarios da producao.</p>
       </header>
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="font-display text-xl font-bold text-slate-900">Funcionários</h2>
-            <p className="text-sm text-slate-400">Cadastre a equipe para vincular responsáveis e avaliações aos projetos.</p>
+            <h2 className="font-display text-xl font-bold text-slate-900">Funcionarios</h2>
+            <p className="text-sm text-slate-400">Cadastre a equipe para vincular responsaveis e avaliacoes aos projetos.</p>
           </div>
           <BriefcaseBusiness className="w-6 h-6 text-brand-primary" />
         </div>
@@ -547,7 +547,7 @@ export const AdminPage: React.FC = () => {
               setEmployeeError('');
               setEmployeeForm((form) => ({...form, name: event.target.value}));
             }}
-            placeholder="Nome do funcionário"
+            placeholder="Nome do funcionario"
             className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20"
           />
           <select
@@ -599,15 +599,15 @@ export const AdminPage: React.FC = () => {
             </div>
           ))}
           {employees.length === 0 && (
-            <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum funcionário cadastrado.</div>
+            <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum funcionario cadastrado.</div>
           )}
         </div>
       </section>
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-6">
         <div>
-          <h2 className="font-display text-xl font-bold text-slate-900">Catálogo de pedras</h2>
-          <p className="text-sm text-slate-400">{editingMaterial ?`Editando: ${editingMaterial.name}` : 'Cadastre as pedras aqui para seleção no estoque, compras e orçamentos.'}</p>
+          <h2 className="font-display text-xl font-bold text-slate-900">Catalogo de pedras</h2>
+          <p className="text-sm text-slate-400">{editingMaterial ?`Editando: ${editingMaterial.name}` : 'Cadastre as pedras aqui para selecao no estoque, compras e orcamentos.'}</p>
         </div>
 
         <form onSubmit={addMaterialCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
@@ -631,7 +631,7 @@ export const AdminPage: React.FC = () => {
           </button>
           {editingMaterial && (
             <button type="button" onClick={resetMaterialForm} className="rounded-2xl bg-slate-100 px-4 py-3 font-bold text-slate-600 hover:bg-slate-200">
-              Cancelar edição
+              Cancelar edicao
             </button>
           )}
         </form>
@@ -650,7 +650,7 @@ export const AdminPage: React.FC = () => {
                 <div>
                   <div className="font-bold text-slate-900">{material.name}</div>
                   <div className="text-xs text-slate-400">{material.category || 'Sem categoria'} · {material.provider || 'Sem fornecedor'}</div>
-                  <div className="mt-1 text-xs font-semibold text-slate-500">Preço e margem definidos na aba Materiais.</div>
+                  <div className="mt-1 text-xs font-semibold text-slate-500">Preco e margem definidos na aba Materiais.</div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <button type="button" onClick={() => startEditingMaterial(material)} className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/10 hover:text-brand-primary" title="Editar pedra" aria-label="Editar pedra">
@@ -669,12 +669,12 @@ export const AdminPage: React.FC = () => {
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-6">
         <div>
-          <h2 className="font-display text-xl font-bold text-slate-900">Catálogo de peças do cliente</h2>
-          <p className="text-sm text-slate-400">{editingFixture ?`Editando: ${editingFixture.name}` : 'Cadastre cooktop, cuba, torneira, torre de tomada e lixeira para seleção no orçamento.'}</p>
+          <h2 className="font-display text-xl font-bold text-slate-900">Catalogo de pecas do cliente</h2>
+          <p className="text-sm text-slate-400">{editingFixture ?`Editando: ${editingFixture.name}` : 'Cadastre cooktop, cuba, torneira, torre de tomada e lixeira para selecao no orcamento.'}</p>
         </div>
 
         <form onSubmit={addFixtureCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          <input value={fixtureForm.name} onChange={(e) => setFixtureForm((f) => ({...f, name: e.target.value}))} placeholder="Nome da peça" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input value={fixtureForm.name} onChange={(e) => setFixtureForm((f) => ({...f, name: e.target.value}))} placeholder="Nome da peca" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <select value={fixtureForm.category} onChange={(e) => setFixtureForm((f) => ({...f, category: e.target.value as FixtureCategory}))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
             <option value="cooktop">Cooktop</option>
             <option value="sink">Cuba</option>
@@ -687,7 +687,7 @@ export const AdminPage: React.FC = () => {
           <input value={fixtureForm.width} onChange={(e) => setFixtureForm((f) => ({...f, width: e.target.value}))} placeholder="Largura (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input value={fixtureForm.depth} onChange={(e) => setFixtureForm((f) => ({...f, depth: e.target.value}))} placeholder="Profundidade (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input value={fixtureForm.height} onChange={(e) => setFixtureForm((f) => ({...f, height: e.target.value}))} placeholder="Altura (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
-          <input value={fixtureForm.diameter} onChange={(e) => setFixtureForm((f) => ({...f, diameter: e.target.value}))} placeholder="Diâmetro (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input value={fixtureForm.diameter} onChange={(e) => setFixtureForm((f) => ({...f, diameter: e.target.value}))} placeholder="Diametro (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input value={fixtureForm.imageUrl} onChange={(e) => setFixtureForm((f) => ({...f, imageUrl: e.target.value}))} placeholder="URL da imagem" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-2" />
           <label className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 cursor-pointer md:col-span-2 xl:col-span-1">
             {fixtureImageFile ? fixtureImageFile.name : 'Upload da imagem'}
@@ -701,13 +701,13 @@ export const AdminPage: React.FC = () => {
               }}
             />
           </label>
-          <input value={fixtureForm.notes} onChange={(e) => setFixtureForm((f) => ({...f, notes: e.target.value}))} placeholder="Informações" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-1" />
+          <input value={fixtureForm.notes} onChange={(e) => setFixtureForm((f) => ({...f, notes: e.target.value}))} placeholder="Informacoes" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-1" />
           <button type="submit" disabled={savingFixture} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-white disabled:opacity-60">
-            {savingFixture ?'Salvando...' : editingFixture ? 'Salvar peça' : 'Cadastrar peça'}
+            {savingFixture ?'Salvando...' : editingFixture ? 'Salvar peca' : 'Cadastrar peca'}
           </button>
           {editingFixture && (
             <button type="button" onClick={() => resetFixtureForm()} className="rounded-2xl bg-slate-100 px-4 py-3 font-bold text-slate-600 hover:bg-slate-200">
-              Cancelar edição
+              Cancelar edicao
             </button>
           )}
         </form>
@@ -733,11 +733,11 @@ export const AdminPage: React.FC = () => {
                   <div className="font-bold text-slate-900">{item.name}</div>
                   <div className="text-xs text-slate-400">{item.category} · {[item.brand, item.model].filter(Boolean).join(' / ')}</div>
                   <div className="mt-1 text-xs font-semibold text-slate-500">
-                    {[item.width ?`${item.width} cm largura` : '', item.depth ?`${item.depth} cm profundidade` : '', item.diameter ?`${item.diameter} cm diâmetro` : ''].filter(Boolean).join(' · ') || 'Sem medidas cadastradas'}
+                    {[item.width ?`${item.width} cm largura` : '', item.depth ?`${item.depth} cm profundidade` : '', item.diameter ?`${item.diameter} cm diametro` : ''].filter(Boolean).join(' · ') || 'Sem medidas cadastradas'}
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <button type="button" onClick={() => startEditingFixture(item)} className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/10 hover:text-brand-primary" title="Editar peça" aria-label="Editar peça">
+                  <button type="button" onClick={() => startEditingFixture(item)} className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/10 hover:text-brand-primary" title="Editar peca" aria-label="Editar peca">
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button type="button" onClick={() => toggleFixtureCatalogItem(item)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', item.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
@@ -747,14 +747,14 @@ export const AdminPage: React.FC = () => {
               </div>
             </div>
           ))}
-          {fixtureCatalog.length === 0 && <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-400">Nenhuma peça cadastrada.</div>}
+          {fixtureCatalog.length === 0 && <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-400">Nenhuma peca cadastrada.</div>}
         </div>
       </section>
 
       <section className="space-y-4">
         <div className="sr-only">
-          <h2 className="font-display text-xl font-bold text-slate-900">Configurações do sistema</h2>
-          <p className="text-sm text-slate-400">As configurações foram migradas para a área de Admin.</p>
+          <h2 className="font-display text-xl font-bold text-slate-900">Configuracoes do sistema</h2>
+          <p className="text-sm text-slate-400">As configuracoes foram migradas para a area de Admin.</p>
         </div>
         <SettingsPage />
       </section>
@@ -769,11 +769,11 @@ export const AdminPage: React.FC = () => {
               <div>
                 <h2 className="font-display text-xl font-bold text-red-950">Zona de risco</h2>
                 <p className="mt-1 max-w-3xl text-sm text-red-700">
-                  Use este botão apenas quando o sistema estiver pronto para começar do zero. Ele apaga clientes, orçamentos, materiais, estoque, reservas, compras, funcionários, condomínios e histórico.
+                  Use este botao apenas quando o sistema estiver pronto para comecar do zero. Ele apaga clientes, orcamentos, materiais, estoque, reservas, compras, funcionarios, condominios e historico.
                 </p>
                 <p className="mt-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-red-500">
                   <AlertTriangle className="h-4 w-4" />
-                  Usuários, permissões e configurações da empresa serão mantidos.
+                  Usuarios, permissoes e configuracoes da empresa serao mantidos.
                 </p>
               </div>
             </div>
@@ -937,3 +937,6 @@ export const AdminPage: React.FC = () => {
     </div>
   );
 };
+
+
+

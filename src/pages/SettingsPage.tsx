@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, setDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useSettings, DEFAULT_SETTINGS } from '../hooks/useSettings';
@@ -109,7 +109,7 @@ export const SettingsPage: React.FC = () => {
   };
 
   const removeCondominium = async (id: string) => {
-    const confirmed = window.confirm('Excluir este condomínio?');
+    const confirmed = window.confirm('Excluir este condominio?');
     if (!confirmed) return;
     await deleteDoc(doc(db, 'condominiums', id));
     if (editingCondominium?.id === id) resetCondoForm();
@@ -127,8 +127,8 @@ export const SettingsPage: React.FC = () => {
     <div className="w-full space-y-6 pb-4">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Configurações</h1>
-          <p className="text-slate-500 mt-1">Gerencie os dados da empresa e valores padrão do sistema.</p>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Configuracoes</h1>
+          <p className="text-slate-500 mt-1">Gerencie os dados da empresa e valores padrao do sistema.</p>
         </div>
         <button
           onClick={handleSave}
@@ -143,7 +143,7 @@ export const SettingsPage: React.FC = () => {
           ) : (
             <>
               <Save className="w-5 h-5" />
-              {success ?'Salvo!' : 'Salvar Alterações'}
+              {success ?'Salvo!' : 'Salvar Alteracoes'}
             </>
           )}
         </button>
@@ -190,7 +190,7 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-slate-500 font-medium">Endereço</label>
+              <label className="text-slate-500 font-medium">Endereco</label>
               <textarea
                 value={settings.address}
                 onChange={(e) => setSettings({ ...settings, address: e.target.value })}
@@ -200,7 +200,7 @@ export const SettingsPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Padrões Financeiros e Medidas */}
+        {/* Padroes Financeiros e Medidas */}
         <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-2">
           <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
             <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
@@ -212,7 +212,7 @@ export const SettingsPage: React.FC = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-slate-500 font-medium">Mão de obra (m linear)</label>
+                <label className="text-slate-500 font-medium">Mao de obra (m linear)</label>
                 <input
                   type="number"
                   value={settings.laborRatePerLinearMeter}
@@ -221,7 +221,7 @@ export const SettingsPage: React.FC = () => {
                 />
               </div>
               <div className="space-y-1.5">
-                <label className="text-slate-500 font-medium">Validade Padrão (dias)</label>
+                <label className="text-slate-500 font-medium">Validade Padrao (dias)</label>
                 <input
                   type="number"
                   value={settings.defaultValidity}
@@ -233,7 +233,7 @@ export const SettingsPage: React.FC = () => {
 
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
-                <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Altura Frontão</label>
+                <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Altura Frontao</label>
                 <input
                   type="number"
                   value={settings.defaultFrontonHeight}
@@ -292,7 +292,7 @@ export const SettingsPage: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1">
-                  <span className="text-[10px] text-slate-400 uppercase">Furação Torneira</span>
+                  <span className="text-[10px] text-slate-400 uppercase">Furacao Torneira</span>
                   <input
                     type="number"
                     value={settings.cutoutPrices.faucetHole || 0}
@@ -341,13 +341,13 @@ export const SettingsPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Mão de obra Pia Esculpida */}
+        {/* Mao de obra Pia Esculpida */}
         <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6">
           <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
             <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
               <Scissors className="w-5 h-5" />
             </div>
-            <h2 className="font-display font-bold text-lg text-slate-800">Mão de Obra Pia Esculpida</h2>
+            <h2 className="font-display font-bold text-lg text-slate-800">Mao de Obra Pia Esculpida</h2>
           </div>
 
           <div className="space-y-4">
@@ -373,7 +373,7 @@ export const SettingsPage: React.FC = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <label className="text-slate-500 font-medium text-xs">Válvula Oculta (R$)</label>
+                <label className="text-slate-500 font-medium text-xs">Valvula Oculta (R$)</label>
                 <input
                   type="number"
                   value={settings.sculptedSinkRates?.hiddenValve || 0}
@@ -425,7 +425,7 @@ export const SettingsPage: React.FC = () => {
             {settings.paymentMethods.map((method, idx) => (
               <div key={idx} className="flex gap-4 items-end bg-slate-50 p-4 rounded-2xl border border-slate-100">
                 <div className="flex-1 space-y-1.5">
-                  <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Descrição</label>
+                  <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Descricao</label>
                   <input
                     type="text"
                     value={method.name}
@@ -470,33 +470,33 @@ export const SettingsPage: React.FC = () => {
               <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
                 <Building className="w-5 h-5" />
               </div>
-              <h2 className="font-display font-bold text-lg text-slate-800">Condomínios e regras</h2>
+              <h2 className="font-display font-bold text-lg text-slate-800">Condominios e regras</h2>
             </div>
           </div>
 
           <form onSubmit={saveCondominium} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-slate-500 font-medium text-sm">Nome do condomínio</label>
+              <label className="text-slate-500 font-medium text-sm">Nome do condominio</label>
               <input value={condoName} onChange={(e) => setCondoName(e.target.value)} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
             <div className="space-y-1.5">
               <label className="text-slate-500 font-medium text-sm">Cidade</label>
-              <input value={condoCity} onChange={(e) => setCondoCity(e.target.value)} required placeholder="Ex: Arujá" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
+              <input value={condoCity} onChange={(e) => setCondoCity(e.target.value)} required placeholder="Ex: Aruja" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
             <div className="md:col-span-2 space-y-1.5">
-              <label className="text-slate-500 font-medium text-sm">Tipo de endereço do condomínio</label>
+              <label className="text-slate-500 font-medium text-sm">Tipo de endereco do condominio</label>
               <select
                 value={condoAddressMode || 'street'}
                 onChange={(e) => setCondoAddressMode(e.target.value as CondominiumRule['addressMode'])}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
               >
-                <option value="street">Rua e número</option>
+                <option value="street">Rua e numero</option>
                 <option value="lot">Quadra e lote</option>
               </select>
-              <p className="text-xs text-slate-400">Essa escolha define quais campos aparecem ao vincular o condomínio no cadastro do cliente.</p>
+              <p className="text-xs text-slate-400">Essa escolha define quais campos aparecem ao vincular o condominio no cadastro do cliente.</p>
             </div>
             <div className="space-y-1.5">
-              <label className="text-slate-500 font-medium text-sm">Início do trabalho</label>
+              <label className="text-slate-500 font-medium text-sm">Inicio do trabalho</label>
               <input type="time" value={workStartHour} onChange={(e) => setWorkStartHour(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
             <div className="space-y-1.5">
@@ -506,7 +506,7 @@ export const SettingsPage: React.FC = () => {
             <div className="md:col-span-2 space-y-2">
               <label className="text-slate-500 font-medium text-sm">Dias permitidos</label>
               <div className="flex flex-wrap gap-2">
-                {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((label, index) => (
+                {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'].map((label, index) => (
                   <button
                     key={label}
                     type="button"
@@ -527,16 +527,16 @@ export const SettingsPage: React.FC = () => {
               Bloquear feriados da cidade
             </label>
             <div className="md:col-span-2 space-y-1.5">
-              <label className="text-slate-500 font-medium text-sm">Observações</label>
+              <label className="text-slate-500 font-medium text-sm">Observacoes</label>
               <textarea value={condoNotes} onChange={(e) => setCondoNotes(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 min-h-[80px]" />
             </div>
             <div className="md:col-span-2 flex items-center gap-3">
               <button type="submit" className="bg-brand-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold">
-                {editingCondominium ?'Atualizar condomínio' : 'Cadastrar condomínio'}
+                {editingCondominium ?'Atualizar condominio' : 'Cadastrar condominio'}
               </button>
               {editingCondominium && (
                 <button type="button" onClick={resetCondoForm} className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-bold">
-                  Cancelar edição
+                  Cancelar edicao
                 </button>
               )}
             </div>
@@ -548,7 +548,7 @@ export const SettingsPage: React.FC = () => {
                 <div>
                   <div className="font-bold text-slate-900">{condo.name}</div>
                   <div className="text-xs text-slate-500">
-                    {condo.city} · {(condo.addressMode || 'street') === 'lot' ? 'Quadra e lote' : 'Rua e número'} · {condo.workStartHour}-{condo.workEndHour} · Dias: {condo.allowedWeekdays.map((item) => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'][item]).join(', ')}
+                    {condo.city} · {(condo.addressMode || 'street') === 'lot' ? 'Quadra e lote' : 'Rua e numero'} · {condo.workStartHour}-{condo.workEndHour} · Dias: {condo.allowedWeekdays.map((item) => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'][item]).join(', ')}
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -577,7 +577,7 @@ export const SettingsPage: React.FC = () => {
               </div>
             ))}
             {condominiums.length === 0 && (
-              <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">Nenhum condomínio cadastrado.</div>
+              <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">Nenhum condominio cadastrado.</div>
             )}
           </div>
         </section>
@@ -585,3 +585,5 @@ export const SettingsPage: React.FC = () => {
     </div>
   );
 };
+
+

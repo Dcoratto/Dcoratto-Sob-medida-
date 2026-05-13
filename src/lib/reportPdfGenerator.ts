@@ -1,5 +1,4 @@
-import {jsPDF} from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import type {jsPDF} from 'jspdf';
 import {Employee, InventoryItem, InventoryPurchase, InventoryReservation, Material, ProductionStep, Quote, SystemEvent} from '../types';
 
 type PdfColor = [number, number, number];
@@ -128,7 +127,11 @@ const currentStepText = (quote: Quote, labels: Record<ProductionStep, string>) =
   return `${label}${step.employeeName ?` | ${step.employeeName}` : ''}`;
 };
 
-export const generateReportPDF = (data: ReportPdfData) => {
+export const generateReportPDF = async (data: ReportPdfData) => {
+  const [{jsPDF}, {default: autoTable}] = await Promise.all([
+    import('jspdf'),
+    import('jspdf-autotable'),
+  ]);
   const doc = new jsPDF({unit: 'mm', format: 'a4'});
   const primary: PdfColor = [140, 106, 72];
   const dark: PdfColor = [15, 23, 42];

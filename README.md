@@ -25,6 +25,13 @@ Sistema web completo para gestão de marmorarias, focado em precisão técnica e
 3. Configure as variáveis de ambiente baseadas no `.env.example`.
 4. Inicie o servidor de desenvolvimento: `npm run dev`.
 
+## Scripts disponíveis
+- `npm run dev`: inicia o ambiente local em `http://localhost:3000`.
+- `npm run lint`: valida a tipagem TypeScript sem gerar arquivos.
+- `npm run build`: cria a versão de produção na pasta `dist`.
+- `npm run preview`: abre uma visualização local da build.
+- `npm run clean`: remove a pasta `dist`.
+
 ## Build
 ```bash
 npm run build

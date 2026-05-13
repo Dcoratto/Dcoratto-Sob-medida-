@@ -4,7 +4,6 @@ import {AlertCircle, BarChart3, Boxes, FileDown, Gauge, TrendingUp, Users} from 
 import {Client, Employee, InventoryItem, InventoryPurchase, InventoryReservation, Material, ProductionStep, Quote, SystemEvent} from '../types';
 import {db} from '../lib/firebase';
 import {cn, formatCurrency} from '../lib/utils';
-import {generateReportPDF} from '../lib/reportPdfGenerator';
 import {QUOTE_STATUSES, normalizeQuoteStatus} from '../lib/quoteStatus';
 import {useAuth} from '../contexts/AuthContext';
 
@@ -79,6 +78,7 @@ export const ReportsPage: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [systemEvents, setSystemEvents] = useState<SystemEvent[]>([]);
   const [period, setPeriod] = useState<Period>('month');
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const unsubQuotes = onSnapshot(collection(db, 'quotes'), (snapshot) => setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote))));
@@ -213,32 +213,38 @@ export const ReportsPage: React.FC = () => {
     .sort((a, b) => (toDate(b.item.changedAt)?.getTime() || 0) - (toDate(a.item.changedAt)?.getTime() || 0))
     .slice(0, 20);
 
-  const exportReport = () => {
+  const exportReport = async () => {
     if (!hasPermission('relatorios', 'exportar')) {
       alert('Você não tem permissão para exportar relatórios. Fale com o administrador.');
       return;
     }
-    generateReportPDF({
-    periodLabel: periodLabel(period),
-    quotes: filteredQuotes,
-    materials,
-    inventory,
-    purchases: filteredPurchases,
-    reservations,
-    calendarEvents: filteredCalendarEvents,
-    systemEvents: filteredSystemEvents,
-    totalSold,
-    openValue,
-    refusedValue,
-    conversionRate,
-    statusCounts,
-    materialSales,
-    deadlineAlerts,
-    employeeStats,
-    evaluationHistory,
-    productionHistory,
-    productionStepLabels,
-    });
+    try {
+      setExporting(true);
+      const {generateReportPDF} = await import('../lib/reportPdfGenerator');
+      await generateReportPDF({
+        periodLabel: periodLabel(period),
+        quotes: filteredQuotes,
+        materials,
+        inventory,
+        purchases: filteredPurchases,
+        reservations,
+        calendarEvents: filteredCalendarEvents,
+        systemEvents: filteredSystemEvents,
+        totalSold,
+        openValue,
+        refusedValue,
+        conversionRate,
+        statusCounts,
+        materialSales,
+        deadlineAlerts,
+        employeeStats,
+        evaluationHistory,
+        productionHistory,
+        productionStepLabels,
+      });
+    } finally {
+      setExporting(false);
+    }
   };
 
   return (
@@ -260,9 +266,14 @@ export const ReportsPage: React.FC = () => {
             </button>
           ))}
           {hasPermission('relatorios', 'exportar') && (
-            <button type="button" onClick={exportReport} className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold uppercase text-white">
+            <button
+              type="button"
+              onClick={exportReport}
+              disabled={exporting}
+              className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold uppercase text-white disabled:cursor-wait disabled:opacity-70"
+            >
               <FileDown className="w-4 h-4" />
-              PDF
+              {exporting ?'Gerando...' : 'PDF'}
             </button>
           )}
         </div>

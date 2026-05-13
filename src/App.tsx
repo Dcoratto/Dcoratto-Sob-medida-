@@ -3,24 +3,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, {Suspense, lazy} from 'react';
 import {HashRouter, Navigate, Route, Routes} from 'react-router-dom';
 import {AuthProvider, useAuth} from './contexts/AuthContext';
 import {Shell} from './components/layout/Shell';
-import {Login} from './pages/Login';
-import {Dashboard} from './pages/Dashboard';
-import {QuotesPage} from './pages/QuotesPage';
-import {QuoteEditor} from './pages/QuoteEditor';
-import {ClientsPage} from './pages/ClientsPage';
-import {InventoryPage} from './pages/InventoryPage';
-import {MaterialsPage} from './pages/MaterialsPage';
-import {AdminPage} from './pages/AdminPage';
-import {ProfilePage} from './pages/ProfilePage';
-import {ReportsPage} from './pages/ReportsPage';
-import {PremiumProposalPage} from './pages/PremiumProposalPage';
-import {ProjectsPage} from './pages/ProjectsPage';
-import {CalendarPage} from './pages/CalendarPage';
 import {PermissionModule} from './lib/permissions';
+
+const Login = lazy(() => import('./pages/Login').then((module) => ({default: module.Login})));
+const Dashboard = lazy(() => import('./pages/Dashboard').then((module) => ({default: module.Dashboard})));
+const QuotesPage = lazy(() => import('./pages/QuotesPage').then((module) => ({default: module.QuotesPage})));
+const QuoteEditor = lazy(() => import('./pages/QuoteEditor').then((module) => ({default: module.QuoteEditor})));
+const ClientsPage = lazy(() => import('./pages/ClientsPage').then((module) => ({default: module.ClientsPage})));
+const InventoryPage = lazy(() => import('./pages/InventoryPage').then((module) => ({default: module.InventoryPage})));
+const MaterialsPage = lazy(() => import('./pages/MaterialsPage').then((module) => ({default: module.MaterialsPage})));
+const AdminPage = lazy(() => import('./pages/AdminPage').then((module) => ({default: module.AdminPage})));
+const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({default: module.ProfilePage})));
+const ReportsPage = lazy(() => import('./pages/ReportsPage').then((module) => ({default: module.ReportsPage})));
+const PremiumProposalPage = lazy(() =>
+  import('./pages/PremiumProposalPage').then((module) => ({default: module.PremiumProposalPage})),
+);
+const ProjectsPage = lazy(() => import('./pages/ProjectsPage').then((module) => ({default: module.ProjectsPage})));
+const CalendarPage = lazy(() => import('./pages/CalendarPage').then((module) => ({default: module.CalendarPage})));
 
 const NoPermission = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
@@ -60,31 +63,39 @@ const ProtectedRoute = ({
   return shell ?<Shell>{children}</Shell> : <>{children}</>;
 };
 
+const RouteLoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-white">
+    <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-primary/20 border-t-brand-primary" />
+  </div>
+);
+
 export default function App() {
   return (
     <AuthProvider>
       <HashRouter>
-        <Routes>
-          <Route path="/login" element={<Login />} />
+        <Suspense fallback={<RouteLoadingFallback />}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
 
-          <Route path="/" element={<ProtectedRoute permission={['dashboard', 'visualizar']}><Dashboard /></ProtectedRoute>} />
-          <Route path="/quotes" element={<ProtectedRoute permission={['orcamento', 'visualizar']}><QuotesPage /></ProtectedRoute>} />
-          <Route path="/quotes/new" element={<ProtectedRoute permission={['orcamento', 'criar']}><QuoteEditor /></ProtectedRoute>} />
-          <Route path="/quotes/edit/:id" element={<ProtectedRoute permission={['orcamento', 'editar']}><QuoteEditor /></ProtectedRoute>} />
-          <Route path="/quotes/proposal/:id" element={<ProtectedRoute shell={false} permission={['orcamento', 'visualizar']}><PremiumProposalPage /></ProtectedRoute>} />
-          <Route path="/projects" element={<ProtectedRoute permission={['projeto', 'visualizar']}><ProjectsPage /></ProtectedRoute>} />
-          <Route path="/calendar" element={<ProtectedRoute permission={['medicao', 'visualizar']}><CalendarPage /></ProtectedRoute>} />
-          <Route path="/clients" element={<ProtectedRoute permission={['cliente', 'visualizar']}><ClientsPage /></ProtectedRoute>} />
-          <Route path="/history" element={<ProtectedRoute permission={['historico', 'visualizar']}><QuotesPage /></ProtectedRoute>} />
-          <Route path="/reports" element={<ProtectedRoute permission={['relatorios', 'visualizar']}><ReportsPage /></ProtectedRoute>} />
-          <Route path="/materials" element={<ProtectedRoute permission={['materiais', 'visualizar']}><MaterialsPage /></ProtectedRoute>} />
-          <Route path="/inventory" element={<ProtectedRoute permission={['estoque', 'visualizar']}><InventoryPage /></ProtectedRoute>} />
-          <Route path="/settings" element={<Navigate to="/admin" replace />} />
-          <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
-          <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/" element={<ProtectedRoute permission={['dashboard', 'visualizar']}><Dashboard /></ProtectedRoute>} />
+            <Route path="/quotes" element={<ProtectedRoute permission={['orcamento', 'visualizar']}><QuotesPage /></ProtectedRoute>} />
+            <Route path="/quotes/new" element={<ProtectedRoute permission={['orcamento', 'criar']}><QuoteEditor /></ProtectedRoute>} />
+            <Route path="/quotes/edit/:id" element={<ProtectedRoute permission={['orcamento', 'editar']}><QuoteEditor /></ProtectedRoute>} />
+            <Route path="/quotes/proposal/:id" element={<ProtectedRoute shell={false} permission={['orcamento', 'visualizar']}><PremiumProposalPage /></ProtectedRoute>} />
+            <Route path="/projects" element={<ProtectedRoute permission={['projeto', 'visualizar']}><ProjectsPage /></ProtectedRoute>} />
+            <Route path="/calendar" element={<ProtectedRoute permission={['medicao', 'visualizar']}><CalendarPage /></ProtectedRoute>} />
+            <Route path="/clients" element={<ProtectedRoute permission={['cliente', 'visualizar']}><ClientsPage /></ProtectedRoute>} />
+            <Route path="/history" element={<ProtectedRoute permission={['historico', 'visualizar']}><QuotesPage /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute permission={['relatorios', 'visualizar']}><ReportsPage /></ProtectedRoute>} />
+            <Route path="/materials" element={<ProtectedRoute permission={['materiais', 'visualizar']}><MaterialsPage /></ProtectedRoute>} />
+            <Route path="/inventory" element={<ProtectedRoute permission={['estoque', 'visualizar']}><InventoryPage /></ProtectedRoute>} />
+            <Route path="/settings" element={<Navigate to="/admin" replace />} />
+            <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
 
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </Suspense>
       </HashRouter>
     </AuthProvider>
   );

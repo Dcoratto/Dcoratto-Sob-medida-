@@ -584,9 +584,9 @@ export const QuoteEditor: React.FC = () => {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-32">
-      <header className="flex items-center justify-between">
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/quotes')} className="p-3 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all">
+          <button onClick={() => navigate('/quotes')} className="self-start rounded-2xl border border-slate-200 bg-white p-3 transition-all hover:bg-slate-50">
             <ArrowLeft className="w-5 h-5 text-slate-600" />
           </button>
           <div>
@@ -606,7 +606,7 @@ export const QuoteEditor: React.FC = () => {
         </button>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-8">
         {/* Left Column: Basic Info */}
         <div className="lg:col-span-1 space-y-6">
           <section className="bg-brand-primary p-8 rounded-[32px] text-white shadow-xl shadow-brand-primary/30">
@@ -1326,10 +1326,10 @@ export const QuoteEditor: React.FC = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {piece.sides.map((side, sIdx) => (
-                        <div key={sIdx} className="bg-slate-50 border border-slate-100 rounded-[20px] p-4 grid grid-cols-[minmax(0,1fr)_72px_36px] gap-3 items-end">
+                        <div key={sIdx} className="grid grid-cols-1 gap-3 rounded-[20px] border border-slate-100 bg-slate-50 p-4 sm:grid-cols-[minmax(0,1fr)_72px_36px] sm:items-end">
                           <div className="min-w-0 space-y-1">
                             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Tipo / Medida</span>
-                            <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-2">
+                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[96px_minmax(0,1fr)]">
                               <select 
                                 value={side.type}
                                 onChange={(e) => {
@@ -1367,7 +1367,7 @@ export const QuoteEditor: React.FC = () => {
                               </select>
                             </div>
                           </div>
-                          <div className="w-16 space-y-1">
+                          <div className="space-y-1 sm:w-16">
                             <span className="text-[10px] text-slate-400 font-bold uppercase">{sideDimensionLabel(side.type)}</span>
                             <input 
                               type="number" 
@@ -1403,7 +1403,7 @@ export const QuoteEditor: React.FC = () => {
             })}
           </div>
 
-          <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
+          <section className="rounded-[28px] border border-slate-100 bg-white p-4 shadow-sm space-y-6 sm:rounded-[32px] sm:p-6 lg:p-8">
             <h2 className="font-display font-bold text-xl text-slate-800">Recortes e Acabamentos Especiais</h2>
             {!pieces.length ?(
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
@@ -1459,7 +1459,7 @@ export const QuoteEditor: React.FC = () => {
             )}
           </section>
 
-          <section className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
+          <section className="rounded-[28px] border border-slate-100 bg-white p-4 shadow-sm space-y-4 sm:rounded-[32px] sm:p-6 lg:p-8">
             <h2 className="font-display font-bold text-xl text-slate-800">Observações Comerciais</h2>
             <textarea 
               value={commercialNotes}
@@ -1473,17 +1473,17 @@ export const QuoteEditor: React.FC = () => {
 
       {showDrawing && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="w-full max-w-5xl bg-white rounded-[40px] shadow-2xl flex flex-col h-[90vh]">
-            <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex h-[92vh] w-full max-w-5xl flex-col rounded-[28px] bg-white shadow-2xl sm:h-[90vh] sm:rounded-[40px]">
+            <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-8">
               <div>
                 <h3 className="text-2xl font-display font-bold text-slate-900">Desenho Técnico</h3>
                 <p className="text-slate-400 text-sm">Peça: {pieces.find(p => p.id === showDrawing)?.name}</p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 self-start sm:self-auto">
                 <button
                   id={`save-drawing-${showDrawing}`}
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-3 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 transition-all hover:bg-brand-primary/90 sm:px-5"
                 >
                   <Save className="w-4 h-4" />
                   Salvar peça
@@ -1496,7 +1496,7 @@ export const QuoteEditor: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-hidden p-8">
+            <div className="flex-1 overflow-hidden p-3 sm:p-8">
               <DrawingCanvas 
                 initialJson={pieces.find(p => p.id === showDrawing)?.drawingJson}
                 initialSides={pieces.find(p => p.id === showDrawing)?.sides}

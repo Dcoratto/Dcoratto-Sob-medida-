@@ -1137,7 +1137,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       </div>
 
       {showPiecesPanel && (
-        <div className="fixed right-6 top-1/2 z-[130] flex max-h-[86vh] w-[380px] max-w-[calc(100vw-48px)] -translate-y-1/2 flex-col rounded-[32px] border border-slate-100 bg-white p-6 shadow-2xl">
+        <div className="fixed inset-x-3 bottom-3 top-auto z-[130] flex max-h-[72vh] w-auto flex-col rounded-[28px] border border-slate-100 bg-white p-4 shadow-2xl sm:right-6 sm:top-1/2 sm:bottom-auto sm:w-[380px] sm:max-w-[calc(100vw-48px)] sm:-translate-y-1/2 sm:p-6">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h3 className="font-display text-xl font-bold text-slate-900">Adicionar peças</h3>
@@ -1228,7 +1228,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         </div>
       )}
 
-      <div ref={wrapRef} className="relative min-h-[420px] flex-1">
+      <div ref={wrapRef} className="relative min-h-[360px] flex-1 sm:min-h-[420px]">
         <canvas
           ref={canvasRef}
           tabIndex={0}
@@ -1240,25 +1240,25 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           onContextMenu={(event) => event.preventDefault()}
           className={cn('block h-full w-full touch-none select-none outline-none', drawTool === 'pan' ?'cursor-grab' : drawTool === 'cutout' ?'cursor-cell' : 'cursor-crosshair')}
         />
-        <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-2xl border border-brand-primary/20 bg-white/95 p-2 shadow-xl">
+        <div className="absolute bottom-3 left-1/2 flex w-[calc(100%-24px)] max-w-md -translate-x-1/2 items-center gap-2 rounded-2xl border border-brand-primary/20 bg-white/95 p-2 shadow-xl sm:bottom-4 sm:w-auto">
           <Ruler className="h-5 w-5 text-brand-primary" />
           <input
             ref={measureInputRef}
             value={measureBuffer}
             onChange={(event) => setMeasureBuffer(event.target.value)}
             placeholder="Medida em m"
-            className="w-36 bg-transparent text-sm font-bold outline-none"
+            className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none sm:w-36 sm:flex-none"
           />
           <button type="button" onClick={handleMeasureSubmit} className="rounded-xl bg-brand-primary p-2 text-white"><Check className="h-4 w-4" /></button>
         </div>
-        <div className="absolute right-4 top-4 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl">
+        <div className="absolute right-3 top-3 rounded-2xl border border-slate-100 bg-white/95 p-3 shadow-xl sm:right-4 sm:top-4 sm:p-4">
           <div className="text-xs font-bold uppercase tracking-widest text-slate-400">área principal</div>
           <div className="text-2xl font-display font-bold text-brand-primary">{area.toFixed(4)} m²</div>
           <div className="mt-2 text-xs text-slate-500">Adicionais: {additionalArea.toFixed(4)} m²</div>
           <div className="text-xs font-bold text-slate-700">Total: {totalArea.toFixed(4)} m²</div>
         </div>
         {showHelp && (
-          <div className="absolute left-4 top-4 w-56 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl">
+          <div className="absolute left-3 top-20 w-[calc(100%-24px)] max-w-56 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl sm:left-4 sm:top-4 sm:w-56">
             <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-700">
               <HelpCircle className="h-4 w-4 text-brand-primary" />
               Como usar

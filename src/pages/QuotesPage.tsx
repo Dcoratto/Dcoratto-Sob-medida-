@@ -252,28 +252,28 @@ export const QuotesPage: React.FC = () => {
                         ))}
                       </select>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <td className="px-4 py-4 text-right sm:px-6">
+                      <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                         <button
                           type="button"
                           title="Abrir proposta premium"
                           onClick={() => window.open(`/#/quotes/proposal/${quote.id}`, '_blank', 'noopener,noreferrer')}
-                          className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg"
+                          className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/5 hover:text-brand-primary"
                         >
                           <FileText className="w-4 h-4" />
                         </button>
                         {hasPermission('orcamento', 'editar') && (
-                          <button type="button" title="Editar" onClick={() => navigate(`/quotes/edit/${quote.id}`)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg">
+                          <button type="button" title="Editar" onClick={() => navigate(`/quotes/edit/${quote.id}`)} className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/5 hover:text-brand-primary">
                             <Edit2 className="w-4 h-4" />
                           </button>
                         )}
                         {hasPermission('orcamento', 'criar') && (
-                          <button type="button" title="Duplicar" onClick={() => handleDuplicate(quote)} className="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg">
+                          <button type="button" title="Duplicar" onClick={() => handleDuplicate(quote)} className="rounded-lg p-2 text-slate-400 hover:bg-blue-50 hover:text-blue-500">
                             <Copy className="w-4 h-4" />
                           </button>
                         )}
                         {hasPermission('orcamento', 'excluir') && (
-                          <button type="button" aria-label="Excluir" title="Excluir" onClick={() => handleDelete(quote.id)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                          <button type="button" aria-label="Excluir" title="Excluir" onClick={() => handleDelete(quote.id)} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-500">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         )}

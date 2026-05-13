@@ -254,6 +254,21 @@ export const QuoteEditor: React.FC = () => {
   }, [clientId, clientSearch, clients]);
 
   useEffect(() => {
+    if (!showDrawing) return;
+
+    const previousOverflow = document.body.style.overflow;
+    const previousTouchAction = document.body.style.touchAction;
+
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.body.style.touchAction = previousTouchAction;
+    };
+  }, [showDrawing]);
+
+  useEffect(() => {
     setPieceMaterialSearch((current) => {
       const next = {...current};
       pieces.forEach((piece) => {
@@ -1472,8 +1487,8 @@ export const QuoteEditor: React.FC = () => {
       </div>
 
       {showDrawing && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[100] flex items-center justify-center p-4">
-          <div className="flex h-[92vh] w-full max-w-5xl flex-col rounded-[28px] bg-white shadow-2xl sm:h-[90vh] sm:rounded-[40px]">
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 p-2 backdrop-blur-md overscroll-contain sm:flex sm:items-center sm:justify-center sm:p-4">
+          <div className="flex min-h-[calc(100svh-16px)] w-full max-w-5xl flex-col rounded-[28px] bg-white shadow-2xl sm:h-[90vh] sm:min-h-0 sm:rounded-[40px]">
             <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-8">
               <div>
                 <h3 className="text-2xl font-display font-bold text-slate-900">Desenho Técnico</h3>
@@ -1496,7 +1511,7 @@ export const QuoteEditor: React.FC = () => {
                 </button>
               </div>
             </div>
-            <div className="flex-1 overflow-hidden p-3 sm:p-8">
+            <div className="flex-1 overflow-hidden p-2 sm:p-8">
               <DrawingCanvas 
                 initialJson={pieces.find(p => p.id === showDrawing)?.drawingJson}
                 initialSides={pieces.find(p => p.id === showDrawing)?.sides}

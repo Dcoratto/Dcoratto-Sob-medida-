@@ -47,6 +47,7 @@ export const Sidebar: React.FC = () => {
   const displayRole = profile?.position || (accessUser?.role ?roleLabel(accessUser.role) : user?.email || '');
 
   const closeMobileMenu = () => setMobileOpen(false);
+  const mobileQuickItems = menuItems.slice(0, 5);
 
   const renderNavigation = (mobile = false) => (
     <>
@@ -130,7 +131,7 @@ export const Sidebar: React.FC = () => {
             aria-label="Fechar menu"
             onClick={closeMobileMenu}
           />
-          <aside className="relative flex h-full w-[min(84vw,320px)] flex-col bg-white px-4 py-4 shadow-2xl">
+          <aside className="relative z-10 flex h-full w-[min(84vw,320px)] flex-col bg-white px-4 py-4 shadow-2xl">
             <div className="mb-4 flex items-center justify-between gap-3 px-2">
               <Logo />
               <button
@@ -153,6 +154,24 @@ export const Sidebar: React.FC = () => {
         </div>
         {renderNavigation(false)}
       </aside>
+
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-2 backdrop-blur lg:hidden">
+        <div className="grid grid-cols-5 gap-1">
+          {mobileQuickItems.map((item) => (
+            <NavLink
+              key={`mobile-${item.path}`}
+              to={item.path}
+              className={({isActive}) => cn(
+                'flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-[10px] font-bold transition-all',
+                isActive ?'bg-brand-primary text-white shadow-lg shadow-brand-primary/20' : 'text-slate-500 hover:bg-slate-50 hover:text-brand-primary',
+              )}
+            >
+              <item.icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{item.label}</span>
+            </NavLink>
+          ))}
+        </div>
+      </nav>
     </>
   );
 };

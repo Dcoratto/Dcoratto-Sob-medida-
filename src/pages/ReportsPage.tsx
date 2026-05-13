@@ -149,7 +149,7 @@ export const ReportsPage: React.FC = () => {
     .filter((quote) => ['Orçamento', 'Orçamento Aprovado', 'Medição', 'Projeto'].includes(statusLabel(quote.status)))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
   const refusedValue = filteredQuotes
-    .filter((quote) => statusLabel(quote.status) === '__none__')
+    .filter((quote) => ['recusado', 'cancelado'].includes(normalize(quote.status)))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
   const approvedCount = filteredQuotes.filter((quote) => isClosedSale(quote.status)).length;
   const conversionRate = filteredQuotes.length ?Math.round((approvedCount / filteredQuotes.length) * 100) : 0;
@@ -167,7 +167,7 @@ export const ReportsPage: React.FC = () => {
   const quoteDetails = filteredQuotes.map((quote) => ({
     quote,
     pieces: quote.pieces?.length || 0,
-    cutoutsTotal: Object.values(quote.cutouts || {}).reduce((sum, value) => sum + (typeof value === 'number' ? value : value ? 1 : 0), 0),
+    cutoutsTotal: Object.values(quote.cutouts || {}).reduce<number>((sum, value) => sum + (typeof value === 'number' ? value : value ? 1 : 0), 0),
     fixtures: (quote.pieces || []).reduce((sum, piece) => sum + Object.values(piece.selectedFixtureIds || {}).filter(Boolean).length, 0),
   }));
 

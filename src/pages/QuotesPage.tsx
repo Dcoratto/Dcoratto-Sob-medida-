@@ -108,7 +108,7 @@ export const QuotesPage: React.FC = () => {
     const duplicatedQuote = {
       ...data,
       createdAt: Timestamp.now(),
-      status: 'Orcamento',
+      status: 'Orçamento',
       clientName: `${data.clientName} (Copia)`,
     } as Omit<Quote, 'id'>;
     const createdRef = await addDoc(collection(db, 'quotes'), duplicatedQuote);

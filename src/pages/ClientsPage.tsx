@@ -3,7 +3,7 @@ import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDo
 import {CheckCircle2, ClipboardList, Edit2, MapPin, Phone, Plus, Search, Trash2, User, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
-import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureInfo, InventoryItem, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
+import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureCategory, FixtureInfo, InventoryItem, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
@@ -63,7 +63,9 @@ const stepDate = (value: any) => {
   return date.toLocaleDateString('pt-BR');
 };
 
-const orderedAssignmentsForStep = (assignments: EmployeeAssignment[] | undefined, step: ProductionStep) =>
+type StepAssignment = EmployeeAssignment & {slotIndex: number};
+
+const orderedAssignmentsForStep = (assignments: EmployeeAssignment[] | undefined, step: ProductionStep): StepAssignment[] =>
   (assignments || [])
     .filter((item) => item.step === step)
     .map((item, index) => ({...item, slotIndex: item.slotIndex ?? index}))
@@ -519,7 +521,7 @@ export const ClientsPage: React.FC = () => {
     const previousAssignment = stepAssignments.find((item) => item.slotIndex === slotIndex);
     const nextStepAssignments = stepAssignments.filter((item) => item.slotIndex !== slotIndex);
     if (employee) {
-      const nextAssignment: EmployeeAssignment = {
+      const nextAssignment: StepAssignment = {
         step,
         employeeId: employee.id,
         employeeName: employee.name,
@@ -670,7 +672,7 @@ export const ClientsPage: React.FC = () => {
       metadata: {step: assignment.step, rating, notes: notes ?? currentEvaluation?.notes ?? ''},
     });
     await logAuditEvent({
-      user: user ?{uid: user.uid, email: user.email || '', nome: currentUserName} : null,
+      user: user || null,
       action: 'update_employee_evaluation',
       module: 'cliente',
       targetId: quote.id,
@@ -1348,6 +1350,7 @@ const FixtureFields = ({
   description,
   onChange,
 }: {
+  key?: React.Key;
   quote: Quote;
   piece: QuotePiece;
   type: FixtureCategory;

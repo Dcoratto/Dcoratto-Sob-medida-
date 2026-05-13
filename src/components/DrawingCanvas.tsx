@@ -85,6 +85,7 @@ const SNAP_RADIUS_PX = 12;
 const MIN_ZOOM = 45;
 const MAX_ZOOM = 420;
 const BASE_SCALE = 110;
+const GEOMETRY_EPSILON = 0.000001;
 const EMPTY_SIDES: PieceSide[] = [];
 const complementLabel = (type: ComplementType | PieceSide['type']) => {
   if (type === 'frontao') return 'Frontão';
@@ -108,6 +109,7 @@ const alphabetName = (index: number) => {
 };
 
 const distance = (a: Point, b: Point) => Math.hypot(b.x - a.x, b.y - a.y);
+const samePoint = (a: Point, b: Point, epsilon = GEOMETRY_EPSILON) => distance(a, b) <= epsilon;
 
 const polygonArea = (points: Point[]) => {
   if (points.length < 3) return 0;
@@ -122,29 +124,61 @@ const polygonArea = (points: Point[]) => {
 
 const orientation = (a: Point, b: Point, c: Point) => {
   const value = (b.y - a.y) * (c.x - b.x) - (b.x - a.x) * (c.y - b.y);
-  if (Math.abs(value) < 0.000001) return 0;
+  if (Math.abs(value) < GEOMETRY_EPSILON) return 0;
   return value > 0 ?1 : 2;
 };
 
+const onSegment = (a: Point, b: Point, c: Point) =>
+  b.x <= Math.max(a.x, c.x) + GEOMETRY_EPSILON &&
+  b.x >= Math.min(a.x, c.x) - GEOMETRY_EPSILON &&
+  b.y <= Math.max(a.y, c.y) + GEOMETRY_EPSILON &&
+  b.y >= Math.min(a.y, c.y) - GEOMETRY_EPSILON;
+
 const segmentsIntersect = (p1: Point, q1: Point, p2: Point, q2: Point) => {
+  if (samePoint(p1, p2) || samePoint(p1, q2) || samePoint(q1, p2) || samePoint(q1, q2)) {
+    return false;
+  }
+
   const o1 = orientation(p1, q1, p2);
   const o2 = orientation(p1, q1, q2);
   const o3 = orientation(p2, q2, p1);
   const o4 = orientation(p2, q2, q1);
-  return o1 !== o2 && o3 !== o4;
+
+  if (o1 !== o2 && o3 !== o4) return true;
+  if (o1 === 0 && onSegment(p1, p2, q1)) return true;
+  if (o2 === 0 && onSegment(p1, q2, q1)) return true;
+  if (o3 === 0 && onSegment(p2, p1, q2)) return true;
+  if (o4 === 0 && onSegment(p2, q1, q2)) return true;
+
+  return false;
+};
+
+const sanitizePolygonPoints = (points: Point[]) => {
+  const sanitized = points.filter((point, index) => index === 0 || !samePoint(point, points[index - 1]));
+  if (sanitized.length > 1 && samePoint(sanitized[0], sanitized[sanitized.length - 1])) {
+    sanitized.pop();
+  }
+  return sanitized;
 };
 
 const hasCrossingLines = (points: Point[]) => {
-  if (points.length < 4) return false;
-  for (let i = 0; i < points.length; i += 1) {
-    const a1 = points[i];
-    const a2 = points[(i + 1) % points.length];
-    for (let j = i + 1; j < points.length; j += 1) {
-      const adjacent = Math.abs(i - j) <= 1 || (i === 0 && j === points.length - 1);
+  const polygonPoints = sanitizePolygonPoints(points);
+  if (polygonPoints.length < 4) return false;
+
+  const segments = polygonPoints.map((point, index) => ({
+    start: point,
+    end: polygonPoints[(index + 1) % polygonPoints.length],
+  })).filter((segment) => !samePoint(segment.start, segment.end));
+
+  if (segments.length < 4) return false;
+
+  for (let i = 0; i < segments.length; i += 1) {
+    const a = segments[i];
+    for (let j = i + 1; j < segments.length; j += 1) {
+      const adjacent = Math.abs(i - j) <= 1 || (i === 0 && j === segments.length - 1);
       if (adjacent) continue;
-      const b1 = points[j];
-      const b2 = points[(j + 1) % points.length];
-      if (segmentsIntersect(a1, a2, b1, b2)) return true;
+      const b = segments[j];
+      if (segmentsIntersect(a.start, a.end, b.start, b.end)) return true;
     }
   }
   return false;

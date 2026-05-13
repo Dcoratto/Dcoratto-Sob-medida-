@@ -53,6 +53,7 @@ export interface Profile {
   phone?: string;
   photoUrl?: string;
   position?: string;
+  calendarFeedToken?: string;
 }
 
 export interface Settings {

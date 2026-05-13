@@ -1,7 +1,7 @@
 ﻿import React, {useEffect, useMemo, useState} from 'react';
 import {addDoc, collection, deleteDoc, doc, onSnapshot, Timestamp, updateDoc} from 'firebase/firestore';
 import type {FirebaseError} from 'firebase/app';
-import {AlertTriangle, ChevronLeft, ChevronRight, MapPin, Phone, Plus, X} from 'lucide-react';
+import {AlertTriangle, CalendarPlus, ChevronLeft, ChevronRight, Copy, ExternalLink, MapPin, Phone, Plus, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {Client, CondominiumRule, Quote} from '../types';
 import {cn} from '../lib/utils';
@@ -118,6 +118,12 @@ const clientFullAddress = (client: Client | null) => {
 
 const clientAddressTypeLabel = (type?: Client['addressType']) =>
   type === 'apartamento' ? 'Apartamento' : type === 'condominio' ? 'Condomínio' : type === 'casa' ? 'Casa' : 'Não informado';
+const createCalendarFeedToken = () => {
+  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
+    return crypto.randomUUID().replace(/-/g, '');
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 14)}`;
+};
 
 export const CalendarPage: React.FC = () => {
   const {user, profile} = useAuth();
@@ -136,6 +142,10 @@ export const CalendarPage: React.FC = () => {
   const [newEventClientId, setNewEventClientId] = useState('');
   const [isSavingEvent, setIsSavingEvent] = useState(false);
   const [isDeletingEvent, setIsDeletingEvent] = useState(false);
+  const [showSubscribeModal, setShowSubscribeModal] = useState(false);
+  const [isPreparingSubscription, setIsPreparingSubscription] = useState(false);
+  const [subscribeError, setSubscribeError] = useState('');
+  const [subscriptionToken, setSubscriptionToken] = useState(profile?.calendarFeedToken || '');
   const [createError, setCreateError] = useState('');
 
   const getCreateEventErrorMessage = (error: unknown) => {
@@ -169,6 +179,12 @@ export const CalendarPage: React.FC = () => {
       unsubManualEvents();
     };
   }, []);
+
+  useEffect(() => {
+    if (profile?.calendarFeedToken) {
+      setSubscriptionToken(profile.calendarFeedToken);
+    }
+  }, [profile?.calendarFeedToken]);
 
   const today = useMemo(() => {
     const now = new Date();
@@ -289,6 +305,19 @@ export const CalendarPage: React.FC = () => {
 
   const selectedClient = selectedEvent?.clientId ? clients.find((item) => item.id === selectedEvent.clientId) : null;
   const selectedEventDaysLeft = selectedEvent ?daysLeftFromToday(selectedEvent.date) : null;
+  const subscriptionHttpsUrl = useMemo(() => {
+    if (!user?.uid || !subscriptionToken || typeof window === 'undefined') return '';
+    const params = new URLSearchParams({uid: user.uid, token: subscriptionToken});
+    return `${window.location.origin}/api/calendar-feed?${params.toString()}`;
+  }, [subscriptionToken, user?.uid]);
+  const subscriptionWebcalUrl = useMemo(() => {
+    if (!subscriptionHttpsUrl) return '';
+    return subscriptionHttpsUrl.replace(/^https?/, 'webcal');
+  }, [subscriptionHttpsUrl]);
+  const googleCalendarSubscribeUrl = useMemo(() => {
+    if (!subscriptionHttpsUrl) return '';
+    return `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(subscriptionHttpsUrl)}`;
+  }, [subscriptionHttpsUrl]);
 
   const getCondominiumBlockReason = (client: Client | undefined, date: Date) => {
     const condominium = client?.condominiumId ?condominiums.find((item) => item.id === client.condominiumId) : null;
@@ -316,6 +345,43 @@ export const CalendarPage: React.FC = () => {
     resetForm();
     setNewEventDate(toInputDate(date || new Date()));
     setShowCreateModal(true);
+  };
+
+  const handleOpenSubscribeModal = async () => {
+    if (!user?.uid) {
+      setSubscribeError('Faça login novamente para gerar o link de assinatura.');
+      setShowSubscribeModal(true);
+      return;
+    }
+
+    setSubscribeError('');
+    setIsPreparingSubscription(true);
+
+    try {
+      let token = subscriptionToken || profile?.calendarFeedToken || '';
+      if (!token) {
+        token = createCalendarFeedToken();
+        await updateDoc(doc(db, 'profiles', user.uid), {calendarFeedToken: token});
+      }
+      setSubscriptionToken(token);
+      setShowSubscribeModal(true);
+    } catch (error) {
+      console.error('Erro ao preparar assinatura do calendário', error);
+      setSubscribeError('Não foi possível preparar o link de assinatura agora. Tente novamente.');
+      setShowSubscribeModal(true);
+    } finally {
+      setIsPreparingSubscription(false);
+    }
+  };
+
+  const handleCopySubscriptionLink = async () => {
+    if (!subscriptionHttpsUrl) return;
+    try {
+      await navigator.clipboard.writeText(subscriptionHttpsUrl);
+    } catch (error) {
+      console.error('Erro ao copiar link do calendário', error);
+      setSubscribeError('Não foi possível copiar o link automaticamente. Copie manualmente abaixo.');
+    }
   };
 
   const openEditModal = () => {
@@ -409,6 +475,15 @@ export const CalendarPage: React.FC = () => {
           <p className="text-slate-500 mt-1">Medições, entregas, eventos manuais e feriados municipais.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleOpenSubscribeModal}
+            disabled={isPreparingSubscription}
+            className="inline-flex items-center gap-2 rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-3 py-2 text-sm font-bold text-brand-primary hover:bg-brand-primary/10 disabled:opacity-70"
+          >
+            <CalendarPlus className="w-4 h-4" />
+            {isPreparingSubscription ? 'Preparando assinatura...' : 'Assinar cronograma'}
+          </button>
           <button type="button" onClick={() => openCreateModal()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
             <Plus className="w-4 h-4" />Adicionar evento
           </button>
@@ -618,6 +693,75 @@ export const CalendarPage: React.FC = () => {
                 {isSavingEvent ? 'Salvando...' : editingEventId ? 'Salvar alterações' : 'Salvar evento'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showSubscribeModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-lg rounded-3xl bg-white border border-slate-100 shadow-2xl p-6">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Assinar cronograma</div>
+                <h3 className="mt-1 text-xl font-display font-bold text-slate-900">Sincronizar com iPhone e Android</h3>
+                <p className="mt-2 text-sm text-slate-500">Depois de assinar uma vez, o calendário do aparelho passa a acompanhar seu cronograma por link.</p>
+              </div>
+              <button type="button" onClick={() => setShowSubscribeModal(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              <a
+                href={subscriptionWebcalUrl || '#'}
+                className={cn(
+                  'flex w-full items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-left',
+                  subscriptionWebcalUrl ?'hover:bg-slate-50' : 'pointer-events-none opacity-50',
+                )}
+              >
+                <div>
+                  <div className="text-sm font-bold text-slate-900">Assinar no iPhone</div>
+                  <div className="text-xs text-slate-500">Abre o app Calendário com o link de assinatura.</div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-slate-400" />
+              </a>
+
+              <a
+                href={googleCalendarSubscribeUrl || '#'}
+                target="_blank"
+                rel="noreferrer"
+                className={cn(
+                  'flex w-full items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 text-left',
+                  googleCalendarSubscribeUrl ?'hover:bg-slate-50' : 'pointer-events-none opacity-50',
+                )}
+              >
+                <div>
+                  <div className="text-sm font-bold text-slate-900">Assinar no Android</div>
+                  <div className="text-xs text-slate-500">Abre o Google Calendar para adicionar o cronograma por URL.</div>
+                </div>
+                <ExternalLink className="w-4 h-4 text-slate-400" />
+              </a>
+
+              <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Link de assinatura</div>
+                <div className="mt-2 break-all text-sm font-semibold text-slate-700">{subscriptionHttpsUrl || 'Link indisponível no momento.'}</div>
+                <button
+                  type="button"
+                  onClick={handleCopySubscriptionLink}
+                  disabled={!subscriptionHttpsUrl}
+                  className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+                >
+                  <Copy className="w-4 h-4" />
+                  Copiar link
+                </button>
+              </div>
+
+              <div className="rounded-2xl bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900">
+                Mantenha esse link privado. Quem tiver acesso a ele consegue visualizar o cronograma sincronizado.
+              </div>
+
+              {subscribeError && (
+                <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{subscribeError}</div>
+              )}
+            </div>
           </div>
         </div>
       )}

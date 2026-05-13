@@ -272,14 +272,14 @@ export const PremiumProposalPage: React.FC = () => {
 
       <section className="px-6 pb-28 print:pb-12">
         <div className="mx-auto max-w-4xl">
-          <SectionHeading eyebrow="Condiçóes" title="Condiçóes de pagamento" />
+          <SectionHeading eyebrow="Condições" title="Condições de pagamento" />
           <div className="grid gap-6 md:grid-cols-2">
             <PaymentCard title="Cartão de crédito" subtitle="Parcelamento facilitado" lines={[`Entrada: ${formatCurrency(halfValue)}`, `9 parcelas de: ${formatCurrency(halfValue)}`, `Total: ${formatCurrency(quote.totalPrice || 0)}`]} />
-            <PaymentCard title="Pagamento ?vista" subtitle="Desconto especial" badge="10% OFF" lines={[`Desconto: - ${formatCurrency((quote.totalPrice || 0) * 0.1)}`, `?vista: ${formatCurrency(cashValue)}`]} highlight />
+            <PaymentCard title="Pagamento à vista" subtitle="Desconto especial" badge="10% OFF" lines={[`Desconto: - ${formatCurrency((quote.totalPrice || 0) * 0.1)}`, `À vista: ${formatCurrency(cashValue)}`]} highlight />
           </div>
 
           <div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.035] p-8 print:border-slate-200 print:bg-white">
-            <h3 className="mb-6 font-display text-xl font-bold">Observaçóes importantes</h3>
+            <h3 className="mb-6 font-display text-xl font-bold">Observações importantes</h3>
             <div className="space-y-4 text-sm leading-relaxed text-white/52 print:text-slate-600">
               <p><span className="mr-2 text-[#D4A853]">01.</span>Valores incluem material e mão de obra conforme discriminado em cada ambiente.</p>
               <p><span className="mr-2 text-[#D4A853]">02.</span>Cubas, eletros e torneiras não fazem parte deste orçamento, salvo quando descritos nas observações comerciais.</p>

@@ -9,7 +9,7 @@ export const DEFAULT_SETTINGS: Settings = {
   email: 'contato@dcoratto.com.br',
   address: 'Endereco da marmoraria',
   defaultValidity: 15,
-  defaultNotes: 'Orcamento sujeito a confirmacao de medidas no local.',
+  defaultNotes: 'Orçamento sujeito à confirmação de medidas no local.',
   laborRatePerLinearMeter: 120,
   defaultFrontonHeight: 10,
   defaultSkirtHeight: 4,

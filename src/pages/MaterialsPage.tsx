@@ -154,7 +154,7 @@ export const MaterialsPage: React.FC = () => {
     e.preventDefault();
     if (!editingMaterial) return;
     if (!hasPermission('materiais', 'editar')) {
-      alert('Voce nao tem permissao para editar materiais. Fale com o administrador.');
+      alert('Você não tem permissão para editar materiais. Fale com o administrador.');
       return;
     }
 
@@ -185,7 +185,7 @@ export const MaterialsPage: React.FC = () => {
 
   const handleStatusChange = async (material: Material, nextActive: boolean) => {
     if (!hasPermission('materiais', 'editar')) {
-      alert('Voce nao tem permissao para editar materiais. Fale com o administrador.');
+      alert('Você não tem permissão para editar materiais. Fale com o administrador.');
       return;
     }
     await updateDoc(doc(db, 'materials', material.id), {active: nextActive});

@@ -509,7 +509,7 @@ export const ReportsPage: React.FC = () => {
                 </div>
                 <div className="rounded-xl bg-white p-3">
                   <div className="font-bold text-slate-900">{evaluations.length}</div>
-                  <div className="text-slate-400">avaliaçóes</div>
+                  <div className="text-slate-400">avaliações</div>
                 </div>
               </div>
             </div>
@@ -519,7 +519,7 @@ export const ReportsPage: React.FC = () => {
       </section>
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
-        <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Avaliacoes registradas</h2>
+        <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Avaliações registradas</h2>
         <div className="space-y-3">
           {evaluationHistory.map(({quote, item}, index) => {
             const date = toDate(item.createdAt);
@@ -535,7 +535,7 @@ export const ReportsPage: React.FC = () => {
                       {date ?date.toLocaleDateString('pt-BR') : 'Sem data'}
                     </div>
                     <div className="text-xs text-slate-400">
-                      Nota {item.rating}/5 - Avaliado por {item.evaluatedByName || 'Nao informado'}
+                      Nota {item.rating}/5 - Avaliado por {item.evaluatedByName || 'Não informado'}
                     </div>
                   </div>
                 </div>

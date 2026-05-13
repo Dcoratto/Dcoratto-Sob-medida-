@@ -29,7 +29,7 @@ const NoPermission = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
     <div className="max-w-lg rounded-[32px] border border-slate-100 bg-white p-8 text-center shadow-sm">
       <h1 className="font-display text-2xl font-bold text-slate-900">Acesso bloqueado</h1>
-      <p className="mt-3 text-slate-500">Voce nao tem permissao para acessar esta area. Fale com o administrador.</p>
+      <p className="mt-3 text-slate-500">Você não tem permissão para acessar esta área. Fale com o administrador.</p>
     </div>
   </div>
 );

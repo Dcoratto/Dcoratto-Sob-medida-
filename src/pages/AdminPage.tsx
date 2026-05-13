@@ -51,7 +51,7 @@ const readFileAsDataUrl = (file: File) =>
   new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Nao foi possivel ler a imagem selecionada.'));
+    reader.onerror = () => reject(new Error('Não foi possível ler a imagem selecionada.'));
     reader.readAsDataURL(file);
   });
 
@@ -64,7 +64,7 @@ const optimizeCatalogImage = async (file: File) => {
   const image = await new Promise<HTMLImageElement>((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Nao foi possivel carregar a imagem selecionada.'));
+    img.onerror = () => reject(new Error('Não foi possível carregar a imagem selecionada.'));
     img.src = source;
   });
 
@@ -74,7 +74,7 @@ const optimizeCatalogImage = async (file: File) => {
   canvas.height = Math.max(1, Math.round(image.height * scale));
   const context = canvas.getContext('2d');
   if (!context) {
-    throw new Error('Nao foi possivel preparar a imagem.');
+    throw new Error('Não foi possível preparar a imagem.');
   }
 
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
@@ -95,7 +95,7 @@ const getCatalogSaveErrorMessage = (error: any, itemName: string) => {
   if (code.includes('permission-denied') || message.includes('Missing or insufficient permissions')) {
     return `Sem permissao para salvar ${itemName}. Publique as regras atualizadas do Firestore e faca login novamente.`;
   }
-  return message || `Nao foi possivel cadastrar ${itemName}.`;
+  return message || `Não foi possível cadastrar ${itemName}.`;
 };
 
 export const AdminPage: React.FC = () => {
@@ -193,8 +193,8 @@ export const AdminPage: React.FC = () => {
         setEmployeeError('');
       },
       (error) => {
-        console.error('Erro ao carregar funcionarios:', error);
-        setEmployeeError('Nao foi possivel carregar os funcionarios agora.');
+        console.error('Erro ao carregar funcionários:', error);
+        setEmployeeError('Não foi possível carregar os funcionários agora.');
       },
     );
     return unsubscribe;
@@ -209,7 +209,7 @@ export const AdminPage: React.FC = () => {
       updatedAt: serverTimestamp(),
       updatedByUid: authUser?.uid || '',
       updatedByEmail: authUser?.email || '',
-      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuario',
+      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuário',
     });
     await logAuditEvent({user: accessUser || authUser, action: 'toggle_user_block', module: 'admin', targetId: target.uid, oldValue: target.blocked, newValue: !target.blocked});
   };
@@ -223,7 +223,7 @@ export const AdminPage: React.FC = () => {
       updatedAt: serverTimestamp(),
       updatedByUid: authUser?.uid || '',
       updatedByEmail: authUser?.email || '',
-      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuario',
+      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuário',
     });
     await logAuditEvent({user: accessUser || authUser, action: 'change_user_role', module: 'admin', targetId: target.uid, oldValue: target.role, newValue: newRole});
   };
@@ -243,7 +243,7 @@ export const AdminPage: React.FC = () => {
       updatedAt: serverTimestamp(),
       updatedByUid: authUser?.uid || '',
       updatedByEmail: authUser?.email || '',
-      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuario',
+      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuário',
     });
     await logAuditEvent({user: accessUser || authUser, action: 'change_user_permission', module: 'admin', targetId: target.uid, oldValue: target.permissions?.[module]?.[action as never], newValue: checked});
   };
@@ -279,7 +279,7 @@ export const AdminPage: React.FC = () => {
       setEmployeeForm({name: '', role: 'Medidor', phone: ''});
     } catch (error) {
       console.error('Erro ao adicionar funcionario:', error);
-      setEmployeeError('Nao foi possivel adicionar o funcionario. Confira sua conexao e tente novamente.');
+      setEmployeeError('Não foi possível adicionar o funcionário. Confira sua conexão e tente novamente.');
     } finally {
       setSavingEmployee(false);
     }
@@ -440,7 +440,7 @@ export const AdminPage: React.FC = () => {
     try {
       await deleteObject(storageRef(storage, fileUrl));
     } catch (error) {
-      console.warn('Nao foi possivel excluir arquivo armazenado:', error);
+      console.warn('Não foi possível excluir arquivo armazenado:', error);
     }
   };
 
@@ -485,7 +485,7 @@ export const AdminPage: React.FC = () => {
 
     const currentUser = auth.currentUser;
     if (!currentUser?.email) {
-      setResetError('Nao foi possivel confirmar sua conta. Entre novamente e tente de novo.');
+      setResetError('Não foi possível confirmar sua conta. Entre novamente e tente de novo.');
       return;
     }
 
@@ -499,7 +499,7 @@ export const AdminPage: React.FC = () => {
       return;
     }
 
-    const confirmed = window.confirm('Esta acao vai apagar clientes, orcamentos, materiais, estoque, compras, funcionarios, condominios e historico. Deseja continuar?');
+    const confirmed = window.confirm('Esta ação vai apagar clientes, orçamentos, materiais, estoque, compras, funcionários, condomínios e histórico. Deseja continuar?');
     if (!confirmed) return;
 
     setResettingData(true);
@@ -514,10 +514,10 @@ export const AdminPage: React.FC = () => {
 
       setResetPassword('');
       setResetConfirmation('');
-      setResetMessage(`${totalDeleted} registros foram excluidos. Usuarios, permissoes e configuracoes foram mantidos.`);
+      setResetMessage(`${totalDeleted} registros foram excluídos. Usuários, permissões e configurações foram mantidos.`);
     } catch (error) {
       console.error('Erro ao resetar dados:', error);
-      setResetError('Nao foi possivel limpar os dados. Confira a senha e tente novamente.');
+      setResetError('Não foi possível limpar os dados. Confira a senha e tente novamente.');
     } finally {
       setResettingData(false);
     }
@@ -527,13 +527,13 @@ export const AdminPage: React.FC = () => {
     <div className="space-y-6 pb-20">
       <header>
         <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Administracao</h1>
-        <p className="text-slate-500 mt-1">Gerencie usuarios, permissoes e funcionarios da producao.</p>
+        <p className="text-slate-500 mt-1">Gerencie usuários, permissões e funcionários da produção.</p>
       </header>
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h2 className="font-display text-xl font-bold text-slate-900">Funcionarios</h2>
+            <h2 className="font-display text-xl font-bold text-slate-900">Funcionários</h2>
             <p className="text-sm text-slate-400">Cadastre a equipe para vincular responsaveis e avaliacoes aos projetos.</p>
           </div>
           <BriefcaseBusiness className="w-6 h-6 text-brand-primary" />
@@ -769,11 +769,11 @@ export const AdminPage: React.FC = () => {
               <div>
                 <h2 className="font-display text-xl font-bold text-red-950">Zona de risco</h2>
                 <p className="mt-1 max-w-3xl text-sm text-red-700">
-                  Use este botao apenas quando o sistema estiver pronto para comecar do zero. Ele apaga clientes, orcamentos, materiais, estoque, reservas, compras, funcionarios, condominios e historico.
+                  Use este botão apenas quando o sistema estiver pronto para começar do zero. Ele apaga clientes, orçamentos, materiais, estoque, reservas, compras, funcionários, condomínios e histórico.
                 </p>
                 <p className="mt-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-red-500">
                   <AlertTriangle className="h-4 w-4" />
-                  Usuarios, permissoes e configuracoes da empresa serao mantidos.
+                  Usuários, permissões e configurações da empresa serão mantidos.
                 </p>
               </div>
             </div>
@@ -817,14 +817,14 @@ export const AdminPage: React.FC = () => {
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
         <div className="p-4">
-          <h2 className="font-display text-xl font-bold text-slate-900">Usuarios do sistema</h2>
+          <h2 className="font-display text-xl font-bold text-slate-900">Usuários do sistema</h2>
           <p className="text-sm text-slate-400">Controle cargos, permissoes individuais e bloqueios de acesso.</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-50">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Usuario</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Usuário</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Funcao</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Permissoes</th>
@@ -838,7 +838,7 @@ export const AdminPage: React.FC = () => {
                 users.map((user) => {
                   const userIsMaster = isMasterAdmin(user);
                   const effectivePermissions = mergePermissions(user);
-                  const displayName = user.nome || user.email || 'Usuario';
+                  const displayName = user.nome || user.email || 'Usuário';
                   const updatedBy = user.updatedByName || user.updatedByEmail;
                   const canEditThisUser = canAlterUsers && !userIsMaster;
 
@@ -857,7 +857,7 @@ export const AdminPage: React.FC = () => {
                           <Mail className="w-3 h-3" /> {user.email}
                         </div>
                         <div className="mt-2 text-[11px] text-slate-400">
-                          Atualizado por: {updatedBy || 'Nao informado'}
+                          Atualizado por: {updatedBy || 'Não informado'}
                         </div>
                       </td>
                       <td className="px-6 py-4 min-w-[190px]">

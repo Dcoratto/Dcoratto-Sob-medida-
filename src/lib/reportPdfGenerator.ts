@@ -369,10 +369,10 @@ export const generateReportPDF = async (data: ReportPdfData) => {
     doc.addPage();
     y = 20;
   }
-  sectionTitle(doc, 'Avaliacoes registradas', y, primary);
+  sectionTitle(doc, 'Avaliações registradas', y, primary);
   autoTable(doc, {
     startY: y + 6,
-    head: [['Data', 'Cliente', 'Funcionario', 'Etapa', 'Nota', 'Avaliador', 'Observacao']],
+    head: [['Data', 'Cliente', 'Funcionário', 'Etapa', 'Nota', 'Avaliador', 'Observação']],
     body: data.evaluationHistory.length
       ?data.evaluationHistory.slice(0, 30).map(({quote, item}) => [
         dateText(item.createdAt),

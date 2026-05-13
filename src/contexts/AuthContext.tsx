@@ -64,7 +64,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         const isInitialAdmin = adminEmails.includes(authUser.email || '');
         const newProfile: Profile = {
           uid: authUser.uid,
-          name: authUser.displayName || authUser.email?.split('@')[0] || 'Usuario',
+          name: authUser.displayName || authUser.email?.split('@')[0] || 'Usuário',
           email: authUser.email || '',
           role: isInitialAdmin ?'admin' : 'user',
           blocked: false,
@@ -79,7 +79,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 
       if (!accessUserDoc.exists()) {
         const role = master ?'administrativo' : 'vendedor';
-        const fallbackName = authUser.displayName || authUser.email?.split('@')[0] || 'Usuario';
+        const fallbackName = authUser.displayName || authUser.email?.split('@')[0] || 'Usuário';
         await setDoc(accessUserRef, {
           uid: authUser.uid,
           nome: fallbackName,

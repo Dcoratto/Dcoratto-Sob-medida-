@@ -44,7 +44,7 @@ export const ProfilePage: React.FC = () => {
     event.preventDefault();
     if (!user) return;
 
-    const nextName = name.trim() || accessUser?.nome || profile?.name || user.email?.split('@')[0] || 'Usuario';
+    const nextName = name.trim() || accessUser?.nome || profile?.name || user.email?.split('@')[0] || 'Usuário';
 
     setSaving(true);
     try {
@@ -74,7 +74,7 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  const displayRole = position || (accessUser?.role ?roleLabel(accessUser.role) : profile?.role === 'admin' ?'Administrador' : 'Usuario');
+  const displayRole = position || (accessUser?.role ?roleLabel(accessUser.role) : profile?.role === 'admin' ?'Administrador' : 'Usuário');
 
   return (
     <div className="mx-auto max-w-2xl space-y-8 pb-20">

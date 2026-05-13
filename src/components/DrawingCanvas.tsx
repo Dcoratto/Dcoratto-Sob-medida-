@@ -175,6 +175,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const lastMouseWorld = useRef<Point | null>(null);
   const undoStackRef = useRef<DrawingHistoryState[]>([]);
   const redoStackRef = useRef<DrawingHistoryState[]>([]);
+  const pinchDistanceRef = useRef<number | null>(null);
+  const pinchZoomRef = useRef<number | null>(null);
 
   const [drawPoints, setDrawPoints] = useState<Point[]>([]);
   const [previewPoint, setPreviewPoint] = useState<Point | null>(null);
@@ -415,6 +417,12 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     return snapPoint(applyOrtho(drawPoints[drawPoints.length - 1], raw));
   }, [applyOrtho, drawPoints, drawingActive, screenToWorld, snapPoint]);
 
+  const getClientWorld = useCallback((clientX: number, clientY: number) => {
+    const raw = screenToWorld(clientX, clientY);
+    if (!drawingActive || drawPoints.length === 0) return snapPoint(raw);
+    return snapPoint(applyOrtho(drawPoints[drawPoints.length - 1], raw));
+  }, [applyOrtho, drawPoints, drawingActive, screenToWorld, snapPoint]);
+
   const addPoint = useCallback((point: Point) => {
     recordHistory();
     setDrawPoints((current) => [...current, point]);
@@ -517,6 +525,127 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     }
   };
 
+  const handleCanvasTouchStart = (event: React.TouchEvent<HTMLCanvasElement>) => {
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      const a = event.touches.item(0);
+      const b = event.touches.item(1);
+      if (!a || !b) return;
+      pinchDistanceRef.current = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+      pinchZoomRef.current = zoom;
+      setPanStart(null);
+      setDragIndex(null);
+      return;
+    }
+
+    if (event.touches.length !== 1) return;
+    event.preventDefault();
+    canvasRef.current?.focus();
+    const touch = event.touches[0];
+    const world = getClientWorld(touch.clientX, touch.clientY);
+    lastMouseWorld.current = world;
+
+    if (drawTool === 'pan') {
+      setPanStart({x: touch.clientX - panX, y: touch.clientY - panY});
+      return;
+    }
+
+    if (drawTool === 'move-point') {
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const index = drawPoints.findIndex((point) => distance(worldToScreen(point), {x: touch.clientX - rect.left, y: touch.clientY - rect.top}) <= 18);
+      if (index >= 0) setDragIndex(index);
+      return;
+    }
+
+    if (drawTool === 'cutout') {
+      recordHistory();
+      const rawWidthCm = selectedFixture?.width || selectedFixture?.diameter || Number(cutoutWidth.replace(',', '.')) || 10;
+      const rawHeightCm = selectedFixture?.depth || selectedFixture?.height || selectedFixture?.diameter || selectedFixture?.width || Number(cutoutHeight.replace(',', '.')) || 10;
+      const baseWidth = Math.max(0.02, rawWidthCm / 100);
+      const baseHeight = cutoutType === 'torneira' || cutoutType === 'torre_tomada'
+        ?baseWidth
+        : Math.max(0.02, rawHeightCm / 100);
+      const width = cutoutRotation === 90 ?baseHeight : baseWidth;
+      const height = cutoutRotation === 90 ?baseWidth : baseHeight;
+      setCutouts((current) => [...current, {
+        id: crypto.randomUUID(),
+        type: cutoutType,
+        x: world.x,
+        y: world.y,
+        width,
+        height,
+        rotation: cutoutRotation,
+        fixtureId: selectedFixture?.id,
+        fixtureName: selectedFixture?.name,
+        fixtureImageUrl: selectedFixture?.imageUrl,
+      }]);
+      return;
+    }
+
+    if (drawTool !== 'line') return;
+
+    if (drawPoints.length >= 3 && hoverGuide === 0) {
+      closeGeometry();
+      return;
+    }
+
+    addPoint(world);
+    lastMouseWorld.current = world;
+  };
+
+  const handleCanvasTouchMove = (event: React.TouchEvent<HTMLCanvasElement>) => {
+    if (event.touches.length === 2) {
+      event.preventDefault();
+      const a = event.touches.item(0);
+      const b = event.touches.item(1);
+      if (!a || !b) return;
+      const distanceNow = Math.hypot(b.clientX - a.clientX, b.clientY - a.clientY);
+      const startDistance = pinchDistanceRef.current;
+      const startZoom = pinchZoomRef.current;
+      if (!startDistance || !startZoom) return;
+      const rect = canvasRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const midX = (a.clientX + b.clientX) / 2;
+      const midY = (a.clientY + b.clientY) / 2;
+      const before = screenToWorld(midX, midY);
+      const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, startZoom * (distanceNow / startDistance)));
+      const nextScale = (BASE_SCALE * nextZoom) / 100;
+      setZoom(nextZoom);
+      setPanX(midX - rect.left - before.x * nextScale);
+      setPanY(midY - rect.top - before.y * nextScale);
+      return;
+    }
+
+    if (event.touches.length !== 1) return;
+    event.preventDefault();
+    const touch = event.touches[0];
+
+    if (panStart) {
+      setWasDragging(true);
+      setPanX(touch.clientX - panStart.x);
+      setPanY(touch.clientY - panStart.y);
+      return;
+    }
+
+    const world = getClientWorld(touch.clientX, touch.clientY);
+    lastMouseWorld.current = world;
+
+    if (dragIndex !== null) {
+      setWasDragging(true);
+      setDrawPoints((current) => current.map((point, index) => index === dragIndex ?world : point));
+      return;
+    }
+
+    if (drawTool === 'line' && drawPoints.length > 0 && !closed) {
+      setPreviewPoint(world);
+      const last = drawPoints[drawPoints.length - 1];
+      setCurrentMeasure(`${distance(last, world).toFixed(2)} m`);
+    } else {
+      setCurrentMeasure('');
+    }
+  };
+
   useEffect(() => {
     if (drawTool !== 'line' || drawPoints.length === 0 || closed) {
       if (!previewPoint) setCurrentMeasure('');
@@ -531,6 +660,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const stopDrag = () => {
     setPanStart(null);
     setDragIndex(null);
+    pinchDistanceRef.current = null;
+    pinchZoomRef.current = null;
     requestAnimationFrame(() => setWasDragging(false));
   };
 
@@ -1237,8 +1368,12 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           onMouseUp={stopDrag}
           onMouseLeave={stopDrag}
           onWheel={handleWheel}
+          onTouchStart={handleCanvasTouchStart}
+          onTouchMove={handleCanvasTouchMove}
+          onTouchEnd={stopDrag}
+          onTouchCancel={stopDrag}
           onContextMenu={(event) => event.preventDefault()}
-          className={cn('block h-full w-full touch-none select-none outline-none', drawTool === 'pan' ?'cursor-grab' : drawTool === 'cutout' ?'cursor-cell' : 'cursor-crosshair')}
+          className={cn('block h-full w-full select-none outline-none', drawTool === 'pan' ?'cursor-grab touch-none' : drawTool === 'cutout' ?'cursor-cell touch-none' : 'cursor-crosshair touch-none')}
         />
         <div className="absolute bottom-3 left-1/2 flex w-[calc(100%-24px)] max-w-md -translate-x-1/2 items-center gap-2 rounded-2xl border border-brand-primary/20 bg-white/95 p-2 shadow-xl sm:bottom-4 sm:w-auto">
           <Ruler className="h-5 w-5 text-brand-primary" />

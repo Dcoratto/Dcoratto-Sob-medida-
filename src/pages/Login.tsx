@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  signInWithEmailAndPassword, 
+﻿import React, { useState, useEffect } from 'react';
+import {
+  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   GoogleAuthProvider,
   sendPasswordResetEmail
 } from 'firebase/auth';
@@ -10,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { auth } from '../lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from '../components/layout/Logo';
-import { Mail, Lock, User as UserIcon, LogIn, ArrowRight, KeyRound } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, KeyRound } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const Login: React.FC = () => {
@@ -24,11 +26,52 @@ export const Login: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const isMobileDevice = () => {
+    if (typeof window === 'undefined') return false;
+    return window.matchMedia('(max-width: 768px)').matches || /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent);
+  };
+
   useEffect(() => {
     if (!authLoading && user) {
       navigate('/');
     }
   }, [user, authLoading, navigate]);
+
+  useEffect(() => {
+    let active = true;
+
+    const resolveRedirectResult = async () => {
+      try {
+        await getRedirectResult(auth);
+      } catch (err: any) {
+        if (!active) return;
+        setError(translateError(err?.code));
+      }
+    };
+
+    resolveRedirectResult();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const translateError = (code: string) => {
+    switch (code) {
+      case 'auth/user-not-found': return 'Usuario nao encontrado. Se e seu primeiro acesso, use a aba "Cadastre-se".';
+      case 'auth/wrong-password': return 'Senha incorreta.';
+      case 'auth/email-already-in-use': return 'Este e-mail ja esta em uso.';
+      case 'auth/weak-password': return 'A senha deve ter pelo menos 6 caracteres.';
+      case 'auth/invalid-email': return 'E-mail invalido.';
+      case 'auth/operation-not-allowed': return 'O login por e-mail e senha nao esta ativado no Firebase. Ative em Authentication > Sign-in Method.';
+      case 'auth/popup-blocked': return 'O navegador bloqueou a janela do Google. Tente novamente ou continue pelo redirecionamento.';
+      case 'auth/popup-closed-by-user': return 'A janela do Google foi fechada antes da conclusao do login.';
+      case 'auth/cancelled-popup-request': return 'O pedido de login com Google foi cancelado. Tente novamente.';
+      case 'auth/unauthorized-domain': return 'Este dominio ainda nao esta autorizado no Firebase para login com Google. Adicione este endereco em Authentication > Settings > Authorized domains.';
+      case 'auth/account-exists-with-different-credential': return 'Ja existe uma conta com este e-mail usando outro metodo de login.';
+      default: return 'Ocorreu um erro. Tente novamente.';
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +100,7 @@ export const Login: React.FC = () => {
     setLoading(true);
     try {
       await sendPasswordResetEmail(auth, email);
-      setSuccess('E-mail de recuperação enviado com sucesso!');
+      setSuccess('E-mail de recuperacao enviado com sucesso!');
       setError('');
     } catch (err: any) {
       setError(translateError(err.code));
@@ -66,30 +109,29 @@ export const Login: React.FC = () => {
     }
   };
 
-  const translateError = (code: string) => {
-    switch (code) {
-      case 'auth/user-not-found': return 'Usuário não encontrado. Se é seu primeiro acesso, use a aba "Cadastre-se".';
-      case 'auth/wrong-password': return 'Senha incorreta.';
-      case 'auth/email-already-in-use': return 'Este e-mail já está em uso.';
-      case 'auth/weak-password': return 'A senha deve ter pelo menos 6 caracteres.';
-      case 'auth/invalid-email': return 'E-mail inválido.';
-      case 'auth/operation-not-allowed': return 'O login por E-mail/Senha não está ativado no Console do Firebase. Ative-o em Authentication > Sign-in Method.';
-      default: return 'Ocorreu um erro. Tente novamente.';
-    }
-  };
-
   const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
     try {
+      if (isMobileDevice()) {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
       await signInWithPopup(auth, provider);
     } catch (err: any) {
-      setError(err.message);
+      setError(translateError(err?.code));
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FBFBFD] p-6">
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md bg-white rounded-[32px] shadow-2xl shadow-slate-200/50 p-8 md:p-12 border border-slate-100"
@@ -97,12 +139,12 @@ export const Login: React.FC = () => {
         <div className="flex flex-col items-center mb-10">
           <Logo className="scale-125 mb-4" />
           <h1 className="text-2xl font-display font-semibold text-slate-900">
-            {isLogin ?'Bem-vindo de volta' : 'Crie sua conta'}
+            {isLogin ? 'Bem-vindo de volta' : 'Crie sua conta'}
           </h1>
           <p className="text-slate-500 text-sm mt-2 text-center">
-            {isLogin 
-              ?'Acesse o sistema de gestão da D’Coratto Sob Medida' 
-              : 'Comece a gerenciar seus orçamentos agora mesmo'}
+            {isLogin
+              ? 'Acesse o sistema de gestao da DCoratto Sob Medida'
+              : 'Comece a gerenciar seus orcamentos agora mesmo'}
           </p>
         </div>
 
@@ -154,8 +196,8 @@ export const Login: React.FC = () => {
 
           {isLogin && (
             <div className="flex justify-end px-2">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={handleForgotPassword}
                 className="text-xs font-semibold text-brand-primary hover:underline flex items-center gap-1"
               >
@@ -178,11 +220,11 @@ export const Login: React.FC = () => {
             disabled={loading}
             className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 active:scale-[0.98]"
           >
-            {loading ?(
+            {loading ? (
               <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             ) : (
               <>
-                {isLogin ?'Entrar' : 'Cadastrar'}
+                {isLogin ? 'Entrar' : 'Cadastrar'}
                 <ArrowRight className="w-5 h-5" />
               </>
             )}
@@ -201,20 +243,21 @@ export const Login: React.FC = () => {
 
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all font-medium text-slate-700 shadow-sm active:scale-[0.98]"
+            disabled={loading}
+            className="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all font-medium text-slate-700 shadow-sm active:scale-[0.98] disabled:opacity-60"
           >
             <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
-            Google
+            {loading ? 'Abrindo Google...' : 'Google'}
           </button>
         </div>
 
         <p className="mt-8 text-center text-sm text-slate-500">
-          {isLogin ?'Não tem uma conta?' : 'Já possui uma conta?'}
+          {isLogin ? 'Nao tem uma conta?' : 'Ja possui uma conta?'}
           <button
             onClick={() => setIsLogin(!isLogin)}
             className="ml-1 font-semibold text-brand-primary hover:underline"
           >
-            {isLogin ?'Cadastre-se' : 'Faça login'}
+            {isLogin ? 'Cadastre-se' : 'Faca login'}
           </button>
         </p>
       </motion.div>

@@ -734,8 +734,8 @@ export const CalendarPage: React.FC = () => {
                 )}
               >
                 <div>
-                  <div className="text-sm font-bold text-slate-900">Assinar no Android</div>
-                  <div className="text-xs text-slate-500">Abre o Google Calendar para adicionar o cronograma por URL.</div>
+                  <div className="text-sm font-bold text-slate-900">Abrir no Google Calendar</div>
+                  <div className="text-xs text-slate-500">No Android, o Google pode exigir adicionar o link pelo navegador antes de sincronizar no app.</div>
                 </div>
                 <ExternalLink className="w-4 h-4 text-slate-400" />
               </a>
@@ -756,6 +756,10 @@ export const CalendarPage: React.FC = () => {
 
               <div className="rounded-2xl bg-amber-50 px-4 py-3 text-xs font-semibold text-amber-900">
                 Mantenha esse link privado. Quem tiver acesso a ele consegue visualizar o cronograma sincronizado.
+              </div>
+
+              <div className="rounded-2xl bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
+                Observação sobre Android: o app Google Calendar nem sempre aceita uma nova assinatura direto no celular. Se ele não adicionar sozinho, abra o Google Calendar no navegador ou use o link copiado para concluir a assinatura.
               </div>
 
               {subscribeError && (

@@ -1,10 +1,15 @@
 import {initializeApp, cert, getApps} from 'firebase-admin/app';
 import {getFirestore, Timestamp} from 'firebase-admin/firestore';
 
-const FIREBASE_PROJECT_ID = process.env.FIREBASE_PROJECT_ID || 'ai-studio-applet-webapp-2ecc9';
-const FIREBASE_CLIENT_EMAIL = process.env.FIREBASE_CLIENT_EMAIL;
-const FIREBASE_PRIVATE_KEY = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-const FIRESTORE_DATABASE_ID = process.env.FIRESTORE_DATABASE_ID || 'ai-studio-1e79ab13-281e-49ca-b45c-a24a4386b051';
+const normalizeEnv = (value, fallback = '') => {
+  const normalized = String(value ?? fallback).trim();
+  return normalized.replace(/^"(.*)"$/s, '$1');
+};
+
+const FIREBASE_PROJECT_ID = normalizeEnv(process.env.FIREBASE_PROJECT_ID, 'ai-studio-applet-webapp-2ecc9');
+const FIREBASE_CLIENT_EMAIL = normalizeEnv(process.env.FIREBASE_CLIENT_EMAIL);
+const FIREBASE_PRIVATE_KEY = normalizeEnv(process.env.FIREBASE_PRIVATE_KEY).replace(/\\n/g, '\n');
+const FIRESTORE_DATABASE_ID = normalizeEnv(process.env.FIRESTORE_DATABASE_ID, 'ai-studio-1e79ab13-281e-49ca-b45c-a24a4386b051');
 
 const ensureAdminApp = () => {
   if (getApps().length) return getApps()[0];

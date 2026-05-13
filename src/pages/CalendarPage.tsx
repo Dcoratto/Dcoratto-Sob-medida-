@@ -89,6 +89,35 @@ const calendarEventTitle = (event: CalendarEvent) => {
   if (event.type === 'manual') return [event.title || 'Evento', event.clientName].filter(Boolean).join(' · ');
   return `${eventLabel(event.type)} · ${event.clientName || event.title || 'Cliente'}`;
 };
+const countdownLabel = (daysLeft: number) => {
+  if (daysLeft < 0) return 'Evento já ocorreu';
+  if (daysLeft === 0) return 'Hoje';
+  if (daysLeft === 1) return 'Falta 1 dia';
+  return `Faltam ${daysLeft} dias`;
+};
+const clientFullAddress = (client: Client | null) => {
+  if (!client) return 'Não informado';
+
+  const locationBits = [
+    client.address,
+    client.neighborhood,
+    client.city,
+    client.zipCode ? `CEP ${client.zipCode}` : '',
+  ].filter(Boolean);
+
+  const condominiumBits = [
+    client.condominiumName,
+    client.tower ? `Torre ${client.tower}` : '',
+    client.apartmentNumber ? `Apto ${client.apartmentNumber}` : '',
+    client.block ? `Bloco ${client.block}` : '',
+    client.lot ? `Lote ${client.lot}` : '',
+  ].filter(Boolean);
+
+  return [...locationBits, ...condominiumBits].join(' · ') || 'Não informado';
+};
+
+const clientAddressTypeLabel = (type?: Client['addressType']) =>
+  type === 'apartamento' ? 'Apartamento' : type === 'condominio' ? 'Condomínio' : type === 'casa' ? 'Casa' : 'Não informado';
 
 export const CalendarPage: React.FC = () => {
   const {user, profile} = useAuth();
@@ -259,6 +288,7 @@ export const CalendarPage: React.FC = () => {
   }, [condominiums, events]);
 
   const selectedClient = selectedEvent?.clientId ? clients.find((item) => item.id === selectedEvent.clientId) : null;
+  const selectedEventDaysLeft = selectedEvent ?daysLeftFromToday(selectedEvent.date) : null;
 
   const getCondominiumBlockReason = (client: Client | undefined, date: Date) => {
     const condominium = client?.condominiumId ?condominiums.find((item) => item.id === client.condominiumId) : null;
@@ -456,6 +486,7 @@ export const CalendarPage: React.FC = () => {
                     <button key={ev.id} type="button" onClick={() => setSelectedEvent(ev)} className="w-full rounded-lg px-2 py-1.5 text-left text-[11px] font-semibold bg-slate-50 text-slate-600 hover:bg-slate-100">
                       {calendarEventTitle(ev)}
                       <div className="text-[10px] font-semibold opacity-80">{eventTimeLabel(ev.date, ev.eventTime)}</div>
+                      <div className="text-[10px] font-bold text-brand-primary/80">{countdownLabel(daysLeftFromToday(ev.date))}</div>
                     </button>
                   ))}
                 </div>
@@ -477,25 +508,65 @@ export const CalendarPage: React.FC = () => {
               <button type="button" onClick={() => setSelectedEvent(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
             </div>
 
-            {selectedEvent.type === 'manual' ? (
-              <div className="mt-5 space-y-3">
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{selectedEvent.description?.trim() || 'Sem descrição.'}</div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-500">Criado por: <span className="text-slate-700">{selectedEvent.createdByName || 'Não informado'}</span></div>
-                <button type="button" onClick={openEditModal} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">Editar evento</button>
-                <button type="button" onClick={handleDeleteEvent} disabled={isDeletingEvent} className="w-full rounded-xl bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-70">{isDeletingEvent ? 'Excluindo...' : 'Excluir evento'}</button>
-              </div>
-            ) : (
-              <div className="mt-5 space-y-3">
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400"><Phone className="w-4 h-4" />Telefone</div>
-                  <div className="mt-1 text-sm font-semibold text-slate-800">{selectedClient?.phone || 'Não informado'}</div>
+            <div className="mt-5 space-y-3">
+              {selectedEventDaysLeft !== null && (
+                <div className={cn(
+                  'rounded-2xl px-4 py-3 text-sm font-bold',
+                  selectedEventDaysLeft <= 2 ?'bg-rose-50 text-rose-800' : selectedEventDaysLeft <= 7 ?'bg-amber-50 text-amber-800' : 'bg-slate-50 text-slate-700',
+                )}>
+                  Contagem regressiva: {countdownLabel(selectedEventDaysLeft)}
                 </div>
-                <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400"><MapPin className="w-4 h-4" />Endereço</div>
-                  <div className="mt-1 text-sm font-semibold text-slate-800">{selectedClient?.address || 'Não informado'}</div>
-                </div>
-              </div>
-            )}
+              )}
+
+              {selectedEvent.type === 'manual' && (
+                <>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{selectedEvent.description?.trim() || 'Sem descrição.'}</div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-500">Criado por: <span className="text-slate-700">{selectedEvent.createdByName || 'Não informado'}</span></div>
+                </>
+              )}
+
+              {selectedClient && (
+                <>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Cliente vinculado</div>
+                    <div className="mt-1 text-sm font-semibold text-slate-800">{selectedClient.name}</div>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400"><Phone className="w-4 h-4" />Contato</div>
+                    <div className="mt-1 space-y-1 text-sm font-semibold text-slate-800">
+                      <div>Telefone: {selectedClient.phone || 'Não informado'}</div>
+                      <div>E-mail: {selectedClient.email || 'Não informado'}</div>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400"><MapPin className="w-4 h-4" />Endereço completo</div>
+                    <div className="mt-1 text-sm font-semibold text-slate-800">{clientFullAddress(selectedClient)}</div>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Detalhes do cadastro</div>
+                    <div className="mt-1 space-y-1 text-sm font-semibold text-slate-800">
+                      <div>Tipo: {clientAddressTypeLabel(selectedClient.addressType)}</div>
+                      <div>CPF: {selectedClient.cpf || 'Não informado'}</div>
+                      <div>RG: {selectedClient.rg || 'Não informado'}</div>
+                      <div>Nascimento: {selectedClient.birthDate || 'Não informado'}</div>
+                    </div>
+                  </div>
+                  {selectedClient.notes?.trim() && (
+                    <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                      <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Observações do cliente</div>
+                      <div className="mt-1 text-sm font-semibold text-slate-800 whitespace-pre-wrap">{selectedClient.notes}</div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {selectedEvent.type === 'manual' && (
+                <>
+                  <button type="button" onClick={openEditModal} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">Editar evento</button>
+                  <button type="button" onClick={handleDeleteEvent} disabled={isDeletingEvent} className="w-full rounded-xl bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-70">{isDeletingEvent ? 'Excluindo...' : 'Excluir evento'}</button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       )}

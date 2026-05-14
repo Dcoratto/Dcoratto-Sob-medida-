@@ -1,6 +1,6 @@
 ﻿import React, {useEffect, useState} from 'react';
 import {addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc} from 'firebase/firestore';
-import {AlertTriangle, CheckCircle2, Edit2, Eye, FileText, Filter, ImagePlus, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
+import {AlertTriangle, CheckCircle2, Edit2, Eye, FileText, Filter, ImagePlus, MessageCircle, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
 import {getDownloadURL, ref, uploadBytes} from 'firebase/storage';
 import {db, storage} from '../lib/firebase';
@@ -185,8 +185,11 @@ export const InventoryPage: React.FC = () => {
 
   const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
   const materialCatalog = settings.materialCatalog;
+  const supplierOptions = materialCatalog.suppliers || [];
   const thicknessOptions = materialType === 'Lamina' ? materialCatalog.slabThicknesses : materialCatalog.naturalThicknesses;
   const purchaseThicknessOptions = purchaseMaterialType === 'Lamina' ? materialCatalog.slabThicknesses : materialCatalog.naturalThicknesses;
+  const findSupplier = (name?: string) => supplierOptions.find((supplier) => supplier.name === name);
+  const normalizeWhatsApp = (value?: string) => String(value || '').replace(/\D/g, '');
 
   const resetPurchaseForm = () => {
     setPurchaseMaterialId('');
@@ -736,6 +739,41 @@ export const InventoryPage: React.FC = () => {
     }, settings);
   };
 
+  const openPurchaseWhatsApp = (groupId: string) => {
+    const group = activePurchaseGroups.find((item) => item.groupId === groupId);
+    if (!group) return;
+
+    const supplier = findSupplier(group.supplier);
+    const whatsapp = normalizeWhatsApp(supplier?.whatsapp);
+
+    if (!whatsapp) {
+      alert('Esse fornecedor ainda não tem WhatsApp cadastrado no Admin.');
+      return;
+    }
+
+    const lines = [
+      `Olá${supplier?.contactName ? `, ${supplier.contactName}` : ''}. Segue pedido de compra da ${settings.companyName || 'marmoraria'}:`,
+      '',
+      `Fornecedor: ${group.supplier || 'Não informado'}`,
+      `Material: ${group.materialName}`,
+      `Especificações: ${formatMaterialSpecsWithProvider(group.purchases[0]) || 'Sem especificações'}`,
+      `Quantidade: ${group.purchases.length} chapa(s)`,
+      `Área total: ${formatNumber(group.totalArea)} m²`,
+      '',
+      'Itens do pedido:',
+      ...group.purchases.map((purchase, index) => (
+        `${index + 1}. ${purchase.code || `Chapa ${purchase.purchaseIndex || index + 1}`} - ${purchase.length} x ${purchase.width} cm - ${purchase.thicknessLabel || 'Sem espessura'} - ${formatNumber(purchase.area)} m²`
+      )),
+    ];
+
+    const firstNote = group.purchases.map((purchase) => purchase.notes).find(Boolean);
+    if (firstNote) {
+      lines.push('', `Observações: ${firstNote}`);
+    }
+
+    window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
+  };
+
   const cancelPurchaseGroup = async (groupId: string) => {
     if (!hasPermission('estoque', 'movimentar')) {
       alert('Você não tem permissão para cancelar compras. Fale com o administrador.');
@@ -949,6 +987,16 @@ export const InventoryPage: React.FC = () => {
                         <FileText className="h-3.5 w-3.5" />
                         PDF do pedido
                       </button>
+                      {findSupplier(group.supplier)?.whatsapp && (
+                        <button
+                          type="button"
+                          onClick={() => openPurchaseWhatsApp(group.groupId)}
+                          className="inline-flex items-center gap-2 rounded-xl bg-green-600 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-green-700 transition-all"
+                        >
+                          <MessageCircle className="h-3.5 w-3.5" />
+                          WhatsApp
+                        </button>
+                      )}
                       {hasPermission('estoque', 'movimentar') && (
                         <button
                           type="button"
@@ -1376,7 +1424,7 @@ export const InventoryPage: React.FC = () => {
                   <label className="text-slate-500 font-medium text-sm">Fornecedor</label>
                   <select value={purchaseProvider} onChange={(e) => setPurchaseProvider(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
                     <option value="">Selecionar fornecedor</option>
-                    {materialCatalog.suppliers.map((supplier) => <option key={supplier} value={supplier}>{supplier}</option>)}
+                    {supplierOptions.map((supplier) => <option key={supplier.name} value={supplier.name}>{supplier.name}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">
@@ -1519,7 +1567,7 @@ export const InventoryPage: React.FC = () => {
                   <label className="text-slate-500 font-medium text-sm">Fornecedor</label>
                   <select value={provider} onChange={(e) => setProvider(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
                     <option value="">Selecionar fornecedor</option>
-                    {materialCatalog.suppliers.map((supplier) => <option key={supplier} value={supplier}>{supplier}</option>)}
+                    {supplierOptions.map((supplier) => <option key={supplier.name} value={supplier.name}>{supplier.name}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">

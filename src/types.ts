@@ -91,14 +91,23 @@ export interface Settings {
     extraSink: number;
     riskPercentage: number;
   };
+  materialSuppliers?: SupplierContact[];
   materialCatalog: {
     materialLines: string[];
     materialTypes: string[];
     naturalThicknesses: string[];
     slabThicknesses: string[];
     textures: string[];
-    suppliers: string[];
+    suppliers: SupplierContact[];
   };
+}
+
+export interface SupplierContact {
+  name: string;
+  whatsapp?: string;
+  contactName?: string;
+  city?: string;
+  notes?: string;
 }
 
 export interface Material {

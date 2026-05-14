@@ -1,7 +1,18 @@
 import {useEffect, useState} from 'react';
 import {doc, onSnapshot} from 'firebase/firestore';
 import {db} from '../lib/firebase';
-import {Settings} from '../types';
+import {Settings, SupplierContact} from '../types';
+
+const normalizeSupplier = (supplier: string | SupplierContact): SupplierContact =>
+  typeof supplier === 'string'
+    ? {name: supplier}
+    : {
+      name: supplier.name || '',
+      whatsapp: supplier.whatsapp || '',
+      contactName: supplier.contactName || '',
+      city: supplier.city || '',
+      notes: supplier.notes || '',
+    };
 
 export const DEFAULT_SETTINGS: Settings = {
   companyName: "D'Coratto Sob Medida",
@@ -77,7 +88,7 @@ export const useSettings = () => {
             naturalThicknesses: data.materialCatalog?.naturalThicknesses?.length ? data.materialCatalog.naturalThicknesses : DEFAULT_SETTINGS.materialCatalog.naturalThicknesses,
             slabThicknesses: data.materialCatalog?.slabThicknesses?.length ? data.materialCatalog.slabThicknesses : DEFAULT_SETTINGS.materialCatalog.slabThicknesses,
             textures: data.materialCatalog?.textures?.length ? data.materialCatalog.textures : DEFAULT_SETTINGS.materialCatalog.textures,
-            suppliers: data.materialCatalog?.suppliers || DEFAULT_SETTINGS.materialCatalog.suppliers,
+            suppliers: (data.materialCatalog?.suppliers || DEFAULT_SETTINGS.materialCatalog.suppliers).map(normalizeSupplier).filter((supplier) => supplier.name),
           },
         } as Settings);
       }

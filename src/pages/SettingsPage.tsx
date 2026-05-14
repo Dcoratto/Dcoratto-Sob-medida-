@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { Save, Plus, Trash2, Building, Phone, Mail, MapPin, Calculator, CreditCard, Scissors } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
-import { CondominiumRule } from '../types';
+import { CondominiumRule, SupplierContact } from '../types';
 
 export const SettingsPage: React.FC = () => {
   const { settings: currentSettings, loading } = useSettings();
@@ -25,6 +25,7 @@ export const SettingsPage: React.FC = () => {
   const [blockNationalHolidays, setBlockNationalHolidays] = useState(true);
   const [blockCityHolidays, setBlockCityHolidays] = useState(true);
   const [condoNotes, setCondoNotes] = useState('');
+  type MaterialCatalogListField = Exclude<keyof typeof settings.materialCatalog, 'suppliers'>;
 
   useEffect(() => {
     if (currentSettings) {
@@ -74,8 +75,41 @@ export const SettingsPage: React.FC = () => {
     setSettings({ ...settings, paymentMethods: newMethods });
   };
 
+  const addSupplier = (supplier: SupplierContact) => {
+    const normalizedName = supplier.name.trim();
+    if (!normalizedName) return;
+    const nextSupplier = {
+      name: normalizedName,
+      whatsapp: supplier.whatsapp?.trim() || '',
+      contactName: supplier.contactName?.trim() || '',
+      city: supplier.city?.trim() || '',
+      notes: supplier.notes?.trim() || '',
+    };
+
+    setSettings({
+      ...settings,
+      materialCatalog: {
+        ...settings.materialCatalog,
+        suppliers: [
+          ...settings.materialCatalog.suppliers.filter((item) => item.name !== normalizedName),
+          nextSupplier,
+        ].sort((a, b) => a.name.localeCompare(b.name)),
+      },
+    });
+  };
+
+  const removeSupplier = (name: string) => {
+    setSettings({
+      ...settings,
+      materialCatalog: {
+        ...settings.materialCatalog,
+        suppliers: settings.materialCatalog.suppliers.filter((supplier) => supplier.name !== name),
+      },
+    });
+  };
+
   const updateMaterialCatalogList = (
-    field: keyof typeof settings.materialCatalog,
+    field: MaterialCatalogListField,
     updater: (current: string[]) => string[],
   ) => {
     setSettings({
@@ -87,13 +121,13 @@ export const SettingsPage: React.FC = () => {
     });
   };
 
-  const addMaterialCatalogValue = (field: keyof typeof settings.materialCatalog, value: string) => {
+  const addMaterialCatalogValue = (field: MaterialCatalogListField, value: string) => {
     const normalized = value.trim();
     if (!normalized) return;
     updateMaterialCatalogList(field, (current) => current.includes(normalized) ? current : [...current, normalized]);
   };
 
-  const removeMaterialCatalogValue = (field: keyof typeof settings.materialCatalog, value: string) => {
+  const removeMaterialCatalogValue = (field: MaterialCatalogListField, value: string) => {
     updateMaterialCatalogList(field, (current) => current.filter((item) => item !== value));
   };
 
@@ -507,18 +541,23 @@ export const SettingsPage: React.FC = () => {
               ['naturalThicknesses', 'Espessuras naturais', 'Ex: 2cm'],
               ['slabThicknesses', 'Espessuras de laminas', 'Ex: 12mm'],
               ['textures', 'Texturas', 'Ex: Escovado'],
-              ['suppliers', 'Fornecedores', 'Ex: Nome do fornecedor'],
             ].map(([field, label, placeholder]) => (
               <MaterialCatalogField
                 key={field}
                 label={label}
                 placeholder={placeholder}
-                values={settings.materialCatalog[field as keyof typeof settings.materialCatalog] as string[]}
-                onAdd={(value) => addMaterialCatalogValue(field as keyof typeof settings.materialCatalog, value)}
-                onRemove={(value) => removeMaterialCatalogValue(field as keyof typeof settings.materialCatalog, value)}
+                values={settings.materialCatalog[field as MaterialCatalogListField] as string[]}
+                onAdd={(value) => addMaterialCatalogValue(field as MaterialCatalogListField, value)}
+                onRemove={(value) => removeMaterialCatalogValue(field as MaterialCatalogListField, value)}
               />
             ))}
           </div>
+
+          <SupplierCatalogField
+            suppliers={settings.materialCatalog.suppliers}
+            onAdd={addSupplier}
+            onRemove={removeSupplier}
+          />
         </section>
 
         <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-3">
@@ -693,6 +732,102 @@ const MaterialCatalogField: React.FC<{
         ))}
         {values.length === 0 && (
           <div className="text-sm font-semibold text-slate-400">Nenhuma opcao cadastrada.</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const SupplierCatalogField: React.FC<{
+  suppliers: SupplierContact[];
+  onAdd: (supplier: SupplierContact) => void;
+  onRemove: (name: string) => void;
+}> = ({suppliers, onAdd, onRemove}) => {
+  const [draft, setDraft] = useState<SupplierContact>({
+    name: '',
+    whatsapp: '',
+    contactName: '',
+    city: '',
+    notes: '',
+  });
+
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-4 xl:col-span-2">
+      <div>
+        <div className="font-bold text-slate-800">Fornecedores</div>
+        <div className="text-xs text-slate-400">Cadastre o nome e o WhatsApp para enviar o pedido direto do estoque.</div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+        <input
+          value={draft.name}
+          onChange={(e) => setDraft({...draft, name: e.target.value})}
+          placeholder="Nome do fornecedor"
+          className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
+        />
+        <input
+          value={draft.whatsapp}
+          onChange={(e) => setDraft({...draft, whatsapp: e.target.value})}
+          placeholder="WhatsApp com DDD"
+          className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
+        />
+        <input
+          value={draft.contactName}
+          onChange={(e) => setDraft({...draft, contactName: e.target.value})}
+          placeholder="Nome do contato"
+          className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
+        />
+        <input
+          value={draft.city}
+          onChange={(e) => setDraft({...draft, city: e.target.value})}
+          placeholder="Cidade"
+          className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
+        />
+      </div>
+
+      <textarea
+        value={draft.notes}
+        onChange={(e) => setDraft({...draft, notes: e.target.value})}
+        placeholder="Observações do fornecedor"
+        className="w-full min-h-[72px] bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
+      />
+
+      <button
+        type="button"
+        onClick={() => {
+          onAdd(draft);
+          setDraft({name: '', whatsapp: '', contactName: '', city: '', notes: ''});
+        }}
+        className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white"
+      >
+        <Plus className="w-4 h-4" />
+        Adicionar fornecedor
+      </button>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {suppliers.map((supplier) => (
+          <div key={supplier.name} className="rounded-2xl border border-slate-200 bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-bold text-slate-800">{supplier.name}</div>
+                {supplier.whatsapp && <div className="text-xs text-slate-500 mt-1">WhatsApp: {supplier.whatsapp}</div>}
+                {supplier.contactName && <div className="text-xs text-slate-500">Contato: {supplier.contactName}</div>}
+                {supplier.city && <div className="text-xs text-slate-500">Cidade: {supplier.city}</div>}
+                {supplier.notes && <div className="text-xs text-slate-400 mt-2">{supplier.notes}</div>}
+              </div>
+              <button
+                type="button"
+                onClick={() => onRemove(supplier.name)}
+                className="rounded-xl bg-red-50 p-2 text-red-600 transition-all hover:bg-red-100"
+                title="Excluir fornecedor"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        ))}
+        {suppliers.length === 0 && (
+          <div className="text-sm font-semibold text-slate-400">Nenhum fornecedor cadastrado.</div>
         )}
       </div>
     </div>

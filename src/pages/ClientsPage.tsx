@@ -741,6 +741,68 @@ export const ClientsPage: React.FC = () => {
     });
   };
 
+  const markPieceFixtureReceived = async (
+    quote: Quote,
+    pieceId: string,
+    fixtureType: FixtureCategory,
+  ) => {
+    const nextPieces = (quote.pieces || []).map((piece) => {
+      if (piece.id !== pieceId) return piece;
+      const currentFixture = piece.purchasedFixtures?.[fixtureType] || {};
+      return {
+        ...piece,
+        purchasedFixtures: {
+          ...(piece.purchasedFixtures || {}),
+          [fixtureType]: {
+            ...currentFixture,
+            received: true,
+            receivedByUid: user?.uid || '',
+            receivedByName: currentUserName,
+            receivedAt: Timestamp.now(),
+          },
+        },
+      };
+    });
+
+    const fixtureLabel = fixtureType === 'sink'
+      ? 'cuba'
+      : fixtureType === 'faucet'
+        ? 'torneira'
+        : fixtureType === 'cooktop'
+          ? 'cooktop'
+          : fixtureType === 'trashBin'
+            ? 'lixeira'
+            : 'torre de tomada';
+
+    await updateDoc(doc(db, 'quotes', quote.id), {
+      pieces: nextPieces,
+      statusHistory: [
+        ...(quote.statusHistory || []),
+        {
+          status: quote.status,
+          changedAt: Timestamp.now(),
+          changedByUid: user?.uid || '',
+          changedByName: currentUserName,
+          note: `${fixtureLabel.charAt(0).toUpperCase()}${fixtureLabel.slice(1)} recebida`,
+        },
+      ],
+    });
+    await logSystemEvent({
+      type: 'fixture_updated',
+      title: 'Item do cliente recebido',
+      description: `${fixtureLabel.charAt(0).toUpperCase()} marcada como recebida em ${quote.clientName}`,
+      entityType: 'quote',
+      entityId: quote.id,
+      quoteId: quote.id,
+      quoteStatus: quote.status,
+      clientId: quote.clientId,
+      clientName: quote.clientName,
+      userUid: user?.uid || '',
+      userName: currentUserName,
+      metadata: {pieceId, fixtureType, received: true},
+    });
+  };
+
   const filteredClients = clients.filter((client) => {
     const stage = quoteStage(latestQuoteByClient.get(client.id));
     const matchesStatus = statusFilter === 'all' || stage === statusFilter;
@@ -1001,6 +1063,7 @@ export const ClientsPage: React.FC = () => {
                                       manualUrl={fixture.manualUrl}
                                       manualFileName={fixture.manualFileName}
                                       onChange={updatePieceFixture}
+                                      onReceive={markPieceFixtureReceived}
                                     />
                                   ))}
                                 </div>
@@ -1362,6 +1425,7 @@ const FixtureFields = ({
   manualUrl,
   manualFileName,
   onChange,
+  onReceive,
 }: {
   key?: React.Key;
   quote: Quote;
@@ -1375,9 +1439,11 @@ const FixtureFields = ({
   manualUrl?: string;
   manualFileName?: string;
   onChange: (quote: Quote, pieceId: string, fixtureType: FixtureCategory, field: keyof FixtureInfo, value: string) => void;
+  onReceive: (quote: Quote, pieceId: string, fixtureType: FixtureCategory) => Promise<void>;
 }) => {
   const fixture = piece.purchasedFixtures?.[legacyKey] || {};
   const showDiameter = type === 'faucet';
+  const receivedAt = fixture.receivedAt?.toDate ? fixture.receivedAt.toDate() : fixture.receivedAt ? new Date(fixture.receivedAt) : null;
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-white p-4 space-y-3">
@@ -1405,6 +1471,27 @@ const FixtureFields = ({
             </a>
           )}
         </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onReceive(quote, piece.id, type)}
+          disabled={fixture.received === true}
+          className={cn(
+            'inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest transition-all',
+            fixture.received
+              ? 'bg-emerald-100 text-emerald-700 cursor-default'
+              : 'bg-emerald-600 text-white hover:bg-emerald-700',
+          )}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          {fixture.received ? 'Recebido' : 'Receber item'}
+        </button>
+        {fixture.received && (
+          <div className="text-[11px] font-semibold text-slate-500">
+            {fixture.receivedByName || 'Recebido'}{receivedAt ? ` · ${receivedAt.toLocaleDateString('pt-BR')}` : ''}
+          </div>
+        )}
       </div>
       <FixtureInput label="Modelo" value={fixture.model || ''} onBlur={(value) => onChange(quote, piece.id, type, 'model', value)} />
       <FixtureInput label="Marca" value={fixture.brand || ''} onBlur={(value) => onChange(quote, piece.id, type, 'brand', value)} />

@@ -348,6 +348,10 @@ export interface FixtureInfo {
   height?: number;
   diameter?: number;
   notes?: string;
+  received?: boolean;
+  receivedByUid?: string;
+  receivedByName?: string;
+  receivedAt?: any;
 }
 
 export type FixtureCategory = 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin';

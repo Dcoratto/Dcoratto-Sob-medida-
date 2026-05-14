@@ -439,7 +439,7 @@ export interface InventoryReservation {
   updatedAt?: any;
 }
 
-export type InventoryPurchaseStatus = 'Pedido' | 'Entregue';
+export type InventoryPurchaseStatus = 'Pedido' | 'Entregue' | 'Cancelado';
 
 export interface InventoryPurchase {
   id: string;
@@ -490,7 +490,8 @@ export type SystemEventType =
   | 'inventory_updated'
   | 'inventory_deleted'
   | 'purchase_ordered'
-  | 'purchase_received';
+  | 'purchase_received'
+  | 'purchase_cancelled';
 
 export interface SystemEvent {
   id: string;

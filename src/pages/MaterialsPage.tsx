@@ -6,6 +6,7 @@ import {db} from '../lib/firebase';
 import {InventoryItem, InventoryReservation, Material, Quote, UserMaterialPrice} from '../types';
 import {cn, formatCurrency, formatNumber} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
+import {formatMaterialSpecsWithProvider} from '../lib/materialSpecs';
 
 type MaterialWithUserPrice = Material & {
   stockArea: number;
@@ -123,6 +124,10 @@ export const MaterialsPage: React.FC = () => {
         ...material,
         provider: material.provider || stockItems[0]?.provider || '',
         category: material.category || stockItems[0]?.category || '',
+        materialLine: material.materialLine || stockItems[0]?.materialLine || stockItems[0]?.category || '',
+        materialType: material.materialType || stockItems[0]?.materialType || '',
+        thicknessLabel: material.thicknessLabel || stockItems[0]?.thicknessLabel || '',
+        texture: material.texture || stockItems[0]?.texture || '',
         imageUrl,
         stockArea,
         stockCost,
@@ -192,7 +197,7 @@ export const MaterialsPage: React.FC = () => {
   };
 
   const filteredMaterials = materialRows.filter((material) => {
-    const searchText = `${material.name} ${material.provider} ${material.category}`.toLowerCase();
+    const searchText = `${material.name} ${material.provider} ${material.category} ${material.materialLine || ''} ${material.materialType || ''} ${material.thicknessLabel || ''} ${material.texture || ''}`.toLowerCase();
     return searchText.includes(search.toLowerCase());
   });
   const selectedReservationMaterial = reservationMaterialId
@@ -276,7 +281,7 @@ export const MaterialsPage: React.FC = () => {
                         </div>
                         <div>
                           <div className="font-semibold text-slate-900">{material.name}</div>
-                          <div className="text-xs text-slate-400">{material.category || 'Sem categoria'} · {material.provider || 'Sem fornecedor'}</div>
+                          <div className="text-xs text-slate-400">{formatMaterialSpecsWithProvider(material) || `${material.category || 'Sem categoria'} · ${material.provider || 'Sem fornecedor'}`}</div>
                         </div>
                       </div>
                     </td>

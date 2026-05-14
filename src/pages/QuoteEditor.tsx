@@ -17,6 +17,7 @@ import { DrawingCanvas } from '../components/DrawingCanvas';
 import {applyQuoteInventoryByStatusTransition} from '../lib/inventoryReservations';
 import {logSystemEvent} from '../lib/systemEvents';
 import {normalizeQuoteStatus} from '../lib/quoteStatus';
+import {formatMaterialSpecsWithProvider} from '../lib/materialSpecs';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 
@@ -133,7 +134,7 @@ export const QuoteEditor: React.FC = () => {
     return searchText.includes(clientSearch.toLowerCase());
   });
   const filteredMaterialsForPiece = (pieceId: string) => materials.filter((material) => {
-    const searchText = `${material.name} ${material.provider || ''} ${material.category || ''}`.toLowerCase();
+    const searchText = `${material.name} ${material.provider || ''} ${material.category || ''} ${material.materialLine || ''} ${material.materialType || ''} ${material.thicknessLabel || ''} ${material.texture || ''}`.toLowerCase();
     return searchText.includes((pieceMaterialSearch[pieceId] || '').toLowerCase());
   });
 
@@ -941,8 +942,9 @@ export const QuoteEditor: React.FC = () => {
                                     </div>
                                     <span className="min-w-0 flex-1">
                                       <span className="block truncate">{material.name}</span>
-                                      <span className={cn('block text-[11px] font-medium', piece.materialId === material.id ? 'text-white/80' : 'text-slate-400')}>{material.category || 'Sem categoria'}</span>
-                                      {material.provider && <span className={cn('block text-[10px] font-medium', piece.materialId === material.id ? 'text-white/70' : 'text-slate-300')}>{material.provider}</span>}
+                                      <span className={cn('block text-[11px] font-medium', piece.materialId === material.id ? 'text-white/80' : 'text-slate-400')}>
+                                        {formatMaterialSpecsWithProvider(material) || material.category || 'Sem categoria'}
+                                      </span>
                                     </span>
                                     <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase', available ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600', piece.materialId === material.id && 'bg-white/15 text-white')}>
                                       <span className={cn('h-2 w-2 rounded-full', available ?'bg-green-500' : 'bg-red-500')} />

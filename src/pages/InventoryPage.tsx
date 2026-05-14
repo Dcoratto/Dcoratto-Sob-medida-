@@ -1,6 +1,6 @@
 ﻿import React, {useEffect, useState} from 'react';
 import {addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc} from 'firebase/firestore';
-import {AlertTriangle, CheckCircle2, Edit2, Eye, Filter, ImagePlus, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
+import {AlertTriangle, CheckCircle2, Edit2, Eye, FileText, Filter, ImagePlus, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
 import {getDownloadURL, ref, uploadBytes} from 'firebase/storage';
 import {db, storage} from '../lib/firebase';
@@ -10,6 +10,8 @@ import {cn, formatCurrency, formatNumber} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
 import {useSettings} from '../hooks/useSettings';
+import {formatMaterialSpecs, formatMaterialSpecsWithProvider} from '../lib/materialSpecs';
+import {generatePurchaseOrderPdf} from '../lib/purchaseOrderPdfGenerator';
 
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
@@ -687,6 +689,22 @@ export const InventoryPage: React.FC = () => {
   }).filter((item) => item.missing > 0);
   const totalPendingPurchaseArea = pendingPurchases.reduce((acc, item) => acc + item.missing, 0);
   const activePurchases = purchases.filter((purchase) => purchase.status === 'Pedido');
+  const activePurchaseGroups = Array.from(
+    activePurchases.reduce((map, purchase) => {
+      const groupId = purchase.purchaseGroupId || purchase.id;
+      const current = map.get(groupId) || [];
+      current.push(purchase);
+      map.set(groupId, current);
+      return map;
+    }, new Map<string, InventoryPurchase[]>()),
+  ).map(([groupId, groupedPurchases]) => ({
+    groupId,
+    purchases: groupedPurchases.sort((a, b) => (a.purchaseIndex || 0) - (b.purchaseIndex || 0)),
+    supplier: groupedPurchases[0]?.provider || '',
+    materialName: groupedPurchases[0]?.materialName || '',
+    purchasedByName: groupedPurchases[0]?.purchasedByName || '',
+    totalArea: groupedPurchases.reduce((sum, item) => sum + (item.area || 0), 0),
+  }));
   const materialImageById = (materialId: string) => materials.find((material) => material.id === materialId)?.imageUrl || '';
   const selectedReservationMaterial = reservationMaterialId
     ? materials.find((material) => material.id === reservationMaterialId) || items.find((item) => item.materialId === reservationMaterialId)
@@ -707,6 +725,44 @@ export const InventoryPage: React.FC = () => {
   const purchaseTotalArea = purchasePreviewSlabs.reduce((acc, slab) => acc + ((Number(slab.length) * Number(slab.width)) / 10000), 0);
   const purchaseTotalCost = purchasePreviewSlabs.reduce((acc, slab) => acc + Number(slab.cost || 0), 0);
   const purchaseTotalMinimumSale = purchasePreviewSlabs.reduce((acc, slab) => acc + Number(slab.minimumSalePrice || slab.cost || 0), 0);
+
+  const downloadPurchaseOrder = async (groupId: string) => {
+    const group = activePurchaseGroups.find((item) => item.groupId === groupId);
+    if (!group) return;
+    await generatePurchaseOrderPdf({
+      groupId: group.groupId,
+      supplier: group.supplier,
+      purchases: group.purchases,
+    }, settings);
+  };
+
+  const cancelPurchaseGroup = async (groupId: string) => {
+    if (!hasPermission('estoque', 'movimentar')) {
+      alert('Você não tem permissão para cancelar compras. Fale com o administrador.');
+      return;
+    }
+    const group = activePurchaseGroups.find((item) => item.groupId === groupId);
+    if (!group) return;
+    const confirmed = window.confirm('Cancelar esta compra pendente? Ela sairá da lista de pedidos, mas continuará no histórico.');
+    if (!confirmed) return;
+
+    await Promise.all(group.purchases.map((purchase) =>
+      updateDoc(doc(db, 'inventoryPurchases', purchase.id), {status: 'Cancelado'}),
+    ));
+
+    await logSystemEvent({
+      type: 'purchase_cancelled',
+      title: 'Compra cancelada',
+      description: `${group.purchases.length} chapa(s) de ${group.materialName}`,
+      entityType: 'purchase',
+      entityId: group.purchases[0]?.id || group.groupId,
+      materialId: group.purchases[0]?.materialId,
+      materialName: group.materialName,
+      userUid: user?.uid || '',
+      userName: currentUserName,
+      metadata: {groupId: group.groupId, quantity: group.purchases.length, status: 'Cancelado'},
+    });
+  };
 
   return (
     <div className="space-y-6">
@@ -837,7 +893,7 @@ export const InventoryPage: React.FC = () => {
         </div>
       )}
 
-      {activePurchases.length > 0 && (
+      {activePurchaseGroups.length > 0 && (
         <div className="rounded-[28px] border border-blue-100 bg-blue-50 p-5 shadow-sm">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 rounded-2xl bg-blue-100 p-2 text-blue-700">
@@ -847,28 +903,62 @@ export const InventoryPage: React.FC = () => {
               <h2 className="font-display text-lg font-bold text-blue-950">Compras em pedido</h2>
               <p className="mt-1 text-sm text-blue-700">Quando a pedra chegar, marque como entregue para entrar no estoque e registrar quem recebeu.</p>
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-                {activePurchases.map((purchase) => (
-                  <div key={purchase.id} className="rounded-2xl border border-blue-100 bg-white/80 p-4">
+                {activePurchaseGroups.map((group) => (
+                  <div key={group.groupId} className="rounded-2xl border border-blue-100 bg-white/80 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="font-bold text-slate-900">{purchase.materialName}</div>
-                        <div className="mt-1 text-xs text-slate-400">
-                          {[purchase.code || 'Sem lote', formatNumber(purchase.area) + ' m²', purchase.materialLine || purchase.category, purchase.thicknessLabel, purchase.provider].filter(Boolean).join(' · ')}
-                        </div>
+                        <div className="font-bold text-slate-900">{group.materialName}</div>
+                        <div className="mt-1 text-xs text-slate-400">{formatMaterialSpecsWithProvider(group.purchases[0]) || 'Sem especificações'}</div>
                       </div>
+                    </div>
+                    <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-500">
+                      <div><strong>{group.purchases.length}</strong> chapa(s) · <strong>{formatNumber(group.totalArea)} m²</strong></div>
+                      <div className="mt-1">Fornecedor: <strong>{group.supplier || 'Não informado'}</strong></div>
+                      <div className="mt-1">Comprado por <strong>{group.purchasedByName}</strong></div>
+                    </div>
+                    <div className="mt-3 space-y-2">
+                      {group.purchases.map((purchase) => (
+                        <div key={purchase.id} className="rounded-2xl border border-slate-100 bg-white px-4 py-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <div className="text-sm font-semibold text-slate-900">{purchase.code || `Chapa ${purchase.purchaseIndex || 1}`}</div>
+                              <div className="mt-1 text-xs text-slate-400">
+                                {purchase.length} x {purchase.width} cm · {purchase.thicknessLabel || 'Sem espessura'} · {formatNumber(purchase.area)} m²
+                              </div>
+                            </div>
+                            {hasPermission('estoque', 'movimentar') && (
+                              <button
+                                type="button"
+                                onClick={() => receivePurchase(purchase)}
+                                className="inline-flex items-center gap-1 rounded-xl bg-green-600 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-green-700 transition-all"
+                              >
+                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                Receber
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => downloadPurchaseOrder(group.groupId)}
+                        className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-blue-700 transition-all"
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        PDF do pedido
+                      </button>
                       {hasPermission('estoque', 'movimentar') && (
                         <button
                           type="button"
-                          onClick={() => receivePurchase(purchase)}
-                          className="inline-flex items-center gap-1 rounded-xl bg-green-600 px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-white hover:bg-green-700 transition-all"
+                          onClick={() => cancelPurchaseGroup(group.groupId)}
+                          className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white hover:bg-red-700 transition-all"
                         >
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          Receber
+                          <X className="h-3.5 w-3.5" />
+                          Cancelar compra
                         </button>
                       )}
-                    </div>
-                    <div className="mt-3 text-xs text-slate-500">
-                      Comprado por <strong>{purchase.purchasedByName}</strong>
                     </div>
                   </div>
                 ))}
@@ -935,9 +1025,7 @@ export const InventoryPage: React.FC = () => {
                         <div>
                           <div className="font-semibold text-slate-900">{item.materialName}</div>
                           <div className="text-xs text-brand-primary font-mono">{item.code}</div>
-                          <div className="text-xs text-slate-400">
-                            {[item.materialLine || item.category, item.materialType, item.texture, item.provider].filter(Boolean).join(' · ')}
-                          </div>
+                          <div className="text-xs text-slate-400">{formatMaterialSpecsWithProvider(item) || `${item.category || 'Sem categoria'} · ${item.provider || 'Sem fornecedor'}`}</div>
                         </div>
                       </div>
                     </td>
@@ -1037,12 +1125,15 @@ export const InventoryPage: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="font-semibold text-slate-900">{purchase.materialName}</div>
                       <div className="text-xs text-brand-primary font-mono">{purchase.code || 'Sem lote'}</div>
+                      <div className="text-xs text-slate-400">{formatMaterialSpecsWithProvider(purchase) || `${purchase.category || 'Sem categoria'} · ${purchase.provider || 'Sem fornecedor'}`}</div>
                     </td>
                     <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(purchase.area)} m²</td>
                     <td className="px-6 py-4">
                       <span className={cn(
                         'inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase',
-                        purchase.status === 'Entregue' ?'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600',
+                        purchase.status === 'Entregue' ?'bg-green-50 text-green-600' :
+                        purchase.status === 'Cancelado' ?'bg-red-50 text-red-600' :
+                        'bg-blue-50 text-blue-600',
                       )}>
                         {purchase.status}
                       </span>

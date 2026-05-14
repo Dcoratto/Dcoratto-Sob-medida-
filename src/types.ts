@@ -487,6 +487,8 @@ export interface InventoryPurchase {
   purchaseQuantity?: number;
   status: InventoryPurchaseStatus;
   notes?: string;
+  expectedDeliveryDate?: any;
+  expectedDeliveryDateKey?: string;
   purchasedByUid: string;
   purchasedByName: string;
   purchasedAt?: any;
@@ -536,4 +538,3 @@ export interface SystemEvent {
   createdAt?: any;
   metadata?: Record<string, unknown>;
 }
-

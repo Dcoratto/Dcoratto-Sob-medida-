@@ -1,0 +1,1 @@
+const i=e=>{var r,o;const t=(r=e.thicknessLabel)==null?void 0:r.trim();if(!t)return"";if(/[a-zA-Z]/.test(t))return t;const a=((o=e.materialType)==null?void 0:o.trim().toLowerCase())==="lamina"?"mm":"cm";return`${t}${a}`},n=e=>[e.materialLine,e.materialType,i(e),e.texture].filter(Boolean).join(" | "),c=e=>[n(e),e.provider].filter(Boolean).join(" | ");export{c as a,n as f};

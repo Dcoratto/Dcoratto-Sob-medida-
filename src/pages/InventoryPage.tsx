@@ -1,5 +1,5 @@
-﻿import React, {useEffect, useState} from 'react';
-import {addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc} from 'firebase/firestore';
+import React, {useEffect, useState} from 'react';
+import {addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc} from 'firebase/firestore';
 import {AlertTriangle, CheckCircle2, Edit2, Eye, FileText, Filter, ImagePlus, MessageCircle, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
 import {getDownloadURL, ref, uploadBytes} from 'firebase/storage';
@@ -120,6 +120,7 @@ export const InventoryPage: React.FC = () => {
   const [purchaseMinimumSalePrice, setPurchaseMinimumSalePrice] = useState('');
   const [purchaseSlabs, setPurchaseSlabs] = useState<PurchaseSlabForm[]>([emptyPurchaseSlab()]);
   const [purchaseNotes, setPurchaseNotes] = useState('');
+  const [purchaseExpectedDeliveryDate, setPurchaseExpectedDeliveryDate] = useState('');
   const [lossQuoteId, setLossQuoteId] = useState('');
   const [lossPieceId, setLossPieceId] = useState('');
   const [lossInventoryId, setLossInventoryId] = useState('');
@@ -190,6 +191,14 @@ export const InventoryPage: React.FC = () => {
   const purchaseThicknessOptions = purchaseMaterialType === 'Lamina' ? materialCatalog.slabThicknesses : materialCatalog.naturalThicknesses;
   const findSupplier = (name?: string) => supplierOptions.find((supplier) => supplier.name === name);
   const normalizeWhatsApp = (value?: string) => String(value || '').replace(/\D/g, '');
+  const keyOf = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  const parseInputDate = (value: string) => {
+    if (!value) return null;
+    const [year, month, day] = value.split('-').map(Number);
+    if (!year || !month || !day) return null;
+    return new Date(year, month - 1, day, 9, 0, 0, 0);
+  };
+  const purchaseCalendarEventRef = (groupId: string) => doc(db, 'calendarEvents', `purchase-${groupId}`);
 
   const resetPurchaseForm = () => {
     setPurchaseMaterialId('');
@@ -210,6 +219,7 @@ export const InventoryPage: React.FC = () => {
     setPurchaseMinimumSalePrice('');
     setPurchaseSlabs([emptyPurchaseSlab()]);
     setPurchaseNotes('');
+    setPurchaseExpectedDeliveryDate('');
   };
 
   const resetLossForm = () => {
@@ -228,6 +238,44 @@ export const InventoryPage: React.FC = () => {
 
   const updatePurchaseSlab = (index: number, field: keyof PurchaseSlabForm, value: string) => {
     setPurchaseSlabs((prev) => prev.map((slab, slabIndex) => slabIndex === index ?{...slab, [field]: value} : slab));
+  };
+
+  const upsertPurchaseCalendarEvent = async (groupId: string, payload: {
+    supplier: string;
+    materialName: string;
+    quantity: number;
+    totalArea: number;
+    expectedDeliveryDate: Date;
+    notes?: string;
+  }) => {
+    await setDoc(purchaseCalendarEventRef(groupId), {
+      title: `Entrega de compra · ${payload.materialName}`,
+      description: [
+        `Fornecedor: ${payload.supplier || 'Não informado'}`,
+        `Material: ${payload.materialName}`,
+        `Quantidade: ${payload.quantity} chapa(s)`,
+        `Área total: ${formatNumber(payload.totalArea)} m²`,
+        payload.notes ? `Observações: ${payload.notes}` : '',
+      ].filter(Boolean).join('\n'),
+      date: Timestamp.fromDate(payload.expectedDeliveryDate),
+      dateKey: keyOf(payload.expectedDeliveryDate),
+      eventTime: '09:00',
+      status: 'Pedido de compra',
+      sourceType: 'purchase-delivery',
+      purchaseGroupId: groupId,
+      supplier: payload.supplier || '',
+      materialName: payload.materialName,
+      quantity: payload.quantity,
+      totalArea: payload.totalArea,
+      updatedAt: Timestamp.now(),
+      createdAt: Timestamp.now(),
+      createdByUid: user?.uid || '',
+      createdByName: currentUserName,
+    }, {merge: true});
+  };
+
+  const removePurchaseCalendarEvent = async (groupId: string) => {
+    await deleteDoc(purchaseCalendarEventRef(groupId));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -415,6 +463,12 @@ export const InventoryPage: React.FC = () => {
       return;
     }
 
+    const expectedDeliveryDate = parseInputDate(purchaseExpectedDeliveryDate);
+    if (!expectedDeliveryDate) {
+      alert('Defina a previsão de entrega para integrar o pedido ao calendário.');
+      return;
+    }
+
     const purchaseGroupId = doc(collection(db, 'inventoryPurchases')).id;
     const createdPurchases = await Promise.all(slabs.map((slab, index) => {
       const area = (Number(slab.length) * Number(slab.width)) / 10000;
@@ -440,6 +494,8 @@ export const InventoryPage: React.FC = () => {
         purchaseQuantity: quantity,
         status: 'Pedido',
         notes: purchaseNotes,
+        expectedDeliveryDate: Timestamp.fromDate(expectedDeliveryDate),
+        expectedDeliveryDateKey: keyOf(expectedDeliveryDate),
         purchasedByUid: user?.uid || '',
         purchasedByName: currentUserName,
         purchasedAt: serverTimestamp(),
@@ -448,6 +504,14 @@ export const InventoryPage: React.FC = () => {
     const totalArea = slabs.reduce((acc, slab) => acc + (Number(slab.length) * Number(slab.width)) / 10000, 0);
     const totalCost = slabs.reduce((acc, slab) => acc + Number(slab.cost), 0);
     const totalMinimumSale = slabs.reduce((acc, slab) => acc + Number(slab.minimumSalePrice || slab.cost), 0);
+    await upsertPurchaseCalendarEvent(purchaseGroupId, {
+      supplier: purchaseProvider.trim(),
+      materialName: selectedMaterialName,
+      quantity,
+      totalArea,
+      expectedDeliveryDate,
+      notes: purchaseNotes.trim(),
+    });
     await logSystemEvent({
       type: 'purchase_ordered',
       title: 'Compra de material lançada',
@@ -510,6 +574,16 @@ export const InventoryPage: React.FC = () => {
       userName: currentUserName,
       metadata: {area: purchase.area, cost: purchase.cost, minimumSalePrice: purchase.minimumSalePrice ?? purchase.cost, inventoryItemId: inventoryRef.id, status: 'Entregue'},
     });
+
+    const groupId = purchase.purchaseGroupId || purchase.id;
+    const hasOtherPendingPurchases = purchases.some((item) =>
+      (item.purchaseGroupId || item.id) === groupId &&
+      item.id !== purchase.id &&
+      item.status === 'Pedido',
+    );
+    if (!hasOtherPendingPurchases) {
+      await removePurchaseCalendarEvent(groupId);
+    }
   };
 
   const selectedLossQuote = quotes.find((quote) => quote.id === lossQuoteId);
@@ -787,6 +861,7 @@ export const InventoryPage: React.FC = () => {
     await Promise.all(group.purchases.map((purchase) =>
       updateDoc(doc(db, 'inventoryPurchases', purchase.id), {status: 'Cancelado'}),
     ));
+    await removePurchaseCalendarEvent(group.groupId);
 
     await logSystemEvent({
       type: 'purchase_cancelled',
@@ -952,6 +1027,7 @@ export const InventoryPage: React.FC = () => {
                     <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-500">
                       <div><strong>{group.purchases.length}</strong> chapa(s) · <strong>{formatNumber(group.totalArea)} m²</strong></div>
                       <div className="mt-1">Fornecedor: <strong>{group.supplier || 'Não informado'}</strong></div>
+                      <div className="mt-1">Previsão de entrega: <strong>{group.purchases[0]?.expectedDeliveryDateKey ? group.purchases[0].expectedDeliveryDateKey.split('-').reverse().join('/') : 'Não definida'}</strong></div>
                       <div className="mt-1">Comprado por <strong>{group.purchasedByName}</strong></div>
                     </div>
                     <div className="mt-3 space-y-2">
@@ -1446,6 +1522,16 @@ export const InventoryPage: React.FC = () => {
                     <option value="">Selecionar textura</option>
                     {materialCatalog.textures.map((item) => <option key={item} value={item}>{item}</option>)}
                   </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Previsão de entrega</label>
+                  <input
+                    type="date"
+                    required
+                    value={purchaseExpectedDeliveryDate}
+                    onChange={(e) => setPurchaseExpectedDeliveryDate(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                  />
                 </div>
 
                 <div className="md:col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-2 flex gap-2">

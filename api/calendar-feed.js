@@ -78,7 +78,7 @@ const clientFullAddress = (client) => {
     client.block ? `Bloco ${client.block}` : '',
     client.lot ? `Lote ${client.lot}` : '',
   ].filter(Boolean);
-  return [...locationBits, ...condominiumBits].join(' · ');
+  return [...locationBits, ...condominiumBits].join(' | ');
 };
 
 export default async function handler(req, res) {
@@ -120,7 +120,7 @@ export default async function handler(req, res) {
       if (measurementDate) {
         events.push({
           uid: `${quote.id}-medicao@dcoratto`,
-          title: `${eventLabel('medicao')} · ${quote.clientName || 'Cliente'}`,
+          title: `${eventLabel('medicao')} | ${quote.clientName || 'Cliente'}`,
           description: [
             `Cliente: ${quote.clientName || 'Nao informado'}`,
             client?.phone ? `Telefone: ${client.phone}` : '',
@@ -137,7 +137,7 @@ export default async function handler(req, res) {
       if (deliveryDate) {
         events.push({
           uid: `${quote.id}-entrega@dcoratto`,
-          title: `${eventLabel('entrega')} · ${quote.clientName || 'Cliente'}`,
+          title: `${eventLabel('entrega')} | ${quote.clientName || 'Cliente'}`,
           description: [
             `Cliente: ${quote.clientName || 'Nao informado'}`,
             client?.phone ? `Telefone: ${client.phone}` : '',
@@ -159,7 +159,7 @@ export default async function handler(req, res) {
       const client = manualEvent.clientId ?clientMap.get(manualEvent.clientId) : null;
       events.push({
         uid: `manual-${manualEvent.id}@dcoratto`,
-        title: [manualEvent.title || 'Evento', manualEvent.clientName].filter(Boolean).join(' · '),
+        title: [manualEvent.title || 'Evento', manualEvent.clientName].filter(Boolean).join(' | '),
         description: [
           manualEvent.description || '',
           client?.phone ? `Telefone: ${client.phone}` : '',

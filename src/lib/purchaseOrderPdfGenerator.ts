@@ -8,10 +8,17 @@ type PurchaseOrderGroup = {
   purchases: InventoryPurchase[];
 };
 
-const safeFilePart = (value: string) =>
-  String(value || 'pedido')
-    .normalize('NFD')
+const sanitizePdfText = (value: string) =>
+  String(value || '')
+    .replace(/[Â²]/g, '2')
     .replace(/[\u0300-\u036f]/g, '')
+    .replace(/Ãƒâ€šÃ‚Â²/g, '2')
+    .replace(/[^\x20-\x7E\n]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const safeFilePart = (value: string) =>
+  sanitizePdfText(value || 'pedido')
     .replace(/[^a-zA-Z0-9]+/g, '_')
     .replace(/^_+|_+$/g, '');
 
@@ -30,7 +37,7 @@ export const generatePurchaseOrderPdf = async (group: PurchaseOrderGroup, settin
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(18);
-  doc.text(settings.companyName || 'DCoratto Sob Medida', 14, 13);
+  doc.text(sanitizePdfText(settings.companyName || "D'Coratto Sob Medida"), 14, 13);
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   doc.text('Pedido de compra de chapas', 14, 21);
@@ -41,7 +48,7 @@ export const generatePurchaseOrderPdf = async (group: PurchaseOrderGroup, settin
   doc.text('Fornecedor', 14, 38);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
-  doc.text(group.supplier || 'Nao informado', 14, 44);
+  doc.text(sanitizePdfText(group.supplier || 'Nao informado'), 14, 44);
   doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 140, 44);
 
   autoTable(doc, {
@@ -55,12 +62,12 @@ export const generatePurchaseOrderPdf = async (group: PurchaseOrderGroup, settin
       'Compra',
     ]],
     body: group.purchases.map((purchase) => [
-      purchase.materialName,
-      formatMaterialSpecsWithProvider(purchase),
-      purchase.code || '-',
+      sanitizePdfText(purchase.materialName),
+      sanitizePdfText(formatMaterialSpecsWithProvider(purchase)),
+      sanitizePdfText(purchase.code || '-'),
       `${purchase.length} x ${purchase.width} cm`,
-      `${formatNumber(purchase.area || 0)} m²`,
-      formatCurrency(purchase.cost || 0),
+      `${formatNumber(purchase.area || 0)} m2`,
+      sanitizePdfText(formatCurrency(purchase.cost || 0)),
     ]),
     theme: 'grid',
     headStyles: {
@@ -87,13 +94,13 @@ export const generatePurchaseOrderPdf = async (group: PurchaseOrderGroup, settin
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.text(`Total de chapas: ${group.purchases.length}`, 14, finalY + 12);
-  doc.text(`Área total: ${formatNumber(totalArea)} m²`, 14, finalY + 18);
-  doc.text(`Compra total: ${formatCurrency(totalCost)}`, 14, finalY + 24);
+  doc.text(`Area total: ${formatNumber(totalArea)} m2`, 14, finalY + 18);
+  doc.text(sanitizePdfText(`Compra total: ${formatCurrency(totalCost)}`), 14, finalY + 24);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(100, 116, 139);
-  doc.text(`${settings.phone || ''} ${settings.email ? ` · ${settings.email}` : ''}`.trim(), 14, 286);
+  doc.text(sanitizePdfText(`${settings.phone || ''} ${settings.email ? ` | ${settings.email}` : ''}`.trim()), 14, 286);
 
   doc.save(`Pedido_${safeFilePart(group.supplier || group.groupId)}.pdf`);
 };

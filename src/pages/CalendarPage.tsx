@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {addDoc, collection, deleteDoc, doc, onSnapshot, Timestamp, updateDoc} from 'firebase/firestore';
 import type {FirebaseError} from 'firebase/app';
 import {AlertTriangle, CalendarPlus, ChevronLeft, ChevronRight, Copy, ExternalLink, MapPin, Phone, Plus, X} from 'lucide-react';
@@ -8,7 +8,7 @@ import {cn} from '../lib/utils';
 import {getHolidayInfo} from '../lib/holidays';
 import {useAuth} from '../contexts/AuthContext';
 
-type EventType = 'medicao' | 'entrega' | 'manual';
+type EventType = 'medicao' | 'entrega' | 'manual' | 'pedido';
 
 interface CalendarEvent {
   id: string;
@@ -25,6 +25,9 @@ interface CalendarEvent {
   description?: string;
   eventTime?: string;
   createdByName?: string;
+  supplier?: string;
+  materialName?: string;
+  purchaseGroupId?: string;
 }
 
 interface ManualCalendarEvent {
@@ -39,6 +42,11 @@ interface ManualCalendarEvent {
   eventTime?: string;
   createdByUid?: string;
   createdByName?: string;
+  sourceType?: string;
+  status?: string;
+  supplier?: string;
+  materialName?: string;
+  purchaseGroupId?: string;
 }
 
 const altoTieteCities = ['São Paulo', 'Arujá', 'Mogi das Cruzes', 'Suzano', 'Poá', 'Itaquaquecetuba', 'Ferraz de Vasconcelos', 'Guarulhos', 'Biritiba Mirim', 'Salesópolis', 'Santa Isabel'];
@@ -83,10 +91,10 @@ const startOfMonthGrid = (date: Date) => {
   return output;
 };
 
-const eventLabel = (type: EventType) => type === 'entrega' ? 'Entrega' : type === 'medicao' ? 'Medição' : 'Evento';
+const eventLabel = (type: EventType) => type === 'entrega' ? 'Entrega' : type === 'medicao' ? 'Medição' : type === 'pedido' ? 'Pedido' : 'Evento';
 const eventTimeLabel = (date: Date, eventTime?: string) => eventTime || date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
 const calendarEventTitle = (event: CalendarEvent) => {
-  if (event.type === 'manual') return [event.title || 'Evento', event.clientName].filter(Boolean).join(' · ');
+  if (event.type === 'manual' || event.type === 'pedido') return [event.title || 'Evento', event.clientName].filter(Boolean).join(' · ');
   return `${eventLabel(event.type)} · ${event.clientName || event.title || 'Cliente'}`;
 };
 const countdownLabel = (daysLeft: number) => {
@@ -233,19 +241,23 @@ export const CalendarPage: React.FC = () => {
     manualEvents.forEach((manualEvent) => {
       const date = parseDateKey(manualEvent.dateKey) || toDate(manualEvent.date);
       if (!date) return;
+      const isPurchaseDelivery = manualEvent.sourceType === 'purchase-delivery';
       list.push({
         id: `manual-${manualEvent.id}`,
         sourceId: manualEvent.id,
         date,
-        type: 'manual',
+        type: isPurchaseDelivery ? 'pedido' : 'manual',
         title: manualEvent.title,
         description: manualEvent.description,
         clientId: manualEvent.clientId,
         clientName: manualEvent.clientName,
         city: manualEvent.city,
-        status: 'Evento manual',
+        status: manualEvent.status || (isPurchaseDelivery ? 'Pedido de compra' : 'Evento manual'),
         eventTime: manualEvent.eventTime,
         createdByName: manualEvent.createdByName,
+        supplier: manualEvent.supplier,
+        materialName: manualEvent.materialName,
+        purchaseGroupId: manualEvent.purchaseGroupId,
       });
     });
 
@@ -593,11 +605,21 @@ export const CalendarPage: React.FC = () => {
                 </div>
               )}
 
-              {selectedEvent.type === 'manual' && (
+              {(selectedEvent.type === 'manual' || selectedEvent.type === 'pedido') && (
                 <>
                   <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{selectedEvent.description?.trim() || 'Sem descrição.'}</div>
                   <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-500">Criado por: <span className="text-slate-700">{selectedEvent.createdByName || 'Não informado'}</span></div>
                 </>
+              )}
+
+              {selectedEvent.type === 'pedido' && (
+                <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                  <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Detalhes do pedido</div>
+                  <div className="mt-1 space-y-1 text-sm font-semibold text-slate-800">
+                    <div>Fornecedor: {selectedEvent.supplier || 'Não informado'}</div>
+                    <div>Material: {selectedEvent.materialName || selectedEvent.title || 'Não informado'}</div>
+                  </div>
+                </div>
               )}
 
               {selectedClient && (

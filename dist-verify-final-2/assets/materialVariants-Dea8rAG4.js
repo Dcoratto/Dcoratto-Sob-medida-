@@ -1,0 +1,1 @@
+const r=e=>String(e||"").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,""),t=e=>[e.materialId||"sem-material",r(e.materialLine),r(e.materialType),r(e.thicknessLabel),r(e.texture),r(e.provider)].join("|");export{t as b};

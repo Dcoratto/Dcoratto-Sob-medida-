@@ -1,0 +1,1 @@
+import{e as o,c as t,j as s}from"./firebase-firestore-vendor-zW0cH2A3.js";import{d as a}from"./index-jzHK-URH.js";const i=async r=>{try{await o(t(a,"systemEvents"),{...r,createdAt:s()})}catch(e){console.error("Erro ao registrar evento do sistema:",e)}};export{i as l};

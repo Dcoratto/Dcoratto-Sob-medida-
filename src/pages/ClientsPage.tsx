@@ -1,6 +1,6 @@
 ﻿import React, {useEffect, useMemo, useState} from 'react';
 import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from 'firebase/firestore';
-import {CheckCircle2, ClipboardList, Edit2, MapPin, Phone, Plus, Search, Trash2, User, X} from 'lucide-react';
+import {CheckCircle2, ClipboardList, Edit2, FileText, MapPin, Phone, Plus, Search, Trash2, User, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureCategory, FixtureInfo, InventoryItem, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
@@ -11,6 +11,7 @@ import {logSystemEvent} from '../lib/systemEvents';
 import {logAuditEvent} from '../lib/auditLogs';
 import {QUOTE_STATUSES, normalizeQuoteStatus, quoteStatusColor} from '../lib/quoteStatus';
 import {getHolidayInfo} from '../lib/holidays';
+import {formatMaterialSpecs} from '../lib/materialSpecs';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -211,8 +212,10 @@ export const ClientsPage: React.FC = () => {
       const height = catalogItem?.height ?? fixture.height;
       const diameter = catalogItem?.diameter ?? fixture.diameter;
       const notes = catalogItem?.notes || fixture.notes || '';
-      const hasInfo = catalogItem || brand || model || width || depth || height || diameter || notes;
-      return {...item, name, imageUrl, brand, model, width, depth, height, diameter, notes, hasInfo};
+      const manualUrl = catalogItem?.manualUrl || '';
+      const manualFileName = catalogItem?.manualFileName || '';
+      const hasInfo = catalogItem || brand || model || width || depth || height || diameter || notes || manualUrl;
+      return {...item, name, imageUrl, brand, model, width, depth, height, diameter, notes, manualUrl, manualFileName, hasInfo};
     }).filter((item) => item.hasInfo);
   };
   const selectedQuoteMaterialUsage = (selectedQuote?.pieces || []).reduce((map, piece) => {
@@ -231,6 +234,10 @@ export const ClientsPage: React.FC = () => {
       materialName: material?.name || stockItems[0]?.materialName || materialId,
       imageUrl: material?.imageUrl || stockItems.find((item) => item.photoUrl)?.photoUrl || '',
       category: material?.category || stockItems[0]?.category || 'Sem categoria',
+      materialLine: material?.materialLine || stockItems[0]?.materialLine || stockItems[0]?.category || '',
+      thicknessLabel: material?.thicknessLabel || stockItems[0]?.thicknessLabel || '',
+      texture: material?.texture || stockItems[0]?.texture || '',
+      materialType: material?.materialType || stockItems[0]?.materialType || '',
       neededArea: usage.area,
       pieces: usage.pieces,
       slabCount: stockItems.length,
@@ -991,6 +998,8 @@ export const ClientsPage: React.FC = () => {
                                       imageUrl={fixture.imageUrl}
                                       displayName={fixture.name}
                                       description={[fixture.brand, fixture.model, fixture.notes].filter(Boolean).join(' · ')}
+                                      manualUrl={fixture.manualUrl}
+                                      manualFileName={fixture.manualFileName}
                                       onChange={updatePieceFixture}
                                     />
                                   ))}
@@ -1019,7 +1028,9 @@ export const ClientsPage: React.FC = () => {
                                   </div>
                                   <div className="min-w-0 flex-1">
                                     <div className="font-bold text-slate-900">{row.materialName}</div>
-                                    <div className="text-xs text-slate-400">{row.category}</div>
+                                    <div className="text-xs text-slate-400">
+                                      {formatMaterialSpecs(row) || row.category}
+                                    </div>
                                     <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                                       <div className="rounded-xl bg-white p-2">
                                         <div className="font-bold text-slate-400 uppercase">Qtd.</div>
@@ -1348,6 +1359,8 @@ const FixtureFields = ({
   imageUrl,
   displayName,
   description,
+  manualUrl,
+  manualFileName,
   onChange,
 }: {
   key?: React.Key;
@@ -1359,6 +1372,8 @@ const FixtureFields = ({
   imageUrl?: string;
   displayName: string;
   description?: string;
+  manualUrl?: string;
+  manualFileName?: string;
   onChange: (quote: Quote, pieceId: string, fixtureType: FixtureCategory, field: keyof FixtureInfo, value: string) => void;
 }) => {
   const fixture = piece.purchasedFixtures?.[legacyKey] || {};
@@ -1378,6 +1393,17 @@ const FixtureFields = ({
           <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{title}</div>
           <div className="font-bold text-slate-900 line-clamp-2">{displayName}</div>
           {description && <div className="mt-1 text-xs text-slate-500 line-clamp-2">{description}</div>}
+          {manualUrl && (
+            <a
+              href={manualUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-blue-700 hover:bg-blue-100"
+            >
+              <FileText className="h-3.5 w-3.5" />
+              {manualFileName || 'Abrir manual'}
+            </a>
+          )}
         </div>
       </div>
       <FixtureInput label="Modelo" value={fixture.model || ''} onBlur={(value) => onChange(quote, piece.id, type, 'model', value)} />

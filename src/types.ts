@@ -357,6 +357,8 @@ export interface FixtureCatalogItem {
   height?: number;
   diameter?: number;
   imageUrl?: string;
+  manualUrl?: string;
+  manualFileName?: string;
   notes?: string;
   active: boolean;
   createdAt?: any;

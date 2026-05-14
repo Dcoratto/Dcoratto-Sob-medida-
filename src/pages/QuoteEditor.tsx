@@ -17,7 +17,7 @@ import { DrawingCanvas } from '../components/DrawingCanvas';
 import {applyQuoteInventoryByStatusTransition} from '../lib/inventoryReservations';
 import {logSystemEvent} from '../lib/systemEvents';
 import {normalizeQuoteStatus} from '../lib/quoteStatus';
-import {formatMaterialSpecsWithProvider} from '../lib/materialSpecs';
+import {formatMaterialSpecs} from '../lib/materialSpecs';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 
@@ -943,7 +943,7 @@ export const QuoteEditor: React.FC = () => {
                                     <span className="min-w-0 flex-1">
                                       <span className="block truncate">{material.name}</span>
                                       <span className={cn('block text-[11px] font-medium', piece.materialId === material.id ? 'text-white/80' : 'text-slate-400')}>
-                                        {formatMaterialSpecsWithProvider(material) || material.category || 'Sem categoria'}
+                                        {formatMaterialSpecs(material) || material.category || 'Sem categoria'}
                                       </span>
                                     </span>
                                     <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase', available ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600', piece.materialId === material.id && 'bg-white/15 text-white')}>

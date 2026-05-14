@@ -1,7 +1,7 @@
 ﻿import React, {useEffect, useState} from 'react';
 import {EmailAuthProvider, reauthenticateWithCredential} from 'firebase/auth';
 import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from 'firebase/firestore';
-import {deleteObject, ref as storageRef} from 'firebase/storage';
+import {deleteObject, getDownloadURL, ref as storageRef, uploadBytes} from 'firebase/storage';
 import {AlertTriangle, BriefcaseBusiness, CheckCircle2, Mail, Pencil, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
 import {auth, db, storage} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
@@ -130,6 +130,7 @@ export const AdminPage: React.FC = () => {
   const [fixtureError, setFixtureError] = useState('');
   const [editingFixture, setEditingFixture] = useState<FixtureCatalogItem | null>(null);
   const [fixtureImageFile, setFixtureImageFile] = useState<File | null>(null);
+  const [fixtureManualFile, setFixtureManualFile] = useState<File | null>(null);
   const [fixtureForm, setFixtureForm] = useState<{
     name: string;
     category: FixtureCategory;
@@ -140,6 +141,8 @@ export const AdminPage: React.FC = () => {
     height: string;
     diameter: string;
     imageUrl: string;
+    manualUrl: string;
+    manualFileName: string;
     notes: string;
   }>({
     name: '',
@@ -151,6 +154,8 @@ export const AdminPage: React.FC = () => {
     height: '',
     diameter: '',
     imageUrl: '',
+    manualUrl: '',
+    manualFileName: '',
     notes: '',
   });
 
@@ -327,9 +332,12 @@ export const AdminPage: React.FC = () => {
       height: '',
       diameter: '',
       imageUrl: '',
+      manualUrl: '',
+      manualFileName: '',
       notes: '',
     });
     setFixtureImageFile(null);
+    setFixtureManualFile(null);
     setFixtureError('');
   };
 
@@ -345,9 +353,12 @@ export const AdminPage: React.FC = () => {
       height: item.height ?String(item.height).replace('.', ',') : '',
       diameter: item.diameter ?String(item.diameter).replace('.', ',') : '',
       imageUrl: item.imageUrl || '',
+      manualUrl: item.manualUrl || '',
+      manualFileName: item.manualFileName || '',
       notes: item.notes || '',
     });
     setFixtureImageFile(null);
+    setFixtureManualFile(null);
     setFixtureError('');
   };
 
@@ -398,6 +409,15 @@ export const AdminPage: React.FC = () => {
       if (fixtureImageFile) {
         imageUrl = await optimizeCatalogImage(fixtureImageFile);
       }
+      let manualUrl = fixtureForm.manualUrl.trim();
+      let manualFileName = fixtureForm.manualFileName.trim();
+      if (fixtureManualFile) {
+        const extension = fixtureManualFile.name.split('.').pop() || 'pdf';
+        const manualRef = storageRef(storage, `fixture-manuals/${editingFixture?.id || slugify(fixtureForm.name) || Date.now()}-${Date.now()}.${extension}`);
+        await uploadBytes(manualRef, fixtureManualFile);
+        manualUrl = await getDownloadURL(manualRef);
+        manualFileName = fixtureManualFile.name;
+      }
       const imagePayload = imageUrl ?{imageUrl} : {};
       const fixturePayload = {
         name: fixtureForm.name.trim(),
@@ -409,6 +429,8 @@ export const AdminPage: React.FC = () => {
         height: Number(fixtureForm.height.replace(',', '.')) || 0,
         diameter: Number(fixtureForm.diameter.replace(',', '.')) || 0,
         ...imagePayload,
+        manualUrl,
+        manualFileName,
         notes: fixtureForm.notes.trim(),
         active: editingFixture?.active ?? true,
         updatedAt: Timestamp.now(),
@@ -453,6 +475,10 @@ export const AdminPage: React.FC = () => {
     for (const item of snapshot.docs) {
       if (collectionName === 'inventory') {
         await deleteStoredFile(item.data().photoUrl);
+      }
+
+      if (collectionName === 'fixtureCatalog') {
+        await deleteStoredFile(item.data().manualUrl);
       }
 
       batch.delete(item.ref);
@@ -701,6 +727,18 @@ export const AdminPage: React.FC = () => {
               }}
             />
           </label>
+          <label className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 cursor-pointer md:col-span-2 xl:col-span-1">
+            {fixtureManualFile ? fixtureManualFile.name : fixtureForm.manualFileName || 'Upload do manual'}
+            <input
+              type="file"
+              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+              className="hidden"
+              onChange={(event) => {
+                setFixtureError('');
+                setFixtureManualFile(event.target.files?.[0] || null);
+              }}
+            />
+          </label>
           <input value={fixtureForm.notes} onChange={(e) => setFixtureForm((f) => ({...f, notes: e.target.value}))} placeholder="Informacoes" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-1" />
           <button type="submit" disabled={savingFixture} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-white disabled:opacity-60">
             {savingFixture ?'Salvando...' : editingFixture ? 'Salvar peca' : 'Cadastrar peca'}
@@ -735,6 +773,16 @@ export const AdminPage: React.FC = () => {
                   <div className="mt-1 text-xs font-semibold text-slate-500">
                     {[item.width ?`${item.width} cm largura` : '', item.depth ?`${item.depth} cm profundidade` : '', item.diameter ?`${item.diameter} cm diametro` : ''].filter(Boolean).join(' · ') || 'Sem medidas cadastradas'}
                   </div>
+                  {item.manualUrl && (
+                    <a
+                      href={item.manualUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-2 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-blue-700 hover:bg-blue-100"
+                    >
+                      Manual disponível
+                    </a>
+                  )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   <button type="button" onClick={() => startEditingFixture(item)} className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/10 hover:text-brand-primary" title="Editar peca" aria-label="Editar peca">

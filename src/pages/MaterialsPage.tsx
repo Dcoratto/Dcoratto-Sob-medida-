@@ -25,6 +25,10 @@ type MaterialWithUserPrice = Material & {
   userPricePerM2: number;
 };
 
+const AREA_UNIT = 'm\u00b2';
+const LABEL_AVAILABLE = 'Dispon\u00edvel';
+const LABEL_MINIMUM_SALE = 'M\u00ednimo venda/m\u00b2';
+
 const normalizeStatus = (value: unknown) =>
   String(value || '')
     .toLowerCase()

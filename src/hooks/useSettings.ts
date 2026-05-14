@@ -39,6 +39,14 @@ export const DEFAULT_SETTINGS: Settings = {
     extraSink: 400,
     riskPercentage: 10,
   },
+  materialCatalog: {
+    materialLines: ['Granito', 'Marmore', 'Quartzito', 'Quartzo', 'Onix', 'Lamina Ultracompacta'],
+    materialTypes: ['Chapa', 'Lamina'],
+    naturalThicknesses: ['2cm'],
+    slabThicknesses: ['6mm', '12mm'],
+    textures: ['Polido', 'Escovado', 'Acetinado', 'Flameado', 'Fosco', 'Levigado'],
+    suppliers: [],
+  },
 };
 
 export const useSettings = () => {
@@ -60,6 +68,16 @@ export const useSettings = () => {
           sculptedSinkRates: {
             ...DEFAULT_SETTINGS.sculptedSinkRates,
             ...(data.sculptedSinkRates || {}),
+          },
+          materialCatalog: {
+            ...DEFAULT_SETTINGS.materialCatalog,
+            ...(data.materialCatalog || {}),
+            materialLines: data.materialCatalog?.materialLines?.length ? data.materialCatalog.materialLines : DEFAULT_SETTINGS.materialCatalog.materialLines,
+            materialTypes: data.materialCatalog?.materialTypes?.length ? data.materialCatalog.materialTypes : DEFAULT_SETTINGS.materialCatalog.materialTypes,
+            naturalThicknesses: data.materialCatalog?.naturalThicknesses?.length ? data.materialCatalog.naturalThicknesses : DEFAULT_SETTINGS.materialCatalog.naturalThicknesses,
+            slabThicknesses: data.materialCatalog?.slabThicknesses?.length ? data.materialCatalog.slabThicknesses : DEFAULT_SETTINGS.materialCatalog.slabThicknesses,
+            textures: data.materialCatalog?.textures?.length ? data.materialCatalog.textures : DEFAULT_SETTINGS.materialCatalog.textures,
+            suppliers: data.materialCatalog?.suppliers || DEFAULT_SETTINGS.materialCatalog.suppliers,
           },
         } as Settings);
       }

@@ -91,6 +91,14 @@ export interface Settings {
     extraSink: number;
     riskPercentage: number;
   };
+  materialCatalog: {
+    materialLines: string[];
+    materialTypes: string[];
+    naturalThicknesses: string[];
+    slabThicknesses: string[];
+    textures: string[];
+    suppliers: string[];
+  };
 }
 
 export interface Material {
@@ -102,6 +110,10 @@ export interface Material {
   marginPercentage?: number;
   provider: string;
   category: string;
+  materialLine?: string;
+  materialType?: string;
+  thicknessLabel?: string;
+  texture?: string;
   imageUrl?: string;
   active: boolean;
   sourceInventoryId?: string;
@@ -391,6 +403,10 @@ export interface InventoryItem {
   code: string;
   provider: string;
   category?: string;
+  materialLine?: string;
+  materialType?: string;
+  thicknessLabel?: string;
+  texture?: string;
   length: number;
   width: number;
   thickness: number;
@@ -432,6 +448,10 @@ export interface InventoryPurchase {
   provider?: string;
   code: string;
   category?: string;
+  materialLine?: string;
+  materialType?: string;
+  thicknessLabel?: string;
+  texture?: string;
   length: number;
   width: number;
   thickness: number;

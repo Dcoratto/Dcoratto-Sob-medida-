@@ -9,6 +9,7 @@ import {InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote}
 import {cn, formatCurrency, formatNumber} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
+import {useSettings} from '../hooks/useSettings';
 
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
@@ -38,6 +39,8 @@ const emptyPurchaseSlab = (): PurchaseSlabForm => ({
   minimumSalePrice: '',
 });
 
+const parseThicknessValue = (label: string) => Number(String(label || '').replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+
 const isApprovedReservation = (reservation: InventoryReservation) => {
   const status = normalizeStatus(reservation.quoteStatus);
   return [
@@ -63,6 +66,7 @@ const isActiveReservation = (reservation: InventoryReservation) => {
 
 export const InventoryPage: React.FC = () => {
   const {user, profile, hasPermission} = useAuth();
+  const {settings} = useSettings();
   const navigate = useNavigate();
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -83,6 +87,10 @@ export const InventoryPage: React.FC = () => {
   const [code, setCode] = useState('');
   const [provider, setProvider] = useState('');
   const [category, setCategory] = useState('');
+  const [materialLine, setMaterialLine] = useState('');
+  const [materialType, setMaterialType] = useState('Chapa');
+  const [thicknessLabel, setThicknessLabel] = useState('');
+  const [texture, setTexture] = useState('');
   const [length, setLength] = useState('');
   const [width, setWidth] = useState('');
   const [thickness, setThickness] = useState('');
@@ -97,6 +105,10 @@ export const InventoryPage: React.FC = () => {
   const [purchaseCode, setPurchaseCode] = useState('');
   const [purchaseProvider, setPurchaseProvider] = useState('');
   const [purchaseCategory, setPurchaseCategory] = useState('');
+  const [purchaseMaterialLine, setPurchaseMaterialLine] = useState('');
+  const [purchaseMaterialType, setPurchaseMaterialType] = useState('Chapa');
+  const [purchaseThicknessLabel, setPurchaseThicknessLabel] = useState('');
+  const [purchaseTexture, setPurchaseTexture] = useState('');
   const [purchaseQuantity, setPurchaseQuantity] = useState('1');
   const [purchaseMeasureMode, setPurchaseMeasureMode] = useState<PurchaseMeasureMode>('same');
   const [purchaseLength, setPurchaseLength] = useState('');
@@ -153,6 +165,10 @@ export const InventoryPage: React.FC = () => {
     setCode('');
     setProvider('');
     setCategory('');
+    setMaterialLine('');
+    setMaterialType('Chapa');
+    setThicknessLabel('');
+    setTexture('');
     setLength('');
     setWidth('');
     setThickness('');
@@ -166,6 +182,9 @@ export const InventoryPage: React.FC = () => {
   };
 
   const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
+  const materialCatalog = settings.materialCatalog;
+  const thicknessOptions = materialType === 'Lamina' ? materialCatalog.slabThicknesses : materialCatalog.naturalThicknesses;
+  const purchaseThicknessOptions = purchaseMaterialType === 'Lamina' ? materialCatalog.slabThicknesses : materialCatalog.naturalThicknesses;
 
   const resetPurchaseForm = () => {
     setPurchaseMaterialId('');
@@ -173,6 +192,10 @@ export const InventoryPage: React.FC = () => {
     setPurchaseCode('');
     setPurchaseProvider('');
     setPurchaseCategory('');
+    setPurchaseMaterialLine('');
+    setPurchaseMaterialType('Chapa');
+    setPurchaseThicknessLabel('');
+    setPurchaseTexture('');
     setPurchaseQuantity('1');
     setPurchaseMeasureMode('same');
     setPurchaseLength('');
@@ -232,10 +255,14 @@ export const InventoryPage: React.FC = () => {
       materialName: selectedMaterial?.name || materialName.trim(),
       code: code.trim(),
       provider: provider.trim(),
-      category: category.trim(),
+      category: materialLine.trim() || category.trim(),
+      materialLine: materialLine.trim(),
+      materialType: materialType.trim(),
+      thicknessLabel: thicknessLabel.trim(),
+      texture: texture.trim(),
       length: Number(length),
       width: Number(width),
-      thickness: Number(thickness),
+      thickness: parseThicknessValue(thicknessLabel) || Number(thickness),
       area,
       cost: totalCost,
       minimumSalePrice: minimumSale,
@@ -286,6 +313,10 @@ export const InventoryPage: React.FC = () => {
     setCode(item.code);
     setProvider(item.provider);
     setCategory(item.category || materials.find((material) => material.id === item.materialId)?.category || '');
+    setMaterialLine(item.materialLine || item.category || '');
+    setMaterialType(item.materialType || 'Chapa');
+    setThicknessLabel(item.thicknessLabel || (item.thickness ? String(item.thickness) : ''));
+    setTexture(item.texture || '');
     setLength(item.length.toString());
     setWidth(item.width.toString());
     setThickness(item.thickness.toString());
@@ -335,6 +366,10 @@ export const InventoryPage: React.FC = () => {
     setPurchaseMaterialName(item.materialName);
     setPurchaseProvider(inventoryItem?.provider || material?.provider || '');
     setPurchaseCategory(inventoryItem?.category || material?.category || '');
+    setPurchaseMaterialLine(inventoryItem?.materialLine || inventoryItem?.category || material?.materialLine || material?.category || '');
+    setPurchaseMaterialType(inventoryItem?.materialType || material?.materialType || 'Chapa');
+    setPurchaseThicknessLabel(inventoryItem?.thicknessLabel || (inventoryItem?.thickness ? String(inventoryItem.thickness) : ''));
+    setPurchaseTexture(inventoryItem?.texture || material?.texture || '');
     updatePurchaseQuantity('1');
     setPurchaseMeasureMode('same');
     setPurchaseLength('');
@@ -383,10 +418,14 @@ export const InventoryPage: React.FC = () => {
         materialName: selectedMaterialName,
         provider: purchaseProvider.trim(),
         code: slab.code,
-        category: purchaseCategory.trim(),
+        category: purchaseMaterialLine.trim() || purchaseCategory.trim(),
+        materialLine: purchaseMaterialLine.trim(),
+        materialType: purchaseMaterialType.trim(),
+        thicknessLabel: purchaseThicknessLabel.trim() || slab.thickness,
+        texture: purchaseTexture.trim(),
         length: Number(slab.length),
         width: Number(slab.width),
-        thickness: Number(slab.thickness),
+        thickness: parseThicknessValue(purchaseThicknessLabel || slab.thickness) || Number(slab.thickness),
         area,
         cost: Number(slab.cost),
         minimumSalePrice: Number(slab.minimumSalePrice || slab.cost),
@@ -433,6 +472,10 @@ export const InventoryPage: React.FC = () => {
       code: purchase.code,
       provider: purchase.provider || '',
       category: purchase.category || '',
+      materialLine: purchase.materialLine || purchase.category || '',
+      materialType: purchase.materialType || 'Chapa',
+      thicknessLabel: purchase.thicknessLabel || (purchase.thickness ? String(purchase.thickness) : ''),
+      texture: purchase.texture || '',
       length: purchase.length,
       width: purchase.width,
       thickness: purchase.thickness,
@@ -569,7 +612,7 @@ export const InventoryPage: React.FC = () => {
   };
 
   const filteredItems = items.filter((item) => {
-    const searchText = `${item.materialName} ${item.code} ${item.provider} ${item.category || ''}`.toLowerCase();
+    const searchText = `${item.materialName} ${item.code} ${item.provider} ${item.category || ''} ${item.materialLine || ''} ${item.materialType || ''} ${item.texture || ''} ${item.thicknessLabel || ''}`.toLowerCase();
     const matchesSearch = searchText.includes(search.toLowerCase());
     const matchesStatus = !statusFilter || item.status === statusFilter;
     return matchesSearch && matchesStatus;
@@ -809,7 +852,9 @@ export const InventoryPage: React.FC = () => {
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="font-bold text-slate-900">{purchase.materialName}</div>
-                        <div className="mt-1 text-xs text-slate-400">{purchase.code || 'Sem lote'} · {formatNumber(purchase.area)} m²</div>
+                        <div className="mt-1 text-xs text-slate-400">
+                          {[purchase.code || 'Sem lote', formatNumber(purchase.area) + ' m²', purchase.materialLine || purchase.category, purchase.thicknessLabel, purchase.provider].filter(Boolean).join(' · ')}
+                        </div>
                       </div>
                       {hasPermission('estoque', 'movimentar') && (
                         <button
@@ -839,7 +884,7 @@ export const InventoryPage: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar por pedra, lote, fornecedor ou categoria..."
+              placeholder="Buscar por pedra, lote, fornecedor, linha ou textura..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
@@ -890,11 +935,16 @@ export const InventoryPage: React.FC = () => {
                         <div>
                           <div className="font-semibold text-slate-900">{item.materialName}</div>
                           <div className="text-xs text-brand-primary font-mono">{item.code}</div>
-                          <div className="text-xs text-slate-400">{item.category}</div>
+                          <div className="text-xs text-slate-400">
+                            {[item.materialLine || item.category, item.materialType, item.texture, item.provider].filter(Boolean).join(' · ')}
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{item.length} x {item.width} x {item.thickness}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">
+                      {item.length} x {item.width}
+                      <div className="text-xs text-slate-400">{item.thicknessLabel || (item.thickness ? `${item.thickness}` : 'Sem espessura')}</div>
+                    </td>
                     <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(item.area)} m²</td>
                     <td className="px-6 py-4 font-mono text-sm">
                       <div>{formatCurrency(item.cost)}</div>
@@ -1197,6 +1247,10 @@ export const InventoryPage: React.FC = () => {
                       setPurchaseMaterialName(selected?.name || '');
                       setPurchaseProvider(selected?.provider || '');
                       setPurchaseCategory(selected?.category || '');
+                      setPurchaseMaterialLine(selected?.materialLine || selected?.category || '');
+                      setPurchaseMaterialType(selected?.materialType || 'Chapa');
+                      setPurchaseThicknessLabel(selected?.thicknessLabel || '');
+                      setPurchaseTexture(selected?.texture || '');
                     }}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                   >
@@ -1229,11 +1283,30 @@ export const InventoryPage: React.FC = () => {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Fornecedor</label>
-                  <input type="text" value={purchaseProvider} onChange={(e) => setPurchaseProvider(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                  <select value={purchaseProvider} onChange={(e) => setPurchaseProvider(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                    <option value="">Selecionar fornecedor</option>
+                    {materialCatalog.suppliers.map((supplier) => <option key={supplier} value={supplier}>{supplier}</option>)}
+                  </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Categoria</label>
-                  <input type="text" value={purchaseCategory} onChange={(e) => setPurchaseCategory(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                  <label className="text-slate-500 font-medium text-sm">Linha do material</label>
+                  <select value={purchaseMaterialLine} onChange={(e) => { setPurchaseMaterialLine(e.target.value); setPurchaseCategory(e.target.value); }} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                    <option value="">Selecionar linha</option>
+                    {materialCatalog.materialLines.map((line) => <option key={line} value={line}>{line}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Tipo do material</label>
+                  <select value={purchaseMaterialType} onChange={(e) => { setPurchaseMaterialType(e.target.value); setPurchaseThicknessLabel(''); }} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                    {materialCatalog.materialTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Textura</label>
+                  <select value={purchaseTexture} onChange={(e) => setPurchaseTexture(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                    <option value="">Selecionar textura</option>
+                    {materialCatalog.textures.map((item) => <option key={item} value={item}>{item}</option>)}
+                  </select>
                 </div>
 
                 <div className="md:col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-2 flex gap-2">
@@ -1251,7 +1324,10 @@ export const InventoryPage: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
                       <input type="number" required value={purchaseLength} onChange={(e) => setPurchaseLength(e.target.value)} placeholder="Comprimento (cm)" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                       <input type="number" required value={purchaseWidth} onChange={(e) => setPurchaseWidth(e.target.value)} placeholder="Largura (cm)" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
-                      <input type="number" value={purchaseThickness} onChange={(e) => setPurchaseThickness(e.target.value)} placeholder="Espessura (cm)" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                      <select value={purchaseThicknessLabel} onChange={(e) => { setPurchaseThicknessLabel(e.target.value); setPurchaseThickness(String(parseThicknessValue(e.target.value))); }} className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                        <option value="">Espessura</option>
+                        {purchaseThicknessOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                      </select>
                       <input type="number" step="0.01" required value={purchaseCost} onChange={(e) => setPurchaseCost(e.target.value)} placeholder="Compra por chapa" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                       <input type="number" step="0.01" required value={purchaseMinimumSalePrice} onChange={(e) => setPurchaseMinimumSalePrice(e.target.value)} placeholder="Mínimo de venda" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                     </div>
@@ -1330,6 +1406,10 @@ export const InventoryPage: React.FC = () => {
                       if (!editingItem) {
                         setProvider(selected?.provider || '');
                         setCategory(selected?.category || '');
+                        setMaterialLine(selected?.materialLine || selected?.category || '');
+                        setMaterialType(selected?.materialType || 'Chapa');
+                        setThicknessLabel(selected?.thicknessLabel || '');
+                        setTexture(selected?.texture || '');
                       }
                     }}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
@@ -1346,11 +1426,30 @@ export const InventoryPage: React.FC = () => {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Fornecedor</label>
-                  <input type="text" value={provider} onChange={(e) => setProvider(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                  <select value={provider} onChange={(e) => setProvider(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                    <option value="">Selecionar fornecedor</option>
+                    {materialCatalog.suppliers.map((supplier) => <option key={supplier} value={supplier}>{supplier}</option>)}
+                  </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Categoria</label>
-                  <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="Ex: Granito, Mármore, Quartzo..." className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
+                  <label className="text-slate-500 font-medium text-sm">Linha do material</label>
+                  <select value={materialLine} onChange={(e) => { setMaterialLine(e.target.value); setCategory(e.target.value); }} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                    <option value="">Selecionar linha</option>
+                    {materialCatalog.materialLines.map((line) => <option key={line} value={line}>{line}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Tipo do material</label>
+                  <select value={materialType} onChange={(e) => { setMaterialType(e.target.value); setThicknessLabel(''); }} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                    {materialCatalog.materialTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Textura</label>
+                  <select value={texture} onChange={(e) => setTexture(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                    <option value="">Selecionar textura</option>
+                    {materialCatalog.textures.map((item) => <option key={item} value={item}>{item}</option>)}
+                  </select>
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Status</label>
@@ -1368,8 +1467,11 @@ export const InventoryPage: React.FC = () => {
                     <input type="number" required value={width} onChange={(e) => setWidth(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-slate-500 font-medium text-xs">Espessura (cm)</label>
-                    <input type="number" value={thickness} onChange={(e) => setThickness(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                    <label className="text-slate-500 font-medium text-xs">Espessura</label>
+                    <select value={thicknessLabel} onChange={(e) => { setThicknessLabel(e.target.value); setThickness(String(parseThicknessValue(e.target.value))); }} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                      <option value="">Selecionar</option>
+                      {thicknessOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                    </select>
                   </div>
                 </div>
                 <div className="space-y-1.5">

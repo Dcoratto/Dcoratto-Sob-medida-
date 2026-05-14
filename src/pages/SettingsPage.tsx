@@ -74,6 +74,29 @@ export const SettingsPage: React.FC = () => {
     setSettings({ ...settings, paymentMethods: newMethods });
   };
 
+  const updateMaterialCatalogList = (
+    field: keyof typeof settings.materialCatalog,
+    updater: (current: string[]) => string[],
+  ) => {
+    setSettings({
+      ...settings,
+      materialCatalog: {
+        ...settings.materialCatalog,
+        [field]: updater(settings.materialCatalog[field] || []),
+      },
+    });
+  };
+
+  const addMaterialCatalogValue = (field: keyof typeof settings.materialCatalog, value: string) => {
+    const normalized = value.trim();
+    if (!normalized) return;
+    updateMaterialCatalogList(field, (current) => current.includes(normalized) ? current : [...current, normalized]);
+  };
+
+  const removeMaterialCatalogValue = (field: keyof typeof settings.materialCatalog, value: string) => {
+    updateMaterialCatalogList(field, (current) => current.filter((item) => item !== value));
+  };
+
   const resetCondoForm = () => {
     setEditingCondominium(null);
     setCondoName('');
@@ -470,6 +493,40 @@ export const SettingsPage: React.FC = () => {
               <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
                 <Building className="w-5 h-5" />
               </div>
+              <div>
+                <h2 className="font-display font-bold text-lg text-slate-800">Catalogo de chapas</h2>
+                <p className="text-sm text-slate-400">Essas opcoes aparecem na compra e na adicao de chapas no estoque.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+            {[
+              ['materialLines', 'Linha do material', 'Ex: Granito'],
+              ['materialTypes', 'Tipo do material', 'Ex: Chapa'],
+              ['naturalThicknesses', 'Espessuras naturais', 'Ex: 2cm'],
+              ['slabThicknesses', 'Espessuras de laminas', 'Ex: 12mm'],
+              ['textures', 'Texturas', 'Ex: Escovado'],
+              ['suppliers', 'Fornecedores', 'Ex: Nome do fornecedor'],
+            ].map(([field, label, placeholder]) => (
+              <MaterialCatalogField
+                key={field}
+                label={label}
+                placeholder={placeholder}
+                values={settings.materialCatalog[field as keyof typeof settings.materialCatalog] as string[]}
+                onAdd={(value) => addMaterialCatalogValue(field as keyof typeof settings.materialCatalog, value)}
+                onRemove={(value) => removeMaterialCatalogValue(field as keyof typeof settings.materialCatalog, value)}
+              />
+            ))}
+          </div>
+        </section>
+
+        <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-3">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
+                <Building className="w-5 h-5" />
+              </div>
               <h2 className="font-display font-bold text-lg text-slate-800">Condominios e regras</h2>
             </div>
           </div>
@@ -581,6 +638,62 @@ export const SettingsPage: React.FC = () => {
             )}
           </div>
         </section>
+      </div>
+    </div>
+  );
+};
+
+const MaterialCatalogField: React.FC<{
+  label: string;
+  placeholder: string;
+  values: string[];
+  onAdd: (value: string) => void;
+  onRemove: (value: string) => void;
+}> = ({label, placeholder, values, onAdd, onRemove}) => {
+  const [draft, setDraft] = useState('');
+
+  return (
+    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-3">
+      <div>
+        <div className="font-bold text-slate-800">{label}</div>
+        <div className="text-xs text-slate-400">Adicione, remova e reorganize conforme o uso da marmoraria.</div>
+      </div>
+
+      <div className="flex gap-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            onAdd(draft);
+            setDraft('');
+          }}
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white"
+        >
+          <Plus className="w-4 h-4" />
+          Adicionar
+        </button>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {values.map((value) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => onRemove(value)}
+            className="inline-flex items-center gap-2 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+          >
+            {value}
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        ))}
+        {values.length === 0 && (
+          <div className="text-sm font-semibold text-slate-400">Nenhuma opcao cadastrada.</div>
+        )}
       </div>
     </div>
   );

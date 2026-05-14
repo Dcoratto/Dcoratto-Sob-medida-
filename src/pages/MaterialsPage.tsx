@@ -1,4 +1,4 @@
-ï»¿import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, where} from 'firebase/firestore';
 import {AlertTriangle, Edit2, Eye, PackageCheck, Search, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
@@ -7,8 +7,11 @@ import {InventoryItem, InventoryReservation, Material, Quote, UserMaterialPrice}
 import {cn, formatCurrency, formatNumber} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {formatMaterialSpecsWithProvider} from '../lib/materialSpecs';
+import {buildMaterialVariantKey} from '../lib/materialVariants';
 
 type MaterialWithUserPrice = Material & {
+  baseMaterialId: string;
+  materialVariantKey: string;
   stockArea: number;
   stockCost: number;
   stockMinimumSale: number;
@@ -96,55 +99,64 @@ export const MaterialsPage: React.FC = () => {
   const activeReservations = reservations.filter((reservation) => !['recusado', 'cancelado', 'finalizado'].includes(normalizeStatus(reservation.quoteStatus)));
   const soldReservations = reservations.filter((reservation) => normalizeStatus(reservation.quoteStatus) === 'finalizado');
 
-  const materialRows: MaterialWithUserPrice[] = materials
-    .map((material) => {
-      const stockItems = activeStockItems.filter((item) => item.materialId === material.id);
-      const stockArea = stockItems.reduce((acc, item) => acc + (item.area || 0), 0);
-      const stockCost = stockItems.reduce((acc, item) => acc + (item.cost || 0), 0);
-      const stockMinimumSale = stockItems.reduce((acc, item) => acc + (item.minimumSalePrice ?? item.cost ?? 0), 0);
-      const manualReservedArea = stockItems
-        .filter((item) => normalizeStatus(item.status) === 'reservada')
-        .reduce((acc, item) => acc + (item.area || 0), 0);
-      const quoteReservedArea = activeReservations
-        .filter((reservation) => reservation.materialId === material.id)
-        .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
-      const soldArea = soldReservations
-        .filter((reservation) => reservation.materialId === material.id)
-        .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
-      const availableArea = Math.max(0, stockArea - manualReservedArea - quoteReservedArea - soldArea);
-      const missingArea = Math.max(0, quoteReservedArea - Math.max(0, stockArea - manualReservedArea - soldArea));
-      const baseCostPerM2 = stockArea > 0 ? stockCost / stockArea : 0;
-      const baseMinimumSalePerM2 = stockArea > 0 ? stockMinimumSale / stockArea : baseCostPerM2;
-      const userPrice = userPrices.find((price) => price.materialId === material.id);
-      const margin = userPrice?.marginPercentage ?? 0;
-      const pricePerM2 = userPrice?.pricePerM2 ?? baseMinimumSalePerM2 * (1 + margin / 100);
-      const imageUrl = material.imageUrl || stockItems.find((item) => item.photoUrl)?.photoUrl || '';
+  const materialRows: MaterialWithUserPrice[] = Array.from(
+    activeStockItems.reduce((map, item) => {
+      const variantKey = buildMaterialVariantKey(item);
+      const current = map.get(variantKey) || [];
+      current.push(item);
+      map.set(variantKey, current);
+      return map;
+    }, new Map<string, InventoryItem[]>()),
+  ).map(([variantKey, stockItems]) => {
+    const baseMaterial = materials.find((material) => material.id === stockItems[0]?.materialId);
+    const stockArea = stockItems.reduce((acc, item) => acc + (item.area || 0), 0);
+    const stockCost = stockItems.reduce((acc, item) => acc + (item.cost || 0), 0);
+    const stockMinimumSale = stockItems.reduce((acc, item) => acc + (item.minimumSalePrice ?? item.cost ?? 0), 0);
+    const manualReservedArea = stockItems
+      .filter((item) => normalizeStatus(item.status) === 'reservada')
+      .reduce((acc, item) => acc + (item.area || 0), 0);
+    const quoteReservedArea = activeReservations
+      .filter((reservation) => (reservation.materialVariantKey || buildMaterialVariantKey(reservation)) === variantKey)
+      .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+    const soldArea = soldReservations
+      .filter((reservation) => (reservation.materialVariantKey || buildMaterialVariantKey(reservation)) === variantKey)
+      .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+    const availableArea = Math.max(0, stockArea - manualReservedArea - quoteReservedArea - soldArea);
+    const missingArea = Math.max(0, quoteReservedArea - Math.max(0, stockArea - manualReservedArea - soldArea));
+    const baseCostPerM2 = stockArea > 0 ? stockCost / stockArea : 0;
+    const baseMinimumSalePerM2 = stockArea > 0 ? stockMinimumSale / stockArea : baseCostPerM2;
+    const userPrice = userPrices.find((price) => price.materialId === stockItems[0]?.materialId);
+    const margin = userPrice?.marginPercentage ?? 0;
+    const pricePerM2 = userPrice?.pricePerM2 ?? baseMinimumSalePerM2 * (1 + margin / 100);
 
-      return {
-        ...material,
-        provider: material.provider || stockItems[0]?.provider || '',
-        category: material.category || stockItems[0]?.category || '',
-        materialLine: material.materialLine || stockItems[0]?.materialLine || stockItems[0]?.category || '',
-        materialType: material.materialType || stockItems[0]?.materialType || '',
-        thicknessLabel: material.thicknessLabel || stockItems[0]?.thicknessLabel || '',
-        texture: material.texture || stockItems[0]?.texture || '',
-        imageUrl,
-        stockArea,
-        stockCost,
-        stockMinimumSale,
-        manualReservedArea,
-        quoteReservedArea,
-        soldArea,
-        availableArea,
-        missingArea,
-        baseCostPerM2,
-        baseMinimumSalePerM2,
-        pricePerM2: baseMinimumSalePerM2,
-        userMarginPercentage: margin,
-        userPricePerM2: pricePerM2,
-      };
-    })
-    .filter((material) => material.stockArea > 0);
+    return {
+      ...(baseMaterial || {id: stockItems[0].materialId, name: stockItems[0].materialName, pricePerM2: 0, provider: '', category: '', active: true}),
+      id: variantKey,
+      baseMaterialId: stockItems[0].materialId,
+      materialVariantKey: variantKey,
+      name: stockItems[0].materialName,
+      provider: stockItems[0].provider || baseMaterial?.provider || '',
+      category: stockItems[0].category || baseMaterial?.category || '',
+      materialLine: stockItems[0].materialLine || baseMaterial?.materialLine || stockItems[0].category || baseMaterial?.category || '',
+      materialType: stockItems[0].materialType || baseMaterial?.materialType || '',
+      thicknessLabel: stockItems[0].thicknessLabel || baseMaterial?.thicknessLabel || '',
+      texture: stockItems[0].texture || baseMaterial?.texture || '',
+      imageUrl: stockItems[0].photoUrl || baseMaterial?.imageUrl || '',
+      stockArea,
+      stockCost,
+      stockMinimumSale,
+      manualReservedArea,
+      quoteReservedArea,
+      soldArea,
+      availableArea,
+      missingArea,
+      baseCostPerM2,
+      baseMinimumSalePerM2,
+      pricePerM2: baseMinimumSalePerM2,
+      userMarginPercentage: margin,
+      userPricePerM2: pricePerM2,
+    };
+  });
 
   const handleEdit = (material: MaterialWithUserPrice) => {
     if (!hasPermission('materiais', 'editar')) return;
@@ -159,7 +171,7 @@ export const MaterialsPage: React.FC = () => {
     e.preventDefault();
     if (!editingMaterial) return;
     if (!hasPermission('materiais', 'editar')) {
-      alert('VocÃª nÃ£o tem permissÃ£o para editar materiais. Fale com o administrador.');
+      alert('Você não tem permissão para editar materiais. Fale com o administrador.');
       return;
     }
 
@@ -181,7 +193,7 @@ export const MaterialsPage: React.FC = () => {
       }, {merge: true});
     }
 
-    await updateDoc(doc(db, 'materials', editingMaterial.id), {active});
+    await updateDoc(doc(db, 'materials', editingMaterial.baseMaterialId || editingMaterial.id), {active});
 
     setShowModal(false);
     setEditingMaterial(null);
@@ -190,7 +202,7 @@ export const MaterialsPage: React.FC = () => {
 
   const handleStatusChange = async (material: Material, nextActive: boolean) => {
     if (!hasPermission('materiais', 'editar')) {
-      alert('VocÃª nÃ£o tem permissÃ£o para editar materiais. Fale com o administrador.');
+      alert('Você não tem permissão para editar materiais. Fale com o administrador.');
       return;
     }
     await updateDoc(doc(db, 'materials', material.id), {active: nextActive});
@@ -201,10 +213,10 @@ export const MaterialsPage: React.FC = () => {
     return searchText.includes(search.toLowerCase());
   });
   const selectedReservationMaterial = reservationMaterialId
-    ? materialRows.find((material) => material.id === reservationMaterialId) || materials.find((material) => material.id === reservationMaterialId)
+    ? materialRows.find((material) => material.materialVariantKey === reservationMaterialId) || materialRows.find((material) => material.baseMaterialId === reservationMaterialId) || materials.find((material) => material.id === reservationMaterialId)
     : null;
   const selectedReservations = reservationMaterialId
-    ? activeReservations.filter((reservation) => reservation.materialId === reservationMaterialId)
+    ? activeReservations.filter((reservation) => (reservation.materialVariantKey || reservation.materialId) === reservationMaterialId || reservation.materialId === reservationMaterialId)
     : [];
   const quoteById = (quoteId: string) => quotes.find((quote) => quote.id === quoteId);
 
@@ -224,8 +236,8 @@ export const MaterialsPage: React.FC = () => {
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-display text-lg font-bold text-red-900">Material faltando para orÃ§amento</h2>
-              <p className="mt-1 text-sm text-red-700">Existe reserva em orÃ§amento maior que a Ã¡rea disponÃ­vel no estoque. Clique no reservado para ver qual orÃ§amento estÃ¡ usando.</p>
+              <h2 className="font-display text-lg font-bold text-red-900">Material faltando para orçamento</h2>
+              <p className="mt-1 text-sm text-red-700">Existe reserva em orçamento maior que a área disponível no estoque. Clique no reservado para ver qual orçamento está usando.</p>
             </div>
           </div>
         </div>
@@ -253,13 +265,13 @@ export const MaterialsPage: React.FC = () => {
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Estoque</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Reservado</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Vendido</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">DisponÃ­vel</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Disponível</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Faltando</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">MÃ­nimo venda/mÂ²</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Mínimo venda/m²</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Margem</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Venda/mÂ²</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Venda/m²</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">AÃ§Ãµes</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -281,35 +293,35 @@ export const MaterialsPage: React.FC = () => {
                         </div>
                         <div>
                           <div className="font-semibold text-slate-900">{material.name}</div>
-                          <div className="text-xs text-slate-400">{formatMaterialSpecsWithProvider(material) || `${material.category || 'Sem categoria'} Â· ${material.provider || 'Sem fornecedor'}`}</div>
+                          <div className="text-xs text-slate-400">{formatMaterialSpecsWithProvider(material) || `${material.category || 'Sem categoria'} · ${material.provider || 'Sem fornecedor'}`}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 font-mono text-sm text-slate-600">
-                      <div>{formatNumber(material.stockArea)} mÂ²</div>
+                      <div>{formatNumber(material.stockArea)} m²</div>
                       {material.manualReservedArea > 0 && (
-                        <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-amber-600">{formatNumber(material.manualReservedArea)} mÂ² reservado manual</div>
+                        <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-amber-600">{formatNumber(material.manualReservedArea)} m² reservado manual</div>
                       )}
                     </td>
                     <td className="px-6 py-4">
                       {material.quoteReservedArea > 0 ? (
                         <button
                           type="button"
-                          onClick={() => setReservationMaterialId(material.id)}
+                          onClick={() => setReservationMaterialId(material.materialVariantKey)}
                           className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all"
                         >
                           <Eye className="h-3.5 w-3.5" />
-                          {formatNumber(material.quoteReservedArea)} mÂ²
+                          {formatNumber(material.quoteReservedArea)} m²
                         </button>
                       ) : (
-                        <span className="text-sm text-slate-400">0,00 mÂ²</span>
+                        <span className="text-sm text-slate-400">0,00 m²</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.soldArea)} mÂ²</td>
-                    <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.availableArea)} mÂ²</td>
+                    <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.soldArea)} m²</td>
+                    <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.availableArea)} m²</td>
                     <td className="px-6 py-4">
                       <span className={cn('font-mono text-sm font-bold', material.missingArea > 0 ?'text-red-600' : 'text-slate-400')}>
-                        {formatNumber(material.missingArea)} mÂ²
+                        {formatNumber(material.missingArea)} m²
                       </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-sm text-slate-600">
@@ -351,7 +363,7 @@ export const MaterialsPage: React.FC = () => {
           <div className="bg-white w-full max-w-md rounded-[32px] shadow-2xl p-8 space-y-6 animate-in fade-in zoom-in duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-display font-bold text-slate-900">PreÃ§o de venda</h2>
+                <h2 className="text-2xl font-display font-bold text-slate-900">Preço de venda</h2>
                 <p className="text-sm text-slate-500 mt-1">{editingMaterial.name}</p>
               </div>
               <button type="button" onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
@@ -362,7 +374,7 @@ export const MaterialsPage: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">MÃ­nimo de venda por mÂ²</label>
+                  <label className="text-slate-500 font-medium text-sm">Mínimo de venda por m²</label>
                   <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono text-slate-600">
                     {formatCurrency(editingMaterial.baseMinimumSalePerM2 ?? 0)}
                   </div>
@@ -383,7 +395,7 @@ export const MaterialsPage: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Venda final por mÂ²</label>
+                  <label className="text-slate-500 font-medium text-sm">Venda final por m²</label>
                   <input
                     type="number"
                     step="0.01"
@@ -402,11 +414,11 @@ export const MaterialsPage: React.FC = () => {
               </div>
 
               <div className="bg-brand-primary/5 border border-brand-primary/10 rounded-2xl p-4">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">PreÃ§o de venda final</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Preço de venda final</div>
                 <div className="text-2xl font-display font-bold text-brand-primary mt-1">
                   {formatCurrency(Number(salePricePerM2) || 0)}
                 </div>
-                <p className="mt-1 text-xs text-slate-500">A margem Ã© aplicada em cima do valor mÃ­nimo de venda, nÃ£o mais sobre o custo de compra.</p>
+                <p className="mt-1 text-xs text-slate-500">A margem é aplicada em cima do valor mínimo de venda, não mais sobre o custo de compra.</p>
               </div>
 
               <div className="flex items-center gap-2 pt-2">
@@ -417,11 +429,11 @@ export const MaterialsPage: React.FC = () => {
                   onChange={(e) => setActive(e.target.checked)}
                   className="w-5 h-5 rounded-md border-slate-300 text-brand-primary focus:ring-brand-primary"
                 />
-                <label htmlFor="active" className="text-slate-700 font-medium cursor-pointer">Material disponÃ­vel para venda</label>
+                <label htmlFor="active" className="text-slate-700 font-medium cursor-pointer">Material disponível para venda</label>
               </div>
 
               <button type="submit" className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
-                Salvar preÃ§o
+                Salvar preço
               </button>
             </form>
           </div>
@@ -433,7 +445,7 @@ export const MaterialsPage: React.FC = () => {
           <div className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl p-8 space-y-6 animate-in fade-in zoom-in duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-display font-bold text-slate-900">Reservas em orÃ§amento</h2>
+                <h2 className="text-2xl font-display font-bold text-slate-900">Reservas em orçamento</h2>
                 <p className="text-sm text-slate-500 mt-1">{selectedReservationMaterial.name}</p>
               </div>
               <button type="button" onClick={() => setReservationMaterialId(null)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
@@ -443,7 +455,7 @@ export const MaterialsPage: React.FC = () => {
 
             <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
               {selectedReservations.length === 0 ? (
-                <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Nenhum orÃ§amento reservando este material.</div>
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Nenhum orçamento reservando este material.</div>
               ) : (
                 selectedReservations.map((reservation) => {
                   const quote = quoteById(reservation.quoteId);
@@ -456,13 +468,13 @@ export const MaterialsPage: React.FC = () => {
                     >
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
                         <div>
-                          <div className="font-bold text-slate-900">{reservation.clientName || quote?.clientName || 'Cliente nÃ£o informado'}</div>
-                          <div className="mt-1 text-xs text-slate-400">OrÃ§amento #{reservation.quoteId.slice(0, 8)} Â· {reservation.quoteStatus}</div>
+                          <div className="font-bold text-slate-900">{reservation.clientName || quote?.clientName || 'Cliente não informado'}</div>
+                          <div className="mt-1 text-xs text-slate-400">Orçamento #{reservation.quoteId.slice(0, 8)} · {reservation.quoteStatus}</div>
                           {quote?.environment && <div className="mt-1 text-xs text-slate-500">Ambiente: {quote.environment}</div>}
                         </div>
                         <div className="rounded-xl bg-white px-3 py-2 text-right">
                           <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Usando</div>
-                          <div className="font-mono font-bold text-amber-700">{formatNumber(reservation.area || 0)} mÂ²</div>
+                          <div className="font-mono font-bold text-amber-700">{formatNumber(reservation.area || 0)} m²</div>
                         </div>
                       </div>
                     </button>
@@ -476,3 +488,4 @@ export const MaterialsPage: React.FC = () => {
     </div>
   );
 };
+

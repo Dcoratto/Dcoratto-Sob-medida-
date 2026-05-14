@@ -2,6 +2,7 @@ import {collection, deleteDoc, doc, getDocs, query, serverTimestamp, setDoc, whe
 import {db} from './firebase';
 import {Quote, QuoteStatus} from '../types';
 import {isQuoteApprovedOrBeyond, normalizeText} from './quoteStatus';
+import {buildMaterialVariantKey} from './materialVariants';
 
 export const shouldReserveStock = (status?: QuoteStatus | string) => {
   const text = normalizeText(status);
@@ -24,7 +25,7 @@ export const syncQuoteReservation = async (quoteId: string, quote: Partial<Quote
     return;
   }
 
-  const areasByMaterial = new Map<string, {name: string; area: number}>();
+  const areasByMaterial = new Map<string, {name: string; area: number; materialId: string; materialVariantKey?: string; materialLine?: string; materialType?: string; thicknessLabel?: string; texture?: string; provider?: string;}>();
   (quote.pieces || []).forEach((piece) => {
     if (!piece.materialId) return;
     const mainArea = piece.unit === 'cm' ?((piece.width || 0) * (piece.length || 0)) / 10000 : (piece.width || 0) * (piece.length || 0);
@@ -32,17 +33,46 @@ export const syncQuoteReservation = async (quoteId: string, quote: Partial<Quote
     const manualOrMain = piece.manualArea || mainArea;
     const area = manualOrMain + sidesArea;
     if (area <= 0) return;
-    const current = areasByMaterial.get(piece.materialId) || {name: piece.materialId, area: 0};
-    areasByMaterial.set(piece.materialId, {name: current.name, area: current.area + area});
+    const materialVariantKey = piece.materialVariantKey || buildMaterialVariantKey(piece);
+    const mapKey = materialVariantKey || piece.materialId;
+    const current = areasByMaterial.get(mapKey) || {
+      name: piece.materialId,
+      area: 0,
+      materialId: piece.materialId,
+      materialVariantKey,
+      materialLine: piece.materialLine,
+      materialType: piece.materialType,
+      thicknessLabel: piece.thicknessLabel,
+      texture: piece.texture,
+      provider: piece.provider,
+    };
+    areasByMaterial.set(mapKey, {
+      ...current,
+      name: current.name,
+      area: current.area + area,
+      materialId: piece.materialId,
+      materialVariantKey,
+      materialLine: piece.materialLine,
+      materialType: piece.materialType,
+      thicknessLabel: piece.thicknessLabel,
+      texture: piece.texture,
+      provider: piece.provider,
+    });
   });
 
   if (areasByMaterial.size === 0 && quote.materialId && Number(quote.totalArea || 0) > 0) {
-    areasByMaterial.set(quote.materialId, {name: quote.materialName || quote.materialId, area: Number(quote.totalArea || 0)});
+    areasByMaterial.set(quote.materialId, {name: quote.materialName || quote.materialId, area: Number(quote.totalArea || 0), materialId: quote.materialId});
   }
 
-  await Promise.all(Array.from(areasByMaterial.entries()).map(([materialId, data]) => setDoc(doc(db, 'inventoryReservations', `${quoteId}_${materialId}`), {
+  await Promise.all(Array.from(areasByMaterial.entries()).map(([reservationKey, data]) => setDoc(doc(db, 'inventoryReservations', `${quoteId}_${reservationKey}`), {
     quoteId,
-    materialId,
+    materialId: data.materialId,
+    materialVariantKey: data.materialVariantKey || '',
+    materialLine: data.materialLine || '',
+    materialType: data.materialType || '',
+    thicknessLabel: data.thicknessLabel || '',
+    texture: data.texture || '',
+    provider: data.provider || '',
     materialName: data.name,
     area: data.area,
     quoteStatus: quote.status,

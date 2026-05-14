@@ -14,6 +14,8 @@ export const SettingsPage: React.FC = () => {
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [supplierSaving, setSupplierSaving] = useState(false);
+  const [supplierFeedback, setSupplierFeedback] = useState('');
   const [condominiums, setCondominiums] = useState<CondominiumRule[]>([]);
   const [editingCondominium, setEditingCondominium] = useState<CondominiumRule | null>(null);
   const [condoName, setCondoName] = useState('');
@@ -40,17 +42,36 @@ export const SettingsPage: React.FC = () => {
     return unsubscribe;
   }, []);
 
+  const buildPersistedSettings = () => {
+    const sanitizedPaymentMethods = settings.paymentMethods
+      .map((method) => ({name: method.name.trim(), adjustment: Number(method.adjustment) || 0}))
+      .filter((method) => method.name);
+    const sanitizedSuppliers = settings.materialCatalog.suppliers
+      .map((supplier) => ({
+        name: supplier.name.trim(),
+        whatsapp: supplier.whatsapp?.trim() || '',
+        contactName: supplier.contactName?.trim() || '',
+        city: supplier.city?.trim() || '',
+        notes: supplier.notes?.trim() || '',
+      }))
+      .filter((supplier) => supplier.name)
+      .sort((a, b) => a.name.localeCompare(b.name));
+
+    return {
+      ...settings,
+      paymentMethods: sanitizedPaymentMethods.length ? sanitizedPaymentMethods : DEFAULT_SETTINGS.paymentMethods,
+      materialCatalog: {
+        ...settings.materialCatalog,
+        suppliers: sanitizedSuppliers,
+      },
+    };
+  };
+
   const handleSave = async () => {
     if (!isAdmin) return;
     setSaving(true);
     try {
-      const sanitizedPaymentMethods = settings.paymentMethods
-        .map((method) => ({name: method.name.trim(), adjustment: Number(method.adjustment) || 0}))
-        .filter((method) => method.name);
-      const nextSettings = {
-        ...settings,
-        paymentMethods: sanitizedPaymentMethods.length ? sanitizedPaymentMethods : DEFAULT_SETTINGS.paymentMethods,
-      };
+      const nextSettings = buildPersistedSettings();
       await setDoc(doc(db, 'settings', 'global'), nextSettings);
       setSettings(nextSettings);
       setSuccess(true);
@@ -75,9 +96,9 @@ export const SettingsPage: React.FC = () => {
     setSettings({ ...settings, paymentMethods: newMethods });
   };
 
-  const addSupplier = (supplier: SupplierContact) => {
+  const addSupplier = async (supplier: SupplierContact) => {
     const normalizedName = supplier.name.trim();
-    if (!normalizedName) return;
+    if (!normalizedName || !isAdmin || supplierSaving) return false;
     const nextSupplier = {
       name: normalizedName,
       whatsapp: supplier.whatsapp?.trim() || '',
@@ -86,7 +107,7 @@ export const SettingsPage: React.FC = () => {
       notes: supplier.notes?.trim() || '',
     };
 
-    setSettings({
+    const nextSettings = {
       ...settings,
       materialCatalog: {
         ...settings.materialCatalog,
@@ -95,17 +116,48 @@ export const SettingsPage: React.FC = () => {
           nextSupplier,
         ].sort((a, b) => a.name.localeCompare(b.name)),
       },
-    });
+    };
+
+    setSupplierSaving(true);
+    setSupplierFeedback('');
+    try {
+      await setDoc(doc(db, 'settings', 'global'), nextSettings, {merge: true});
+      setSettings(nextSettings);
+      setSupplierFeedback('Fornecedor salvo com sucesso.');
+      setTimeout(() => setSupplierFeedback(''), 3000);
+      return true;
+    } catch (err) {
+      console.error(err);
+      setSupplierFeedback('Nao foi possivel salvar o fornecedor.');
+      return false;
+    } finally {
+      setSupplierSaving(false);
+    }
   };
 
-  const removeSupplier = (name: string) => {
-    setSettings({
+  const removeSupplier = async (name: string) => {
+    if (!isAdmin || supplierSaving) return;
+    const nextSettings = {
       ...settings,
       materialCatalog: {
         ...settings.materialCatalog,
         suppliers: settings.materialCatalog.suppliers.filter((supplier) => supplier.name !== name),
       },
-    });
+    };
+
+    setSupplierSaving(true);
+    setSupplierFeedback('');
+    try {
+      await setDoc(doc(db, 'settings', 'global'), nextSettings, {merge: true});
+      setSettings(nextSettings);
+      setSupplierFeedback('Fornecedor removido com sucesso.');
+      setTimeout(() => setSupplierFeedback(''), 3000);
+    } catch (err) {
+      console.error(err);
+      setSupplierFeedback('Nao foi possivel remover o fornecedor.');
+    } finally {
+      setSupplierSaving(false);
+    }
   };
 
   const updateMaterialCatalogList = (
@@ -557,6 +609,8 @@ export const SettingsPage: React.FC = () => {
             suppliers={settings.materialCatalog.suppliers}
             onAdd={addSupplier}
             onRemove={removeSupplier}
+            saving={supplierSaving}
+            feedback={supplierFeedback}
           />
         </section>
 
@@ -740,9 +794,11 @@ const MaterialCatalogField: React.FC<{
 
 const SupplierCatalogField: React.FC<{
   suppliers: SupplierContact[];
-  onAdd: (supplier: SupplierContact) => void;
-  onRemove: (name: string) => void;
-}> = ({suppliers, onAdd, onRemove}) => {
+  onAdd: (supplier: SupplierContact) => Promise<boolean>;
+  onRemove: (name: string) => Promise<void>;
+  saving: boolean;
+  feedback: string;
+}> = ({suppliers, onAdd, onRemove, saving, feedback}) => {
   const [draft, setDraft] = useState<SupplierContact>({
     name: '',
     whatsapp: '',
@@ -751,11 +807,25 @@ const SupplierCatalogField: React.FC<{
     notes: '',
   });
 
+  const handleAdd = async () => {
+    const saved = await onAdd(draft);
+    if (!saved) return;
+    setDraft({name: '', whatsapp: '', contactName: '', city: '', notes: ''});
+  };
+
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-4 xl:col-span-2">
       <div>
         <div className="font-bold text-slate-800">Fornecedores</div>
         <div className="text-xs text-slate-400">Cadastre o nome e o WhatsApp para enviar o pedido direto do estoque.</div>
+        {feedback && (
+          <div className={cn(
+            "mt-2 text-xs font-semibold",
+            feedback.includes('sucesso') ? "text-green-600" : "text-red-600",
+          )}>
+            {feedback}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -794,14 +864,16 @@ const SupplierCatalogField: React.FC<{
 
       <button
         type="button"
-        onClick={() => {
-          onAdd(draft);
-          setDraft({name: '', whatsapp: '', contactName: '', city: '', notes: ''});
-        }}
-        className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white"
+        onClick={handleAdd}
+        disabled={saving}
+        className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
       >
-        <Plus className="w-4 h-4" />
-        Adicionar fornecedor
+        {saving ? (
+          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        ) : (
+          <Plus className="w-4 h-4" />
+        )}
+        {saving ? 'Salvando fornecedor...' : 'Adicionar fornecedor'}
       </button>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -818,7 +890,8 @@ const SupplierCatalogField: React.FC<{
               <button
                 type="button"
                 onClick={() => onRemove(supplier.name)}
-                className="rounded-xl bg-red-50 p-2 text-red-600 transition-all hover:bg-red-100"
+                disabled={saving}
+                className="rounded-xl bg-red-50 p-2 text-red-600 transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                 title="Excluir fornecedor"
               >
                 <Trash2 className="w-4 h-4" />

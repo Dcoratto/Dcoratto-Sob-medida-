@@ -300,6 +300,12 @@ export interface QuotePiece {
   id: string;
   name: string;
   materialId: string;
+  materialVariantKey?: string;
+  materialLine?: string;
+  materialType?: string;
+  thicknessLabel?: string;
+  texture?: string;
+  provider?: string;
   unit: 'm' | 'cm';
   width: number;
   length: number;
@@ -443,6 +449,12 @@ export interface InventoryReservation {
   id: string;
   quoteId: string;
   materialId: string;
+  materialVariantKey?: string;
+  materialLine?: string;
+  materialType?: string;
+  thicknessLabel?: string;
+  texture?: string;
+  provider?: string;
   materialName: string;
   area: number;
   quoteStatus: QuoteStatus;

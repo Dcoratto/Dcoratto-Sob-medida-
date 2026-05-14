@@ -25,9 +25,9 @@ type MaterialWithUserPrice = Material & {
   userPricePerM2: number;
 };
 
-const AREA_UNIT = 'm\u00b2';
-const LABEL_AVAILABLE = 'Dispon\u00edvel';
-const LABEL_MINIMUM_SALE = 'M\u00ednimo venda/m\u00b2';
+const AREA_UNIT = <>m<sup>2</sup></>;
+const LABEL_AVAILABLE = 'Disponivel';
+const LABEL_MINIMUM_SALE = 'Minimo venda/m2';
 
 const normalizeStatus = (value: unknown) =>
   String(value || '')
@@ -302,7 +302,7 @@ export const MaterialsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 font-mono text-sm text-slate-600">
-                      <div>{formatNumber(material.stockArea)} m²</div>
+                      <div>{formatNumber(material.stockArea)} {AREA_UNIT}²</div>
                       {material.manualReservedArea > 0 && (
                         <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-amber-600">{formatNumber(material.manualReservedArea)} m² reservado manual</div>
                       )}
@@ -315,17 +315,17 @@ export const MaterialsPage: React.FC = () => {
                           className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all"
                         >
                           <Eye className="h-3.5 w-3.5" />
-                          {formatNumber(material.quoteReservedArea)} m²
+                          {formatNumber(material.quoteReservedArea)} {AREA_UNIT}²
                         </button>
                       ) : (
-                        <span className="text-sm text-slate-400">0,00 m²</span>
+                        <span className="text-sm text-slate-400">0,00 {AREA_UNIT}²</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.soldArea)} m²</td>
-                    <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.availableArea)} m²</td>
+                    <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.soldArea)} {AREA_UNIT}²</td>
+                    <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.availableArea)} {AREA_UNIT}²</td>
                     <td className="px-6 py-4">
                       <span className={cn('font-mono text-sm font-bold', material.missingArea > 0 ?'text-red-600' : 'text-slate-400')}>
-                        {formatNumber(material.missingArea)} m²
+                        {formatNumber(material.missingArea)} {AREA_UNIT}²
                       </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-sm text-slate-600">

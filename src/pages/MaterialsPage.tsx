@@ -25,7 +25,7 @@ type MaterialWithUserPrice = Material & {
   userPricePerM2: number;
 };
 
-const AREA_UNIT = <>m<sup>2</sup></>;
+const AREA_UNIT = 'm2';
 const LABEL_AVAILABLE = 'Disponivel';
 const LABEL_MINIMUM_SALE = 'Minimo venda/m2';
 
@@ -269,11 +269,11 @@ export const MaterialsPage: React.FC = () => {
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Estoque</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Reservado</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Vendido</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Disponível</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{LABEL_AVAILABLE}</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Faltando</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Mínimo venda/m²</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{LABEL_MINIMUM_SALE}</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Margem</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Venda/m²</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Venda/m2</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
               </tr>
@@ -302,9 +302,9 @@ export const MaterialsPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 font-mono text-sm text-slate-600">
-                      <div>{formatNumber(material.stockArea)} {AREA_UNIT}²</div>
+                      <div>{formatNumber(material.stockArea)} {AREA_UNIT}</div>
                       {material.manualReservedArea > 0 && (
-                        <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-amber-600">{formatNumber(material.manualReservedArea)} m² reservado manual</div>
+                        <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-amber-600">{formatNumber(material.manualReservedArea)} m2 reservado manual</div>
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -315,17 +315,17 @@ export const MaterialsPage: React.FC = () => {
                           className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all"
                         >
                           <Eye className="h-3.5 w-3.5" />
-                          {formatNumber(material.quoteReservedArea)} {AREA_UNIT}²
+                          {formatNumber(material.quoteReservedArea)} {AREA_UNIT}
                         </button>
                       ) : (
-                        <span className="text-sm text-slate-400">0,00 {AREA_UNIT}²</span>
+                        <span className="text-sm text-slate-400">0,00 {AREA_UNIT}</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.soldArea)} {AREA_UNIT}²</td>
-                    <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.availableArea)} {AREA_UNIT}²</td>
+                    <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.soldArea)} {AREA_UNIT}</td>
+                    <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.availableArea)} {AREA_UNIT}</td>
                     <td className="px-6 py-4">
                       <span className={cn('font-mono text-sm font-bold', material.missingArea > 0 ?'text-red-600' : 'text-slate-400')}>
-                        {formatNumber(material.missingArea)} {AREA_UNIT}²
+                        {formatNumber(material.missingArea)} {AREA_UNIT}
                       </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-sm text-slate-600">
@@ -378,7 +378,7 @@ export const MaterialsPage: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Mínimo de venda por m²</label>
+                  <label className="text-slate-500 font-medium text-sm">Minimo de venda por m2</label>
                   <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono text-slate-600">
                     {formatCurrency(editingMaterial.baseMinimumSalePerM2 ?? 0)}
                   </div>
@@ -399,7 +399,7 @@ export const MaterialsPage: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Venda final por m²</label>
+                  <label className="text-slate-500 font-medium text-sm">Venda final por m2</label>
                   <input
                     type="number"
                     step="0.01"
@@ -478,7 +478,7 @@ export const MaterialsPage: React.FC = () => {
                         </div>
                         <div className="rounded-xl bg-white px-3 py-2 text-right">
                           <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Usando</div>
-                          <div className="font-mono font-bold text-amber-700">{formatNumber(reservation.area || 0)} m²</div>
+                          <div className="font-mono font-bold text-amber-700">{formatNumber(reservation.area || 0)} m2</div>
                         </div>
                       </div>
                     </button>

@@ -133,6 +133,7 @@ export interface UserMaterialPrice {
   id: string;
   userId: string;
   materialId: string;
+  materialVariantKey?: string;
   baseCostPerM2: number;
   baseMinimumSalePerM2?: number;
   marginPercentage: number;

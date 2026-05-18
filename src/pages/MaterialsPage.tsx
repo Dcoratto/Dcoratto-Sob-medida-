@@ -129,7 +129,10 @@ export const MaterialsPage: React.FC = () => {
     const missingArea = Math.max(0, quoteReservedArea - Math.max(0, stockArea - manualReservedArea - soldArea));
     const baseCostPerM2 = stockArea > 0 ? stockCost / stockArea : 0;
     const baseMinimumSalePerM2 = stockArea > 0 ? stockMinimumSale / stockArea : baseCostPerM2;
-    const userPrice = userPrices.find((price) => price.materialId === stockItems[0]?.materialId);
+    const userPrice = userPrices.find((price) =>
+      price.materialVariantKey === variantKey ||
+      (!price.materialVariantKey && price.materialId === stockItems[0]?.materialId),
+    );
     const margin = userPrice?.marginPercentage ?? 0;
     const pricePerM2 = userPrice?.pricePerM2 ?? baseMinimumSalePerM2 * (1 + margin / 100);
 
@@ -179,18 +182,23 @@ export const MaterialsPage: React.FC = () => {
       return;
     }
 
-    const margin = Number(marginPercentage);
+    const margin = Number(marginPercentage || 0);
     const baseCost = editingMaterial.baseCostPerM2 ?? 0;
     const baseMinimumSale = editingMaterial.baseMinimumSalePerM2 ?? baseCost;
-    const pricePerM2 = Number(salePricePerM2) || baseMinimumSale * (1 + margin / 100);
+    const hasTypedSalePrice = salePricePerM2 !== '' && !Number.isNaN(Number(salePricePerM2));
+    const pricePerM2 = hasTypedSalePrice ? Number(salePricePerM2) : baseMinimumSale * (1 + margin / 100);
+    const normalizedMargin = baseMinimumSale > 0
+      ? ((pricePerM2 / baseMinimumSale) - 1) * 100
+      : margin;
 
     if (user?.uid) {
-      await setDoc(doc(db, 'userMaterialPrices', `${user.uid}_${editingMaterial.id}`), {
+      await setDoc(doc(db, 'userMaterialPrices', `${user.uid}_${editingMaterial.materialVariantKey}`), {
         userId: user.uid,
-        materialId: editingMaterial.id,
+        materialId: editingMaterial.baseMaterialId,
+        materialVariantKey: editingMaterial.materialVariantKey,
         baseCostPerM2: baseCost,
         baseMinimumSalePerM2: baseMinimumSale,
-        marginPercentage: margin,
+        marginPercentage: normalizedMargin,
         pricePerM2,
         finalPricePerM2: pricePerM2,
         updatedAt: serverTimestamp(),
@@ -201,6 +209,7 @@ export const MaterialsPage: React.FC = () => {
 
     setShowModal(false);
     setEditingMaterial(null);
+    setMarginPercentage('');
     setSalePricePerM2('');
   };
 

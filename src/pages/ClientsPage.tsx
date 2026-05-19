@@ -111,6 +111,38 @@ const normalizeInputDateToDisplay = (value: string) => {
   return `${day}/${month}/${year}`;
 };
 
+const fixCorruptedText = (value: unknown) => {
+  const text = String(value || '');
+  if (!text) return '';
+
+  return text
+    .replace(/Ã§/g, 'ç')
+    .replace(/Ã£/g, 'ã')
+    .replace(/Ã¡/g, 'á')
+    .replace(/Ã¢/g, 'â')
+    .replace(/Ãª/g, 'ê')
+    .replace(/Ã©/g, 'é')
+    .replace(/Ã­/g, 'í')
+    .replace(/Ã³/g, 'ó')
+    .replace(/Ã´/g, 'ô')
+    .replace(/Ãµ/g, 'õ')
+    .replace(/Ãº/g, 'ú')
+    .replace(/Ã/g, 'Á')
+    .replace(/Ã‡/g, 'Ç')
+    .replace(/Ãƒ/g, 'Ã')
+    .replace(/Ã‰/g, 'É')
+    .replace(/ÃŠ/g, 'Ê')
+    .replace(/Ã“/g, 'Ó')
+    .replace(/Ã”/g, 'Ô')
+    .replace(/Ãš/g, 'Ú')
+    .replace(/Ã­/g, 'í')
+    .replace(/Ã±/g, 'ñ')
+    .replace(/Â·/g, '·')
+    .replace(/Âº/g, 'º')
+    .replace(/Âª/g, 'ª')
+    .replace(/Â/g, '');
+};
+
 const deriveStreetAddress = (client: Client) => {
   if (client.streetAddress?.trim()) return client.streetAddress.trim();
 
@@ -1005,7 +1037,7 @@ export const ClientsPage: React.FC = () => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Clientes</h1>
-          <p className="text-slate-500 mt-1">Controle interno de qualidade, produção e entrega.</p>
+          <p className="text-slate-500 mt-1">{fixCorruptedText('Controle interno de qualidade, produção e entrega.')}</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <input
@@ -1041,7 +1073,7 @@ export const ClientsPage: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar clientes por nome, telefone ou endereço..."
+              placeholder={fixCorruptedText('Buscar clientes por nome, telefone ou endereço...')}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
@@ -1115,15 +1147,15 @@ export const ClientsPage: React.FC = () => {
                   </div>
                   <div className="space-y-3">
                     <span className={cn('inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase', meta.chip)}>
-                      {meta.label}
+                      {fixCorruptedText(meta.label)}
                     </span>
                     <div className="flex items-start gap-2 text-sm text-slate-600">
                       <MapPin className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
-                      <span className="line-clamp-2">{client.address || 'Sem endereço cadastrado'}</span>
+                      <span className="line-clamp-2">{fixCorruptedText(client.address || 'Sem endereço cadastrado')}</span>
                     </div>
                     {latestQuote && (
                       <div className="text-xs font-bold text-brand-primary">
-                        {latestQuote.pieces?.length || 0} peça(s) · {formatCurrency(latestQuote.totalPrice || 0)}
+                        {latestQuote.pieces?.length || 0} {fixCorruptedText('peça(s) ·')} {formatCurrency(latestQuote.totalPrice || 0)}
                       </div>
                     )}
                   </div>
@@ -1146,7 +1178,7 @@ export const ClientsPage: React.FC = () => {
                                     : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand-primary/30 hover:bg-brand-primary/5',
                                 )}
                               >
-                                {status}
+                                {fixCorruptedText(status)}
                               </button>
                             );
                           })}
@@ -1167,7 +1199,7 @@ export const ClientsPage: React.FC = () => {
                                     : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand-primary/30 hover:bg-brand-primary/5',
                                 )}
                               >
-                                {stageMeta[stageOption].label}
+                                {fixCorruptedText(stageMeta[stageOption].label)}
                               </button>
                             );
                           })}

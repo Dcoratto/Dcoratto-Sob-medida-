@@ -1,4 +1,4 @@
-import type {jsPDF} from 'jspdf';
+﻿import type {jsPDF} from 'jspdf';
 import {Employee, InventoryItem, InventoryPurchase, InventoryReservation, Material, ProductionStep, Quote, SystemEvent} from '../types';
 
 type PdfColor = [number, number, number];
@@ -90,9 +90,9 @@ const addFooter = (doc: jsPDF, primary: PdfColor) => {
     doc.line(14, 282, 196, 282);
     doc.setFontSize(8);
     doc.setTextColor(100, 116, 139);
-    doc.text(`Relatório emitido em ${new Date().toLocaleString('pt-BR')}`, 14, 287);
+    doc.text(`RelatÃ³rio emitido em ${new Date().toLocaleString('pt-BR')}`, 14, 287);
     doc.setTextColor(primary[0], primary[1], primary[2]);
-    doc.text(`Página ${page} de ${pages}`, 196, 287, {align: 'right'});
+    doc.text(`PÃ¡gina ${page} de ${pages}`, 196, 287, {align: 'right'});
   }
 };
 
@@ -122,7 +122,7 @@ const currentStepText = (quote: Quote, labels: Record<ProductionStep, string>) =
   const openStep = assignments.find((item) => !item.finishedAt);
   const lastStep = assignments[assignments.length - 1];
   const step = openStep || lastStep;
-  if (!step) return 'Sem responsável';
+  if (!step) return 'Sem responsÃ¡vel';
   const label = labels[step.step] || step.step;
   return `${label}${step.employeeName ?` | ${step.employeeName}` : ''}`;
 };
@@ -144,35 +144,35 @@ export const generateReportPDF = async (data: ReportPdfData) => {
   doc.setFontSize(22);
   doc.text("D'Coratto Sob Medida", 14, 22);
   doc.setFontSize(13);
-  doc.text('Relatório gerencial da marmoraria', 14, 33);
+  doc.text('RelatÃ³rio gerencial da marmoraria', 14, 33);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(210, 216, 225);
-  doc.text(`Período: ${data.periodLabel}`, 14, 43);
-  doc.text(`Emissão: ${new Date().toLocaleDateString('pt-BR')}`, 14, 50);
+  doc.text(`PerÃ­odo: ${data.periodLabel}`, 14, 43);
+  doc.text(`EmissÃ£o: ${new Date().toLocaleDateString('pt-BR')}`, 14, 50);
   doc.setFillColor(primary[0], primary[1], primary[2]);
   doc.roundedRect(148, 18, 48, 26, 4, 4, 'F');
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
-  doc.text('GESTÃO', 172, 29, {align: 'center'});
+  doc.text('GESTÃƒO', 172, 29, {align: 'center'});
   doc.setFontSize(8);
-  doc.text('Produção | Prazos | Equipe', 172, 36, {align: 'center'});
+  doc.text('ProduÃ§Ã£o | Prazos | Equipe', 172, 36, {align: 'center'});
 
   let y = 76;
   sectionTitle(doc, 'Resumo executivo', y, primary);
   y += 8;
   card(doc, 14, y, 42, 'Fechado', money(data.totalSold), primary);
-  card(doc, 60, y, 40, 'Conversão', `${data.conversionRate}%`, primary);
+  card(doc, 60, y, 40, 'ConversÃ£o', `${data.conversionRate}%`, primary);
   card(doc, 104, y, 42, 'Em aberto', money(data.openValue), primary);
   card(doc, 150, y, 46, 'Estoque', `${data.inventory.length} itens`, primary);
   y += 34;
 
-  sectionTitle(doc, 'Sumário por seção', y, primary);
+  sectionTitle(doc, 'SumÃ¡rio por seÃ§Ã£o', y, primary);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(muted[0], muted[1], muted[2]);
-  doc.text('Financeiro | Funil de produção | Projetos e prazos | Materiais | Desempenho da equipe | Histórico operacional', 14, y + 9, {maxWidth: 180});
+  doc.text('Financeiro | Funil de produÃ§Ã£o | Projetos e prazos | Materiais | Desempenho da equipe | HistÃ³rico operacional', 14, y + 9, {maxWidth: 180});
   y += 22;
 
   sectionTitle(doc, 'Financeiro detalhado', y, primary);
@@ -180,11 +180,11 @@ export const generateReportPDF = async (data: ReportPdfData) => {
     startY: y + 6,
     head: [['Indicador', 'Valor']],
     body: [
-      ['Orçamentos fechados', money(data.totalSold)],
-      ['Orçamentos em aberto', money(data.openValue)],
-      ['Orçamentos recusados', money(data.refusedValue)],
-      ['Ticket médio', money(data.quotes.length ?data.quotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) / data.quotes.length : 0)],
-      ['Total de orçamentos no período', String(data.quotes.length)],
+      ['OrÃ§amentos fechados', money(data.totalSold)],
+      ['OrÃ§amentos em aberto', money(data.openValue)],
+      ['OrÃ§amentos recusados', money(data.refusedValue)],
+      ['Ticket mÃ©dio', money(data.quotes.length ?data.quotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) / data.quotes.length : 0)],
+      ['Total de orÃ§amentos no perÃ­odo', String(data.quotes.length)],
     ],
     headStyles: {fillColor: primary, textColor: [255, 255, 255], fontSize: 8},
     styles: {fontSize: 8, cellPadding: 3, lineColor: [226, 232, 240], lineWidth: 0.2},
@@ -193,7 +193,7 @@ export const generateReportPDF = async (data: ReportPdfData) => {
   });
   y = (doc as any).lastAutoTable.finalY + 12;
 
-  sectionTitle(doc, 'Funil de orçamento e produção', y, primary);
+  sectionTitle(doc, 'Funil de orÃ§amento e produÃ§Ã£o', y, primary);
   y += 8;
   const maxStatus = Math.max(1, ...data.statusCounts.map((item) => item.count));
   data.statusCounts.forEach((item) => {
@@ -211,7 +211,7 @@ export const generateReportPDF = async (data: ReportPdfData) => {
 
   doc.addPage();
   y = 20;
-  sectionTitle(doc, 'Projetos, responsáveis e prazos', y, primary);
+  sectionTitle(doc, 'Projetos, responsÃ¡veis e prazos', y, primary);
   autoTable(doc, {
     startY: y + 6,
     head: [['Cliente', 'Projeto', 'Status', 'Resp. orcamento', 'Etapa atual', 'Prazo', 'Valor']],
@@ -235,10 +235,10 @@ export const generateReportPDF = async (data: ReportPdfData) => {
     doc.addPage();
     y = 20;
   }
-  sectionTitle(doc, 'Alertas e prazos críticos', y, primary);
+  sectionTitle(doc, 'Alertas e prazos crÃ­ticos', y, primary);
   autoTable(doc, {
     startY: y + 6,
-    head: [['Cliente', 'Projeto', 'Situação', 'Status']],
+    head: [['Cliente', 'Projeto', 'SituaÃ§Ã£o', 'Status']],
     body: data.deadlineAlerts.length
       ?data.deadlineAlerts.map(({quote, daysLeft}) => [
         quote.clientName,
@@ -246,7 +246,7 @@ export const generateReportPDF = async (data: ReportPdfData) => {
         daysLeft < 0 ?`${Math.abs(daysLeft)} dia(s) atrasado` : `vence em ${daysLeft} dia(s)`,
         quote.status,
       ])
-      : [['Sem alertas críticos', '-', '-', '-']],
+      : [['Sem alertas crÃ­ticos', '-', '-', '-']],
     headStyles: {fillColor: dark, textColor: [255, 255, 255], fontSize: 8},
     styles: {fontSize: 8, cellPadding: 3, lineColor: [226, 232, 240], lineWidth: 0.2},
   });
@@ -259,7 +259,7 @@ export const generateReportPDF = async (data: ReportPdfData) => {
   sectionTitle(doc, 'Materiais mais vendidos', y, primary);
   autoTable(doc, {
     startY: y + 6,
-    head: [['Material', 'Orçamentos', 'Valor gerado']],
+    head: [['Material', 'OrÃ§amentos', 'Valor gerado']],
     body: data.materialSales.length
       ?data.materialSales.map((item) => [item.name, item.count, money(item.value)])
       : [['Sem materiais vendidos', '-', '-']],
@@ -276,13 +276,13 @@ export const generateReportPDF = async (data: ReportPdfData) => {
   sectionTitle(doc, 'Estoque completo', y, primary);
   autoTable(doc, {
     startY: y + 6,
-    head: [['Pedra', 'Lote', 'Status', 'Área', 'Custo', 'Perda/cliente']],
+    head: [['Pedra', 'Lote', 'Status', 'Ãrea', 'Custo', 'Perda/cliente']],
     body: data.inventory.length
       ?data.inventory.slice(0, 40).map((item) => [
         item.materialName,
         item.code || '-',
         item.status,
-        `${(item.area || 0).toFixed(2)} m2`,
+        `${(item.area || 0).toFixed(2)} M²`,
         money(item.cost || 0),
         [item.lossReason, item.lossClientName].filter(Boolean).join(' - ') || '-',
       ])
@@ -299,25 +299,25 @@ export const generateReportPDF = async (data: ReportPdfData) => {
   sectionTitle(doc, 'Compras e reservas', y, primary);
   autoTable(doc, {
     startY: y + 6,
-    head: [['Tipo', 'Material/Cliente', 'Detalhe', 'Área', 'Status']],
+    head: [['Tipo', 'Material/Cliente', 'Detalhe', 'Ãrea', 'Status']],
     body: [
       ...(data.purchases || []).slice(0, 25).map((purchase) => [
         'Compra',
         purchase.materialName,
         `${purchase.code || '-'} | ${purchase.purchasedByName || '-'}`,
-        `${(purchase.area || 0).toFixed(2)} m2`,
+        `${(purchase.area || 0).toFixed(2)} M²`,
         purchase.status,
       ]),
       ...(data.reservations || []).slice(0, 25).map((reservation) => [
         'Reserva',
         reservation.clientName || reservation.materialName,
         reservation.materialName,
-        `${(reservation.area || 0).toFixed(2)} m2`,
+        `${(reservation.area || 0).toFixed(2)} M²`,
         reservation.quoteStatus,
       ]),
     ].length ? [
-      ...(data.purchases || []).slice(0, 25).map((purchase) => ['Compra', purchase.materialName, `${purchase.code || '-'} | ${purchase.purchasedByName || '-'}`, `${(purchase.area || 0).toFixed(2)} m2`, purchase.status]),
-      ...(data.reservations || []).slice(0, 25).map((reservation) => ['Reserva', reservation.clientName || reservation.materialName, reservation.materialName, `${(reservation.area || 0).toFixed(2)} m2`, reservation.quoteStatus]),
+      ...(data.purchases || []).slice(0, 25).map((purchase) => ['Compra', purchase.materialName, `${purchase.code || '-'} | ${purchase.purchasedByName || '-'}`, `${(purchase.area || 0).toFixed(2)} M²`, purchase.status]),
+      ...(data.reservations || []).slice(0, 25).map((reservation) => ['Reserva', reservation.clientName || reservation.materialName, reservation.materialName, `${(reservation.area || 0).toFixed(2)} M²`, reservation.quoteStatus]),
     ] : [['Sem compras/reservas', '-', '-', '-', '-']],
     headStyles: {fillColor: dark, textColor: [255, 255, 255], fontSize: 7.2},
     styles: {fontSize: 6.8, cellPadding: 2.2, lineColor: [226, 232, 240], lineWidth: 0.2, valign: 'top'},
@@ -325,10 +325,10 @@ export const generateReportPDF = async (data: ReportPdfData) => {
 
   doc.addPage();
   y = 20;
-  sectionTitle(doc, 'Calendário operacional', y, primary);
+  sectionTitle(doc, 'CalendÃ¡rio operacional', y, primary);
   autoTable(doc, {
     startY: y + 6,
-    head: [['Data', 'Hora', 'Evento', 'Cliente', 'Cidade', 'Descrição']],
+    head: [['Data', 'Hora', 'Evento', 'Cliente', 'Cidade', 'DescriÃ§Ã£o']],
     body: (data.calendarEvents || []).length
       ?(data.calendarEvents || []).slice(0, 40).map((event) => [
         dateText(event.date),
@@ -338,7 +338,7 @@ export const generateReportPDF = async (data: ReportPdfData) => {
         event.city || '-',
         event.description || '-',
       ])
-      : [['Sem eventos no período', '-', '-', '-', '-', '-']],
+      : [['Sem eventos no perÃ­odo', '-', '-', '-', '-', '-']],
     headStyles: {fillColor: primary, textColor: [255, 255, 255], fontSize: 7.2},
     styles: {fontSize: 6.8, cellPadding: 2.2, lineColor: [226, 232, 240], lineWidth: 0.2, valign: 'top'},
   });
@@ -348,7 +348,7 @@ export const generateReportPDF = async (data: ReportPdfData) => {
   sectionTitle(doc, 'Desempenho da equipe', y, primary);
   autoTable(doc, {
     startY: y + 6,
-    head: [['Funcionário', 'Função', 'Etapas', 'Avaliações', 'Média']],
+    head: [['FuncionÃ¡rio', 'FunÃ§Ã£o', 'Etapas', 'AvaliaÃ§Ãµes', 'MÃ©dia']],
     body: data.employeeStats.length
       ?data.employeeStats.map(({employee, assignments, evaluations, average}) => [
         employee.name,
@@ -357,7 +357,7 @@ export const generateReportPDF = async (data: ReportPdfData) => {
         evaluations.length,
         average ?average.toFixed(1) : '-',
       ])
-      : [['Sem funcionários cadastrados', '-', '-', '-', '-']],
+      : [['Sem funcionÃ¡rios cadastrados', '-', '-', '-', '-']],
     headStyles: {fillColor: primary, textColor: [255, 255, 255], fontSize: 8},
     styles: {fontSize: 8, cellPadding: 3, lineColor: [226, 232, 240], lineWidth: 0.2},
     alternateRowStyles: {fillColor: [248, 250, 252]},
@@ -369,10 +369,10 @@ export const generateReportPDF = async (data: ReportPdfData) => {
     doc.addPage();
     y = 20;
   }
-  sectionTitle(doc, 'Avaliações registradas', y, primary);
+  sectionTitle(doc, 'AvaliaÃ§Ãµes registradas', y, primary);
   autoTable(doc, {
     startY: y + 6,
-    head: [['Data', 'Cliente', 'Funcionário', 'Etapa', 'Nota', 'Avaliador', 'Observação']],
+    head: [['Data', 'Cliente', 'FuncionÃ¡rio', 'Etapa', 'Nota', 'Avaliador', 'ObservaÃ§Ã£o']],
     body: data.evaluationHistory.length
       ?data.evaluationHistory.slice(0, 30).map(({quote, item}) => [
         dateText(item.createdAt),
@@ -395,10 +395,10 @@ export const generateReportPDF = async (data: ReportPdfData) => {
     doc.addPage();
     y = 20;
   }
-  sectionTitle(doc, 'Histórico operacional', y, primary);
+  sectionTitle(doc, 'HistÃ³rico operacional', y, primary);
   autoTable(doc, {
     startY: y + 6,
-    head: [['Data', 'Cliente', 'Movimentação', 'Funcionário', 'Alterado por', 'Etapa']],
+    head: [['Data', 'Cliente', 'MovimentaÃ§Ã£o', 'FuncionÃ¡rio', 'Alterado por', 'Etapa']],
     body: data.productionHistory.length
       ?data.productionHistory.slice(0, 35).map(({quote, item}) => [
         dateText(item.changedAt),
@@ -408,7 +408,7 @@ export const generateReportPDF = async (data: ReportPdfData) => {
         item.changedByName || '-',
         item.step ?data.productionStepLabels[item.step] : '-',
       ])
-      : [['-', 'Sem movimentações no período', '-', '-', '-', '-']],
+      : [['-', 'Sem movimentaÃ§Ãµes no perÃ­odo', '-', '-', '-', '-']],
     headStyles: {fillColor: dark, textColor: [255, 255, 255], fontSize: 7.5},
     styles: {fontSize: 7.2, cellPadding: 2.5, lineColor: [226, 232, 240], lineWidth: 0.2, valign: 'top'},
     columnStyles: {0: {cellWidth: 18}, 1: {cellWidth: 30}, 3: {cellWidth: 28}, 4: {cellWidth: 28}, 5: {cellWidth: 22}},
@@ -417,3 +417,4 @@ export const generateReportPDF = async (data: ReportPdfData) => {
   addFooter(doc, primary);
   doc.save(`Relatorio_DCoratto_${data.periodLabel.replace(/\s+/g, '_')}.pdf`);
 };
+

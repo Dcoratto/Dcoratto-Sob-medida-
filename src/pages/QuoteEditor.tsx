@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -367,7 +367,7 @@ export const QuoteEditor: React.FC = () => {
       notes: '',
       sculptedSink: {
         active: false,
-        drainType: 'Válvula oculta',
+        drainType: 'VÃ¡lvula oculta',
         quantity: 1,
         width: 0,
         depth: 0,
@@ -627,7 +627,7 @@ export const QuoteEditor: React.FC = () => {
         });
       } else {
         const createdRef = await addDoc(collection(db, 'quotes'), quoteData);
-        await applyQuoteInventoryByStatusTransition(createdRef.id, 'Orçamento', status, quoteData);
+        await applyQuoteInventoryByStatusTransition(createdRef.id, 'OrÃ§amento', status, quoteData);
         await logSystemEvent({
           type: 'quote_created',
           title: 'Orcamento criado',
@@ -692,7 +692,7 @@ export const QuoteEditor: React.FC = () => {
               {formatCurrency(totalPrice)}
             </div>
             <div className="space-y-2 text-sm font-medium text-white/75">
-              <div className="flex justify-between gap-3"><span>Area final total</span><strong>{formatNumber(totalArea, 4)} m2</strong></div>
+              <div className="flex justify-between gap-3"><span>Area final total</span><strong>{formatNumber(totalArea, 4)} M²</strong></div>
               <div className="flex justify-between gap-3"><span>Pedras</span><strong>{formatCurrency(stonesCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Mao de obra</span><strong>{formatCurrency(laborCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Recortes</span><strong>{formatCurrency(cutoutsCost)}</strong></div>
@@ -707,11 +707,11 @@ export const QuoteEditor: React.FC = () => {
                     <span>{formatCurrency(totals.totalArea * (material?.pricePerM2 || 0))}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 opacity-80">
-                    <span>Bancada: {formatNumber(totals.mainArea, 4)} m2</span>
-                    <span>Cuba: {formatNumber(totals.sinkArea || 0, 4)} m2</span>
-                    <span>Adicionais: {formatNumber(totals.sidesArea + totals.recessArea, 4)} m2</span>
-                    <span>Perda: {formatNumber(totals.lossArea || 0, 4)} m2</span>
-                    <span className="col-span-2">Final: {formatNumber(totals.totalArea, 4)} m2 | {material?.name || 'Sem material'}</span>
+                    <span>Bancada: {formatNumber(totals.mainArea, 4)} M²</span>
+                    <span>Cuba: {formatNumber(totals.sinkArea || 0, 4)} M²</span>
+                    <span>Adicionais: {formatNumber(totals.sidesArea + totals.recessArea, 4)} M²</span>
+                    <span>Perda: {formatNumber(totals.lossArea || 0, 4)} M²</span>
+                    <span className="col-span-2">Final: {formatNumber(totals.totalArea, 4)} M² | {material?.name || 'Sem material'}</span>
                   </div>
                 </div>
               ))}
@@ -1091,11 +1091,11 @@ export const QuoteEditor: React.FC = () => {
                           </div>
 
                           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Pisos</span><strong>{formatNumber(stairDetails.treadArea, 4)} m2</strong></div>
-                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Espelhos</span><strong>{formatNumber(stairDetails.riserArea, 4)} m2</strong></div>
-                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Patamar</span><strong>{formatNumber(stairDetails.landingArea, 4)} m2</strong></div>
-                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Rodape</span><strong>{formatNumber(stairDetails.baseboardArea, 4)} m2</strong></div>
-                            <div className="rounded-2xl bg-brand-primary p-3 text-white"><span className="block font-bold uppercase text-white/70">Total escada</span><strong>{formatNumber(stairDetails.totalArea, 4)} m2</strong></div>
+                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Pisos</span><strong>{formatNumber(stairDetails.treadArea, 4)} M²</strong></div>
+                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Espelhos</span><strong>{formatNumber(stairDetails.riserArea, 4)} M²</strong></div>
+                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Patamar</span><strong>{formatNumber(stairDetails.landingArea, 4)} M²</strong></div>
+                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Rodape</span><strong>{formatNumber(stairDetails.baseboardArea, 4)} M²</strong></div>
+                            <div className="rounded-2xl bg-brand-primary p-3 text-white"><span className="block font-bold uppercase text-white/70">Total escada</span><strong>{formatNumber(stairDetails.totalArea, 4)} M²</strong></div>
                           </div>
                         </div>
                       )}
@@ -1122,7 +1122,7 @@ export const QuoteEditor: React.FC = () => {
                       </div>
                       )}
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Area Total (m2)</label>
+                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Area Total (M²)</label>
                         <div className="px-4 py-2.5 bg-slate-100 rounded-xl font-mono text-slate-600 flex flex-col items-end">
                           <div className="flex justify-between w-full items-center">
                             <span className="text-[9px] uppercase font-bold text-slate-400">Total:</span>
@@ -1151,13 +1151,13 @@ export const QuoteEditor: React.FC = () => {
                           )}
                         </div>
                         <div className={cn('mt-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide', !hasMaterial ?'bg-slate-100 text-slate-500' : hasEnoughStock ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600')}>
-                          {!hasMaterial ?'Selecione um material para validar o estoque' : hasEnoughStock ?`M2 suficiente: ${stock.available.toFixed(2)} m2 disponivel` : `M2 insuficiente: precisa ${pieceArea.toFixed(2)} m2 e ha ${stock.available.toFixed(2)} m2`}
+                          {!hasMaterial ?'Selecione um material para validar o estoque' : hasEnoughStock ?`M² suficiente: ${stock.available.toFixed(2)} M² disponivel` : `M² insuficiente: precisa ${pieceArea.toFixed(2)} M² e ha ${stock.available.toFixed(2)} M²`}
                         </div>
                         {hasMaterial && hasEnoughStock && lotInfo && (
                           <div className={cn('mt-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide', lotInfo.canUseSingleLot ?'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700')}>
                             {lotInfo.canUseSingleLot
-                              ? `Mesmo lote: cabe na chapa ${lotInfo.singleLot?.code || 'sem lote'} (${lotInfo.singleLot?.availableArea.toFixed(2)} m2)`
-                              : `Lotes diferentes: precisa combinar ${lotInfo.lotCountNeeded || 2} chapas para ${pieceArea.toFixed(2)} m2`}
+                              ? `Mesmo lote: cabe na chapa ${lotInfo.singleLot?.code || 'sem lote'} (${lotInfo.singleLot?.availableArea.toFixed(2)} M²)`
+                              : `Lotes diferentes: precisa combinar ${lotInfo.lotCountNeeded || 2} chapas para ${pieceArea.toFixed(2)} M²`}
                           </div>
                         )}
                         {hasMaterial && !hasEnoughStock && (
@@ -1177,7 +1177,7 @@ export const QuoteEditor: React.FC = () => {
                         <div className="flex bg-slate-100 p-1 rounded-xl">
                             <button 
                             onClick={() => updatePiece(piece.id, { sculptedSink: { ...(piece.sculptedSink || {
-                              drainType: 'Válvula oculta', quantity: 1, width: 0, depth: 0, height: 0, unit: 'cm'
+                              drainType: 'VÃ¡lvula oculta', quantity: 1, width: 0, depth: 0, height: 0, unit: 'cm'
                             }), active: true } as any })}
                             className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", piece.sculptedSink?.active ?"bg-white text-brand-primary shadow-sm" : "text-slate-400")}
                           >Sim</button>
@@ -1195,11 +1195,11 @@ export const QuoteEditor: React.FC = () => {
                           <div className="space-y-1">
                             <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tipo de ralo</label>
                             <select 
-                              value={piece.sculptedSink.drainType || 'Válvula oculta'}
+                              value={piece.sculptedSink.drainType || 'VÃ¡lvula oculta'}
                               onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, drainType: e.target.value as any } })}
                               className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium outline-none"
                             >
-                              <option value="Válvula oculta">Válvula oculta</option>
+                              <option value="VÃ¡lvula oculta">VÃ¡lvula oculta</option>
                               <option value="Ralo click">Ralo click</option>
                               <option value="Ralo oculto">Ralo oculto</option>
                             </select>
@@ -1268,23 +1268,23 @@ export const QuoteEditor: React.FC = () => {
                                 <>
                                   <div className="space-y-0.5">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Area bancada</span>
-                                    <div className="text-slate-900 font-mono font-bold">{formatNumber(pieceTotals.mainArea, 4)} m2</div>
+                                    <div className="text-slate-900 font-mono font-bold">{formatNumber(pieceTotals.mainArea, 4)} M²</div>
                                   </div>
                                   <div className="space-y-0.5">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Area cuba</span>
-                                    <div className="text-slate-900 font-mono font-bold">{formatNumber(calc.baseArea, 4)} m2</div>
+                                    <div className="text-slate-900 font-mono font-bold">{formatNumber(calc.baseArea, 4)} M²</div>
                                   </div>
                                   <div className="space-y-0.5">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Perda aplicada</span>
-                                    <div className="text-slate-900 font-mono font-bold">{formatNumber(pieceTotals.lossArea || 0, 4)} m2</div>
+                                    <div className="text-slate-900 font-mono font-bold">{formatNumber(pieceTotals.lossArea || 0, 4)} M²</div>
                                   </div>
                                   <div className="space-y-0.5">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Area final</span>
-                                    <div className="text-brand-primary font-mono font-bold">{formatNumber(pieceTotals.totalArea, 4)} m2</div>
+                                    <div className="text-brand-primary font-mono font-bold">{formatNumber(pieceTotals.totalArea, 4)} M²</div>
                                   </div>
                                   <div className="space-y-0.5">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Ralo</span>
-                                    <div className="text-slate-900 font-mono font-bold">{piece.sculptedSink.drainType || 'Válvula oculta'}</div>
+                                    <div className="text-slate-900 font-mono font-bold">{piece.sculptedSink.drainType || 'VÃ¡lvula oculta'}</div>
                                   </div>
                                   <div className="space-y-0.5">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Mao de Obra</span>
@@ -1357,7 +1357,7 @@ export const QuoteEditor: React.FC = () => {
                           </div>
                         </div>
                         <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Area do rebaixo (m2)</span>
+                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Area do rebaixo (M²)</span>
                           <div className="text-brand-primary font-mono font-bold">{calculateWetAreaRecessArea(piece).toFixed(4)}</div>
                         </div>
                       </div>
@@ -1621,6 +1621,8 @@ export const QuoteEditor: React.FC = () => {
 };
 
 const X = ({ className }: any) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
+
+
 
 
 

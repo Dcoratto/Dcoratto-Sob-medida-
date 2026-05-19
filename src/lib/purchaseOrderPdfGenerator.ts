@@ -1,4 +1,4 @@
-import {formatMaterialSpecsWithProvider} from './materialSpecs';
+﻿import {formatMaterialSpecsWithProvider} from './materialSpecs';
 import {formatCurrency, formatNumber} from './utils';
 import type {InventoryPurchase, Settings} from '../types';
 
@@ -10,9 +10,9 @@ type PurchaseOrderGroup = {
 
 const sanitizePdfText = (value: string) =>
   String(value || '')
-    .replace(/[²]/g, '2')
+    .replace(/[Â²]/g, '2')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/Ã‚Â²/g, '2')
+    .replace(/Ãƒâ€šÃ‚Â²/g, '2')
     .replace(/[^\x20-\x7E\n]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -66,7 +66,7 @@ export const generatePurchaseOrderPdf = async (group: PurchaseOrderGroup, settin
       sanitizePdfText(formatMaterialSpecsWithProvider(purchase)),
       sanitizePdfText(purchase.code || '-'),
       `${purchase.length} x ${purchase.width} cm`,
-      `${formatNumber(purchase.area || 0)} m2`,
+      `${formatNumber(purchase.area || 0)} M²`,
       sanitizePdfText(formatCurrency(purchase.cost || 0)),
     ]),
     theme: 'grid',
@@ -94,7 +94,7 @@ export const generatePurchaseOrderPdf = async (group: PurchaseOrderGroup, settin
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.text(`Total de chapas: ${group.purchases.length}`, 14, finalY + 12);
-  doc.text(`Area total: ${formatNumber(totalArea)} m2`, 14, finalY + 18);
+  doc.text(`Area total: ${formatNumber(totalArea)} M²`, 14, finalY + 18);
   doc.text(sanitizePdfText(`Compra total: ${formatCurrency(totalCost)}`), 14, finalY + 24);
 
   doc.setFont('helvetica', 'normal');
@@ -104,3 +104,4 @@ export const generatePurchaseOrderPdf = async (group: PurchaseOrderGroup, settin
 
   doc.save(`Pedido_${safeFilePart(group.supplier || group.groupId)}.pdf`);
 };
+

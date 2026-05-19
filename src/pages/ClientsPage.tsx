@@ -83,6 +83,29 @@ const formatDateInput = (value: any) => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeDateStringToInput = (value: string) => {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+
+  const brazilianMatch = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brazilianMatch) {
+    const [, day, month, year] = brazilianMatch;
+    return `${year}-${month}-${day}`;
+  }
+
+  return '';
+};
+
+const normalizeInputDateToDisplay = (value: string) => {
+  const text = String(value || '').trim();
+  if (!text) return '';
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!isoMatch) return text;
+  const [, year, month, day] = isoMatch;
+  return `${day}/${month}/${year}`;
+};
+
 const addDaysToInputDate = (value: string, days: number) => {
   if (!value) return null;
   const date = new Date(`${value}T12:00:00`);
@@ -313,7 +336,7 @@ export const ClientsPage: React.FC = () => {
       googleDriveUrl: googleDriveUrl.trim(),
       cpf: cpf.trim(),
       rg: rg.trim(),
-      birthDate: birthDate.trim(),
+      birthDate: normalizeInputDateToDisplay(birthDate),
       address: fullAddress,
       notes,
       city: city.trim(),
@@ -404,7 +427,7 @@ export const ClientsPage: React.FC = () => {
         googleDriveUrl: '',
         cpf: parsed.cpfCnpj,
         rg: parsed.rgIe,
-        birthDate: parsed.birthDate,
+        birthDate: normalizeInputDateToDisplay(normalizeDateStringToInput(parsed.birthDate)),
         address: fullAddress,
         notes: importedNotes,
         city: parsed.currentCity,
@@ -474,7 +497,7 @@ export const ClientsPage: React.FC = () => {
     setGoogleDriveUrl(client.googleDriveUrl || '');
     setCpf(client.cpf || '');
     setRg(client.rg || '');
-    setBirthDate(client.birthDate || '');
+    setBirthDate(normalizeDateStringToInput(client.birthDate || ''));
     setAddress(client.address || '');
     setCity(client.city || '');
     setZipCode(client.zipCode || '');

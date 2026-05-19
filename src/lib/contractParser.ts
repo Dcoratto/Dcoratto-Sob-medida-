@@ -65,6 +65,7 @@ const LABELS: LabelConfig[] = [
 
 const STOP_MARKERS = ['CONDICOES GERAIS', 'CLAUSULA', 'CLÁUSULA', 'PAGINA 2', 'PÁGINA 2', '2/2'] as const;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.0-flash'];
 
 const normalizeText = (value: string) =>
   String(value || '')
@@ -288,6 +289,14 @@ const coerceParsedClient = (payload: Record<string, unknown>): ParsedContractCli
   rawText: sanitizeValue(String(payload.rawText || '')),
 });
 
+const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+
+const isTransientGeminiError = (error: unknown) => {
+  const message = String((error as any)?.message || error || '').toUpperCase();
+  const status = Number((error as any)?.status || (error as any)?.code || 0);
+  return status === 503 || message.includes('503') || message.includes('UNAVAILABLE') || message.includes('TIMEOUT') || message.includes('HIGH DEMAND');
+};
+
 const parseWithGeminiFallback = async (buffer: ArrayBuffer) => {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY_NAO_CONFIGURADA');
@@ -308,26 +317,47 @@ Regras:
 - rawText deve trazer um resumo em texto do conteúdo identificado da primeira página.
 `.trim();
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: [
-      {
-        role: 'user',
-        parts: [
-          {text: prompt},
-          {
-            inlineData: {
-              mimeType: 'application/pdf',
-              data: arrayBufferToBase64(buffer),
+  let lastError: unknown = null;
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {text: prompt},
+                {
+                  inlineData: {
+                    mimeType: 'application/pdf',
+                    data: arrayBufferToBase64(buffer),
+                  },
+                },
+              ],
             },
-          },
-        ],
-      },
-    ],
-  });
+          ],
+        });
 
-  const payload = extractJsonPayload(response.text || '');
-  return coerceParsedClient(payload);
+        const payload = extractJsonPayload(response.text || '');
+        return coerceParsedClient(payload);
+      } catch (error) {
+        lastError = error;
+        if (!isTransientGeminiError(error)) {
+          throw error;
+        }
+        if (attempt < 2) {
+          await sleep(1200 * (attempt + 1));
+        }
+      }
+    }
+  }
+
+  if (isTransientGeminiError(lastError)) {
+    throw new Error('GEMINI_TEMPORARIAMENTE_INDISPONIVEL');
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('GEMINI_FALHOU');
 };
 
 export const parseClientContractPdf = async (file: File): Promise<ParsedContractClient> => {

@@ -12,6 +12,7 @@ import { SettingsPage } from './SettingsPage';
 import {ACCESS_ROLES, ACTION_LABELS, getDefaultPermissions, hasPermission, isMasterAdmin, mergePermissions, MODULE_LABELS, roleLabel} from '../lib/permissions';
 import {logAuditEvent} from '../lib/auditLogs';
 import {optimizeImageFile} from '../lib/imageUtils';
+import {useSettings} from '../hooks/useSettings';
 
 const employeeRoles: EmployeeRole[] = ['Vendedor', 'Medidor', 'Cortador', 'Acabador', 'Instalador', 'Entregador', 'Administrativo'];
 const slugify = (value: string) =>
@@ -38,6 +39,7 @@ const resetCollections = [
 const MAX_IMAGE_SIZE_MB = 8;
 const MAX_STORED_IMAGE_BYTES = 850 * 1024;
 const IMAGE_MAX_SIDE = 900;
+const parseThicknessValue = (label: string) => Number(String(label || '').replace(',', '.').replace(/[^\d.]/g, '')) || 0;
 
 const assertValidImage = (file: File) => {
   if (!file.type.startsWith('image/')) {
@@ -68,6 +70,7 @@ const getCatalogSaveErrorMessage = (error: any, itemName: string) => {
 
 export const AdminPage: React.FC = () => {
   const {isAdmin, accessUser, user: authUser, isMasterAdmin: masterAdmin} = useAuth();
+  const {settings} = useSettings();
   const [users, setUsers] = useState<AccessUser[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -93,6 +96,10 @@ export const AdminPage: React.FC = () => {
     name: '',
     provider: '',
     category: '',
+    materialLine: '',
+    materialType: 'Chapa',
+    thicknessLabel: '',
+    texture: '',
   });
   const [savingFixture, setSavingFixture] = useState(false);
   const [fixtureError, setFixtureError] = useState('');
@@ -272,7 +279,15 @@ export const AdminPage: React.FC = () => {
 
   const resetMaterialForm = () => {
     setEditingMaterial(null);
-    setMaterialForm({name: '', provider: '', category: ''});
+    setMaterialForm({
+      name: '',
+      provider: '',
+      category: '',
+      materialLine: '',
+      materialType: 'Chapa',
+      thicknessLabel: '',
+      texture: '',
+    });
     setMaterialImageFile(null);
     setMaterialError('');
   };
@@ -283,6 +298,10 @@ export const AdminPage: React.FC = () => {
       name: material.name || '',
       provider: material.provider || '',
       category: material.category || '',
+      materialLine: material.materialLine || material.category || '',
+      materialType: material.materialType || 'Chapa',
+      thicknessLabel: material.thicknessLabel || '',
+      texture: material.texture || '',
     });
     setMaterialImageFile(null);
     setMaterialError('');
@@ -339,6 +358,10 @@ export const AdminPage: React.FC = () => {
     setMaterialError('');
     try {
       const materialId = editingMaterial?.id || slugify(name);
+      const materialLine = materialForm.materialLine.trim();
+      const materialType = materialForm.materialType.trim() || 'Chapa';
+      const thicknessLabel = materialForm.thicknessLabel.trim();
+      const texture = materialForm.texture.trim();
       let imageUrl = editingMaterial?.imageUrl || '';
       if (materialImageFile) {
         imageUrl = await optimizeCatalogImage(materialImageFile);
@@ -346,7 +369,12 @@ export const AdminPage: React.FC = () => {
       await setDoc(doc(db, 'materials', materialId), {
         name,
         provider: materialForm.provider.trim(),
-        category: materialForm.category.trim(),
+        category: materialLine || materialForm.category.trim(),
+        materialLine,
+        materialType,
+        thicknessLabel,
+        texture,
+        thickness: parseThicknessValue(thicknessLabel),
         baseCostPerM2: 0,
         marginPercentage: 0,
         pricePerM2: 0,
@@ -423,6 +451,10 @@ export const AdminPage: React.FC = () => {
   const toggleFixtureCatalogItem = async (item: FixtureCatalogItem) => {
     await updateDoc(doc(db, 'fixtureCatalog', item.id), {active: !item.active});
   };
+
+  const materialCatalog = settings.materialCatalog;
+  const supplierOptions = materialCatalog.suppliers || [];
+  const thicknessOptions = materialForm.materialType === 'Lamina' ? materialCatalog.slabThicknesses : materialCatalog.naturalThicknesses;
 
   const deleteStoredFile = async (fileUrl?: unknown) => {
     if (typeof fileUrl !== 'string' || !fileUrl.startsWith('http')) return;
@@ -604,10 +636,27 @@ export const AdminPage: React.FC = () => {
           <p className="text-sm text-slate-400">{editingMaterial ?`Editando: ${editingMaterial.name}` : 'Cadastre as pedras aqui para selecao no estoque, compras e orcamentos.'}</p>
         </div>
 
-        <form onSubmit={addMaterialCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
+        <form onSubmit={addMaterialCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           <input value={materialForm.name} onChange={(event) => setMaterialForm((form) => ({...form, name: event.target.value}))} placeholder="Nome da pedra" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
-          <input value={materialForm.provider} onChange={(event) => setMaterialForm((form) => ({...form, provider: event.target.value}))} placeholder="Fornecedor" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
-          <input value={materialForm.category} onChange={(event) => setMaterialForm((form) => ({...form, category: event.target.value}))} placeholder="Categoria" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <select value={materialForm.provider} onChange={(event) => setMaterialForm((form) => ({...form, provider: event.target.value}))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <option value="">Fornecedor</option>
+            {supplierOptions.map((supplier) => <option key={supplier.name} value={supplier.name}>{supplier.name}</option>)}
+          </select>
+          <select value={materialForm.materialLine} onChange={(event) => setMaterialForm((form) => ({...form, materialLine: event.target.value, category: event.target.value}))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <option value="">Linha do material</option>
+            {materialCatalog.materialLines.map((line) => <option key={line} value={line}>{line}</option>)}
+          </select>
+          <select value={materialForm.materialType} onChange={(event) => setMaterialForm((form) => ({...form, materialType: event.target.value, thicknessLabel: ''}))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            {materialCatalog.materialTypes.map((type) => <option key={type} value={type}>{type}</option>)}
+          </select>
+          <select value={materialForm.texture} onChange={(event) => setMaterialForm((form) => ({...form, texture: event.target.value}))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <option value="">Textura</option>
+            {materialCatalog.textures.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <select value={materialForm.thicknessLabel} onChange={(event) => setMaterialForm((form) => ({...form, thicknessLabel: event.target.value}))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <option value="">Espessura</option>
+            {thicknessOptions.map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
           <label className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 cursor-pointer">
             {materialImageFile ?materialImageFile.name : 'Imagem da pedra'}
             <input
@@ -643,7 +692,12 @@ export const AdminPage: React.FC = () => {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="font-bold text-slate-900">{material.name}</div>
-                  <div className="text-xs text-slate-400">{material.category || 'Sem categoria'} · {material.provider || 'Sem fornecedor'}</div>
+                  <div className="text-xs text-slate-400">
+                    {material.materialLine || material.category || 'Sem categoria'} · {material.provider || 'Sem fornecedor'}
+                  </div>
+                  <div className="mt-1 text-xs text-slate-400">
+                    {[material.materialType, material.thicknessLabel, material.texture].filter(Boolean).join(' · ') || 'Sem especificações'}
+                  </div>
                   <div className="mt-1 text-xs font-semibold text-slate-500">Preco e margem definidos na aba Materiais.</div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">

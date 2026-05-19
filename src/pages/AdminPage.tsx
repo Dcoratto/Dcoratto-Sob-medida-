@@ -11,6 +11,7 @@ import {cn} from '../lib/utils';
 import { SettingsPage } from './SettingsPage';
 import {ACCESS_ROLES, ACTION_LABELS, getDefaultPermissions, hasPermission, isMasterAdmin, mergePermissions, MODULE_LABELS, roleLabel} from '../lib/permissions';
 import {logAuditEvent} from '../lib/auditLogs';
+import {optimizeImageFile} from '../lib/imageUtils';
 
 const employeeRoles: EmployeeRole[] = ['Vendedor', 'Medidor', 'Cortador', 'Acabador', 'Instalador', 'Entregador', 'Administrativo'];
 const slugify = (value: string) =>
@@ -47,46 +48,13 @@ const assertValidImage = (file: File) => {
   }
 };
 
-const readFileAsDataUrl = (file: File) =>
-  new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ''));
-    reader.onerror = () => reject(new Error('Não foi possível ler a imagem selecionada.'));
-    reader.readAsDataURL(file);
-  });
-
-const dataUrlSize = (dataUrl: string) => Math.ceil((dataUrl.length * 3) / 4);
-
 const optimizeCatalogImage = async (file: File) => {
   assertValidImage(file);
-  const source = await readFileAsDataUrl(file);
-
-  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Não foi possível carregar a imagem selecionada.'));
-    img.src = source;
+  return optimizeImageFile(file, {
+    maxBytes: MAX_STORED_IMAGE_BYTES,
+    maxSide: IMAGE_MAX_SIDE,
+    mimeType: 'image/webp',
   });
-
-  const scale = Math.min(1, IMAGE_MAX_SIDE / Math.max(image.width, image.height));
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.max(1, Math.round(image.width * scale));
-  canvas.height = Math.max(1, Math.round(image.height * scale));
-  const context = canvas.getContext('2d');
-  if (!context) {
-    throw new Error('Não foi possível preparar a imagem.');
-  }
-
-  context.drawImage(image, 0, 0, canvas.width, canvas.height);
-
-  for (const quality of [0.82, 0.72, 0.62, 0.52, 0.42]) {
-    const dataUrl = canvas.toDataURL('image/jpeg', quality);
-    if (dataUrlSize(dataUrl) <= MAX_STORED_IMAGE_BYTES) {
-      return dataUrl;
-    }
-  }
-
-  throw new Error('A imagem ficou muito pesada. Tente uma imagem menor ou mais simples.');
 };
 
 const getCatalogSaveErrorMessage = (error: any, itemName: string) => {

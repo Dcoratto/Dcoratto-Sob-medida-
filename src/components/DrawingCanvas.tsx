@@ -924,7 +924,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       ctx.restore();
     });
     ctx.restore();
-    return canvas.toDataURL('image/png');
+    return canvas.toDataURL('image/webp', 0.92);
   }, [closed, cutouts, drawPoints]);
 
   const saveDrawing = () => {

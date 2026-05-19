@@ -145,7 +145,7 @@ export const QuoteEditor: React.FC = () => {
   };
   const selectedClient = clients.find(c => c.id === clientId);
   const { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithUserPrice(piece.materialId || materialId));
-  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuario';
+  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
   
   const selectedPaymentAdjustment = settings.paymentMethods.find(m => m.name === paymentMethod)?.adjustment || 0;
   const totalPrice = calculateTotal(pieces, cutouts, selectedPaymentAdjustment);
@@ -300,7 +300,7 @@ export const QuoteEditor: React.FC = () => {
   }, [id, user?.uid]);
 
   useEffect(() => {
-    if (!id && !responsible && currentUserName !== 'Usuario') {
+    if (!id && !responsible && currentUserName !== 'Usuário') {
       setResponsible(currentUserName);
     }
   }, [currentUserName, id, responsible]);
@@ -899,7 +899,7 @@ export const QuoteEditor: React.FC = () => {
                         onClick={() => updatePiece(piece.id, {stair: {...(piece.stair || defaultStairConfig()), active: false}})}
                         className={cn('px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', !piece.stair?.active ?'bg-brand-primary text-white shadow-sm' : 'text-slate-400 hover:text-slate-700')}
                       >
-                        Peca
+                        Peça
                       </button>
                       <button
                         type="button"
@@ -1122,7 +1122,7 @@ export const QuoteEditor: React.FC = () => {
                       </div>
                       )}
                       <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Area Total (M²)</label>
+                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Área Total (M²)</label>
                         <div className="px-4 py-2.5 bg-slate-100 rounded-xl font-mono text-slate-600 flex flex-col items-end">
                           <div className="flex justify-between w-full items-center">
                             <span className="text-[9px] uppercase font-bold text-slate-400">Total:</span>
@@ -1151,7 +1151,7 @@ export const QuoteEditor: React.FC = () => {
                           )}
                         </div>
                         <div className={cn('mt-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide', !hasMaterial ?'bg-slate-100 text-slate-500' : hasEnoughStock ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600')}>
-                          {!hasMaterial ?'Selecione um material para validar o estoque' : hasEnoughStock ?`M² suficiente: ${stock.available.toFixed(2)} M² disponivel` : `M² insuficiente: precisa ${pieceArea.toFixed(2)} M² e ha ${stock.available.toFixed(2)} M²`}
+                          {!hasMaterial ?'Selecione um material para validar o estoque' : hasEnoughStock ?`M² suficiente: ${stock.available.toFixed(2)} M² disponível` : `M² insuficiente: precisa ${pieceArea.toFixed(2)} M² e há ${stock.available.toFixed(2)} M²`}
                         </div>
                         {hasMaterial && hasEnoughStock && lotInfo && (
                           <div className={cn('mt-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide', lotInfo.canUseSingleLot ?'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700')}>
@@ -1621,8 +1621,6 @@ export const QuoteEditor: React.FC = () => {
 };
 
 const X = ({ className }: any) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
-
-
 
 
 

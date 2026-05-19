@@ -29,12 +29,12 @@ export const Sidebar: React.FC = () => {
 
   const menuItems = [
     hasPermission('dashboard', 'visualizar') ?{icon: LayoutDashboard, label: 'Dashboard', path: '/'} : null,
-    hasPermission('orcamento', 'visualizar') ?{icon: FileText, label: 'Orcamentos', path: '/quotes'} : null,
+    hasPermission('orcamento', 'visualizar') ?{icon: FileText, label: 'Orçamentos', path: '/quotes'} : null,
     hasPermission('projeto', 'visualizar') ?{icon: FolderKanban, label: 'Projetos', path: '/projects'} : null,
     hasPermission('cliente', 'visualizar') ?{icon: Users, label: 'Clientes', path: '/clients'} : null,
-    hasPermission('medicao', 'visualizar') ?{icon: CalendarDays, label: 'Calendario', path: '/calendar'} : null,
-    hasPermission('historico', 'visualizar') ?{icon: History, label: 'Historico', path: '/history'} : null,
-    hasPermission('relatorios', 'visualizar') ?{icon: BarChart3, label: 'Relatorios', path: '/reports'} : null,
+    hasPermission('medicao', 'visualizar') ?{icon: CalendarDays, label: 'Calendário', path: '/calendar'} : null,
+    hasPermission('historico', 'visualizar') ?{icon: History, label: 'Histórico', path: '/history'} : null,
+    hasPermission('relatorios', 'visualizar') ?{icon: BarChart3, label: 'Relatórios', path: '/reports'} : null,
     hasPermission('materiais', 'visualizar') ?{icon: Package, label: 'Materiais', path: '/materials'} : null,
     hasPermission('estoque', 'visualizar') ?{icon: Database, label: 'Estoque', path: '/inventory'} : null,
   ].filter(Boolean) as MenuItem[];
@@ -43,7 +43,7 @@ export const Sidebar: React.FC = () => {
     menuItems.push({icon: ShieldAlert, label: 'Admin', path: '/admin'});
   }
 
-  const displayName = profile?.name || accessUser?.nome || user?.email?.split('@')[0] || 'Usuario';
+  const displayName = profile?.name || accessUser?.nome || user?.email?.split('@')[0] || 'Usuário';
   const displayRole = profile?.position || (accessUser?.role ?roleLabel(accessUser.role) : user?.email || '');
 
   const closeMobileMenu = () => setMobileOpen(false);

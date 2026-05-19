@@ -1,3 +1,5 @@
+import {GoogleGenAI} from '@google/genai';
+
 export type ParsedContractClient = {
   sellerName: string;
   storeName: string;
@@ -62,6 +64,7 @@ const LABELS: LabelConfig[] = [
 ] as const;
 
 const STOP_MARKERS = ['CONDICOES GERAIS', 'CLAUSULA', 'CLÁUSULA', 'PAGINA 2', 'PÁGINA 2', '2/2'] as const;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 const normalizeText = (value: string) =>
   String(value || '')
@@ -233,6 +236,100 @@ const getContractNumber = (tokens: string[], rawText: string) => {
   return match?.[1]?.trim() || '';
 };
 
+const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 0x8000;
+
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    const chunk = bytes.subarray(index, index + chunkSize);
+    binary += String.fromCharCode(...chunk);
+  }
+
+  return btoa(binary);
+};
+
+const extractJsonPayload = (value: string) => {
+  const text = String(value || '').trim();
+  const fenced = text.match(/```json\s*([\s\S]*?)```/i) || text.match(/```\s*([\s\S]*?)```/i);
+  const source = fenced?.[1] || text;
+  const firstBrace = source.indexOf('{');
+  const lastBrace = source.lastIndexOf('}');
+  if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) {
+    throw new Error('GEMINI_JSON_INVALIDO');
+  }
+  return JSON.parse(source.slice(firstBrace, lastBrace + 1));
+};
+
+const coerceParsedClient = (payload: Record<string, unknown>): ParsedContractClient => ({
+  sellerName: sanitizeValue(String(payload.sellerName || '')),
+  storeName: sanitizeValue(String(payload.storeName || '')),
+  contractDate: sanitizeValue(String(payload.contractDate || '')),
+  contractNumber: sanitizeValue(String(payload.contractNumber || '')),
+  contractType: sanitizeValue(String(payload.contractType || '')),
+  clientName: sanitizeValue(String(payload.clientName || '')),
+  cpfCnpj: sanitizeValue(String(payload.cpfCnpj || '')),
+  rgIe: sanitizeValue(String(payload.rgIe || '')),
+  birthDate: sanitizeValue(String(payload.birthDate || '')),
+  currentAddress: sanitizeValue(String(payload.currentAddress || '')),
+  currentNeighborhood: sanitizeValue(String(payload.currentNeighborhood || '')),
+  currentCity: sanitizeValue(String(payload.currentCity || '')),
+  currentUf: sanitizeValue(String(payload.currentUf || '')),
+  currentCep: sanitizeValue(String(payload.currentCep || '')),
+  phone: sanitizeValue(String(payload.phone || '')),
+  profession: sanitizeValue(String(payload.profession || '')),
+  email: sanitizeValue(String(payload.email || '')),
+  deliveryAddress: sanitizeValue(String(payload.deliveryAddress || '')),
+  deliveryNeighborhood: sanitizeValue(String(payload.deliveryNeighborhood || '')),
+  deliveryCity: sanitizeValue(String(payload.deliveryCity || '')),
+  deliveryUf: sanitizeValue(String(payload.deliveryUf || '')),
+  deliveryCep: sanitizeValue(String(payload.deliveryCep || '')),
+  deliveryDeadline: sanitizeValue(String(payload.deliveryDeadline || '')),
+  rawText: sanitizeValue(String(payload.rawText || '')),
+});
+
+const parseWithGeminiFallback = async (buffer: ArrayBuffer) => {
+  if (!GEMINI_API_KEY) {
+    throw new Error('PDF_SEM_TEXTO_UTIL');
+  }
+
+  const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});
+  const prompt = `
+Leia apenas a primeira página deste contrato em PDF e extraia os campos do cliente.
+Responda somente com JSON válido, sem explicações e sem markdown.
+
+Use exatamente estas chaves:
+sellerName, storeName, contractDate, contractNumber, contractType, clientName, cpfCnpj, rgIe, birthDate, currentAddress, currentNeighborhood, currentCity, currentUf, currentCep, phone, profession, email, deliveryAddress, deliveryNeighborhood, deliveryCity, deliveryUf, deliveryCep, deliveryDeadline, rawText
+
+Regras:
+- Leia apenas a primeira página.
+- Preserve os textos como aparecem no documento.
+- Se algum campo não existir, retorne string vazia.
+- rawText deve trazer um resumo em texto do conteúdo identificado da primeira página.
+`.trim();
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: [
+      {
+        role: 'user',
+        parts: [
+          {text: prompt},
+          {
+            inlineData: {
+              mimeType: 'application/pdf',
+              data: arrayBufferToBase64(buffer),
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  const payload = extractJsonPayload(response.text || '');
+  return coerceParsedClient(payload);
+};
+
 export const parseClientContractPdf = async (file: File): Promise<ParsedContractClient> => {
   const buffer = await file.arrayBuffer();
   const extractedTokens = extractPdfTokens(buffer);
@@ -245,12 +342,10 @@ export const parseClientContractPdf = async (file: File): Promise<ParsedContract
   const foundCoreLabels = positions.length;
 
   if (principalFields < 2) {
-    const error = new Error(
-      foundCoreLabels < 3
-        ? 'PDF_SEM_TEXTO_UTIL'
-        : 'PDF_PADRAO_NAO_RECONHECIDO',
-    );
-    throw error;
+    if (foundCoreLabels < 3) {
+      return parseWithGeminiFallback(buffer);
+    }
+    throw new Error('PDF_PADRAO_NAO_RECONHECIDO');
   }
 
   return {

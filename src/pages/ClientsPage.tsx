@@ -1,4 +1,4 @@
-import React, {useEffect, useMemo, useRef, useState} from 'react';
+﻿import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from 'firebase/firestore';
 import {Banknote, CheckCircle2, ClipboardList, Edit2, FileText, FileUp, Info, MapPin, Phone, Plus, Search, Trash2, User, Users, X} from 'lucide-react';
 import {db} from '../lib/firebase';
@@ -17,10 +17,10 @@ import {parseClientContractPdf} from '../lib/contractParser';
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
 const productionSteps: Array<{key: ProductionStep; label: string}> = [
-  {key: 'medicao', label: 'Medição'},
+  {key: 'medicao', label: 'MediÃ§Ã£o'},
   {key: 'corte', label: 'Corte'},
   {key: 'acabamento', label: 'Acabamento'},
-  {key: 'instalacao', label: 'Instalação'},
+  {key: 'instalacao', label: 'InstalaÃ§Ã£o'},
   {key: 'entrega', label: 'Entrega'},
 ];
 
@@ -33,10 +33,10 @@ const normalize = (value: unknown) =>
     .replace(/[\u0300-\u036f]/g, '');
 
 const stageMeta: Record<ClientStage, {label: string; dot: string; chip: string}> = {
-  pre: {label: 'Orçamento', dot: 'bg-[#B0BEC5]', chip: 'bg-[#B0BEC5]/20 text-[#455A64]'},
-  approved: {label: 'Orçamento Aprovado', dot: 'bg-[#66BB6A]', chip: 'bg-[#66BB6A]/20 text-[#2E7D32]'},
-  production: {label: 'Produção', dot: 'bg-[#E53935]', chip: 'bg-[#E53935]/15 text-[#B71C1C]'},
-  ready: {label: 'Conferência/Entrega', dot: 'bg-[#00838F]', chip: 'bg-[#00838F]/15 text-[#006064]'},
+  pre: {label: 'OrÃ§amento', dot: 'bg-[#B0BEC5]', chip: 'bg-[#B0BEC5]/20 text-[#455A64]'},
+  approved: {label: 'OrÃ§amento Aprovado', dot: 'bg-[#66BB6A]', chip: 'bg-[#66BB6A]/20 text-[#2E7D32]'},
+  production: {label: 'ProduÃ§Ã£o', dot: 'bg-[#E53935]', chip: 'bg-[#E53935]/15 text-[#B71C1C]'},
+  ready: {label: 'ConferÃªncia/Entrega', dot: 'bg-[#00838F]', chip: 'bg-[#00838F]/15 text-[#006064]'},
   done: {label: 'Finalizado', dot: 'bg-[#0B3D0B]', chip: 'bg-[#0B3D0B] text-white'},
   none: {label: 'Sem projeto', dot: 'bg-zinc-300', chip: 'bg-zinc-100 text-zinc-500'},
 };
@@ -45,10 +45,15 @@ const quoteStage = (quote?: Quote): ClientStage => {
   if (!quote) return 'none';
   const status = normalizeQuoteStatus(quote.status);
   if (status === 'Finalizado') return 'done';
-  if (['Conferência Final', 'Entrega'].includes(status)) return 'ready';
-  if (['Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada'].includes(status)) return 'production';
-  if (['Orçamento Aprovado', 'Medição', 'Projeto'].includes(status)) return 'approved';
+  if (['ConferÃªncia Final', 'Entrega'].includes(status)) return 'ready';
+  if (['Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'ProduÃ§Ã£o Finalizada'].includes(status)) return 'production';
+  if (['OrÃ§amento Aprovado', 'MediÃ§Ã£o', 'Projeto'].includes(status)) return 'approved';
   return 'pre';
+};
+
+const clientStage = (client: Client, quote?: Quote): ClientStage => {
+  if (quote) return quoteStage(quote);
+  return client.manualStage || 'none';
 };
 
 const quoteTime = (quote?: Quote) => {
@@ -112,7 +117,7 @@ const deriveStreetAddress = (client: Client) => {
   const rawAddress = String(client.address || '').trim();
   if (!rawAddress) return '';
 
-  const separators = [' Â· ', ' · '];
+  const separators = [' Ã‚Â· ', ' Â· '];
   for (const separator of separators) {
     if (rawAddress.includes(separator)) {
       const [street] = rawAddress.split(separator);
@@ -230,7 +235,7 @@ export const ClientsPage: React.FC = () => {
   }, [quotes, selectedClient]);
 
   const selectedQuote = selectedClientQuotes.find((quote) => quote.id === selectedQuoteId) || selectedClientQuotes[0];
-  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
+  const currentUserName = profile?.name || user?.displayName || user?.email || 'UsuÃ¡rio';
   const activeEmployees = useMemo(
     () => employees.filter((employee) => employee.active !== false),
     [employees],
@@ -341,12 +346,12 @@ export const ClientsPage: React.FC = () => {
       neighborhood  ? `Bairro ${neighborhood}` : '',
       city,
       zipCode  ? `CEP ${zipCode}` : '',
-      selectedCondominium?.name  ? `Condomínio ${selectedCondominium.name}` : '',
+      selectedCondominium?.name  ? `CondomÃ­nio ${selectedCondominium.name}` : '',
       includeLot && block  ? `Quadra ${block}` : '',
       includeLot && lot  ? `Lote ${lot}` : '',
       tower  ? `Torre ${tower}` : '',
       apartmentNumber  ? `Apto ${apartmentNumber}` : '',
-    ].filter(Boolean).join(' · ');
+    ].filter(Boolean).join(' Â· ');
     const data = {
       name,
       phone,
@@ -417,7 +422,7 @@ export const ClientsPage: React.FC = () => {
         parsed.currentCity,
         parsed.currentUf,
         parsed.currentCep ? `CEP ${parsed.currentCep}` : '',
-      ].filter(Boolean).join(' · ');
+      ].filter(Boolean).join(' Â· ');
 
       const deliveryAddressLine = [
         parsed.deliveryAddress,
@@ -425,17 +430,17 @@ export const ClientsPage: React.FC = () => {
         parsed.deliveryCity,
         parsed.deliveryUf,
         parsed.deliveryCep ? `CEP ${parsed.deliveryCep}` : '',
-      ].filter(Boolean).join(' · ');
+      ].filter(Boolean).join(' Â· ');
 
       const importedNotes = [
         'Contrato importado por PDF.',
         parsed.contractNumber ? `Contrato: ${parsed.contractNumber}` : '',
         parsed.contractDate ? `Data do contrato: ${parsed.contractDate}` : '',
         parsed.contractType ? `Tipo de contrato: ${parsed.contractType}` : '',
-        parsed.sellerName ? `Responsável pela venda: ${parsed.sellerName}` : '',
+        parsed.sellerName ? `ResponsÃ¡vel pela venda: ${parsed.sellerName}` : '',
         parsed.storeName ? `Loja: ${parsed.storeName}` : '',
-        parsed.profession ? `Profissão: ${parsed.profession}` : '',
-        deliveryAddressLine ? `Endereço de entrega: ${deliveryAddressLine}` : '',
+        parsed.profession ? `ProfissÃ£o: ${parsed.profession}` : '',
+        deliveryAddressLine ? `EndereÃ§o de entrega: ${deliveryAddressLine}` : '',
         parsed.deliveryDeadline ? `Prazo de entrega: ${parsed.deliveryDeadline}` : '',
       ].filter(Boolean).join('\n');
 
@@ -498,11 +503,11 @@ export const ClientsPage: React.FC = () => {
       console.error(error);
       const code = error instanceof Error ? error.message : '';
       if (code === 'GEMINI_API_KEY_NAO_CONFIGURADA') {
-        window.alert('O PDF precisa de leitura por IA, mas a chave GEMINI_API_KEY não está configurada no deploy. Sem essa chave, esse tipo de contrato não pode ser importado automaticamente.');
+        window.alert('O PDF precisa de leitura por IA, mas a chave GEMINI_API_KEY nÃ£o estÃ¡ configurada no deploy. Sem essa chave, esse tipo de contrato nÃ£o pode ser importado automaticamente.');
       } else if (code === 'PDF_SEM_TEXTO_UTIL') {
-        window.alert('Não consegui ler esse PDF porque ele parece estar sem texto selecionável. Se for um PDF escaneado ou uma imagem, preciso que ele venha com texto real para importar automaticamente.');
+        window.alert('NÃ£o consegui ler esse PDF porque ele parece estar sem texto selecionÃ¡vel. Se for um PDF escaneado ou uma imagem, preciso que ele venha com texto real para importar automaticamente.');
       } else {
-        window.alert('Não consegui ler esse contrato automaticamente. Confira se o PDF segue o modelo padrão e tente novamente.');
+        window.alert('NÃ£o consegui ler esse contrato automaticamente. Confira se o PDF segue o modelo padrÃ£o e tente novamente.');
       }
     } finally {
       setImportingContract(false);
@@ -543,7 +548,7 @@ export const ClientsPage: React.FC = () => {
     if (deletedClient) {
       await logSystemEvent({
         type: 'client_deleted',
-        title: 'Cliente excluído',
+        title: 'Cliente excluÃ­do',
         description: deletedClient.name,
         entityType: 'client',
         entityId: id,
@@ -596,7 +601,7 @@ export const ClientsPage: React.FC = () => {
         userName: currentUserName,
       });
     } catch (error: any) {
-      alert(error?.message || 'Não foi possível alterar o status do orçamento.');
+      alert(error?.message || 'NÃ£o foi possÃ­vel alterar o status do orÃ§amento.');
     }
   };
 
@@ -611,7 +616,7 @@ export const ClientsPage: React.FC = () => {
       const holiday = getHolidayInfo(item.date, condominium.city);
       const dayBlocked = !condominium.allowedWeekdays.includes(weekday);
       const holidayBlocked = (holiday.national && condominium.blockNationalHolidays) || (holiday.city && condominium.blockCityHolidays);
-      if (dayBlocked) return `${item.label}: ${condominium.name} não permite agendamento em ${['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'][weekday]}.`;
+      if (dayBlocked) return `${item.label}: ${condominium.name} nÃ£o permite agendamento em ${['seg', 'ter', 'qua', 'qui', 'sex', 'sÃ¡b', 'dom'][weekday]}.`;
       if (holidayBlocked) return `${item.label}: ${holiday.national || holiday.city} em ${condominium.city}.`;
     }
 
@@ -622,11 +627,11 @@ export const ClientsPage: React.FC = () => {
     const measurement = value ?new Date(`${value}T12:00:00`) : null;
     const delivery = value ?addDaysToInputDate(value, quote.deliveryDays || 0) : null;
     const blockedReason = getCondominiumScheduleBlock(quote, [
-      {label: 'Medição', date: measurement},
+      {label: 'MediÃ§Ã£o', date: measurement},
       {label: 'Entrega', date: delivery},
     ]);
     if (blockedReason) {
-      alert(`Não é possível agendar nessa data. ${blockedReason}`);
+      alert(`NÃ£o Ã© possÃ­vel agendar nessa data. ${blockedReason}`);
       return;
     }
     await updateDoc(doc(db, 'quotes', quote.id), {
@@ -640,8 +645,8 @@ export const ClientsPage: React.FC = () => {
           changedByUid: user?.uid || '',
           changedByName: currentUserName,
           note: value
-            ? `Medição agendada para ${value.split('-').reverse().join('/')} e entrega calculada pelo prazo de ${quote.deliveryDays || 0} dia(s)`
-            : 'Medição e entrega removidas',
+            ? `MediÃ§Ã£o agendada para ${value.split('-').reverse().join('/')} e entrega calculada pelo prazo de ${quote.deliveryDays || 0} dia(s)`
+            : 'MediÃ§Ã£o e entrega removidas',
         },
       ],
     });
@@ -653,7 +658,7 @@ export const ClientsPage: React.FC = () => {
     const delivery = measurementInput ?addDaysToInputDate(measurementInput, deliveryDays) : null;
     const blockedReason = getCondominiumScheduleBlock(quote, [{label: 'Entrega', date: delivery}]);
     if (blockedReason) {
-      alert(`Não é possível usar esse prazo. ${blockedReason}`);
+      alert(`NÃ£o Ã© possÃ­vel usar esse prazo. ${blockedReason}`);
       return;
     }
     await updateDoc(doc(db, 'quotes', quote.id), {
@@ -720,7 +725,7 @@ export const ClientsPage: React.FC = () => {
         responsibleEmployeeId: employee?.id || '',
         responsibleEmployeeName: employee?.name || '',
         step,
-        note: employee  ? `${employee.name} assumiu ${productionSteps.find((item) => item.key === step)?.label}` : `Responsável removido de ${step}`,
+        note: employee  ? `${employee.name} assumiu ${productionSteps.find((item) => item.key === step)?.label}` : `ResponsÃ¡vel removido de ${step}`,
       },
     ];
     const updatePayload = {
@@ -734,7 +739,7 @@ export const ClientsPage: React.FC = () => {
     await updateDoc(doc(db, 'quotes', quote.id), updatePayload);
     await logSystemEvent({
       type: 'production_assignment_changed',
-      title: employee ?'Responsável de produção definido' : 'Responsável de produção removido',
+      title: employee ?'ResponsÃ¡vel de produÃ§Ã£o definido' : 'ResponsÃ¡vel de produÃ§Ã£o removido',
       description: employee  ? `${employee.name} em ${productionSteps.find((item) => item.key === step)?.label}` : `Etapa ${step}`,
       entityType: 'production',
       entityId: quote.id,
@@ -776,7 +781,7 @@ export const ClientsPage: React.FC = () => {
     });
     await logSystemEvent({
       type: 'production_step_changed',
-      title: finished ?'Etapa de produção reaberta' : 'Etapa de produção finalizada',
+      title: finished ?'Etapa de produÃ§Ã£o reaberta' : 'Etapa de produÃ§Ã£o finalizada',
       description: `${productionSteps.find((item) => item.key === assignment.step)?.label} - ${assignment.employeeName}`,
       entityType: 'production',
       entityId: quote.id,
@@ -794,7 +799,7 @@ export const ClientsPage: React.FC = () => {
 
   const updateEvaluation = async (quote: Quote, assignment: EmployeeAssignment, rating: number, notes?: string) => {
     if (!canEvaluateEmployees) {
-      alert('Você não tem permissão para avaliar funcionários. Fale com o administrador.');
+      alert('VocÃª nÃ£o tem permissÃ£o para avaliar funcionÃ¡rios. Fale com o administrador.');
       return;
     }
     const currentEvaluation = quote.employeeEvaluations?.find((item) => item.step === assignment.step && item.employeeId === assignment.employeeId);
@@ -830,7 +835,7 @@ export const ClientsPage: React.FC = () => {
     });
     await logSystemEvent({
       type: 'employee_evaluated',
-      title: 'Funcionário avaliado',
+      title: 'FuncionÃ¡rio avaliado',
       description: `${assignment.employeeName} recebeu ${rating}/5 em ${productionSteps.find((item) => item.key === assignment.step)?.label}`,
       entityType: 'employee',
       entityId: assignment.employeeId,
@@ -970,7 +975,7 @@ export const ClientsPage: React.FC = () => {
   };
 
   const filteredClients = clients.filter((client) => {
-    const stage = quoteStage(latestQuoteByClient.get(client.id));
+    const stage = clientStage(client, latestQuoteByClient.get(client.id));
     const matchesStatus = statusFilter === 'all' || stage === statusFilter;
     const matchesSearch = normalize(`${client.name} ${client.phone} ${client.email || ''} ${client.cpf || ''} ${client.rg || ''} ${client.address}`).includes(normalize(search));
     return matchesStatus && matchesSearch;
@@ -990,13 +995,17 @@ export const ClientsPage: React.FC = () => {
     await updateQuoteStatus(quote, status);
     setStatusMenuClientId(null);
   };
+  const handleLegacyClientStageChange = async (client: Client, stage: ClientStage) => {
+    await updateDoc(doc(db, 'clients', client.id), {manualStage: stage});
+    setStatusMenuClientId(null);
+  };
 
   return (
     <div className="space-y-6">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Clientes</h1>
-          <p className="text-slate-500 mt-1">Controle interno de qualidade, produção e entrega.</p>
+          <p className="text-slate-500 mt-1">Controle interno de qualidade, produÃ§Ã£o e entrega.</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
           <input
@@ -1032,7 +1041,7 @@ export const ClientsPage: React.FC = () => {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar clientes por nome, telefone ou endereço..."
+              placeholder="Buscar clientes por nome, telefone ou endereÃ§o..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
@@ -1055,7 +1064,7 @@ export const ClientsPage: React.FC = () => {
           ) : (
             filteredClients.map((client) => {
               const latestQuote = latestQuoteByClient.get(client.id);
-              const stage = quoteStage(latestQuote);
+              const stage = clientStage(client, latestQuote);
               const meta = stageMeta[stage];
 
               return (
@@ -1082,13 +1091,13 @@ export const ClientsPage: React.FC = () => {
                       <button type="button" title="Dados do cliente" onClick={() => openClientDetail(client, 'client')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
                         <Info className="h-4 w-4" />
                       </button>
-                      <button type="button" title="Informações do orçamento" onClick={() => openClientDetail(client, 'quote')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                      <button type="button" title="InformaÃ§Ãµes do orÃ§amento" onClick={() => openClientDetail(client, 'quote')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
                         <ClipboardList className="h-4 w-4" />
                       </button>
                       <button type="button" title="Valores detalhados" onClick={() => openClientDetail(client, 'values')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
                         <Banknote className="h-4 w-4" />
                       </button>
-                      <button type="button" title="Funcionários" onClick={() => openClientDetail(client, 'team')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                      <button type="button" title="FuncionÃ¡rios" onClick={() => openClientDetail(client, 'team')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
                         <Users className="h-4 w-4" />
                       </button>
                       {client.googleDriveUrl && (
@@ -1110,11 +1119,11 @@ export const ClientsPage: React.FC = () => {
                     </span>
                     <div className="flex items-start gap-2 text-sm text-slate-600">
                       <MapPin className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
-                      <span className="line-clamp-2">{client.address || 'Sem endereço cadastrado'}</span>
+                      <span className="line-clamp-2">{client.address || 'Sem endereÃ§o cadastrado'}</span>
                     </div>
                     {latestQuote && (
                       <div className="text-xs font-bold text-brand-primary">
-                        {latestQuote.pieces?.length || 0} peça(s) · {formatCurrency(latestQuote.totalPrice || 0)}
+                        {latestQuote.pieces?.length || 0} peÃ§a(s) Â· {formatCurrency(latestQuote.totalPrice || 0)}
                       </div>
                     )}
                   </div>
@@ -1143,8 +1152,25 @@ export const ClientsPage: React.FC = () => {
                           })}
                         </div>
                       ) : (
-                        <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
-                          Este cliente ainda não tem orçamento vinculado para trocar o status.
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {(Object.keys(stageMeta) as ClientStage[]).map((stageOption) => {
+                            const active = (client.manualStage || 'none') === stageOption;
+                            return (
+                              <button
+                                key={stageOption}
+                                type="button"
+                                onClick={() => handleLegacyClientStageChange(client, stageOption)}
+                                className={cn(
+                                  'rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-all',
+                                  active
+                                    ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
+                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand-primary/30 hover:bg-brand-primary/5',
+                                )}
+                              >
+                                {stageMeta[stageOption].label}
+                              </button>
+                            );
+                          })}
                         </div>
                       )}
                     </div>
@@ -1164,9 +1190,9 @@ export const ClientsPage: React.FC = () => {
                 <h2 className="text-2xl font-display font-bold text-slate-900">{selectedClient.name}</h2>
                 <p className="text-sm text-slate-400">
                   {detailModal === 'client' && 'Dados completos do cliente.'}
-                  {detailModal === 'quote' && 'Itens, peças, materiais e informações técnicas do orçamento.'}
-                  {detailModal === 'values' && 'Detalhamento financeiro e comercial do orçamento.'}
-                  {detailModal === 'team' && 'Controle de produção e responsáveis do contrato fechado.'}
+                  {detailModal === 'quote' && 'Itens, peÃ§as, materiais e informaÃ§Ãµes tÃ©cnicas do orÃ§amento.'}
+                  {detailModal === 'values' && 'Detalhamento financeiro e comercial do orÃ§amento.'}
+                  {detailModal === 'team' && 'Controle de produÃ§Ã£o e responsÃ¡veis do contrato fechado.'}
                 </p>
                 {detailModal !== 'client' && (
                   <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
@@ -1199,16 +1225,16 @@ export const ClientsPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="rounded-3xl border border-slate-100 p-5">
-                    <h3 className="mb-4 font-display text-xl font-bold text-slate-900">Endereço e observações</h3>
+                    <h3 className="mb-4 font-display text-xl font-bold text-slate-900">EndereÃ§o e observaÃ§Ãµes</h3>
                     <div className="space-y-3 text-sm text-slate-600">
-                      <DetailRow label="Endereço" value={selectedClient.address || '-'} multiline />
+                      <DetailRow label="EndereÃ§o" value={selectedClient.address || '-'} multiline />
                       <DetailRow label="Cidade" value={selectedClient.city || '-'} />
                       <DetailRow label="Bairro" value={selectedClient.neighborhood || '-'} />
                       <DetailRow label="CEP" value={selectedClient.zipCode || '-'} />
-                      <DetailRow label="Condomínio" value={selectedClient.condominiumName || '-'} />
-                      <DetailRow label="Bloco / Lote" value={[selectedClient.block, selectedClient.lot].filter(Boolean).join(' · ') || '-'} />
-                      <DetailRow label="Torre / Apto" value={[selectedClient.tower, selectedClient.apartmentNumber].filter(Boolean).join(' · ') || '-'} />
-                      <DetailRow label="Observações" value={selectedClient.notes || '-'} multiline />
+                      <DetailRow label="CondomÃ­nio" value={selectedClient.condominiumName || '-'} />
+                      <DetailRow label="Bloco / Lote" value={[selectedClient.block, selectedClient.lot].filter(Boolean).join(' Â· ') || '-'} />
+                      <DetailRow label="Torre / Apto" value={[selectedClient.tower, selectedClient.apartmentNumber].filter(Boolean).join(' Â· ') || '-'} />
+                      <DetailRow label="ObservaÃ§Ãµes" value={selectedClient.notes || '-'} multiline />
                     </div>
                   </div>
                 </section>
@@ -1221,7 +1247,7 @@ export const ClientsPage: React.FC = () => {
                       className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
                     >
                       {selectedClientQuotes.map((quote) => (
-                        <option key={quote.id} value={quote.id}>{quote.environment || 'Projeto'} · {formatCurrency(quote.totalPrice || 0)}</option>
+                        <option key={quote.id} value={quote.id}>{quote.environment || 'Projeto'} Â· {formatCurrency(quote.totalPrice || 0)}</option>
                       ))}
                     </select>
                     {selectedQuote && (
@@ -1244,7 +1270,7 @@ export const ClientsPage: React.FC = () => {
                           <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Agendamento do projeto</h3>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Data da medição</label>
+                              <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Data da mediÃ§Ã£o</label>
                               <input
                                 type="date"
                                 value={formatDateInput(selectedQuote.measurementDate)}
@@ -1265,7 +1291,7 @@ export const ClientsPage: React.FC = () => {
                             <div className="space-y-1">
                               <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Entrega calculada</label>
                               <div className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-semibold text-slate-700">
-                                {stepDate(selectedQuote.deliveryDate) || 'Defina a medição'}
+                                {stepDate(selectedQuote.deliveryDate) || 'Defina a mediÃ§Ã£o'}
                               </div>
                             </div>
                           </div>
@@ -1278,8 +1304,8 @@ export const ClientsPage: React.FC = () => {
                           <div className="mt-2 text-2xl font-display font-bold text-slate-900">{formatCurrency(selectedQuote.totalPrice || 0)}</div>
                         </div>
                         <div className="rounded-3xl bg-slate-50 p-5">
-                          <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Área total</div>
-                          <div className="mt-2 text-2xl font-display font-bold text-slate-900">{(selectedQuote.totalArea || 0).toFixed(4)} m²</div>
+                          <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Ãrea total</div>
+                          <div className="mt-2 text-2xl font-display font-bold text-slate-900">{(selectedQuote.totalArea || 0).toFixed(4)} mÂ²</div>
                         </div>
                         <div className="rounded-3xl bg-slate-50 p-5">
                           <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Status</div>
@@ -1290,12 +1316,12 @@ export const ClientsPage: React.FC = () => {
                       {(detailModal === 'quote' || detailModal === 'values') && (
                         <>
                           <section className="rounded-3xl border border-slate-100 p-5">
-                            <h3 className="mb-4 font-display text-xl font-bold text-slate-900">Resumo do orçamento</h3>
+                            <h3 className="mb-4 font-display text-xl font-bold text-slate-900">Resumo do orÃ§amento</h3>
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                               <SummaryBox label="Ambiente" value={selectedQuote.environment || '-'} />
                               <SummaryBox label="Pagamento" value={selectedQuote.paymentMethod || '-'} />
                               <SummaryBox label="Prazo" value={`${selectedQuote.deliveryDays || 0} dia(s)`} />
-                              <SummaryBox label="Responsável" value={selectedQuote.responsibleUserName || selectedQuote.responsible || '-'} />
+                              <SummaryBox label="ResponsÃ¡vel" value={selectedQuote.responsibleUserName || selectedQuote.responsible || '-'} />
                             </div>
                             {selectedQuoteCutoutRows.length > 0 && (
                               <div className="mt-4 flex flex-wrap gap-2">
@@ -1309,7 +1335,7 @@ export const ClientsPage: React.FC = () => {
                           </section>
 
                           <section className="rounded-3xl border border-slate-100 p-5">
-                            <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Peças orçadas</h3>
+                            <h3 className="font-display text-xl font-bold text-slate-900 mb-4">PeÃ§as orÃ§adas</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {(selectedQuote.pieces || []).map((piece) => (
                                 <div key={piece.id} className="rounded-2xl bg-slate-50 p-4 flex gap-4">
@@ -1324,7 +1350,7 @@ export const ClientsPage: React.FC = () => {
                                     <div className="font-bold text-slate-900">{piece.name}</div>
                                     <div className="text-xs text-slate-400">{piece.length || 0} x {piece.width || 0} cm</div>
                                     <div className="mt-1 text-xs text-slate-500">{materialById(piece.materialId)?.name || selectedQuote.materialName || 'Sem material'}</div>
-                                    <div className="mt-2 text-sm font-bold text-brand-primary">{((piece.totalArea || piece.manualArea || piece.area || 0)).toFixed(4)} m²</div>
+                                    <div className="mt-2 text-sm font-bold text-brand-primary">{((piece.totalArea || piece.manualArea || piece.area || 0)).toFixed(4)} mÂ²</div>
                                     {piece.sides?.length > 0 && (
                                       <div className="mt-1 text-xs text-slate-500">{piece.sides.length} adicional(is)</div>
                                     )}
@@ -1335,7 +1361,7 @@ export const ClientsPage: React.FC = () => {
                           </section>
 
                           <section className="rounded-3xl border border-slate-100 p-5">
-                            <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Materiais do orçamento</h3>
+                            <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Materiais do orÃ§amento</h3>
                             {selectedQuoteSlabRows.length > 0 ? (
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {selectedQuoteSlabRows.map((row) => (
@@ -1355,16 +1381,16 @@ export const ClientsPage: React.FC = () => {
                                         </div>
                                         <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
                                           <div className="rounded-xl bg-white p-2">
-                                            <div className="font-bold text-slate-400 uppercase">Peças</div>
+                                            <div className="font-bold text-slate-400 uppercase">PeÃ§as</div>
                                             <div className="font-mono font-bold text-slate-900">{row.pieces}</div>
                                           </div>
                                           <div className="rounded-xl bg-white p-2">
                                             <div className="font-bold text-slate-400 uppercase">Usando</div>
-                                            <div className="font-mono font-bold text-brand-primary">{row.neededArea.toFixed(4)} m²</div>
+                                            <div className="font-mono font-bold text-brand-primary">{row.neededArea.toFixed(4)} mÂ²</div>
                                           </div>
                                           <div className="rounded-xl bg-white p-2">
                                             <div className="font-bold text-slate-400 uppercase">Estoque</div>
-                                            <div className="font-mono font-bold text-slate-900">{row.stockArea.toFixed(2)} m²</div>
+                                            <div className="font-mono font-bold text-slate-900">{row.stockArea.toFixed(2)} mÂ²</div>
                                           </div>
                                         </div>
                                       </div>
@@ -1373,7 +1399,7 @@ export const ClientsPage: React.FC = () => {
                                 ))}
                               </div>
                             ) : (
-                              <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum material vinculado às peças deste orçamento.</div>
+                              <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum material vinculado Ã s peÃ§as deste orÃ§amento.</div>
                             )}
                           </section>
 
@@ -1385,7 +1411,7 @@ export const ClientsPage: React.FC = () => {
                                   <div className="mb-4 flex items-center justify-between gap-3">
                                     <div>
                                       <div className="font-bold text-slate-900">{piece.name}</div>
-                                      <div className="text-xs text-slate-400">Cooktop, cuba, torneira e itens complementares vinculados a esta peça.</div>
+                                      <div className="text-xs text-slate-400">Cooktop, cuba, torneira e itens complementares vinculados a esta peÃ§a.</div>
                                     </div>
                                   </div>
                                   {pieceFixtureCards(piece).length > 0 ? (
@@ -1394,12 +1420,12 @@ export const ClientsPage: React.FC = () => {
                                         <div key={`${piece.id}-${fixture.key}`} className="rounded-2xl border border-slate-100 bg-white p-4">
                                           <div className="font-bold text-slate-900">{fixture.label}</div>
                                           <div className="mt-1 text-sm text-slate-600">{fixture.name}</div>
-                                          <div className="mt-1 text-xs text-slate-400">{[fixture.brand, fixture.model].filter(Boolean).join(' · ') || 'Sem marca/modelo'}</div>
+                                          <div className="mt-1 text-xs text-slate-400">{[fixture.brand, fixture.model].filter(Boolean).join(' Â· ') || 'Sem marca/modelo'}</div>
                                         </div>
                                       ))}
                                     </div>
                                   ) : (
-                                    <div className="rounded-2xl bg-white p-4 text-sm font-semibold text-slate-400">Nenhum item cadastrado para esta peça.</div>
+                                    <div className="rounded-2xl bg-white p-4 text-sm font-semibold text-slate-400">Nenhum item cadastrado para esta peÃ§a.</div>
                                   )}
                                 </div>
                               ))}
@@ -1414,9 +1440,9 @@ export const ClientsPage: React.FC = () => {
                             <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Valores detalhados</h3>
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                               <SummaryBox label="Valor total" value={formatCurrency(selectedQuote.totalPrice || 0)} highlight />
-                              <SummaryBox label="Área total" value={`${(selectedQuote.totalArea || 0).toFixed(4)} m²`} />
-                              <SummaryBox label="Valor médio por m²" value={selectedQuote.totalArea ? formatCurrency((selectedQuote.totalPrice || 0) / selectedQuote.totalArea) : '-'} />
-                              <SummaryBox label="Qtd. de peças" value={`${selectedQuote.pieces?.length || 0}`} />
+                              <SummaryBox label="Ãrea total" value={`${(selectedQuote.totalArea || 0).toFixed(4)} mÂ²`} />
+                              <SummaryBox label="Valor mÃ©dio por mÂ²" value={selectedQuote.totalArea ? formatCurrency((selectedQuote.totalPrice || 0) / selectedQuote.totalArea) : '-'} />
+                              <SummaryBox label="Qtd. de peÃ§as" value={`${selectedQuote.pieces?.length || 0}`} />
                             </div>
                             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
                               <SummaryBox label="Forma de pagamento" value={selectedQuote.paymentMethod || '-'} />
@@ -1424,14 +1450,14 @@ export const ClientsPage: React.FC = () => {
                             </div>
                             {selectedQuote.commercialNotes && (
                               <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
-                                <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Observações comerciais</div>
+                                <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">ObservaÃ§Ãµes comerciais</div>
                                 {selectedQuote.commercialNotes}
                               </div>
                             )}
                           </section>
 
                           <section className="rounded-3xl border border-slate-100 p-5">
-                            <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Composição por peça</h3>
+                            <h3 className="font-display text-xl font-bold text-slate-900 mb-4">ComposiÃ§Ã£o por peÃ§a</h3>
                             <div className="space-y-3">
                               {(selectedQuote.pieces || []).map((piece) => {
                                 const area = piece.totalArea || piece.manualArea || piece.area || 0;
@@ -1443,7 +1469,7 @@ export const ClientsPage: React.FC = () => {
                                       <div className="text-xs text-slate-400">{materialById(piece.materialId)?.name || selectedQuote.materialName || 'Sem material'}</div>
                                     </div>
                                     <div className="text-right">
-                                      <div className="font-mono text-sm font-bold text-brand-primary">{area.toFixed(4)} m²</div>
+                                      <div className="font-mono text-sm font-bold text-brand-primary">{area.toFixed(4)} mÂ²</div>
                                       <div className="text-xs text-slate-500">{formatCurrency(averageValue)}</div>
                                     </div>
                                   </div>
@@ -1457,7 +1483,7 @@ export const ClientsPage: React.FC = () => {
                       {detailModal === 'team' && (
                         <>
                           <section className="rounded-3xl border border-slate-100 p-5">
-                        <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Etapas e responsáveis</h3>
+                        <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Etapas e responsÃ¡veis</h3>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                           {productionSteps.map((step) => {
                             const stepAssignments = orderedAssignmentsForStep(selectedQuote.employeeAssignments, step.key);
@@ -1468,7 +1494,7 @@ export const ClientsPage: React.FC = () => {
                                   <div>
                                     <div className="font-bold text-slate-900">{step.label}</div>
                                     <div className="text-xs text-slate-400">
-                                      {stepAssignments.length > 0 ? `${stepAssignments.length} colaborador(es) definido(s)` : 'Sem responsáveis registrados'}
+                                      {stepAssignments.length > 0 ? `${stepAssignments.length} colaborador(es) definido(s)` : 'Sem responsÃ¡veis registrados'}
                                     </div>
                                   </div>
                                   {stepAssignments.length > 0 && stepAssignments.every((assignment) => assignment.finishedAt) && <CheckCircle2 className="w-5 h-5 text-green-600" />}
@@ -1502,7 +1528,7 @@ export const ClientsPage: React.FC = () => {
                                       >
                                         <option value="">Selecionar profissional</option>
                                         {activeEmployees.map((employee) => (
-                                          <option key={employee.id} value={employee.id}>{employee.name} · {employee.role}</option>
+                                          <option key={employee.id} value={employee.id}>{employee.name} Â· {employee.role}</option>
                                         ))}
                                       </select>
                                       {assignment && (
@@ -1519,7 +1545,7 @@ export const ClientsPage: React.FC = () => {
 
                                           <div className="rounded-xl bg-slate-50 p-3 space-y-2">
                                             <div className="flex items-center justify-between gap-2">
-                                              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Avaliação</span>
+                                              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">AvaliaÃ§Ã£o</span>
                                               {canEvaluateEmployees ? (
                                                 <div className="flex gap-1">
                                                   {[1, 2, 3, 4, 5].map((rating) => (
@@ -1533,7 +1559,7 @@ export const ClientsPage: React.FC = () => {
                                                       )}
                                                       title={`${rating} ponto(s)`}
                                                     >
-                                                      {rating <= 2 ?'☹' : rating === 3 ?'○' : '☺'}
+                                                      {rating <= 2 ?'â˜¹' : rating === 3 ?'â—‹' : 'â˜º'}
                                                     </button>
                                                   ))}
                                                 </div>
@@ -1547,12 +1573,12 @@ export const ClientsPage: React.FC = () => {
                                               <input
                                                 value={evaluation?.notes || ''}
                                                 onChange={(event) => updateEvaluation(selectedQuote, assignment, evaluation?.rating || 3, event.target.value)}
-                                                placeholder="Observação da etapa"
+                                                placeholder="ObservaÃ§Ã£o da etapa"
                                                 className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-brand-primary/20"
                                               />
                                             ) : (
                                               <div className="rounded-xl border border-slate-100 bg-white px-3 py-2 text-xs text-slate-500">
-                                                {evaluation ?`${evaluation.rating}/5 - ${evaluation.notes || 'Sem observação'}` : 'Sem avaliação registrada.'}
+                                                {evaluation ?`${evaluation.rating}/5 - ${evaluation.notes || 'Sem observaÃ§Ã£o'}` : 'Sem avaliaÃ§Ã£o registrada.'}
                                               </div>
                                             )}
                                           </div>
@@ -1568,18 +1594,18 @@ export const ClientsPage: React.FC = () => {
                       </section>
 
                       <section className="rounded-3xl border border-slate-100 p-5">
-                        <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Histórico automático</h3>
+                        <h3 className="font-display text-xl font-bold text-slate-900 mb-4">HistÃ³rico automÃ¡tico</h3>
                         <div className="space-y-2">
                           {(selectedQuote.statusHistory || []).slice().reverse().slice(0, 8).map((item, index) => (
                             <div key={`${item.changedAt}-${index}`} className="rounded-2xl bg-slate-50 px-4 py-3">
                               <div className="text-sm font-bold text-slate-800">{(item as any).note || item.status}</div>
                               <div className="text-xs text-slate-400">
-                                {stepDate(item.changedAt)}{item.responsibleEmployeeName  ? ` · ${item.responsibleEmployeeName}` : ''}
+                                {stepDate(item.changedAt)}{item.responsibleEmployeeName  ? ` Â· ${item.responsibleEmployeeName}` : ''}
                               </div>
                             </div>
                           ))}
                           {(!selectedQuote.statusHistory || selectedQuote.statusHistory.length === 0) && (
-                            <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhuma movimentação registrada ainda.</div>
+                            <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhuma movimentaÃ§Ã£o registrada ainda.</div>
                           )}
                         </div>
                       </section>
@@ -1591,8 +1617,8 @@ export const ClientsPage: React.FC = () => {
               ) : (
                 <div className="rounded-3xl bg-slate-50 p-10 text-center">
                   <ClipboardList className="mx-auto mb-4 w-10 h-10 text-slate-300" />
-                  <div className="font-display text-xl font-bold text-slate-900">Nenhum orçamento vinculado</div>
-                  <p className="mt-2 text-sm text-slate-400">Quando um orçamento for fechado para este cliente, os detalhes aparecerão nos ícones do card.</p>
+                  <div className="font-display text-xl font-bold text-slate-900">Nenhum orÃ§amento vinculado</div>
+                  <p className="mt-2 text-sm text-slate-400">Quando um orÃ§amento for fechado para este cliente, os detalhes aparecerÃ£o nos Ã­cones do card.</p>
                 </div>
               )}
             </div>
@@ -1623,7 +1649,7 @@ export const ClientsPage: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 {needsStreetAddress && (
                   <div className="md:col-span-2">
-                    <FormField label="Endereço (rua e número)" value={address} onChange={setAddress} required={needsStreetAddress} />
+                    <FormField label="EndereÃ§o (rua e nÃºmero)" value={address} onChange={setAddress} required={needsStreetAddress} />
                   </div>
                 )}
                 <FormField label="Bairro" value={neighborhood} onChange={setNeighborhood} />
@@ -1631,7 +1657,7 @@ export const ClientsPage: React.FC = () => {
                 <FormField label="Cidade" value={city} onChange={setCity} required />
               </div>
               <div className="space-y-1.5">
-                <label className="text-slate-500 font-medium text-sm">Tipo de endereço</label>
+                <label className="text-slate-500 font-medium text-sm">Tipo de endereÃ§o</label>
                 <select
                   value={addressType}
                   onChange={(e) => {
@@ -1648,14 +1674,14 @@ export const ClientsPage: React.FC = () => {
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                 >
                   <option value="casa">Casa</option>
-                  <option value="condominio">Condomínio</option>
+                  <option value="condominio">CondomÃ­nio</option>
                   <option value="apartamento">Apartamento</option>
                 </select>
               </div>
 
               {(addressType === 'condominio' || addressType === 'apartamento') && (
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Condomínio cadastrado</label>
+                  <label className="text-slate-500 font-medium text-sm">CondomÃ­nio cadastrado</label>
                   <select
                     value={condominiumId}
                     onChange={(e) => {
@@ -1672,9 +1698,9 @@ export const ClientsPage: React.FC = () => {
                     }}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                   >
-                    <option value="">Selecione um condomínio</option>
+                    <option value="">Selecione um condomÃ­nio</option>
                     {condominiums.map((condominium) => (
-                      <option key={condominium.id} value={condominium.id}>{condominium.name} · {condominium.city}</option>
+                      <option key={condominium.id} value={condominium.id}>{condominium.name} Â· {condominium.city}</option>
                     ))}
                   </select>
                 </div>
@@ -1695,12 +1721,12 @@ export const ClientsPage: React.FC = () => {
               )}
 
               <div className="space-y-1.5">
-                <label className="text-slate-500 font-medium text-sm">Observações</label>
+                <label className="text-slate-500 font-medium text-sm">ObservaÃ§Ãµes</label>
                 <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium min-h-[60px]" />
               </div>
 
               <button type="submit" className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
-                {editingClient ?'Salvar Alterações' : 'Cadastrar Cliente'}
+                {editingClient ?'Salvar AlteraÃ§Ãµes' : 'Cadastrar Cliente'}
               </button>
             </form>
           </div>
@@ -1848,14 +1874,14 @@ const FixtureFields = ({
         </button>
         {fixture.received && (
           <div className="text-[11px] font-semibold text-slate-500">
-            {fixture.receivedByName || 'Recebido'}{receivedAt ? ` · ${receivedAt.toLocaleDateString('pt-BR')}` : ''}
+            {fixture.receivedByName || 'Recebido'}{receivedAt ? ` Â· ${receivedAt.toLocaleDateString('pt-BR')}` : ''}
           </div>
         )}
       </div>
       <FixtureInput label="Modelo" value={fixture.model || ''} onBlur={(value) => onChange(quote, piece.id, type, 'model', value)} />
       <FixtureInput label="Marca" value={fixture.brand || ''} onBlur={(value) => onChange(quote, piece.id, type, 'brand', value)} />
       {showDiameter ?(
-        <FixtureInput label="Diâmetro/furo (cm)" type="number" value={String(fixture.diameter || '')} onBlur={(value) => onChange(quote, piece.id, type, 'diameter', value)} />
+        <FixtureInput label="DiÃ¢metro/furo (cm)" type="number" value={String(fixture.diameter || '')} onBlur={(value) => onChange(quote, piece.id, type, 'diameter', value)} />
       ) : (
         <div className="grid grid-cols-2 gap-2">
           <FixtureInput label="Largura (cm)" type="number" value={String(fixture.width || '')} onBlur={(value) => onChange(quote, piece.id, type, 'width', value)} />
@@ -1863,7 +1889,7 @@ const FixtureFields = ({
         </div>
       )}
       <FixtureInput label="Altura (cm)" type="number" value={String(fixture.height || '')} onBlur={(value) => onChange(quote, piece.id, type, 'height', value)} />
-      <FixtureInput label="Observações" value={fixture.notes || ''} onBlur={(value) => onChange(quote, piece.id, type, 'notes', value)} />
+      <FixtureInput label="ObservaÃ§Ãµes" value={fixture.notes || ''} onBlur={(value) => onChange(quote, piece.id, type, 'notes', value)} />
     </div>
   );
 };
@@ -1888,4 +1914,7 @@ const FixtureInput = ({label, value, type = 'text', onBlur}: {label: string; val
     </label>
   );
 };
+
+
+
 

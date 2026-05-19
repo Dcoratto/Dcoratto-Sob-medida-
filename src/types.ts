@@ -148,6 +148,7 @@ export interface Client {
   phone: string;
   email?: string;
   googleDriveUrl?: string;
+  manualStage?: 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
   cpf?: string;
   rg?: string;
   birthDate?: string;

@@ -152,6 +152,7 @@ export interface Client {
   rg?: string;
   birthDate?: string;
   address: string;
+  streetAddress?: string;
   notes: string;
   city?: string;
   zipCode?: string;

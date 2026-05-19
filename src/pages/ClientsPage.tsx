@@ -106,6 +106,23 @@ const normalizeInputDateToDisplay = (value: string) => {
   return `${day}/${month}/${year}`;
 };
 
+const deriveStreetAddress = (client: Client) => {
+  if (client.streetAddress?.trim()) return client.streetAddress.trim();
+
+  const rawAddress = String(client.address || '').trim();
+  if (!rawAddress) return '';
+
+  const separators = [' Â· ', ' · '];
+  for (const separator of separators) {
+    if (rawAddress.includes(separator)) {
+      const [street] = rawAddress.split(separator);
+      return street.trim();
+    }
+  }
+
+  return rawAddress;
+};
+
 const addDaysToInputDate = (value: string, days: number) => {
   if (!value) return null;
   const date = new Date(`${value}T12:00:00`);
@@ -130,6 +147,7 @@ export const ClientsPage: React.FC = () => {
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedQuoteId, setSelectedQuoteId] = useState('');
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [statusMenuClientId, setStatusMenuClientId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [importingContract, setImportingContract] = useState(false);
   const contractInputRef = useRef<HTMLInputElement | null>(null);
@@ -338,6 +356,7 @@ export const ClientsPage: React.FC = () => {
       rg: rg.trim(),
       birthDate: normalizeInputDateToDisplay(birthDate),
       address: fullAddress,
+      streetAddress: address.trim(),
       notes,
       city: city.trim(),
       zipCode: zipCode.trim(),
@@ -429,6 +448,7 @@ export const ClientsPage: React.FC = () => {
         rg: parsed.rgIe,
         birthDate: normalizeInputDateToDisplay(normalizeDateStringToInput(parsed.birthDate)),
         address: fullAddress,
+        streetAddress: parsed.currentAddress,
         notes: importedNotes,
         city: parsed.currentCity,
         zipCode: parsed.currentCep,
@@ -498,7 +518,7 @@ export const ClientsPage: React.FC = () => {
     setCpf(client.cpf || '');
     setRg(client.rg || '');
     setBirthDate(normalizeDateStringToInput(client.birthDate || ''));
-    setAddress(client.address || '');
+    setAddress(deriveStreetAddress(client));
     setCity(client.city || '');
     setZipCode(client.zipCode || '');
     setNeighborhood(client.neighborhood || '');
@@ -963,6 +983,13 @@ export const ClientsPage: React.FC = () => {
     if (!url) return;
     window.open(url, '_blank', 'noopener,noreferrer');
   };
+  const toggleStatusMenu = (clientId: string) => {
+    setStatusMenuClientId((current) => current === clientId ? null : clientId);
+  };
+  const handleCardStatusChange = async (quote: Quote, status: QuoteStatus) => {
+    await updateQuoteStatus(quote, status);
+    setStatusMenuClientId(null);
+  };
 
   return (
     <div className="space-y-6">
@@ -1034,8 +1061,8 @@ export const ClientsPage: React.FC = () => {
               return (
                 <div
                   key={client.id}
-                  className="group relative rounded-[24px] border border-slate-100 bg-slate-50 p-6 text-left transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50"
-                >
+                  onClick={() => toggleStatusMenu(client.id)}
+                  className="group relative cursor-pointer rounded-[24px] border border-slate-100 bg-slate-50 p-6 text-left transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
                   <div className={cn('absolute top-4 right-4 w-3 h-3 rounded-full ring-4 ring-white', meta.dot)} title={meta.label} />
                   <div className="mb-4 flex items-start justify-between gap-4 pr-6">
                     <div className="flex min-w-0 items-center gap-4">
@@ -1091,6 +1118,37 @@ export const ClientsPage: React.FC = () => {
                       </div>
                     )}
                   </div>
+                  {statusMenuClientId === client.id && (
+                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg shadow-slate-200/60" onClick={(event) => event.stopPropagation()}>
+                      <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Alterar status</div>
+                      {latestQuote ?(
+                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                          {QUOTE_STATUSES.map((status) => {
+                            const active = normalizeQuoteStatus(latestQuote.status) === status;
+                            return (
+                              <button
+                                key={status}
+                                type="button"
+                                onClick={() => handleCardStatusChange(latestQuote, status)}
+                                className={cn(
+                                  'rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-all',
+                                  active
+                                    ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
+                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand-primary/30 hover:bg-brand-primary/5',
+                                )}
+                              >
+                                {status}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="rounded-xl bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
+                          Este cliente ainda não tem orçamento vinculado para trocar o status.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })

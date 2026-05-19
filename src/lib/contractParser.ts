@@ -25,35 +25,57 @@ export type ParsedContractClient = {
   rawText: string;
 };
 
-const KNOWN_LABELS = [
-  'RESPONSAVEL PELA VENDA',
-  'LOJA',
-  'DATA DO CONTRATO',
-  'CLIENTE',
-  'TIPO DE CONTRATO',
-  'CPF/CNPJ',
-  'R.G / INSCRICAO ESTADUAL',
-  'DATA DE NASCIMENTO',
-  'ENDERECO ATUAL',
-  'BAIRRO',
-  'CIDADE',
-  'UF',
-  'CEP',
-  'TELEFONE',
-  'PROFISSAO',
-  'E-MAIL',
-  'ENDERECO DE ENTREGA',
-  'PRAZO ENTREGA',
-  'CONTRATO N.O',
-  'CONTRATO N°',
-  'CONTRATO Nº',
+type LabelConfig = {
+  key: keyof Omit<ParsedContractClient, 'contractNumber' | 'rawText'>;
+  label: string;
+};
+
+type PositionedLabel = {
+  key: LabelConfig['key'];
+  start: number;
+  end: number;
+};
+
+const LABELS: LabelConfig[] = [
+  {key: 'sellerName', label: 'RESPONSAVEL PELA VENDA'},
+  {key: 'storeName', label: 'LOJA'},
+  {key: 'contractDate', label: 'DATA DO CONTRATO'},
+  {key: 'clientName', label: 'CLIENTE'},
+  {key: 'contractType', label: 'TIPO DE CONTRATO'},
+  {key: 'cpfCnpj', label: 'CPF/CNPJ'},
+  {key: 'rgIe', label: 'R.G / INSCRICAO ESTADUAL'},
+  {key: 'birthDate', label: 'DATA DE NASCIMENTO'},
+  {key: 'currentAddress', label: 'ENDERECO ATUAL'},
+  {key: 'currentNeighborhood', label: 'BAIRRO'},
+  {key: 'currentCity', label: 'CIDADE'},
+  {key: 'currentUf', label: 'UF'},
+  {key: 'currentCep', label: 'CEP'},
+  {key: 'phone', label: 'TELEFONE'},
+  {key: 'profession', label: 'PROFISSAO'},
+  {key: 'email', label: 'E-MAIL'},
+  {key: 'deliveryAddress', label: 'ENDERECO DE ENTREGA'},
+  {key: 'deliveryDeadline', label: 'PRAZO ENTREGA'},
+  {key: 'deliveryNeighborhood', label: 'BAIRRO'},
+  {key: 'deliveryCity', label: 'CIDADE'},
+  {key: 'deliveryUf', label: 'UF'},
+  {key: 'deliveryCep', label: 'CEP'},
 ] as const;
 
-const foldText = (value: string) =>
+const STOP_MARKERS = ['CONDICOES GERAIS', 'CLAUSULA', 'CLÁUSULA', 'PAGINA 2', 'PÁGINA 2', '2/2'] as const;
+
+const normalizeText = (value: string) =>
   String(value || '')
-    .toUpperCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toUpperCase();
+
+const normalizeToken = (value: string) =>
+  normalizeText(value)
+    .replace(/[^A-Z0-9/@.-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
 const decodePdfEscapes = (value: string) =>
   value
@@ -76,38 +98,28 @@ const decodeHexPdfString = (hex: string) => {
     bytes[index / 2] = parseInt(clean.slice(index, index + 2), 16);
   }
 
-  const utf16Like = bytes.length > 2 && (bytes[0] === 0xfe && bytes[1] === 0xff || bytes[0] === 0xff && bytes[1] === 0xfe || bytes[0] === 0x00);
+  const looksUtf16 = bytes.length > 2 && (bytes[0] === 0xfe && bytes[1] === 0xff || bytes[0] === 0xff && bytes[1] === 0xfe || bytes[0] === 0x00);
   try {
-    if (utf16Like) {
+    if (looksUtf16) {
       if (bytes[0] === 0xff && bytes[1] === 0xfe) {
         return new TextDecoder('utf-16le').decode(bytes).replace(/\u0000/g, '').trim();
       }
       return new TextDecoder('utf-16be').decode(bytes).replace(/\u0000/g, '').trim();
     }
   } catch {
-    // Falls back to latin1 below.
+    // Fallback below.
   }
 
   return new TextDecoder('latin1').decode(bytes).replace(/\u0000/g, '').trim();
 };
 
-const normalizeExtractedText = (value: string) =>
-  value
-    .replace(/\r/g, '\n')
-    .replace(/[ \t]+/g, ' ')
-    .replace(/\n{2,}/g, '\n')
-    .replace(/ ?\n ?/g, '\n')
-    .trim();
-
-const cleanValue = (value: string) =>
-  value
+const sanitizeValue = (value: string) =>
+  String(value || '')
     .replace(/\s+/g, ' ')
     .replace(/^\d+\s*-\s*/, '')
     .trim();
 
-const toSingleLine = (value: string) => cleanValue(value).replace(/\n+/g, ' ');
-
-const extractPdfVisibleText = (buffer: ArrayBuffer) => {
+const extractPdfTokens = (buffer: ArrayBuffer) => {
   const raw = new TextDecoder('latin1').decode(new Uint8Array(buffer));
   const tokens: string[] = [];
 
@@ -124,148 +136,126 @@ const extractPdfVisibleText = (buffer: ArrayBuffer) => {
     if (decodedHex) tokens.push(decodedHex);
   }
 
-  if (tokens.length > 20) {
-    return normalizeExtractedText(tokens.join('\n'));
+  return tokens.filter(Boolean);
+};
+
+const trimToFirstPageTokens = (tokens: string[]) => {
+  const startIndex = tokens.findIndex((token) => normalizeToken(token).includes('RESPONSAVEL PELA VENDA'));
+  const scoped = startIndex === -1 ? tokens : tokens.slice(startIndex);
+  const stopIndex = scoped.findIndex((token, index) => {
+    if (index < 20) return false;
+    const normalized = normalizeToken(token);
+    return STOP_MARKERS.some((marker) => normalized.includes(normalizeToken(marker)));
+  });
+
+  return stopIndex === -1 ? scoped : scoped.slice(0, stopIndex);
+};
+
+const labelWords = (label: string) => normalizeToken(label).split(' ').filter(Boolean);
+
+const matchLabelAt = (tokens: string[], startIndex: number, words: string[]) => {
+  let cursor = startIndex;
+
+  for (const word of words) {
+    const token = normalizeToken(tokens[cursor] || '');
+    if (!token) return null;
+    if (!token.includes(word)) return null;
+    cursor += 1;
   }
 
-  return normalizeExtractedText(raw.replace(/[^\x20-\x7E\u00A0-\u00FF\n]/g, ' '));
+  return cursor;
 };
 
-const extractFirstPageText = (text: string) => {
-  const folded = foldText(text);
-  const firstPageStart = folded.indexOf('RESPONSAVEL PELA VENDA');
-  if (firstPageStart === -1) return text;
+const findLabelPositions = (tokens: string[]) => {
+  const positions: PositionedLabel[] = [];
+  let searchFrom = 0;
 
-  const laterPages = [
-    '2/2',
-    'PAGINA 2',
-    'PÁGINA 2',
-    'PAG. 2',
-    'PAG 2',
-    'CONDICOES GERAIS',
-    'CLAUSULA',
-  ];
+  for (const config of LABELS) {
+    const words = labelWords(config.label);
+    let found: PositionedLabel | null = null;
 
-  let endIndex = text.length;
-  for (const marker of laterPages) {
-    const position = folded.indexOf(foldText(marker), firstPageStart + 50);
-    if (position !== -1 && position < endIndex) endIndex = position;
+    for (let index = searchFrom; index < tokens.length; index += 1) {
+      const end = matchLabelAt(tokens, index, words);
+      if (end === null) continue;
+      found = {key: config.key, start: index, end};
+      searchFrom = end;
+      break;
+    }
+
+    if (found) positions.push(found);
   }
 
-  return text.slice(firstPageStart, endIndex).trim();
+  return positions;
 };
 
-const getContractNumber = (text: string) => {
-  const folded = foldText(text);
-  const match = folded.match(/CONTRATO\s+N(?:\.|O|°|º)?\s*([0-9]{4,})/);
-  return match?.[1]?.trim() || '';
-};
+const buildRawText = (tokens: string[]) => tokens.map((token) => sanitizeValue(token)).filter(Boolean).join('\n');
 
-const findSection = (text: string, startLabel: string, endLabels: string | string[]) => {
-  const folded = foldText(text);
-  const start = folded.indexOf(foldText(startLabel));
-  if (start === -1) return '';
-
-  const valueStart = start + foldText(startLabel).length;
-  const candidates = Array.isArray(endLabels) ? endLabels : [endLabels];
-  let end = text.length;
-
-  for (const label of candidates) {
-    const position = folded.indexOf(foldText(label), valueStart);
-    if (position !== -1 && position < end) end = position;
-  }
-
-  return cleanValue(text.slice(valueStart, end));
-};
-
-const findInlineValue = (text: string, label: string) => {
-  const folded = foldText(text);
-  const lines = text.split('\n');
-
-  for (const line of lines) {
-    const foldedLine = foldText(line);
-    const labelIndex = foldedLine.indexOf(foldText(label));
-    if (labelIndex === -1) continue;
-    const sameLineValue = cleanValue(line.slice(labelIndex + label.length));
-    if (sameLineValue) return sameLineValue;
-  }
-
-  const labelPosition = folded.indexOf(foldText(label));
-  if (labelPosition === -1) return '';
-  const after = text.slice(labelPosition + label.length);
-  return cleanValue(after.split('\n')[0] || '');
-};
-
-const parseSequentialContract = (text: string) => {
-  const sellerName = toSingleLine(findSection(text, 'RESPONSAVEL PELA VENDA', 'LOJA'));
-  const storeName = toSingleLine(findSection(text, 'LOJA', 'DATA DO CONTRATO'));
-  const contractDate = toSingleLine(findSection(text, 'DATA DO CONTRATO', ['CLIENTE', 'TIPO DE CONTRATO']));
-  const clientName = toSingleLine(findSection(text, 'CLIENTE', ['TIPO DE CONTRATO', 'CPF/CNPJ']));
-  const contractType = toSingleLine(findSection(text, 'TIPO DE CONTRATO', ['CPF/CNPJ', 'DATA DE NASCIMENTO']));
-  const cpfCnpj = toSingleLine(findSection(text, 'CPF/CNPJ', ['R.G / INSCRICAO ESTADUAL', 'R.G / INSCRIÇÃO ESTADUAL']));
-  const rgIe = toSingleLine(findSection(text, 'R.G / INSCRICAO ESTADUAL', ['DATA DE NASCIMENTO', 'ENDERECO ATUAL'])) || toSingleLine(findSection(text, 'R.G / INSCRIÇÃO ESTADUAL', ['DATA DE NASCIMENTO', 'ENDERECO ATUAL']));
-  const birthDate = toSingleLine(findSection(text, 'DATA DE NASCIMENTO', 'ENDERECO ATUAL'));
-
-  const currentAddress = toSingleLine(findSection(text, 'ENDERECO ATUAL', 'BAIRRO'));
-  const currentNeighborhood = toSingleLine(findSection(text, 'BAIRRO', 'CIDADE'));
-  const currentCity = toSingleLine(findSection(text, 'CIDADE', 'UF'));
-  const currentUf = toSingleLine(findSection(text, 'UF', 'CEP'));
-  const currentCep = toSingleLine(findSection(text, 'CEP', ['TELEFONE', 'PROFISSAO']));
-  const phone = toSingleLine(findSection(text, 'TELEFONE', 'PROFISSAO'));
-  const profession = toSingleLine(findSection(text, 'PROFISSAO', 'E-MAIL'));
-  const email = toSingleLine(findSection(text, 'E-MAIL', ['ENDERECO DE ENTREGA', 'PRAZO ENTREGA']));
-
-  const deliveryBlock = findSection(text, 'ENDERECO DE ENTREGA', ['PRAZO ENTREGA']) || '';
-  const deliveryAddress = toSingleLine(deliveryBlock);
-  const deliveryDeadline = toSingleLine(findSection(text, 'PRAZO ENTREGA', ['BAIRRO', 'CONDICOES GERAIS', 'CLAUSULA'])) || toSingleLine(findInlineValue(text, 'PRAZO ENTREGA'));
-
-  const afterDelivery = findSection(text, 'PRAZO ENTREGA', ['CONDICOES GERAIS', 'CLÁUSULA', 'CLAUSULA']);
-  const deliveryNeighborhood = toSingleLine(findSection(afterDelivery, 'BAIRRO', 'CIDADE'));
-  const deliveryCity = toSingleLine(findSection(afterDelivery, 'CIDADE', 'UF'));
-  const deliveryUf = toSingleLine(findSection(afterDelivery, 'UF', 'CEP'));
-  const deliveryCep = toSingleLine(findSection(afterDelivery, 'CEP', ['CONTRATO', 'CONDICOES GERAIS', 'CLÁUSULA', 'CLAUSULA']));
-
-  return {
-    sellerName,
-    storeName,
-    contractDate,
-    clientName,
-    contractType,
-    cpfCnpj,
-    rgIe,
-    birthDate,
-    currentAddress,
-    currentNeighborhood,
-    currentCity,
-    currentUf,
-    currentCep,
-    phone,
-    profession,
-    email,
-    deliveryAddress,
-    deliveryNeighborhood,
-    deliveryCity,
-    deliveryUf,
-    deliveryCep,
-    deliveryDeadline,
+const parseFromTokens = (tokens: string[]) => {
+  const positions = findLabelPositions(tokens);
+  const result: Omit<ParsedContractClient, 'contractNumber' | 'rawText'> = {
+    sellerName: '',
+    storeName: '',
+    contractDate: '',
+    contractType: '',
+    clientName: '',
+    cpfCnpj: '',
+    rgIe: '',
+    birthDate: '',
+    currentAddress: '',
+    currentNeighborhood: '',
+    currentCity: '',
+    currentUf: '',
+    currentCep: '',
+    phone: '',
+    profession: '',
+    email: '',
+    deliveryAddress: '',
+    deliveryNeighborhood: '',
+    deliveryCity: '',
+    deliveryUf: '',
+    deliveryCep: '',
+    deliveryDeadline: '',
   };
+
+  positions.forEach((label, index) => {
+    const next = positions[index + 1];
+    const slice = tokens.slice(label.end, next ? next.start : tokens.length);
+    result[label.key] = sanitizeValue(slice.join(' '));
+  });
+
+  return {result, positions};
+};
+
+const getContractNumber = (tokens: string[], rawText: string) => {
+  const fullText = `${tokens.join(' ')} ${rawText}`;
+  const normalized = normalizeText(fullText);
+  const match = normalized.match(/CONTRATO\s+N(?:\.|O|°|º)?\s*([0-9]{4,})/);
+  return match?.[1]?.trim() || '';
 };
 
 export const parseClientContractPdf = async (file: File): Promise<ParsedContractClient> => {
   const buffer = await file.arrayBuffer();
-  const rawText = extractPdfVisibleText(buffer);
-  const firstPageText = extractFirstPageText(rawText);
-  const parsed = parseSequentialContract(firstPageText);
-  const contractNumber = getContractNumber(firstPageText || rawText);
+  const extractedTokens = extractPdfTokens(buffer);
+  const firstPageTokens = trimToFirstPageTokens(extractedTokens);
+  const rawText = buildRawText(firstPageTokens);
+  const {result, positions} = parseFromTokens(firstPageTokens);
+  const contractNumber = getContractNumber(firstPageTokens, rawText);
 
-  const mainFieldsFound = [parsed.clientName, parsed.currentAddress, parsed.phone].filter(Boolean).length;
-  if (mainFieldsFound < 2) {
-    throw new Error('Nao foi possivel identificar os dados principais do contrato.');
+  const principalFields = [result.clientName, result.currentAddress, result.phone].filter(Boolean).length;
+  const foundCoreLabels = positions.length;
+
+  if (principalFields < 2) {
+    const error = new Error(
+      foundCoreLabels < 3
+        ? 'PDF_SEM_TEXTO_UTIL'
+        : 'PDF_PADRAO_NAO_RECONHECIDO',
+    );
+    throw error;
   }
 
   return {
-    ...parsed,
+    ...result,
     contractNumber,
-    rawText: firstPageText || rawText,
+    rawText,
   };
 };

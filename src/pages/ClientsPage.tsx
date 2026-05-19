@@ -449,7 +449,12 @@ export const ClientsPage: React.FC = () => {
       });
     } catch (error) {
       console.error(error);
-      window.alert('Não consegui ler esse contrato automaticamente. Confira se o PDF segue o modelo padrão e tente novamente.');
+      const code = error instanceof Error ? error.message : '';
+      if (code === 'PDF_SEM_TEXTO_UTIL') {
+        window.alert('Não consegui ler esse PDF porque ele parece estar sem texto selecionável. Se for um PDF escaneado ou uma imagem, preciso que ele venha com texto real para importar automaticamente.');
+      } else {
+        window.alert('Não consegui ler esse contrato automaticamente. Confira se o PDF segue o modelo padrão e tente novamente.');
+      }
     } finally {
       setImportingContract(false);
     }

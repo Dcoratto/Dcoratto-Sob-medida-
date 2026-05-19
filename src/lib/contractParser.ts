@@ -290,7 +290,7 @@ const coerceParsedClient = (payload: Record<string, unknown>): ParsedContractCli
 
 const parseWithGeminiFallback = async (buffer: ArrayBuffer) => {
   if (!GEMINI_API_KEY) {
-    throw new Error('PDF_SEM_TEXTO_UTIL');
+    throw new Error('GEMINI_API_KEY_NAO_CONFIGURADA');
   }
 
   const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});

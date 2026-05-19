@@ -450,7 +450,9 @@ export const ClientsPage: React.FC = () => {
     } catch (error) {
       console.error(error);
       const code = error instanceof Error ? error.message : '';
-      if (code === 'PDF_SEM_TEXTO_UTIL') {
+      if (code === 'GEMINI_API_KEY_NAO_CONFIGURADA') {
+        window.alert('O PDF precisa de leitura por IA, mas a chave GEMINI_API_KEY não está configurada no deploy. Sem essa chave, esse tipo de contrato não pode ser importado automaticamente.');
+      } else if (code === 'PDF_SEM_TEXTO_UTIL') {
         window.alert('Não consegui ler esse PDF porque ele parece estar sem texto selecionável. Se for um PDF escaneado ou uma imagem, preciso que ele venha com texto real para importar automaticamente.');
       } else {
         window.alert('Não consegui ler esse contrato automaticamente. Confira se o PDF segue o modelo padrão e tente novamente.');

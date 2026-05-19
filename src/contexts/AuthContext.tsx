@@ -36,9 +36,20 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
   useEffect(() => {
     let unsubscribeProfile: (() => void) | undefined;
     let unsubscribeAccessUser: (() => void) | undefined;
+    let profileResolved = false;
+    let accessResolved = false;
+
+    const resolveLoadingIfReady = () => {
+      if (profileResolved && accessResolved) {
+        setLoading(false);
+      }
+    };
 
     const unsubscribeAuth = onAuthStateChanged(auth, async (authUser) => {
       setUser(authUser);
+      setLoading(true);
+      profileResolved = false;
+      accessResolved = false;
 
       if (unsubscribeProfile) {
         unsubscribeProfile();
@@ -52,6 +63,8 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       if (!authUser) {
         setProfile(null);
         setAccessUser(null);
+        profileResolved = true;
+        accessResolved = true;
         setLoading(false);
         return;
       }
@@ -97,10 +110,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         if (snapshot.exists()) {
           setProfile(snapshot.data() as Profile);
         }
-        setLoading(false);
+        profileResolved = true;
+        resolveLoadingIfReady();
       }, (error) => {
         console.error('Error listening to profile:', error);
-        setLoading(false);
+        profileResolved = true;
+        resolveLoadingIfReady();
       });
 
       unsubscribeAccessUser = onSnapshot(accessUserRef, (snapshot) => {
@@ -118,10 +133,12 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
             blocked: false,
           });
         }
-        setLoading(false);
+        accessResolved = true;
+        resolveLoadingIfReady();
       }, (error) => {
         console.error('Error listening to access user:', error);
-        setLoading(false);
+        accessResolved = true;
+        resolveLoadingIfReady();
       });
     });
 

@@ -149,6 +149,7 @@ export interface Client {
   email?: string;
   googleDriveUrl?: string;
   manualStage?: 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
+  manualQuoteStatus?: QuoteStatus | 'Sem projeto';
   cpf?: string;
   rg?: string;
   birthDate?: string;

@@ -9,7 +9,7 @@ import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteRese
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
 import {logAuditEvent} from '../lib/auditLogs';
-import {QUOTE_STATUSES, normalizeQuoteStatus, quoteStatusColor} from '../lib/quoteStatus';
+import {QUOTE_STATUSES, normalizeQuoteStatus, quoteStatusColor, quoteStatusDotColor} from '../lib/quoteStatus';
 import {getHolidayInfo} from '../lib/holidays';
 import {formatMaterialSpecs} from '../lib/materialSpecs';
 import {parseClientContractPdf} from '../lib/contractParser';
@@ -39,6 +39,37 @@ const stageMeta: Record<ClientStage, {label: string; dot: string; chip: string}>
   ready: {label: 'Conferência/Entrega', dot: 'bg-[#00838F]', chip: 'bg-[#00838F]/15 text-[#006064]'},
   done: {label: 'Finalizado', dot: 'bg-[#0B3D0B]', chip: 'bg-[#0B3D0B] text-white'},
   none: {label: 'Sem projeto', dot: 'bg-zinc-300', chip: 'bg-zinc-100 text-zinc-500'},
+};
+
+const legacyStageToQuoteStatus = (stage?: Client['manualStage']): QuoteStatus | 'Sem projeto' => {
+  switch (stage) {
+    case 'approved':
+      return 'Orçamento Aprovado';
+    case 'production':
+      return 'Produção Finalizada';
+    case 'ready':
+      return 'Conferência Final';
+    case 'done':
+      return 'Finalizado';
+    case 'pre':
+      return 'Orçamento';
+    default:
+      return 'Sem projeto';
+  }
+};
+
+const getClientDisplayStatus = (client: Client, quote?: Quote): QuoteStatus | 'Sem projeto' => {
+  if (quote) return normalizeQuoteStatus(quote.status);
+  return client.manualQuoteStatus || legacyStageToQuoteStatus(client.manualStage);
+};
+
+const statusToStage = (status: QuoteStatus | 'Sem projeto'): ClientStage => {
+  if (status === 'Sem projeto') return 'none';
+  if (status === 'Finalizado') return 'done';
+  if (status === 'Conferência Final' || status === 'Entrega') return 'ready';
+  if (['Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada'].includes(status)) return 'production';
+  if (['Orçamento Aprovado', 'Medição', 'Projeto'].includes(status)) return 'approved';
+  return 'pre';
 };
 
 const quoteStage = (quote?: Quote): ClientStage => {
@@ -1007,7 +1038,7 @@ export const ClientsPage: React.FC = () => {
   };
 
   const filteredClients = clients.filter((client) => {
-    const stage = clientStage(client, latestQuoteByClient.get(client.id));
+    const stage = statusToStage(getClientDisplayStatus(client, latestQuoteByClient.get(client.id)));
     const matchesStatus = statusFilter === 'all' || stage === statusFilter;
     const matchesSearch = normalize(`${client.name} ${client.phone} ${client.email || ''} ${client.cpf || ''} ${client.rg || ''} ${client.address}`).includes(normalize(search));
     return matchesStatus && matchesSearch;
@@ -1028,7 +1059,17 @@ export const ClientsPage: React.FC = () => {
     setStatusMenuClientId(null);
   };
   const handleLegacyClientStageChange = async (client: Client, stage: ClientStage) => {
-    await updateDoc(doc(db, 'clients', client.id), {manualStage: stage});
+    await updateDoc(doc(db, 'clients', client.id), {
+      manualStage: stage,
+      manualQuoteStatus: legacyStageToQuoteStatus(stage),
+    });
+    setStatusMenuClientId(null);
+  };
+  const handleLegacyClientStatusChange = async (client: Client, status: QuoteStatus | 'Sem projeto') => {
+    await updateDoc(doc(db, 'clients', client.id), {
+      manualStage: statusToStage(status),
+      manualQuoteStatus: status,
+    });
     setStatusMenuClientId(null);
   };
 
@@ -1096,15 +1137,22 @@ export const ClientsPage: React.FC = () => {
           ) : (
             filteredClients.map((client) => {
               const latestQuote = latestQuoteByClient.get(client.id);
-              const stage = clientStage(client, latestQuote);
+              const displayStatus = getClientDisplayStatus(client, latestQuote);
+              const stage = statusToStage(displayStatus);
               const meta = stageMeta[stage];
+              const statusChipClass = displayStatus === 'Sem projeto'
+                ? 'bg-zinc-100 text-zinc-500 border-zinc-200'
+                : quoteStatusColor(displayStatus);
+              const statusDotClass = displayStatus === 'Sem projeto'
+                ? 'bg-zinc-300'
+                : quoteStatusDotColor(displayStatus);
 
               return (
                 <div
                   key={client.id}
                   onClick={() => toggleStatusMenu(client.id)}
                   className="group relative cursor-pointer rounded-[24px] border border-slate-100 bg-slate-50 p-6 text-left transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
-                  <div className={cn('absolute top-4 right-4 w-3 h-3 rounded-full ring-4 ring-white', meta.dot)} title={meta.label} />
+                  <div className={cn('absolute top-4 right-4 w-3 h-3 rounded-full ring-4 ring-white', statusDotClass)} title={displayStatus} />
                   <div className="mb-4 flex items-start justify-between gap-4 pr-6">
                     <div className="flex min-w-0 items-center gap-4">
                       <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-brand-primary border border-slate-100">
@@ -1146,8 +1194,8 @@ export const ClientsPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <span className={cn('inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase', meta.chip)}>
-                      {fixCorruptedText(meta.label)}
+                    <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase', statusChipClass)}>
+                      {fixCorruptedText(displayStatus)}
                     </span>
                     <div className="flex items-start gap-2 text-sm text-slate-600">
                       <MapPin className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
@@ -1163,7 +1211,7 @@ export const ClientsPage: React.FC = () => {
                     <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg shadow-slate-200/60" onClick={(event) => event.stopPropagation()}>
                       <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Alterar status</div>
                       {latestQuote ?(
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <div className="space-y-1.5">
                           {QUOTE_STATUSES.map((status) => {
                             const active = normalizeQuoteStatus(latestQuote.status) === status;
                             return (
@@ -1172,10 +1220,10 @@ export const ClientsPage: React.FC = () => {
                                 type="button"
                                 onClick={() => handleCardStatusChange(latestQuote, status)}
                                 className={cn(
-                                  'rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-all',
+                                  'w-full rounded-xl border px-3 py-2 text-left text-xs font-semibold uppercase transition-all',
                                   active
-                                    ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
-                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand-primary/30 hover:bg-brand-primary/5',
+                                    ? `${quoteStatusColor(status)} ring-2 ring-brand-primary/35`
+                                    : `${quoteStatusColor(status)} opacity-85 hover:opacity-100`,
                                 )}
                               >
                                 {fixCorruptedText(status)}
@@ -1184,22 +1232,25 @@ export const ClientsPage: React.FC = () => {
                           })}
                         </div>
                       ) : (
-                        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                          {(Object.keys(stageMeta) as ClientStage[]).map((stageOption) => {
-                            const active = (client.manualStage || 'none') === stageOption;
+                        <div className="space-y-1.5">
+                          {[...QUOTE_STATUSES, 'Sem projeto' as const].map((status) => {
+                            const active = getClientDisplayStatus(client) === status;
+                            const statusClass = status === 'Sem projeto'
+                              ? 'bg-zinc-100 text-zinc-500 border-zinc-200'
+                              : quoteStatusColor(status);
                             return (
                               <button
-                                key={stageOption}
+                                key={status}
                                 type="button"
-                                onClick={() => handleLegacyClientStageChange(client, stageOption)}
+                                onClick={() => handleLegacyClientStatusChange(client, status)}
                                 className={cn(
-                                  'rounded-xl border px-3 py-2 text-left text-xs font-semibold transition-all',
+                                  'w-full rounded-xl border px-3 py-2 text-left text-xs font-semibold uppercase transition-all',
                                   active
-                                    ? 'border-brand-primary bg-brand-primary/10 text-brand-primary'
-                                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand-primary/30 hover:bg-brand-primary/5',
+                                    ? `${statusClass} ring-2 ring-brand-primary/35`
+                                    : `${statusClass} opacity-85 hover:opacity-100`,
                                 )}
                               >
-                                {fixCorruptedText(stageMeta[stageOption].label)}
+                                {fixCorruptedText(status)}
                               </button>
                             );
                           })}

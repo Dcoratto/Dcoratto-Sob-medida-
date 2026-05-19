@@ -297,6 +297,12 @@ const isTransientGeminiError = (error: unknown) => {
   return status === 503 || message.includes('503') || message.includes('UNAVAILABLE') || message.includes('TIMEOUT') || message.includes('HIGH DEMAND');
 };
 
+const isQuotaGeminiError = (error: unknown) => {
+  const message = String((error as any)?.message || error || '').toUpperCase();
+  const status = Number((error as any)?.status || (error as any)?.code || 0);
+  return status === 429 || message.includes('429') || message.includes('RESOURCE_EXHAUSTED') || message.includes('QUOTA EXCEEDED');
+};
+
 const parseWithGeminiFallback = async (buffer: ArrayBuffer) => {
   if (!GEMINI_API_KEY) {
     throw new Error('GEMINI_API_KEY_NAO_CONFIGURADA');
@@ -343,6 +349,9 @@ Regras:
         return coerceParsedClient(payload);
       } catch (error) {
         lastError = error;
+        if (isQuotaGeminiError(error)) {
+          throw new Error('GEMINI_QUOTA_EXCEDIDA');
+        }
         if (!isTransientGeminiError(error)) {
           throw error;
         }

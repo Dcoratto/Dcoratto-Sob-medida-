@@ -1,6 +1,6 @@
-﻿import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from 'firebase/firestore';
-import {Banknote, CheckCircle2, ClipboardList, Edit2, FileText, Info, MapPin, Phone, Plus, Search, Trash2, User, Users, X} from 'lucide-react';
+import {Banknote, CheckCircle2, ClipboardList, Edit2, FileText, FileUp, Info, MapPin, Phone, Plus, Search, Trash2, User, Users, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureCategory, FixtureInfo, InventoryItem, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
@@ -12,6 +12,7 @@ import {logAuditEvent} from '../lib/auditLogs';
 import {QUOTE_STATUSES, normalizeQuoteStatus, quoteStatusColor} from '../lib/quoteStatus';
 import {getHolidayInfo} from '../lib/holidays';
 import {formatMaterialSpecs} from '../lib/materialSpecs';
+import {parseClientContractPdf} from '../lib/contractParser';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -107,6 +108,8 @@ export const ClientsPage: React.FC = () => {
   const [selectedQuoteId, setSelectedQuoteId] = useState('');
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
+  const [importingContract, setImportingContract] = useState(false);
+  const contractInputRef = useRef<HTMLInputElement | null>(null);
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -352,6 +355,104 @@ export const ClientsPage: React.FC = () => {
 
     setShowModal(false);
     resetForm();
+  };
+
+  const handleImportContract = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setImportingContract(true);
+
+    try {
+      const parsed = await parseClientContractPdf(file);
+      const fullAddress = [
+        parsed.currentAddress,
+        parsed.currentNeighborhood ? `Bairro ${parsed.currentNeighborhood}` : '',
+        parsed.currentCity,
+        parsed.currentUf,
+        parsed.currentCep ? `CEP ${parsed.currentCep}` : '',
+      ].filter(Boolean).join(' · ');
+
+      const deliveryAddressLine = [
+        parsed.deliveryAddress,
+        parsed.deliveryNeighborhood ? `Bairro ${parsed.deliveryNeighborhood}` : '',
+        parsed.deliveryCity,
+        parsed.deliveryUf,
+        parsed.deliveryCep ? `CEP ${parsed.deliveryCep}` : '',
+      ].filter(Boolean).join(' · ');
+
+      const importedNotes = [
+        'Contrato importado por PDF.',
+        parsed.contractNumber ? `Contrato: ${parsed.contractNumber}` : '',
+        parsed.contractDate ? `Data do contrato: ${parsed.contractDate}` : '',
+        parsed.contractType ? `Tipo de contrato: ${parsed.contractType}` : '',
+        parsed.sellerName ? `Responsável pela venda: ${parsed.sellerName}` : '',
+        parsed.storeName ? `Loja: ${parsed.storeName}` : '',
+        parsed.profession ? `Profissão: ${parsed.profession}` : '',
+        deliveryAddressLine ? `Endereço de entrega: ${deliveryAddressLine}` : '',
+        parsed.deliveryDeadline ? `Prazo de entrega: ${parsed.deliveryDeadline}` : '',
+      ].filter(Boolean).join('\n');
+
+      const data = {
+        name: parsed.clientName,
+        phone: parsed.phone,
+        email: parsed.email,
+        cpf: parsed.cpfCnpj,
+        rg: parsed.rgIe,
+        birthDate: parsed.birthDate,
+        address: fullAddress,
+        notes: importedNotes,
+        city: parsed.currentCity,
+        zipCode: parsed.currentCep,
+        neighborhood: parsed.currentNeighborhood,
+        addressType: 'casa' as Client['addressType'],
+        condominiumId: '',
+        condominiumName: '',
+        block: '',
+        lot: '',
+        tower: '',
+        apartmentNumber: '',
+      };
+
+      const createdRef = await addDoc(collection(db, 'clients'), data);
+      await logSystemEvent({
+        type: 'client_created',
+        title: 'Cliente importado por contrato',
+        description: parsed.clientName,
+        entityType: 'client',
+        entityId: createdRef.id,
+        clientId: createdRef.id,
+        clientName: parsed.clientName,
+        userUid: user?.uid || '',
+        userName: currentUserName,
+        metadata: {
+          importedFrom: 'pdf-contract',
+          contractNumber: parsed.contractNumber,
+          contractDate: parsed.contractDate,
+          contractType: parsed.contractType,
+        },
+      });
+
+      await logAuditEvent({
+        userId: user?.uid || '',
+        userEmail: user?.email || '',
+        userName: currentUserName,
+        action: 'import_contract_pdf',
+        module: 'clientes',
+        targetId: createdRef.id,
+        newValue: {
+          clientName: parsed.clientName,
+          contractNumber: parsed.contractNumber,
+          contractDate: parsed.contractDate,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+      window.alert('Não consegui ler esse contrato automaticamente. Confira se o PDF segue o modelo padrão e tente novamente.');
+    } finally {
+      setImportingContract(false);
+    }
   };
 
   const handleEdit = (client: Client) => {
@@ -831,14 +932,32 @@ export const ClientsPage: React.FC = () => {
           <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Clientes</h1>
           <p className="text-slate-500 mt-1">Controle interno de qualidade, produção e entrega.</p>
         </div>
-        <button
-          type="button"
-          onClick={() => { resetForm(); setShowModal(true); }}
-          className="flex items-center gap-2 bg-brand-primary text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95"
-        >
-          <Plus className="w-5 h-5" />
-          Novo Cliente
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <input
+            ref={contractInputRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            onChange={handleImportContract}
+            className="hidden"
+          />
+          <button
+            type="button"
+            onClick={() => contractInputRef.current?.click()}
+            disabled={importingContract}
+            className="flex items-center justify-center gap-2 rounded-2xl border border-brand-primary/20 bg-white px-6 py-3 font-semibold text-brand-primary shadow-sm transition-all hover:bg-brand-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <FileUp className="w-5 h-5" />
+            {importingContract ? 'Lendo contrato...' : 'Adicionar contrato'}
+          </button>
+          <button
+            type="button"
+            onClick={() => { resetForm(); setShowModal(true); }}
+            className="flex items-center justify-center gap-2 bg-brand-primary text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95"
+          >
+            <Plus className="w-5 h-5" />
+            Novo Cliente
+          </button>
+        </div>
       </header>
 
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">

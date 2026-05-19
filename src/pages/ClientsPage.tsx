@@ -1,6 +1,6 @@
 ﻿import React, {useEffect, useMemo, useState} from 'react';
 import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from 'firebase/firestore';
-import {CheckCircle2, ClipboardList, Edit2, FileText, MapPin, Phone, Plus, Search, Trash2, User, X} from 'lucide-react';
+import {Banknote, CheckCircle2, ClipboardList, Edit2, FileText, Info, MapPin, Phone, Plus, Search, Trash2, User, Users, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureCategory, FixtureInfo, InventoryItem, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
@@ -102,7 +102,7 @@ export const ClientsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ClientStage | 'all'>('all');
   const [showModal, setShowModal] = useState(false);
-  const [showProduction, setShowProduction] = useState(false);
+  const [detailModal, setDetailModal] = useState<'client' | 'quote' | 'values' | 'team' | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedQuoteId, setSelectedQuoteId] = useState('');
   const [editingClient, setEditingClient] = useState<Client | null>(null);
@@ -245,6 +245,16 @@ export const ClientsPage: React.FC = () => {
       stockItems,
     };
   });
+  const selectedQuoteCutoutRows = [
+    {label: 'Cooktop', count: selectedQuote?.cutouts?.cooktop || 0},
+    {label: 'Cuba embutida', count: selectedQuote?.cutouts?.sinkUnder || 0},
+    {label: 'Cuba sobreposta', count: selectedQuote?.cutouts?.sinkOver || 0},
+    {label: 'Furo de torneira', count: selectedQuote?.cutouts?.faucetHole || 0},
+    {label: 'Lixeira de embutir', count: selectedQuote?.cutouts?.trashBinCutout || 0},
+    {label: 'Torre de tomada', count: selectedQuote?.cutouts?.popUpTowerCutout || 0},
+    {label: 'Rebaixo americano', count: selectedQuote?.cutouts?.wetAreaAmericanRecess || 0},
+    {label: 'Rebaixo italiano', count: selectedQuote?.cutouts?.wetAreaItalianRecess || 0},
+  ].filter((item) => item.count > 0);
 
   const resetForm = () => {
     setName('');
@@ -267,11 +277,11 @@ export const ClientsPage: React.FC = () => {
     setEditingClient(null);
   };
 
-  const openProduction = (client: Client) => {
+  const openClientDetail = (client: Client, view: 'client' | 'quote' | 'values' | 'team') => {
     const latest = latestQuoteByClient.get(client.id);
     setSelectedClient(client);
     setSelectedQuoteId(latest?.id || '');
-    setShowProduction(true);
+    setDetailModal(view);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -864,14 +874,24 @@ export const ClientsPage: React.FC = () => {
               const meta = stageMeta[stage];
 
               return (
-                <button
+                <div
                   key={client.id}
-                  type="button"
-                  onClick={() => openProduction(client)}
-                  className="group relative bg-slate-50 border border-slate-100 p-6 rounded-[24px] hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all duration-300 text-left"
+                  className="group relative rounded-[24px] border border-slate-100 bg-slate-50 p-6 text-left transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50"
                 >
                   <div className={cn('absolute top-4 right-4 w-3 h-3 rounded-full ring-4 ring-white', meta.dot)} title={meta.label} />
-                  <div className="absolute top-4 right-10 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="absolute right-10 top-4 flex flex-wrap justify-end gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                    <button type="button" title="Dados do cliente" onClick={() => openClientDetail(client, 'client')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                      <Info className="h-4 w-4" />
+                    </button>
+                    <button type="button" title="Informações do orçamento" onClick={() => openClientDetail(client, 'quote')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                      <ClipboardList className="h-4 w-4" />
+                    </button>
+                    <button type="button" title="Valores detalhados" onClick={() => openClientDetail(client, 'values')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                      <Banknote className="h-4 w-4" />
+                    </button>
+                    <button type="button" title="Funcionários" onClick={() => openClientDetail(client, 'team')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                      <Users className="h-4 w-4" />
+                    </button>
                     <button type="button" onClick={(event) => { event.stopPropagation(); handleEdit(client); }} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-all">
                       <Edit2 className="w-4 h-4" />
                     </button>
@@ -908,35 +928,69 @@ export const ClientsPage: React.FC = () => {
                       </div>
                     )}
                   </div>
-                </button>
+                </div>
               );
             })
           )}
         </div>
       </div>
 
-      {showProduction && selectedClient && (
+      {detailModal && selectedClient && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
           <div className="bg-white w-full max-w-6xl max-h-[92vh] rounded-[36px] shadow-2xl overflow-hidden flex flex-col">
             <div className="p-6 border-b border-slate-100 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-2xl font-display font-bold text-slate-900">{selectedClient.name}</h2>
-                <p className="text-sm text-slate-400">Controle de produção do contrato fechado.</p>
-                <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
-                  <span>{selectedClient.phone || '-'}</span>
-                  {selectedClient.email && <span>{selectedClient.email}</span>}
-                  {selectedClient.cpf && <span>CPF: {selectedClient.cpf}</span>}
-                  {selectedClient.rg && <span>RG: {selectedClient.rg}</span>}
-                  {selectedClient.birthDate && <span>Nascimento: {selectedClient.birthDate}</span>}
-                </div>
+                <p className="text-sm text-slate-400">
+                  {detailModal === 'client' && 'Dados completos do cliente.'}
+                  {detailModal === 'quote' && 'Itens, peças, materiais e informações técnicas do orçamento.'}
+                  {detailModal === 'values' && 'Detalhamento financeiro e comercial do orçamento.'}
+                  {detailModal === 'team' && 'Controle de produção e responsáveis do contrato fechado.'}
+                </p>
+                {detailModal !== 'client' && (
+                  <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-500">
+                    <span>{selectedClient.phone || '-'}</span>
+                    {selectedClient.email && <span>{selectedClient.email}</span>}
+                    {selectedClient.cpf && <span>CPF: {selectedClient.cpf}</span>}
+                    {selectedClient.rg && <span>RG: {selectedClient.rg}</span>}
+                    {selectedClient.birthDate && <span>Nascimento: {selectedClient.birthDate}</span>}
+                  </div>
+                )}
               </div>
-              <button type="button" onClick={() => setShowProduction(false)} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full transition-all text-slate-400">
+              <button type="button" onClick={() => setDetailModal(null)} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full transition-all text-slate-400">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <div className="overflow-auto p-6 space-y-6">
-              {selectedClientQuotes.length > 0 ?(
+              {detailModal === 'client' ?(
+                <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <div className="rounded-3xl border border-slate-100 p-5">
+                    <h3 className="mb-4 font-display text-xl font-bold text-slate-900">Contato</h3>
+                    <div className="space-y-3 text-sm text-slate-600">
+                      <DetailRow label="Nome" value={selectedClient.name} />
+                      <DetailRow label="Telefone" value={selectedClient.phone || '-'} />
+                      <DetailRow label="E-mail" value={selectedClient.email || '-'} />
+                      <DetailRow label="CPF" value={selectedClient.cpf || '-'} />
+                      <DetailRow label="RG" value={selectedClient.rg || '-'} />
+                      <DetailRow label="Nascimento" value={selectedClient.birthDate || '-'} />
+                    </div>
+                  </div>
+                  <div className="rounded-3xl border border-slate-100 p-5">
+                    <h3 className="mb-4 font-display text-xl font-bold text-slate-900">Endereço e observações</h3>
+                    <div className="space-y-3 text-sm text-slate-600">
+                      <DetailRow label="Endereço" value={selectedClient.address || '-'} multiline />
+                      <DetailRow label="Cidade" value={selectedClient.city || '-'} />
+                      <DetailRow label="Bairro" value={selectedClient.neighborhood || '-'} />
+                      <DetailRow label="CEP" value={selectedClient.zipCode || '-'} />
+                      <DetailRow label="Condomínio" value={selectedClient.condominiumName || '-'} />
+                      <DetailRow label="Bloco / Lote" value={[selectedClient.block, selectedClient.lot].filter(Boolean).join(' · ') || '-'} />
+                      <DetailRow label="Torre / Apto" value={[selectedClient.tower, selectedClient.apartmentNumber].filter(Boolean).join(' · ') || '-'} />
+                      <DetailRow label="Observações" value={selectedClient.notes || '-'} multiline />
+                    </div>
+                  </div>
+                </section>
+              ) : selectedClientQuotes.length > 0 ?(
                 <>
                   <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_220px] gap-4">
                     <select
@@ -963,7 +1017,7 @@ export const ClientsPage: React.FC = () => {
 
                   {selectedQuote && (
                     <>
-                      {isApprovedOrBeyond(selectedQuote.status) && (
+                      {detailModal === 'team' && isApprovedOrBeyond(selectedQuote.status) && (
                         <section className="rounded-3xl border border-slate-100 p-5">
                           <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Agendamento do projeto</h3>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1011,123 +1065,176 @@ export const ClientsPage: React.FC = () => {
                         </div>
                       </section>
 
-                      <section className="rounded-3xl border border-slate-100 p-5">
-                        <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Peças fechadas</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {(selectedQuote.pieces || []).map((piece) => (
-                            <div key={piece.id} className="rounded-2xl bg-slate-50 p-4 flex gap-4">
-                              {piece.previewUrl ?(
-                                <img src={piece.previewUrl} alt={piece.name} className="h-24 w-24 rounded-xl border border-slate-100 bg-white object-contain p-2" />
-                              ) : (
-                                <div className="h-24 w-24 rounded-xl border border-slate-100 bg-white flex items-center justify-center text-slate-300">
-                                  <ClipboardList className="w-8 h-8" />
-                                </div>
-                              )}
-                              <div className="min-w-0">
-                                <div className="font-bold text-slate-900">{piece.name}</div>
-                                <div className="text-xs text-slate-400">{piece.length || 0} x {piece.width || 0} cm</div>
-                                <div className="mt-2 text-sm font-bold text-brand-primary">{((piece.totalArea || piece.manualArea || piece.area || 0)).toFixed(4)} m²</div>
-                                {piece.sides?.length > 0 && (
-                                  <div className="mt-1 text-xs text-slate-500">{piece.sides.length} adicional(is)</div>
-                                )}
-                              </div>
+                      {(detailModal === 'quote' || detailModal === 'values') && (
+                        <>
+                          <section className="rounded-3xl border border-slate-100 p-5">
+                            <h3 className="mb-4 font-display text-xl font-bold text-slate-900">Resumo do orçamento</h3>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                              <SummaryBox label="Ambiente" value={selectedQuote.environment || '-'} />
+                              <SummaryBox label="Pagamento" value={selectedQuote.paymentMethod || '-'} />
+                              <SummaryBox label="Prazo" value={`${selectedQuote.deliveryDays || 0} dia(s)`} />
+                              <SummaryBox label="Responsável" value={selectedQuote.responsibleUserName || selectedQuote.responsible || '-'} />
                             </div>
-                          ))}
-                        </div>
-                      </section>
-
-                      <section className="rounded-3xl border border-slate-100 p-5">
-                        <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Itens comprados para projeto</h3>
-                        <div className="space-y-4">
-                          {(selectedQuote.pieces || []).map((piece) => (
-                            <div key={piece.id} className="rounded-2xl bg-slate-50 p-4">
-                              <div className="mb-4 flex items-center justify-between gap-3">
-                                <div>
-                                  <div className="font-bold text-slate-900">{piece.name}</div>
-                                  <div className="text-xs text-slate-400">Informe modelos e medidas reais para projeto e produção.</div>
-                                </div>
+                            {selectedQuoteCutoutRows.length > 0 && (
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                {selectedQuoteCutoutRows.map((item) => (
+                                  <span key={item.label} className="rounded-full bg-slate-50 px-3 py-1 text-[11px] font-bold text-slate-600">
+                                    {item.label}: {item.count}
+                                  </span>
+                                ))}
                               </div>
-                              {pieceFixtureCards(piece).length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                  {pieceFixtureCards(piece).map((fixture) => (
-                                    <FixtureFields
-                                      key={fixture.key}
-                                      quote={selectedQuote}
-                                      piece={piece}
-                                      type={fixture.key}
-                                      legacyKey={fixture.legacyKey}
-                                      title={fixture.label}
-                                      imageUrl={fixture.imageUrl}
-                                      displayName={fixture.name}
-                                      description={[fixture.brand, fixture.model, fixture.notes].filter(Boolean).join(' · ')}
-                                      manualUrl={fixture.manualUrl}
-                                      manualFileName={fixture.manualFileName}
-                                      onChange={updatePieceFixture}
-                                      onReceive={markPieceFixtureReceived}
-                                    />
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="rounded-2xl bg-white p-4 text-sm font-semibold text-slate-400">Nenhum item cadastrado para esta peça.</div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </section>
+                            )}
+                          </section>
 
-                      <section className="rounded-3xl border border-slate-100 p-5">
-                        <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Chapas usadas no projeto</h3>
-                        {selectedQuoteSlabRows.length > 0 ? (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {selectedQuoteSlabRows.map((row) => (
-                              <div key={row.materialId} className="rounded-2xl bg-slate-50 p-4">
-                                <div className="flex gap-4">
-                                  <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white flex items-center justify-center">
-                                    {row.imageUrl ? (
-                                      <img src={row.imageUrl} alt={row.materialName} className="h-full w-full object-cover" />
-                                    ) : (
-                                      <ClipboardList className="h-8 w-8 text-slate-300" />
+                          <section className="rounded-3xl border border-slate-100 p-5">
+                            <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Peças orçadas</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {(selectedQuote.pieces || []).map((piece) => (
+                                <div key={piece.id} className="rounded-2xl bg-slate-50 p-4 flex gap-4">
+                                  {piece.previewUrl ?(
+                                    <img src={piece.previewUrl} alt={piece.name} className="h-24 w-24 rounded-xl border border-slate-100 bg-white object-contain p-2" />
+                                  ) : (
+                                    <div className="h-24 w-24 rounded-xl border border-slate-100 bg-white flex items-center justify-center text-slate-300">
+                                      <ClipboardList className="w-8 h-8" />
+                                    </div>
+                                  )}
+                                  <div className="min-w-0">
+                                    <div className="font-bold text-slate-900">{piece.name}</div>
+                                    <div className="text-xs text-slate-400">{piece.length || 0} x {piece.width || 0} cm</div>
+                                    <div className="mt-1 text-xs text-slate-500">{materialById(piece.materialId)?.name || selectedQuote.materialName || 'Sem material'}</div>
+                                    <div className="mt-2 text-sm font-bold text-brand-primary">{((piece.totalArea || piece.manualArea || piece.area || 0)).toFixed(4)} m²</div>
+                                    {piece.sides?.length > 0 && (
+                                      <div className="mt-1 text-xs text-slate-500">{piece.sides.length} adicional(is)</div>
                                     )}
                                   </div>
-                                  <div className="min-w-0 flex-1">
-                                    <div className="font-bold text-slate-900">{row.materialName}</div>
-                                    <div className="text-xs text-slate-400">
-                                      {formatMaterialSpecs(row) || row.category}
-                                    </div>
-                                    <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
-                                      <div className="rounded-xl bg-white p-2">
-                                        <div className="font-bold text-slate-400 uppercase">Qtd.</div>
-                                        <div className="font-mono font-bold text-slate-900">{row.slabCount}</div>
-                                      </div>
-                                      <div className="rounded-xl bg-white p-2">
-                                        <div className="font-bold text-slate-400 uppercase">Usando</div>
-                                        <div className="font-mono font-bold text-brand-primary">{row.neededArea.toFixed(4)} m²</div>
-                                      </div>
-                                      <div className="rounded-xl bg-white p-2">
-                                        <div className="font-bold text-slate-400 uppercase">Estoque</div>
-                                        <div className="font-mono font-bold text-slate-900">{row.stockArea.toFixed(2)} m²</div>
-                                      </div>
-                                    </div>
-                                  </div>
                                 </div>
-                                {row.stockItems.length > 0 && (
-                                  <div className="mt-3 flex flex-wrap gap-2">
-                                    {row.stockItems.slice(0, 6).map((item) => (
-                                      <span key={item.id} className="rounded-full bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">
-                                        {item.code || 'Sem lote'} · {item.area.toFixed(2)} m²
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhuma chapa vinculada às peças deste orçamento.</div>
-                        )}
-                      </section>
+                              ))}
+                            </div>
+                          </section>
 
-                      <section className="rounded-3xl border border-slate-100 p-5">
+                          <section className="rounded-3xl border border-slate-100 p-5">
+                            <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Materiais do orçamento</h3>
+                            {selectedQuoteSlabRows.length > 0 ? (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {selectedQuoteSlabRows.map((row) => (
+                                  <div key={row.materialId} className="rounded-2xl bg-slate-50 p-4">
+                                    <div className="flex gap-4">
+                                      <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white flex items-center justify-center">
+                                        {row.imageUrl ? (
+                                          <img src={row.imageUrl} alt={row.materialName} className="h-full w-full object-cover" />
+                                        ) : (
+                                          <ClipboardList className="h-8 w-8 text-slate-300" />
+                                        )}
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <div className="font-bold text-slate-900">{row.materialName}</div>
+                                        <div className="text-xs text-slate-400">
+                                          {formatMaterialSpecs(row) || row.category}
+                                        </div>
+                                        <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
+                                          <div className="rounded-xl bg-white p-2">
+                                            <div className="font-bold text-slate-400 uppercase">Peças</div>
+                                            <div className="font-mono font-bold text-slate-900">{row.pieces}</div>
+                                          </div>
+                                          <div className="rounded-xl bg-white p-2">
+                                            <div className="font-bold text-slate-400 uppercase">Usando</div>
+                                            <div className="font-mono font-bold text-brand-primary">{row.neededArea.toFixed(4)} m²</div>
+                                          </div>
+                                          <div className="rounded-xl bg-white p-2">
+                                            <div className="font-bold text-slate-400 uppercase">Estoque</div>
+                                            <div className="font-mono font-bold text-slate-900">{row.stockArea.toFixed(2)} m²</div>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum material vinculado às peças deste orçamento.</div>
+                            )}
+                          </section>
+
+                          <section className="rounded-3xl border border-slate-100 p-5">
+                            <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Itens selecionados</h3>
+                            <div className="space-y-4">
+                              {(selectedQuote.pieces || []).map((piece) => (
+                                <div key={piece.id} className="rounded-2xl bg-slate-50 p-4">
+                                  <div className="mb-4 flex items-center justify-between gap-3">
+                                    <div>
+                                      <div className="font-bold text-slate-900">{piece.name}</div>
+                                      <div className="text-xs text-slate-400">Cooktop, cuba, torneira e itens complementares vinculados a esta peça.</div>
+                                    </div>
+                                  </div>
+                                  {pieceFixtureCards(piece).length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                      {pieceFixtureCards(piece).map((fixture) => (
+                                        <div key={`${piece.id}-${fixture.key}`} className="rounded-2xl border border-slate-100 bg-white p-4">
+                                          <div className="font-bold text-slate-900">{fixture.label}</div>
+                                          <div className="mt-1 text-sm text-slate-600">{fixture.name}</div>
+                                          <div className="mt-1 text-xs text-slate-400">{[fixture.brand, fixture.model].filter(Boolean).join(' · ') || 'Sem marca/modelo'}</div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <div className="rounded-2xl bg-white p-4 text-sm font-semibold text-slate-400">Nenhum item cadastrado para esta peça.</div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </section>
+                        </>
+                      )}
+
+                      {detailModal === 'values' && (
+                        <>
+                          <section className="rounded-3xl border border-slate-100 p-5">
+                            <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Valores detalhados</h3>
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                              <SummaryBox label="Valor total" value={formatCurrency(selectedQuote.totalPrice || 0)} highlight />
+                              <SummaryBox label="Área total" value={`${(selectedQuote.totalArea || 0).toFixed(4)} m²`} />
+                              <SummaryBox label="Valor médio por m²" value={selectedQuote.totalArea ? formatCurrency((selectedQuote.totalPrice || 0) / selectedQuote.totalArea) : '-'} />
+                              <SummaryBox label="Qtd. de peças" value={`${selectedQuote.pieces?.length || 0}`} />
+                            </div>
+                            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                              <SummaryBox label="Forma de pagamento" value={selectedQuote.paymentMethod || '-'} />
+                              <SummaryBox label="Prazo informado" value={`${selectedQuote.deliveryDays || 0} dia(s)`} />
+                            </div>
+                            {selectedQuote.commercialNotes && (
+                              <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">
+                                <div className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Observações comerciais</div>
+                                {selectedQuote.commercialNotes}
+                              </div>
+                            )}
+                          </section>
+
+                          <section className="rounded-3xl border border-slate-100 p-5">
+                            <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Composição por peça</h3>
+                            <div className="space-y-3">
+                              {(selectedQuote.pieces || []).map((piece) => {
+                                const area = piece.totalArea || piece.manualArea || piece.area || 0;
+                                const averageValue = selectedQuote.totalArea ? ((selectedQuote.totalPrice || 0) * area) / selectedQuote.totalArea : 0;
+                                return (
+                                  <div key={piece.id} className="rounded-2xl bg-slate-50 p-4 flex items-center justify-between gap-4">
+                                    <div>
+                                      <div className="font-bold text-slate-900">{piece.name}</div>
+                                      <div className="text-xs text-slate-400">{materialById(piece.materialId)?.name || selectedQuote.materialName || 'Sem material'}</div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="font-mono text-sm font-bold text-brand-primary">{area.toFixed(4)} m²</div>
+                                      <div className="text-xs text-slate-500">{formatCurrency(averageValue)}</div>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </section>
+                        </>
+                      )}
+
+                      {detailModal === 'team' && (
+                        <>
+                          <section className="rounded-3xl border border-slate-100 p-5">
                         <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Etapas e responsáveis</h3>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                           {productionSteps.map((step) => {
@@ -1254,6 +1361,8 @@ export const ClientsPage: React.FC = () => {
                           )}
                         </div>
                       </section>
+                        </>
+                      )}
                     </>
                   )}
                 </>
@@ -1261,7 +1370,7 @@ export const ClientsPage: React.FC = () => {
                 <div className="rounded-3xl bg-slate-50 p-10 text-center">
                   <ClipboardList className="mx-auto mb-4 w-10 h-10 text-slate-300" />
                   <div className="font-display text-xl font-bold text-slate-900">Nenhum orçamento vinculado</div>
-                  <p className="mt-2 text-sm text-slate-400">Quando um orçamento for fechado para este cliente, as peças e etapas aparecerão aqui.</p>
+                  <p className="mt-2 text-sm text-slate-400">Quando um orçamento for fechado para este cliente, os detalhes aparecerão nos ícones do card.</p>
                 </div>
               )}
             </div>
@@ -1386,6 +1495,24 @@ const StatusFilter = ({label, active, onClick}: {key?: React.Key; label: string;
   >
     {label}
   </button>
+);
+
+const DetailRow = ({label, value, multiline = false}: {label: string; value: string; multiline?: boolean}) => (
+  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+    <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</div>
+    <div className={cn('mt-1 text-sm font-semibold text-slate-700', multiline && 'whitespace-pre-wrap leading-relaxed')}>
+      {value}
+    </div>
+  </div>
+);
+
+const SummaryBox = ({label, value, highlight = false}: {label: string; value: string; highlight?: boolean}) => (
+  <div className={cn('rounded-3xl p-5', highlight ?'bg-brand-primary/10' : 'bg-slate-50')}>
+    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{label}</div>
+    <div className={cn('mt-2 text-lg font-display font-bold', highlight ?'text-brand-primary' : 'text-slate-900')}>
+      {value}
+    </div>
+  </div>
 );
 
 const FormField = ({

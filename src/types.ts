@@ -147,6 +147,7 @@ export interface Client {
   name: string;
   phone: string;
   email?: string;
+  googleDriveUrl?: string;
   cpf?: string;
   rg?: string;
   birthDate?: string;

@@ -114,6 +114,7 @@ export const ClientsPage: React.FC = () => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [googleDriveUrl, setGoogleDriveUrl] = useState('');
   const [cpf, setCpf] = useState('');
   const [rg, setRg] = useState('');
   const [birthDate, setBirthDate] = useState('');
@@ -263,6 +264,7 @@ export const ClientsPage: React.FC = () => {
     setName('');
     setPhone('');
     setEmail('');
+    setGoogleDriveUrl('');
     setCpf('');
     setRg('');
     setBirthDate('');
@@ -308,6 +310,7 @@ export const ClientsPage: React.FC = () => {
       name,
       phone,
       email: email.trim(),
+      googleDriveUrl: googleDriveUrl.trim(),
       cpf: cpf.trim(),
       rg: rg.trim(),
       birthDate: birthDate.trim(),
@@ -398,6 +401,7 @@ export const ClientsPage: React.FC = () => {
         name: parsed.clientName,
         phone: parsed.phone,
         email: parsed.email,
+        googleDriveUrl: '',
         cpf: parsed.cpfCnpj,
         rg: parsed.rgIe,
         birthDate: parsed.birthDate,
@@ -467,6 +471,7 @@ export const ClientsPage: React.FC = () => {
     setName(client.name);
     setPhone(client.phone);
     setEmail(client.email || '');
+    setGoogleDriveUrl(client.googleDriveUrl || '');
     setCpf(client.cpf || '');
     setRg(client.rg || '');
     setBirthDate(client.birthDate || '');
@@ -931,6 +936,10 @@ export const ClientsPage: React.FC = () => {
   const condominiumAddressMode = selectedCondominiumForForm?.addressMode || 'street';
   const needsStreetAddress = addressType !== 'condominio' || condominiumAddressMode === 'street';
   const needsLotAddress = addressType === 'condominio' && condominiumAddressMode === 'lot';
+  const openDriveFolder = (url?: string) => {
+    if (!url) return;
+    window.open(url, '_blank', 'noopener,noreferrer');
+  };
 
   return (
     <div className="space-y-6">
@@ -1005,41 +1014,46 @@ export const ClientsPage: React.FC = () => {
                   className="group relative rounded-[24px] border border-slate-100 bg-slate-50 p-6 text-left transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50"
                 >
                   <div className={cn('absolute top-4 right-4 w-3 h-3 rounded-full ring-4 ring-white', meta.dot)} title={meta.label} />
-                  <div className="absolute right-10 top-4 flex flex-wrap justify-end gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                    <button type="button" title="Dados do cliente" onClick={() => openClientDetail(client, 'client')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
-                      <Info className="h-4 w-4" />
-                    </button>
-                    <button type="button" title="Informações do orçamento" onClick={() => openClientDetail(client, 'quote')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
-                      <ClipboardList className="h-4 w-4" />
-                    </button>
-                    <button type="button" title="Valores detalhados" onClick={() => openClientDetail(client, 'values')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
-                      <Banknote className="h-4 w-4" />
-                    </button>
-                    <button type="button" title="Funcionários" onClick={() => openClientDetail(client, 'team')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
-                      <Users className="h-4 w-4" />
-                    </button>
-                    <button type="button" onClick={(event) => { event.stopPropagation(); handleEdit(client); }} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-all">
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button type="button" aria-label="Excluir" title="Excluir" onClick={(event) => { event.stopPropagation(); handleDelete(client.id); }} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-brand-primary border border-slate-100">
-                      <User className="w-6 h-6" />
-                    </div>
-                    <div className="min-w-0">
-                      <h3 className="font-display font-bold text-slate-900 group-hover:text-brand-primary transition-colors truncate">{client.name}</h3>
-                      <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 mt-0.5">
-                        <Phone className="w-3 h-3" />
-                        {client.phone}
+                  <div className="mb-4 flex items-start justify-between gap-4 pr-6">
+                    <div className="flex min-w-0 items-center gap-4">
+                      <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-brand-primary border border-slate-100">
+                        <User className="w-6 h-6" />
                       </div>
-                      {client.email && <div className="text-xs text-slate-400 truncate mt-0.5">{client.email}</div>}
+                      <div className="min-w-0">
+                        <h3 className="font-display font-bold text-slate-900 transition-colors group-hover:text-brand-primary truncate">{client.name}</h3>
+                        <div className="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                          <Phone className="w-3 h-3" />
+                          {client.phone}
+                        </div>
+                        {client.email && <div className="mt-0.5 text-xs text-slate-400 truncate">{client.email}</div>}
+                      </div>
+                    </div>
+                    <div className="flex max-w-[52%] shrink-0 flex-wrap justify-end gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                      <button type="button" title="Dados do cliente" onClick={() => openClientDetail(client, 'client')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                        <Info className="h-4 w-4" />
+                      </button>
+                      <button type="button" title="Informações do orçamento" onClick={() => openClientDetail(client, 'quote')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                        <ClipboardList className="h-4 w-4" />
+                      </button>
+                      <button type="button" title="Valores detalhados" onClick={() => openClientDetail(client, 'values')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                        <Banknote className="h-4 w-4" />
+                      </button>
+                      <button type="button" title="Funcionários" onClick={() => openClientDetail(client, 'team')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                        <Users className="h-4 w-4" />
+                      </button>
+                      {client.googleDriveUrl && (
+                        <button type="button" title="Abrir pasta no Google Drive" onClick={() => openDriveFolder(client.googleDriveUrl)} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                          <GoogleDriveIcon className="h-4 w-4" />
+                        </button>
+                      )}
+                      <button type="button" onClick={(event) => { event.stopPropagation(); handleEdit(client); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button type="button" aria-label="Excluir" title="Excluir" onClick={(event) => { event.stopPropagation(); handleDelete(client.id); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-red-50 hover:text-red-600">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-
                   <div className="space-y-3">
                     <span className={cn('inline-flex px-2.5 py-1 rounded-full text-[10px] font-bold uppercase', meta.chip)}>
                       {meta.label}
@@ -1097,6 +1111,7 @@ export const ClientsPage: React.FC = () => {
                       <DetailRow label="Nome" value={selectedClient.name} />
                       <DetailRow label="Telefone" value={selectedClient.phone || '-'} />
                       <DetailRow label="E-mail" value={selectedClient.email || '-'} />
+                      <DetailRow label="Google Drive" value={selectedClient.googleDriveUrl || '-'} multiline />
                       <DetailRow label="CPF" value={selectedClient.cpf || '-'} />
                       <DetailRow label="RG" value={selectedClient.rg || '-'} />
                       <DetailRow label="Nascimento" value={selectedClient.birthDate || '-'} />
@@ -1519,6 +1534,7 @@ export const ClientsPage: React.FC = () => {
                 <FormField label="Nome Completo" value={name} onChange={setName} required />
                 <FormField label="Telefone" value={phone} onChange={setPhone} required />
                 <FormField label="Email" value={email} onChange={setEmail} type="email" />
+                <FormField label="Link do Google Drive" value={googleDriveUrl} onChange={setGoogleDriveUrl} />
                 <FormField label="Data de nascimento" value={birthDate} onChange={setBirthDate} type="date" />
                 <FormField label="CPF" value={cpf} onChange={setCpf} />
                 <FormField label="RG" value={rg} onChange={setRg} />
@@ -1621,6 +1637,15 @@ const StatusFilter = ({label, active, onClick}: {key?: React.Key; label: string;
   >
     {label}
   </button>
+);
+
+const GoogleDriveIcon = ({className = 'h-4 w-4'}: {className?: string}) => (
+  <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
+    <path d="M9.4 3 3 14h4.6L14 3H9.4Z" fill="#0F9D58" />
+    <path d="M14 3h4.6L25 14h-4.6L14 3Z" transform="translate(-1 0)" fill="#4285F4" />
+    <path d="M7.6 14 10 18h11.4L19 14H7.6Z" fill="#F4B400" />
+    <path d="M3 14 5.4 18H10l-2.4-4H3Z" fill="#0F9D58" />
+  </svg>
 );
 
 const DetailRow = ({label, value, multiline = false}: {label: string; value: string; multiline?: boolean}) => (

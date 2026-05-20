@@ -13,6 +13,11 @@ app.get('/api/calendar-feed', (req, res) => {
   calendarFeedHandler(req, res);
 });
 
+app.get('/calendar/:uid/:token.ics', (req, res) => {
+  req.query = {...req.query, uid: req.params.uid, token: req.params.token};
+  calendarFeedHandler(req, res);
+});
+
 app.use(express.static(distDir, {
   extensions: ['html'],
   maxAge: '1h',

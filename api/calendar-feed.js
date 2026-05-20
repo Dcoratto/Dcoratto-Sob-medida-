@@ -211,6 +211,8 @@ export default async function handler(req, res) {
       'METHOD:PUBLISH',
       'X-WR-CALNAME:Dcoratto Sob Medida',
       'X-WR-TIMEZONE:America/Sao_Paulo',
+      'X-PUBLISHED-TTL:PT1H',
+      'REFRESH-INTERVAL;VALUE=DURATION:PT1H',
       ...events.flatMap((event) => [
         'BEGIN:VEVENT',
         `UID:${escapeIcsText(event.uid)}`,
@@ -226,7 +228,7 @@ export default async function handler(req, res) {
     ].map(foldIcsLine).join('\r\n');
 
     res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-    res.setHeader('Content-Disposition', 'attachment; filename="dcoratto-cronograma.ics"');
+    res.setHeader('Content-Disposition', 'inline; filename="dcoratto-cronograma.ics"');
     res.setHeader('Cache-Control', 'no-store, max-age=0');
     res.status(200).send(ics);
   } catch (error) {

@@ -665,7 +665,16 @@ export const ClientsPage: React.FC = () => {
       })));
     } catch (error) {
       console.error(error);
-      window.alert('Não consegui importar esse orçamento existente. Verifique se o PDF tem a tabela com "DESCRIÇÃO AMBIENTE/PRODUTO", "VALOR" e a linha "GRANITOS E MARMORES".');
+      const code = error instanceof Error ? error.message : '';
+      if (code === 'GEMINI_API_KEY_NAO_CONFIGURADA') {
+        window.alert('Esse PDF precisa de leitura por IA, mas a chave GEMINI_API_KEY não está configurada no deploy.');
+      } else if (code === 'GEMINI_QUOTA_EXCEDIDA') {
+        window.alert('Não consegui importar esse PDF porque a cota da Gemini está esgotada no momento. A leitura local já foi tentada antes disso.');
+      } else if (code === 'GEMINI_TEMPORARIAMENTE_INDISPONIVEL') {
+        window.alert('A leitura por IA está temporariamente indisponível. Tente novamente em alguns instantes.');
+      } else {
+        window.alert('Não consegui importar esse orçamento existente. Verifique se o PDF tem a tabela com "DESCRIÇÃO AMBIENTE/PRODUTO", "VALOR" e a linha "GRANITOS E MARMORES".');
+      }
     } finally {
       setImportingLegacyQuotePdf(false);
     }

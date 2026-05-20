@@ -1,20 +1,35 @@
 import {initializeApp, cert, getApps} from 'firebase-admin/app';
 import {getFirestore, Timestamp} from 'firebase-admin/firestore';
+import fs from 'fs';
+import path from 'path';
+import {fileURLToPath} from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const firebaseConfig = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../firebase-applet-config.json'), 'utf8'));
 
 const normalizeEnv = (value, fallback = '') => {
   const normalized = String(value ?? fallback).trim();
   return normalized.replace(/^"(.*)"$/s, '$1');
 };
 
-const FIREBASE_PROJECT_ID = normalizeEnv(process.env.FIREBASE_PROJECT_ID, 'ai-studio-applet-webapp-2ecc9');
+const FIREBASE_PROJECT_ID = normalizeEnv(process.env.FIREBASE_PROJECT_ID, firebaseConfig.projectId);
 const FIREBASE_CLIENT_EMAIL = normalizeEnv(process.env.FIREBASE_CLIENT_EMAIL);
 const FIREBASE_PRIVATE_KEY = normalizeEnv(process.env.FIREBASE_PRIVATE_KEY).replace(/\\n/g, '\n');
-const FIRESTORE_DATABASE_ID = normalizeEnv(process.env.FIRESTORE_DATABASE_ID, 'ai-studio-1e79ab13-281e-49ca-b45c-a24a4386b051');
+const FIRESTORE_DATABASE_ID = normalizeEnv(process.env.FIRESTORE_DATABASE_ID, firebaseConfig.firestoreDatabaseId);
+
+const getMissingAdminEnvVars = () => {
+  const missing = [];
+  if (!FIREBASE_CLIENT_EMAIL) missing.push('FIREBASE_CLIENT_EMAIL');
+  if (!FIREBASE_PRIVATE_KEY) missing.push('FIREBASE_PRIVATE_KEY');
+  return missing;
+};
 
 const ensureAdminApp = () => {
   if (getApps().length) return getApps()[0];
-  if (!FIREBASE_CLIENT_EMAIL || !FIREBASE_PRIVATE_KEY) {
-    throw new Error('Firebase Admin credentials are not configured.');
+  const missing = getMissingAdminEnvVars();
+  if (missing.length > 0) {
+    throw new Error(`FIREBASE_ADMIN_MISSING_ENV:${missing.join(',')}`);
   }
   return initializeApp({
     credential: cert({
@@ -202,6 +217,12 @@ export default async function handler(req, res) {
     res.status(200).send(ics);
   } catch (error) {
     console.error('Calendar feed error', error);
-    res.status(500).send('Unable to generate calendar feed.');
+    const message = String(error?.message || '');
+    if (message.startsWith('FIREBASE_ADMIN_MISSING_ENV:')) {
+      const missing = message.split(':')[1] || '';
+      res.status(500).send(`Calendar feed misconfigured. Missing env: ${missing}`);
+      return;
+    }
+    res.status(500).send(`Unable to generate calendar feed. ${message || ''}`.trim());
   }
 }

@@ -50,11 +50,12 @@ const toDate = (value) => {
   return null;
 };
 
-const parseDateKey = (value) => {
+const parseDateKey = (value, eventTime = '09:00') => {
   if (!value || !String(value).includes('-')) return null;
   const [year, month, day] = String(value).split('-').map(Number);
   if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day, 12, 0, 0, 0);
+  const [hours, minutes] = String(eventTime || '09:00').split(':').map(Number);
+  return new Date(year, month - 1, day, Number.isFinite(hours) ? hours : 9, Number.isFinite(minutes) ? minutes : 0, 0, 0);
 };
 
 const eventLabel = (type) => (type === 'entrega' ? 'Entrega' : type === 'medicao' ? 'Medicao' : 'Evento');
@@ -87,6 +88,16 @@ const formatDateTimeUtc = (date) => {
   const min = String(date.getUTCMinutes()).padStart(2, '0');
   const ss = String(date.getUTCSeconds()).padStart(2, '0');
   return `${yyyy}${mm}${dd}T${hh}${min}${ss}Z`;
+};
+
+const formatDateTimeLocal = (date) => {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  const ss = String(date.getSeconds()).padStart(2, '0');
+  return `${yyyy}${mm}${dd}T${hh}${min}${ss}`;
 };
 
 const addOneHour = (date) => new Date(date.getTime() + 60 * 60 * 1000);
@@ -182,7 +193,7 @@ export default async function handler(req, res) {
 
     for (const docSnap of manualEventsSnap.docs) {
       const manualEvent = {id: docSnap.id, ...docSnap.data()};
-      const eventDate = parseDateKey(manualEvent.dateKey) || toDate(manualEvent.date);
+      const eventDate = parseDateKey(manualEvent.dateKey, manualEvent.eventTime) || toDate(manualEvent.date);
       if (!eventDate) continue;
       const client = manualEvent.clientId ?clientMap.get(manualEvent.clientId) : null;
       events.push({
@@ -217,8 +228,8 @@ export default async function handler(req, res) {
         'BEGIN:VEVENT',
         `UID:${escapeIcsText(event.uid)}`,
         `DTSTAMP:${nowStamp}`,
-        `DTSTART:${formatDateTimeUtc(event.start)}`,
-        `DTEND:${formatDateTimeUtc(addOneHour(event.start))}`,
+        `DTSTART;TZID=America/Sao_Paulo:${formatDateTimeLocal(event.start)}`,
+        `DTEND;TZID=America/Sao_Paulo:${formatDateTimeLocal(addOneHour(event.start))}`,
         `SUMMARY:${escapeIcsText(event.title)}`,
         event.description ?`DESCRIPTION:${escapeIcsText(event.description)}` : '',
         event.location ?`LOCATION:${escapeIcsText(event.location)}` : '',

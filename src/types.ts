@@ -180,6 +180,7 @@ export interface LegacyClientPiece {
 
 export interface LegacyManualQuote {
   totalPrice?: number;
+  updatedAt?: any;
   pieces: LegacyClientPiece[];
 }
 

@@ -63,6 +63,14 @@ const periodLabel = (period: Period) => {
 
 const statusLabel = (status: string) => normalizeQuoteStatus(status);
 
+const getLegacyStatusLabel = (client: Client) => {
+  const pieces = client.legacyManualQuote?.pieces || [];
+  if (pieces.length === 0) return client.legacyProjectMode === 'orcamento_existente' ? 'Orçamento Aprovado' : 'Orçamento';
+  return pieces
+    .map((piece) => normalizeQuoteStatus(piece.status || 'Orçamento'))
+    .sort((a, b) => QUOTE_STATUSES.indexOf(b) - QUOTE_STATUSES.indexOf(a))[0] || 'Orçamento';
+};
+
 const isClosedSale = (status: string) =>
   ['Orçamento Aprovado', 'Medição', 'Projeto', 'Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada', 'Conferência Final', 'Entrega', 'Finalizado'].includes(statusLabel(status));
 
@@ -114,6 +122,22 @@ export const ReportsPage: React.FC = () => {
     });
   }, [period, quotes]);
 
+  const filteredLegacySales = useMemo(() => {
+    const start = periodStart(period);
+    return clients
+      .filter((client) => client.legacyProjectMode === 'orcamento_existente' && (client.legacyManualQuote?.totalPrice || 0) > 0)
+      .filter((client) => {
+        const updatedAt = toDate(client.legacyManualQuote?.updatedAt);
+        if (!start) return true;
+        return updatedAt ? updatedAt >= start : true;
+      })
+      .map((client) => ({
+        client,
+        totalPrice: client.legacyManualQuote?.totalPrice || 0,
+        pieces: client.legacyManualQuote?.pieces || [],
+      }));
+  }, [clients, period]);
+
   const filteredSystemEvents = useMemo(() => {
     const start = periodStart(period);
     if (!start) return systemEvents;
@@ -144,15 +168,15 @@ export const ReportsPage: React.FC = () => {
 
   const totalSold = filteredQuotes
     .filter((quote) => isClosedSale(quote.status))
-    .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
+    .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) + filteredLegacySales.reduce((sum, sale) => sum + sale.totalPrice, 0);
   const openValue = filteredQuotes
     .filter((quote) => ['Orçamento', 'Orçamento Aprovado', 'Medição', 'Projeto'].includes(statusLabel(quote.status)))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
   const refusedValue = filteredQuotes
     .filter((quote) => ['recusado', 'cancelado'].includes(normalize(quote.status)))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
-  const approvedCount = filteredQuotes.filter((quote) => isClosedSale(quote.status)).length;
-  const conversionRate = filteredQuotes.length ?Math.round((approvedCount / filteredQuotes.length) * 100) : 0;
+  const approvedCount = filteredQuotes.filter((quote) => isClosedSale(quote.status)).length + filteredLegacySales.length;
+  const conversionRate = (filteredQuotes.length + filteredLegacySales.length) ?Math.round((approvedCount / (filteredQuotes.length + filteredLegacySales.length)) * 100) : 0;
   const inventoryArea = inventory.reduce((sum, item) => sum + (item.area || 0), 0);
   const inventoryCost = inventory.reduce((sum, item) => sum + (item.cost || 0), 0);
   const reservedArea = reservations
@@ -169,6 +193,15 @@ export const ReportsPage: React.FC = () => {
     pieces: quote.pieces?.length || 0,
     cutoutsTotal: Object.values(quote.cutouts || {}).reduce<number>((sum, value) => sum + (typeof value === 'number' ? value : value ? 1 : 0), 0),
     fixtures: (quote.pieces || []).reduce((sum, piece) => sum + Object.values(piece.selectedFixtureIds || {}).filter(Boolean).length, 0),
+  }));
+  const legacyQuoteDetails = filteredLegacySales.map(({client, totalPrice, pieces}) => ({
+    id: `legacy-${client.id}`,
+    clientName: client.name,
+    environment: 'Orçamento existente',
+    status: getLegacyStatusLabel(client),
+    totalPrice,
+    piecesCount: pieces.length,
+    itemsCount: pieces.reduce((sum, piece) => sum + (piece.items?.length || 0), 0),
   }));
 
   const statusCounts = QUOTE_STATUSES
@@ -305,7 +338,22 @@ export const ReportsPage: React.FC = () => {
                 </div>
               </div>
             ))}
-            {quoteDetails.length === 0 && <EmptyText>Nenhum orçamento no período.</EmptyText>}
+            {legacyQuoteDetails.map((quote) => (
+              <div key={quote.id} className="rounded-2xl bg-emerald-50/70 p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="font-bold text-slate-900">{quote.clientName}</div>
+                    <div className="text-sm text-slate-500">{quote.environment} · {quote.status}</div>
+                    <div className="mt-1 text-xs text-slate-400">{quote.piecesCount} peça(s) · {quote.itemsCount} item(ns) cadastrados</div>
+                  </div>
+                  <div className="text-left md:text-right">
+                    <div className="font-mono font-bold text-brand-primary">{formatCurrency(quote.totalPrice || 0)}</div>
+                    <div className="text-xs text-slate-400">Projeto legado</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {quoteDetails.length === 0 && legacyQuoteDetails.length === 0 && <EmptyText>Nenhum orçamento no período.</EmptyText>}
           </div>
         </div>
 
@@ -384,7 +432,7 @@ export const ReportsPage: React.FC = () => {
             <MoneyLine label="Vendidos" value={totalSold} className="text-green-700" />
             <MoneyLine label="Em aberto" value={openValue} className="text-amber-700" />
             <MoneyLine label="Recusados" value={refusedValue} className="text-red-600" />
-            <MoneyLine label="Ticket médio" value={filteredQuotes.length ?filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) / filteredQuotes.length : 0} className="text-slate-900" />
+            <MoneyLine label="Ticket médio" value={(filteredQuotes.length + filteredLegacySales.length) ?((filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) + filteredLegacySales.reduce((sum, sale) => sum + sale.totalPrice, 0)) / (filteredQuotes.length + filteredLegacySales.length)) : 0} className="text-slate-900" />
           </div>
         </div>
       </section>

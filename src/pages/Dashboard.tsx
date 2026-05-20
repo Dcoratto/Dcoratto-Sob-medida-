@@ -265,27 +265,12 @@ export const Dashboard: React.FC = () => {
   }, [calendarEvents, today]);
 
   const upcomingSchedule = useMemo(() => {
-    const today = new Date();
-    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-    const diffDays = (date: Date) => {
-      const target = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-      return Math.ceil((target - startOfToday) / 86400000);
-    };
-
-    return quotes
-      .flatMap((quote) => {
-        const measurementDate = toDate(quote.measurementDate);
-        const deliveryDate = toDate(quote.deliveryDate);
-        return [
-          measurementDate ?{quote, date: measurementDate, type: 'Medição'} : null,
-          deliveryDate ?{quote, date: deliveryDate, type: 'Entrega'} : null,
-        ].filter(Boolean) as Array<{quote: Quote; date: Date; type: string}>;
-      })
-      .map((event) => ({...event, daysLeft: diffDays(event.date)}))
+    return calendarEvents
+      .map((event) => ({...event, daysLeft: daysLeftFromToday(event.date)}))
       .filter((event) => event.daysLeft >= 0)
       .sort((a, b) => a.daysLeft - b.daysLeft)
       .slice(0, 6);
-  }, [quotes]);
+  }, [calendarEvents, daysLeftFromToday]);
 
   const stats = [
     {label: 'Orçamentos', value: quotes.length, icon: FileText, color: 'text-brand-primary', bg: 'bg-brand-primary/10', path: '/quotes'},
@@ -297,7 +282,10 @@ export const Dashboard: React.FC = () => {
 
   const openQuotes = quotes.filter((quote) => statusGroups.pre.statuses.includes(normalizeStatus(quote.status)));
   const closedQuotes = quotes.filter((quote) => isClosedSale(quote.status));
-  const totalValue = closedQuotes.reduce((acc, quote) => acc + (quote.totalPrice || 0), 0);
+  const legacyManualSales = clients
+    .filter((client) => client.legacyProjectMode === 'orcamento_existente' && (client.legacyManualQuote?.totalPrice || 0) > 0)
+    .reduce((acc, client) => acc + (client.legacyManualQuote?.totalPrice || 0), 0);
+  const totalValue = closedQuotes.reduce((acc, quote) => acc + (quote.totalPrice || 0), 0) + legacyManualSales;
   const purchaseRelevantReservedAreaByMaterial = (materialId: string) =>
     reservations
       .filter((reservation) => {
@@ -425,13 +413,13 @@ export const Dashboard: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {upcomingSchedule.map((event) => (
               <button
-                key={`${event.quote.id}-${event.type}-${event.date.toISOString()}`}
+                key={`${event.id}-${event.date.toISOString()}`}
                 type="button"
                 onClick={() => navigate('/calendar')}
                 className="rounded-2xl bg-slate-50 p-3 text-left hover:bg-slate-100 transition-all"
               >
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{event.type}</div>
-                <div className="mt-1 font-bold text-sm text-slate-900">{event.quote.clientName}</div>
+                <div className="mt-1 font-bold text-sm text-slate-900">{event.clientName || 'Evento'}</div>
                 <div className="mt-1 text-xs font-bold text-brand-primary">
                   {event.daysLeft === 0 ?'É hoje' : `daqui a ${event.daysLeft} dia${event.daysLeft > 1 ?'s' : ''}`}
                 </div>

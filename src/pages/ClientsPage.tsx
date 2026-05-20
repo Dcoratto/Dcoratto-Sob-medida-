@@ -4,7 +4,7 @@ import {Banknote, CheckCircle2, ClipboardList, Edit2, FileText, FileUp, Info, Ma
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureCategory, FixtureInfo, InventoryItem, LegacyClientPiece, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
-import {cn, formatCurrency} from '../lib/utils';
+import {cn, formatCurrency, formatCurrencyInput, parseCurrencyInput} from '../lib/utils';
 import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
@@ -233,6 +233,9 @@ const buildLegacyPiece = (): LegacyClientPiece => ({
   items: [],
 });
 
+const legacyPiecesTotal = (pieces: LegacyClientPiece[]) =>
+  pieces.reduce((sum, piece) => sum + Number(piece.value || 0), 0);
+
 export const ClientsPage: React.FC = () => {
   const {user, profile, canEvaluateEmployees} = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
@@ -273,7 +276,7 @@ export const ClientsPage: React.FC = () => {
   const [apartmentNumber, setApartmentNumber] = useState('');
   const [notes, setNotes] = useState('');
   const [legacyProjectMode, setLegacyProjectMode] = useState<Client['legacyProjectMode']>('sem_projeto');
-  const [legacyTotalPrice, setLegacyTotalPrice] = useState('0');
+  const [legacyTotalPrice, setLegacyTotalPrice] = useState(formatCurrency(0));
   const [legacyPieces, setLegacyPieces] = useState<LegacyClientPiece[]>([]);
 
   useEffect(() => {
@@ -412,6 +415,7 @@ export const ClientsPage: React.FC = () => {
     delivered: selectedLegacyPieces.filter((piece) => ['Entrega', 'Finalizado'].includes(normalizeQuoteStatus(piece.status || 'Orçamento'))).length,
     pending: selectedLegacyPieces.filter((piece) => !['Entrega', 'Finalizado'].includes(normalizeQuoteStatus(piece.status || 'Orçamento'))).length,
   };
+  const legacyPiecesTotalValue = useMemo(() => legacyPiecesTotal(legacyPieces), [legacyPieces]);
 
   const resetForm = () => {
     setName('');
@@ -433,7 +437,7 @@ export const ClientsPage: React.FC = () => {
     setApartmentNumber('');
     setNotes('');
     setLegacyProjectMode('sem_projeto');
-    setLegacyTotalPrice('0');
+    setLegacyTotalPrice(formatCurrency(0));
     setLegacyPieces([]);
     setEditingClient(null);
   };
@@ -487,7 +491,8 @@ export const ClientsPage: React.FC = () => {
       legacyManualQuote: legacyProjectMode === 'sem_projeto'
         ? null
         : {
-            totalPrice: Number(legacyTotalPrice || 0),
+            totalPrice: legacyPiecesTotalValue,
+            updatedAt: Timestamp.now(),
             pieces: legacyPieces
               .filter((piece) => piece.name.trim())
               .map((piece) => ({
@@ -659,6 +664,17 @@ export const ClientsPage: React.FC = () => {
     setLegacyPieces((current) => current.filter((piece) => piece.id !== pieceId));
   };
 
+  useEffect(() => {
+    if (legacyProjectMode === 'sem_projeto') {
+      const zeroValue = formatCurrency(0);
+      if (legacyTotalPrice !== zeroValue) setLegacyTotalPrice(zeroValue);
+      return;
+    }
+
+    const formattedTotal = formatCurrency(legacyPiecesTotalValue);
+    if (legacyTotalPrice !== formattedTotal) setLegacyTotalPrice(formattedTotal);
+  }, [legacyPiecesTotalValue, legacyProjectMode, legacyTotalPrice]);
+
   const handleEdit = (client: Client) => {
     setEditingClient(client);
     setName(client.name);
@@ -680,7 +696,7 @@ export const ClientsPage: React.FC = () => {
     setApartmentNumber(client.apartmentNumber || '');
     setNotes(client.notes);
     setLegacyProjectMode(client.legacyProjectMode || (client.legacyManualQuote ? 'orcamento_existente' : 'sem_projeto'));
-    setLegacyTotalPrice(String(client.legacyManualQuote?.totalPrice || 0));
+    setLegacyTotalPrice(formatCurrency(client.legacyManualQuote?.totalPrice || 0));
     setLegacyPieces((client.legacyManualQuote?.pieces || []).map((piece) => ({
       ...piece,
       status: normalizeQuoteStatus(piece.status || 'Orçamento'),
@@ -2023,9 +2039,14 @@ export const ClientsPage: React.FC = () => {
 
                 {legacyProjectMode !== 'sem_projeto' && (
                   <div className="space-y-4">
-                    {legacyProjectMode === 'orcamento_existente' && (
-                      <FormField label="Valor total aprovado" value={legacyTotalPrice} onChange={setLegacyTotalPrice} type="number" />
-                    )}
+                    <div className="space-y-1.5">
+                      <label className="text-slate-500 font-medium text-sm">Valor total aprovado</label>
+                      <input
+                        value={legacyTotalPrice}
+                        readOnly
+                        className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 outline-none font-semibold text-slate-700"
+                      />
+                    </div>
 
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-3">
@@ -2067,7 +2088,15 @@ export const ClientsPage: React.FC = () => {
                                 ))}
                               </select>
                             </div>
-                            <FormField label="Valor da peça" value={String(piece.value || 0)} onChange={(value) => updateLegacyPiece(piece.id, {value: Number(value || 0)})} type="number" />
+                            <div className="space-y-1.5">
+                              <label className="text-slate-500 font-medium text-sm">Valor da peça</label>
+                              <input
+                                value={formatCurrencyInput(piece.value || 0)}
+                                onChange={(e) => updateLegacyPiece(piece.id, {value: parseCurrencyInput(e.target.value)})}
+                                placeholder="R$ 0,00"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                              />
+                            </div>
                           </div>
 
                           <div className="space-y-1.5">

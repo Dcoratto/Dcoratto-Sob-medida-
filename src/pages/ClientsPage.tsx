@@ -3,7 +3,7 @@ import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDo
 import {Banknote, CheckCircle2, ClipboardList, Edit2, FileText, FileUp, Info, MapPin, Phone, Plus, Search, Trash2, User, Users, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
-import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureCategory, FixtureInfo, InventoryItem, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
+import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureCategory, FixtureInfo, InventoryItem, LegacyClientPiece, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
@@ -58,9 +58,21 @@ const legacyStageToQuoteStatus = (stage?: Client['manualStage']): QuoteStatus | 
   }
 };
 
+const deriveLegacyProjectStatus = (client: Client): QuoteStatus | 'Sem projeto' => {
+  const pieces = client.legacyManualQuote?.pieces || [];
+  if (pieces.length > 0) {
+    return pieces
+      .map((piece) => normalizeQuoteStatus(piece.status || 'Orçamento'))
+      .sort((a, b) => QUOTE_STATUSES.indexOf(b) - QUOTE_STATUSES.indexOf(a))[0] || 'Orçamento';
+  }
+  if (client.legacyProjectMode === 'orcamento_existente') return 'Orçamento Aprovado';
+  if (client.legacyProjectMode === 'orcamento') return 'Orçamento';
+  return 'Sem projeto';
+};
+
 const getClientDisplayStatus = (client: Client, quote?: Quote): QuoteStatus | 'Sem projeto' => {
   if (quote) return normalizeQuoteStatus(quote.status);
-  return client.manualQuoteStatus || legacyStageToQuoteStatus(client.manualStage);
+  return client.manualQuoteStatus || deriveLegacyProjectStatus(client) || legacyStageToQuoteStatus(client.manualStage);
 };
 
 const statusToStage = (status: QuoteStatus | 'Sem projeto'): ClientStage => {
@@ -213,6 +225,14 @@ const addDaysToInputDate = (value: string, days: number) => {
   return date;
 };
 
+const buildLegacyPiece = (): LegacyClientPiece => ({
+  id: Math.random().toString(36).slice(2, 11),
+  name: '',
+  status: 'Orçamento',
+  value: 0,
+  items: [],
+});
+
 export const ClientsPage: React.FC = () => {
   const {user, profile, canEvaluateEmployees} = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
@@ -252,6 +272,9 @@ export const ClientsPage: React.FC = () => {
   const [tower, setTower] = useState('');
   const [apartmentNumber, setApartmentNumber] = useState('');
   const [notes, setNotes] = useState('');
+  const [legacyProjectMode, setLegacyProjectMode] = useState<Client['legacyProjectMode']>('sem_projeto');
+  const [legacyTotalPrice, setLegacyTotalPrice] = useState('0');
+  const [legacyPieces, setLegacyPieces] = useState<LegacyClientPiece[]>([]);
 
   useEffect(() => {
     const qClients = query(collection(db, 'clients'), orderBy('name', 'asc'));
@@ -312,6 +335,7 @@ export const ClientsPage: React.FC = () => {
   }, [quotes, selectedClient]);
 
   const selectedQuote = selectedClientQuotes.find((quote) => quote.id === selectedQuoteId) || selectedClientQuotes[0];
+  const selectedLegacyQuote = selectedClient?.legacyManualQuote;
   const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
   const activeEmployees = useMemo(
     () => employees.filter((employee) => employee.active !== false),
@@ -382,6 +406,12 @@ export const ClientsPage: React.FC = () => {
     {label: 'Rebaixo americano', count: selectedQuote?.cutouts?.wetAreaAmericanRecess || 0},
     {label: 'Rebaixo italiano', count: selectedQuote?.cutouts?.wetAreaItalianRecess || 0},
   ].filter((item) => item.count > 0);
+  const selectedLegacyPieces = selectedLegacyQuote?.pieces || [];
+  const selectedLegacySummary = {
+    total: selectedLegacyPieces.length,
+    delivered: selectedLegacyPieces.filter((piece) => ['Entrega', 'Finalizado'].includes(normalizeQuoteStatus(piece.status || 'Orçamento'))).length,
+    pending: selectedLegacyPieces.filter((piece) => !['Entrega', 'Finalizado'].includes(normalizeQuoteStatus(piece.status || 'Orçamento'))).length,
+  };
 
   const resetForm = () => {
     setName('');
@@ -402,6 +432,9 @@ export const ClientsPage: React.FC = () => {
     setTower('');
     setApartmentNumber('');
     setNotes('');
+    setLegacyProjectMode('sem_projeto');
+    setLegacyTotalPrice('0');
+    setLegacyPieces([]);
     setEditingClient(null);
   };
 
@@ -450,6 +483,21 @@ export const ClientsPage: React.FC = () => {
       lot: lot.trim(),
       tower: tower.trim(),
       apartmentNumber: apartmentNumber.trim(),
+      legacyProjectMode,
+      legacyManualQuote: legacyProjectMode === 'sem_projeto'
+        ? null
+        : {
+            totalPrice: Number(legacyTotalPrice || 0),
+            pieces: legacyPieces
+              .filter((piece) => piece.name.trim())
+              .map((piece) => ({
+                ...piece,
+                name: piece.name.trim(),
+                status: normalizeQuoteStatus(piece.status || 'Orçamento'),
+                value: Number(piece.value || 0),
+                items: (piece.items || []).map((item) => item.trim()).filter(Boolean),
+              })),
+          },
     };
 
     if (editingClient) {
@@ -591,6 +639,26 @@ export const ClientsPage: React.FC = () => {
     }
   };
 
+  const addLegacyPiece = () => {
+    setLegacyPieces((current) => [...current, buildLegacyPiece()]);
+  };
+
+  const updateLegacyPiece = (pieceId: string, data: Partial<LegacyClientPiece>) => {
+    setLegacyPieces((current) => current.map((piece) => (
+      piece.id === pieceId
+        ? {
+            ...piece,
+            ...data,
+            status: normalizeQuoteStatus((data.status || piece.status || 'Orçamento') as string),
+          }
+        : piece
+    )));
+  };
+
+  const removeLegacyPiece = (pieceId: string) => {
+    setLegacyPieces((current) => current.filter((piece) => piece.id !== pieceId));
+  };
+
   const handleEdit = (client: Client) => {
     setEditingClient(client);
     setName(client.name);
@@ -611,6 +679,14 @@ export const ClientsPage: React.FC = () => {
     setTower(client.tower || '');
     setApartmentNumber(client.apartmentNumber || '');
     setNotes(client.notes);
+    setLegacyProjectMode(client.legacyProjectMode || (client.legacyManualQuote ? 'orcamento_existente' : 'sem_projeto'));
+    setLegacyTotalPrice(String(client.legacyManualQuote?.totalPrice || 0));
+    setLegacyPieces((client.legacyManualQuote?.pieces || []).map((piece) => ({
+      ...piece,
+      status: normalizeQuoteStatus(piece.status || 'Orçamento'),
+      value: Number(piece.value || 0),
+      items: piece.items || [],
+    })));
     setShowModal(true);
   };
 
@@ -1151,6 +1227,9 @@ export const ClientsPage: React.FC = () => {
           ) : (
             filteredClients.map((client) => {
               const latestQuote = latestQuoteByClient.get(client.id);
+              const legacyPieces = client.legacyManualQuote?.pieces || [];
+              const legacyDelivered = legacyPieces.filter((piece) => ['Entrega', 'Finalizado'].includes(normalizeQuoteStatus(piece.status || 'Orçamento'))).length;
+              const legacyPending = Math.max(0, legacyPieces.length - legacyDelivered);
               const pieceSummary = summarizeQuotePieces(latestQuote);
               const displayStatus = getClientDisplayStatus(client, latestQuote);
               const stage = statusToStage(displayStatus);
@@ -1223,6 +1302,16 @@ export const ClientsPage: React.FC = () => {
                         </div>
                         <div className="text-[11px] font-semibold text-slate-500">
                           {pieceSummary.delivered} finalizada(s) · {pieceSummary.pending} em andamento
+                        </div>
+                      </div>
+                    )}
+                    {!latestQuote && client.legacyProjectMode && client.legacyProjectMode !== 'sem_projeto' && (
+                      <div className="space-y-1">
+                        <div className="text-xs font-bold text-brand-primary">
+                          {legacyPieces.length} peça(s) · {formatCurrency(client.legacyManualQuote?.totalPrice || 0)}
+                        </div>
+                        <div className="text-[11px] font-semibold text-slate-500">
+                          {legacyDelivered} finalizada(s) · {legacyPending} em andamento
                         </div>
                       </div>
                     )}
@@ -1732,6 +1821,83 @@ export const ClientsPage: React.FC = () => {
                     </>
                   )}
                 </>
+              ) : selectedLegacyQuote ? (
+                detailModal === 'team' ? (
+                  <div className="rounded-3xl bg-slate-50 p-10 text-center">
+                    <Users className="mx-auto mb-4 w-10 h-10 text-slate-300" />
+                    <div className="font-display text-xl font-bold text-slate-900">Projeto legado sem equipe vinculada</div>
+                    <p className="mt-2 text-sm text-slate-400">Esse cliente usa um orçamento existente lançado manualmente. Se precisar, você pode acompanhar as peças e os status individuais no card.</p>
+                  </div>
+                ) : (
+                  <>
+                    <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                      <div className="rounded-3xl bg-slate-50 p-5">
+                        <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Valor lançado</div>
+                        <div className="mt-2 text-2xl font-display font-bold text-slate-900">{formatCurrency(selectedLegacyQuote.totalPrice || 0)}</div>
+                      </div>
+                      <div className="rounded-3xl bg-slate-50 p-5">
+                        <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Peças</div>
+                        <div className="mt-2 text-2xl font-display font-bold text-slate-900">{selectedLegacySummary.total}</div>
+                      </div>
+                      <div className="rounded-3xl bg-slate-50 p-5">
+                        <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Status geral</div>
+                        <div className="mt-2 text-2xl font-display font-bold text-brand-primary">{getClientDisplayStatus(selectedClient)}</div>
+                      </div>
+                    </section>
+
+                    {(detailModal === 'quote' || detailModal === 'values') && (
+                      <>
+                        <section className="rounded-3xl border border-slate-100 p-5">
+                          <h3 className="mb-4 font-display text-xl font-bold text-slate-900">Resumo do orçamento existente</h3>
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                            <SummaryBox label="Tipo" value={selectedClient.legacyProjectMode === 'orcamento_existente' ? 'Orçamento existente' : 'Orçamento'} />
+                            <SummaryBox label="Peças finalizadas" value={`${selectedLegacySummary.delivered}`} />
+                            <SummaryBox label="Peças em andamento" value={`${selectedLegacySummary.pending}`} />
+                          </div>
+                        </section>
+
+                        <section className="rounded-3xl border border-slate-100 p-5">
+                          <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Peças do projeto</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {selectedLegacyPieces.map((piece) => (
+                              <div key={piece.id} className="rounded-2xl bg-slate-50 p-4 space-y-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <div className="font-bold text-slate-900">{piece.name}</div>
+                                  <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase', quoteStatusColor(piece.status))}>
+                                    {normalizeQuoteStatus(piece.status || 'Orçamento')}
+                                  </span>
+                                </div>
+                                <div className="text-sm font-bold text-brand-primary">{formatCurrency(piece.value || 0)}</div>
+                                <div className="text-xs text-slate-500">
+                                  {(piece.items || []).length > 0 ? piece.items?.join(' · ') : 'Sem itens vinculados'}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </section>
+                      </>
+                    )}
+
+                    {detailModal === 'values' && (
+                      <section className="rounded-3xl border border-slate-100 p-5">
+                        <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Valores por peça</h3>
+                        <div className="space-y-3">
+                          {selectedLegacyPieces.map((piece) => (
+                            <div key={`${piece.id}-value`} className="rounded-2xl bg-slate-50 p-4 flex items-center justify-between gap-4">
+                              <div>
+                                <div className="font-bold text-slate-900">{piece.name}</div>
+                                <div className="text-xs text-slate-400">{(piece.items || []).join(' · ') || 'Sem itens vinculados'}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-mono text-sm font-bold text-brand-primary">{formatCurrency(piece.value || 0)}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+                  </>
+                )
               ) : (
                 <div className="rounded-3xl bg-slate-50 p-10 text-center">
                   <ClipboardList className="mx-auto mb-4 w-10 h-10 text-slate-300" />
@@ -1837,6 +2003,88 @@ export const ClientsPage: React.FC = () => {
                   <FormField label="Apartamento" value={apartmentNumber} onChange={setApartmentNumber} />
                 </div>
               )}
+
+              <div className="rounded-3xl border border-slate-100 p-5 space-y-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-display text-lg font-bold text-slate-900">Projeto do cliente antigo</h3>
+                    <p className="text-xs text-slate-400">Use isso quando o cliente já existia antes do sistema.</p>
+                  </div>
+                  <select
+                    value={legacyProjectMode}
+                    onChange={(e) => setLegacyProjectMode(e.target.value as Client['legacyProjectMode'])}
+                    className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
+                  >
+                    <option value="sem_projeto">Sem projeto</option>
+                    <option value="orcamento">Orçamento</option>
+                    <option value="orcamento_existente">Orçamento existente</option>
+                  </select>
+                </div>
+
+                {legacyProjectMode !== 'sem_projeto' && (
+                  <div className="space-y-4">
+                    {legacyProjectMode === 'orcamento_existente' && (
+                      <FormField label="Valor total aprovado" value={legacyTotalPrice} onChange={setLegacyTotalPrice} type="number" />
+                    )}
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-bold text-slate-700">Peças do projeto</div>
+                        <button
+                          type="button"
+                          onClick={addLegacyPiece}
+                          className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-3 py-2 text-xs font-bold text-white"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Adicionar peça
+                        </button>
+                      </div>
+
+                      {legacyPieces.length === 0 && (
+                        <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">Nenhuma peça adicionada ainda.</div>
+                      )}
+
+                      {legacyPieces.map((piece, index) => (
+                        <div key={piece.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="text-sm font-bold text-slate-700">Peça {index + 1}</div>
+                            <button type="button" onClick={() => removeLegacyPiece(piece.id)} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                            <FormField label="Nome da peça" value={piece.name} onChange={(value) => updateLegacyPiece(piece.id, {name: value})} />
+                            <div className="space-y-1.5">
+                              <label className="text-slate-500 font-medium text-sm">Status da peça</label>
+                              <select
+                                value={normalizeQuoteStatus(piece.status || 'Orçamento')}
+                                onChange={(e) => updateLegacyPiece(piece.id, {status: e.target.value as QuoteStatus})}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                              >
+                                {QUOTE_STATUSES.map((status) => (
+                                  <option key={status} value={status}>{status}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <FormField label="Valor da peça" value={String(piece.value || 0)} onChange={(value) => updateLegacyPiece(piece.id, {value: Number(value || 0)})} type="number" />
+                          </div>
+
+                          <div className="space-y-1.5">
+                            <label className="text-slate-500 font-medium text-sm">Itens do projeto</label>
+                            <input
+                              value={(piece.items || []).join(', ')}
+                              onChange={(e) => updateLegacyPiece(piece.id, {items: e.target.value.split(',').map((item) => item.trim()).filter(Boolean)})}
+                              placeholder="Ex.: Cooktop, cuba, soleira, ilha"
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               <div className="space-y-1.5">
                 <label className="text-slate-500 font-medium text-sm">Observações</label>

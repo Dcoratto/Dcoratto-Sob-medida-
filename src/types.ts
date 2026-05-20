@@ -150,6 +150,8 @@ export interface Client {
   googleDriveUrl?: string;
   manualStage?: 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
   manualQuoteStatus?: QuoteStatus | 'Sem projeto';
+  legacyProjectMode?: 'sem_projeto' | 'orcamento' | 'orcamento_existente';
+  legacyManualQuote?: LegacyManualQuote;
   cpf?: string;
   rg?: string;
   birthDate?: string;
@@ -166,6 +168,19 @@ export interface Client {
   lot?: string;
   tower?: string;
   apartmentNumber?: string;
+}
+
+export interface LegacyClientPiece {
+  id: string;
+  name: string;
+  status?: QuoteStatus;
+  value?: number;
+  items?: string[];
+}
+
+export interface LegacyManualQuote {
+  totalPrice?: number;
+  pieces: LegacyClientPiece[];
 }
 
 export interface CondominiumRule {

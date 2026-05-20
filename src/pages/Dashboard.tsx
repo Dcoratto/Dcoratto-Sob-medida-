@@ -84,7 +84,7 @@ interface DashboardCalendarEvent {
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const {user, profile, isAdmin} = useAuth();
+  const {user, profile, isAdmin, hasPermission} = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [recentQuotes, setRecentQuotes] = useState<Quote[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -324,6 +324,8 @@ export const Dashboard: React.FC = () => {
 
   const getStatusColor = (status: string) => quoteStatusColor(status).replace(/ border-[a-z]+-\d+/g, '');
   const selectedDeadlineClient = selectedDeadlineEvent?.clientId ? clients.find((client) => client.id === selectedDeadlineEvent.clientId) : null;
+  const canViewSalesValues = hasPermission('relatorios', 'verFaturamento');
+  const hiddenSalesValueLabel = 'Valor oculto';
 
   const handleDeleteManualEvent = async () => {
     if (!selectedDeadlineEvent?.sourceId) return;
@@ -594,7 +596,7 @@ export const Dashboard: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right font-mono font-bold text-slate-900">
-                      {formatCurrency(quote.totalPrice || 0)}
+                      {canViewSalesValues ? formatCurrency(quote.totalPrice || 0) : hiddenSalesValueLabel}
                     </td>
                   </tr>
                 ))}
@@ -692,7 +694,7 @@ export const Dashboard: React.FC = () => {
               <span className="text-[10px] font-bold uppercase tracking-widest">Resumo de Vendas</span>
             </div>
             <div className="text-4xl font-display font-bold mb-1">
-              {formatCurrency(totalValue)}
+              {canViewSalesValues ? formatCurrency(totalValue) : hiddenSalesValueLabel}
             </div>
             <div className="text-xs opacity-50 mb-6">Total em orçamentos fechados</div>
             <button

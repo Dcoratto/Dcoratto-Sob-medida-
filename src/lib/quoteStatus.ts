@@ -1,4 +1,4 @@
-﻿import {QuoteStatus} from '../types';
+﻿import {Client, Quote, QuoteStatus} from '../types';
 
 export const QUOTE_STATUSES: QuoteStatus[] = [
   'Orçamento',
@@ -55,6 +55,43 @@ export const isQuoteApprovedOrBeyond = (status?: string) =>
     'Entrega',
     'Finalizado',
   ].includes(normalizeQuoteStatus(status));
+
+const legacyStageToQuoteStatus = (stage?: Client['manualStage']): QuoteStatus | 'Sem projeto' => {
+  switch (stage) {
+    case 'approved':
+      return 'Orçamento Aprovado';
+    case 'production':
+      return 'Produção Finalizada';
+    case 'ready':
+      return 'Conferência Final';
+    case 'done':
+      return 'Finalizado';
+    case 'pre':
+      return 'Orçamento';
+    default:
+      return 'Sem projeto';
+  }
+};
+
+export const deriveLegacyProjectStatus = (client: Client): QuoteStatus | 'Sem projeto' => {
+  const pieces = client.legacyManualQuote?.pieces || [];
+  if (pieces.length > 0) {
+    return pieces
+      .map((piece) => normalizeQuoteStatus(piece.status || 'Orçamento'))
+      .sort((a, b) => QUOTE_STATUSES.indexOf(b) - QUOTE_STATUSES.indexOf(a))[0] || 'Orçamento';
+  }
+  if (client.legacyProjectMode === 'orcamento_existente') return 'Orçamento Aprovado';
+  if (client.legacyProjectMode === 'orcamento') return 'Orçamento';
+  return 'Sem projeto';
+};
+
+export const getClientDisplayStatus = (client: Client, quote?: Quote): QuoteStatus | 'Sem projeto' => {
+  if (quote) return normalizeQuoteStatus(quote.status);
+  return client.manualQuoteStatus || deriveLegacyProjectStatus(client) || legacyStageToQuoteStatus(client.manualStage);
+};
+
+export const shouldAppearInProjects = (status?: string) =>
+  normalizeText(status) !== 'sem projeto';
 
 export const quoteStatusColor = (status?: string) => {
   switch (normalizeQuoteStatus(status)) {

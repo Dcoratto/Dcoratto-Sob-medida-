@@ -9,7 +9,7 @@ export type PermissionMap = {
   estoque: { visualizar: boolean; adicionar: boolean; editar: boolean; excluir: boolean; movimentar: boolean; };
   relatorios: { visualizar: boolean; exportar: boolean; verFaturamento: boolean; verProdutividade: boolean; };
   admin: { visualizarUsuarios: boolean; alterarPermissoes: boolean; excluirUsuarios: boolean; };
-  cliente: { visualizar: boolean; editarDados: boolean; alterarEtapa: boolean; anexarArquivos: boolean; avaliarFuncionarios: boolean; };
+  cliente: { visualizar: boolean; editarDados: boolean; alterarEtapa: boolean; anexarArquivos: boolean; avaliarFuncionarios: boolean; verValores: boolean; };
   medicao: { visualizar: boolean; criar: boolean; editar: boolean; };
   projeto: { visualizar: boolean; criar: boolean; editar: boolean; aprovar: boolean; };
   producao: { visualizar: boolean; alterarEtapa: boolean; conferirMedidas: boolean; finalizarProducao: boolean; };

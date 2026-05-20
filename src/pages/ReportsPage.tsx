@@ -4,7 +4,7 @@ import {AlertCircle, BarChart3, Boxes, FileDown, Gauge, TrendingUp, Users} from 
 import {Client, Employee, InventoryItem, InventoryPurchase, InventoryReservation, Material, ProductionStep, Quote, SystemEvent} from '../types';
 import {db} from '../lib/firebase';
 import {cn, formatCurrency} from '../lib/utils';
-import {QUOTE_STATUSES, normalizeQuoteStatus} from '../lib/quoteStatus';
+import {QUOTE_STATUSES, getClientDisplayStatus, isQuoteApprovedOrBeyond, normalizeQuoteStatus} from '../lib/quoteStatus';
 import {useAuth} from '../contexts/AuthContext';
 
 type Period = 'all' | 'today' | 'week' | 'month' | 'year';
@@ -62,17 +62,7 @@ const periodLabel = (period: Period) => {
 };
 
 const statusLabel = (status: string) => normalizeQuoteStatus(status);
-
-const getLegacyStatusLabel = (client: Client) => {
-  const pieces = client.legacyManualQuote?.pieces || [];
-  if (pieces.length === 0) return client.legacyProjectMode === 'orcamento_existente' ? 'Orçamento Aprovado' : 'Orçamento';
-  return pieces
-    .map((piece) => normalizeQuoteStatus(piece.status || 'Orçamento'))
-    .sort((a, b) => QUOTE_STATUSES.indexOf(b) - QUOTE_STATUSES.indexOf(a))[0] || 'Orçamento';
-};
-
-const isClosedSale = (status: string) =>
-  ['Orçamento Aprovado', 'Medição', 'Projeto', 'Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada', 'Conferência Final', 'Entrega', 'Finalizado'].includes(statusLabel(status));
+const isClosedSale = (status: string) => isQuoteApprovedOrBeyond(status);
 
 export const ReportsPage: React.FC = () => {
   const {hasPermission} = useAuth();
@@ -122,6 +112,24 @@ export const ReportsPage: React.FC = () => {
     });
   }, [period, quotes]);
 
+  const latestQuoteByClient = useMemo(() => {
+    const map = new Map<string, Quote>();
+    filteredQuotes.forEach((quote) => {
+      const current = map.get(quote.clientId);
+      const currentTime = toDate(current?.createdAt)?.getTime() || 0;
+      const nextTime = toDate(quote.createdAt)?.getTime() || 0;
+      if (!current || nextTime >= currentTime) map.set(quote.clientId, quote);
+    });
+    return map;
+  }, [filteredQuotes]);
+
+  const manualOnlyClients = useMemo(() => {
+    return clients.filter((client) => {
+      if (latestQuoteByClient.has(client.id)) return false;
+      return getClientDisplayStatus(client) !== 'Sem projeto';
+    });
+  }, [clients, latestQuoteByClient]);
+
   const filteredLegacySales = useMemo(() => {
     const start = periodStart(period);
     return clients
@@ -135,6 +143,7 @@ export const ReportsPage: React.FC = () => {
         client,
         totalPrice: client.legacyManualQuote?.totalPrice || 0,
         pieces: client.legacyManualQuote?.pieces || [],
+        status: getClientDisplayStatus(client),
       }));
   }, [clients, period]);
 
@@ -194,18 +203,23 @@ export const ReportsPage: React.FC = () => {
     cutoutsTotal: Object.values(quote.cutouts || {}).reduce<number>((sum, value) => sum + (typeof value === 'number' ? value : value ? 1 : 0), 0),
     fixtures: (quote.pieces || []).reduce((sum, piece) => sum + Object.values(piece.selectedFixtureIds || {}).filter(Boolean).length, 0),
   }));
-  const legacyQuoteDetails = filteredLegacySales.map(({client, totalPrice, pieces}) => ({
+  const legacyQuoteDetails = filteredLegacySales.map(({client, totalPrice, pieces, status}) => ({
     id: `legacy-${client.id}`,
     clientName: client.name,
     environment: 'Orçamento existente',
-    status: getLegacyStatusLabel(client),
+    status,
     totalPrice,
     piecesCount: pieces.length,
     itemsCount: pieces.reduce((sum, piece) => sum + (piece.items?.length || 0), 0),
   }));
 
   const statusCounts = QUOTE_STATUSES
-    .map((status) => ({status, count: filteredQuotes.filter((quote) => statusLabel(quote.status) === status).length}));
+    .map((status) => ({
+      status,
+      count:
+        filteredQuotes.filter((quote) => statusLabel(quote.status) === status).length +
+        manualOnlyClients.filter((client) => getClientDisplayStatus(client) === status).length,
+    }));
   const maxStatusCount = Math.max(1, ...statusCounts.map((item) => item.count));
 
   const materialSales = materials.map((material) => {
@@ -280,6 +294,9 @@ export const ReportsPage: React.FC = () => {
     }
   };
 
+  const canViewRevenue = hasPermission('relatorios', 'verFaturamento');
+  const hiddenRevenueLabel = 'Valor oculto';
+
   return (
     <div className="space-y-8 pb-20">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -313,7 +330,7 @@ export const ReportsPage: React.FC = () => {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <ReportCard icon={TrendingUp} label="Valor vendido" value={formatCurrency(totalSold)} tone="brand" />
+        <ReportCard icon={TrendingUp} label="Valor vendido" value={canViewRevenue ? formatCurrency(totalSold) : hiddenRevenueLabel} tone="brand" />
         <ReportCard icon={Gauge} label="Conversão" value={`${conversionRate}%`} tone="green" />
         <ReportCard icon={Users} label="Clientes" value={String(clients.length)} tone="blue" />
         <ReportCard icon={Boxes} label="Itens em estoque" value={String(inventory.length)} tone="amber" />
@@ -332,7 +349,7 @@ export const ReportsPage: React.FC = () => {
                     <div className="mt-1 text-xs text-slate-400">{pieces} peça(s) · {cutoutsTotal} recorte(s) · {fixtures} item(ns) cadastrados</div>
                   </div>
                   <div className="text-left md:text-right">
-                    <div className="font-mono font-bold text-brand-primary">{formatCurrency(quote.totalPrice || 0)}</div>
+                    <div className="font-mono font-bold text-brand-primary">{canViewRevenue ? formatCurrency(quote.totalPrice || 0) : hiddenRevenueLabel}</div>
                     <div className="text-xs text-slate-400">{(quote.totalArea || 0).toFixed(4)} m²</div>
                   </div>
                 </div>
@@ -347,7 +364,7 @@ export const ReportsPage: React.FC = () => {
                     <div className="mt-1 text-xs text-slate-400">{quote.piecesCount} peça(s) · {quote.itemsCount} item(ns) cadastrados</div>
                   </div>
                   <div className="text-left md:text-right">
-                    <div className="font-mono font-bold text-brand-primary">{formatCurrency(quote.totalPrice || 0)}</div>
+                    <div className="font-mono font-bold text-brand-primary">{canViewRevenue ? formatCurrency(quote.totalPrice || 0) : hiddenRevenueLabel}</div>
                     <div className="text-xs text-slate-400">Projeto legado</div>
                   </div>
                 </div>
@@ -360,7 +377,7 @@ export const ReportsPage: React.FC = () => {
         <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
           <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Resumo do estoque</h2>
           <div className="space-y-3">
-            <MoneyLine label="Custo em estoque" value={inventoryCost} className="text-slate-900" />
+            <MoneyLine label="Custo em estoque" value={canViewRevenue ? inventoryCost : hiddenRevenueLabel} className="text-slate-900" />
             <InfoLine label="Área total" value={`${inventoryArea.toFixed(2)} m²`} />
             <InfoLine label="Reservado em orçamentos" value={`${reservedArea.toFixed(2)} m²`} />
             <InfoLine label="Vendido/finalizado" value={`${soldArea.toFixed(2)} m²`} />
@@ -429,10 +446,10 @@ export const ReportsPage: React.FC = () => {
         <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
           <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Financeiro</h2>
           <div className="space-y-3">
-            <MoneyLine label="Vendidos" value={totalSold} className="text-green-700" />
-            <MoneyLine label="Em aberto" value={openValue} className="text-amber-700" />
-            <MoneyLine label="Recusados" value={refusedValue} className="text-red-600" />
-            <MoneyLine label="Ticket médio" value={(filteredQuotes.length + filteredLegacySales.length) ?((filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) + filteredLegacySales.reduce((sum, sale) => sum + sale.totalPrice, 0)) / (filteredQuotes.length + filteredLegacySales.length)) : 0} className="text-slate-900" />
+            <MoneyLine label="Vendidos" value={canViewRevenue ? totalSold : hiddenRevenueLabel} className="text-green-700" />
+            <MoneyLine label="Em aberto" value={canViewRevenue ? openValue : hiddenRevenueLabel} className="text-amber-700" />
+            <MoneyLine label="Recusados" value={canViewRevenue ? refusedValue : hiddenRevenueLabel} className="text-red-600" />
+            <MoneyLine label="Ticket médio" value={canViewRevenue ? ((filteredQuotes.length + filteredLegacySales.length) ?((filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) + filteredLegacySales.reduce((sum, sale) => sum + sale.totalPrice, 0)) / (filteredQuotes.length + filteredLegacySales.length)) : 0) : hiddenRevenueLabel} className="text-slate-900" />
           </div>
         </div>
       </section>
@@ -447,7 +464,7 @@ export const ReportsPage: React.FC = () => {
                   <div className="font-bold text-slate-900">{item.name}</div>
                   <div className="text-xs text-slate-400">{item.count} orçamento(s)</div>
                 </div>
-                <div className="font-mono font-bold text-brand-primary">{formatCurrency(item.value)}</div>
+                <div className="font-mono font-bold text-brand-primary">{canViewRevenue ? formatCurrency(item.value) : hiddenRevenueLabel}</div>
               </div>
             ))}
             {materialSales.length === 0 && <EmptyText>Nenhum material vendido no período.</EmptyText>}
@@ -615,10 +632,10 @@ const ReportCard = ({icon: Icon, label, value, tone}: {icon: any; label: string;
   );
 };
 
-const MoneyLine = ({label, value, className}: {label: string; value: number; className?: string}) => (
+const MoneyLine = ({label, value, className}: {label: string; value: number | string; className?: string}) => (
   <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
     <span className="text-sm font-semibold text-slate-500">{label}</span>
-    <span className={cn('font-mono font-bold', className)}>{formatCurrency(value)}</span>
+    <span className={cn('font-mono font-bold', className)}>{typeof value === 'number' ? formatCurrency(value) : value}</span>
   </div>
 );
 

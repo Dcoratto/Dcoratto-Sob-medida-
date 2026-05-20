@@ -3,9 +3,9 @@ import {collection, onSnapshot, orderBy, query} from 'firebase/firestore';
 import {useNavigate} from 'react-router-dom';
 import {ClipboardCheck, Search} from 'lucide-react';
 import {db} from '../lib/firebase';
-import {Quote} from '../types';
+import {Client, Quote} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
-import {normalizeQuoteStatus, quoteStatusColor} from '../lib/quoteStatus';
+import {getClientDisplayStatus, quoteStatusColor, shouldAppearInProjects} from '../lib/quoteStatus';
 
 const normalize = (value: unknown) =>
   String(value || '')
@@ -13,34 +13,84 @@ const normalize = (value: unknown) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 
-const isProjectStatus = (status: string) => {
-  return ['Orçamento Aprovado', 'Medição', 'Projeto', 'Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada', 'Conferência Final', 'Entrega', 'Finalizado'].includes(normalizeQuoteStatus(status));
+type ProjectRow = {
+  id: string;
+  clientName: string;
+  environment: string;
+  totalArea: number;
+  totalPrice: number;
+  status: string;
+  legacy: boolean;
 };
 
 export const ProjectsPage: React.FC = () => {
   const navigate = useNavigate();
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(query(collection(db, 'quotes'), orderBy('createdAt', 'desc')), (snapshot) => {
+    const unsubQuotes = onSnapshot(query(collection(db, 'quotes'), orderBy('createdAt', 'desc')), (snapshot) => {
       setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
       setLoading(false);
     });
-    return unsubscribe;
+    const unsubClients = onSnapshot(collection(db, 'clients'), (snapshot) => {
+      setClients(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Client)));
+    });
+
+    return () => {
+      unsubQuotes();
+      unsubClients();
+    };
   }, []);
 
-  const projects = useMemo(
-    () => quotes.filter((quote) => isProjectStatus(quote.status)).filter((quote) => normalize(`${quote.clientName} ${quote.environment} ${quote.status}`).includes(normalize(search))),
-    [quotes, search],
-  );
+  const latestQuoteByClient = useMemo(() => {
+    const map = new Map<string, Quote>();
+    quotes.forEach((quote) => {
+      const current = map.get(quote.clientId);
+      const currentTime = current?.createdAt?.toDate?.()?.getTime?.() || 0;
+      const nextTime = quote?.createdAt?.toDate?.()?.getTime?.() || 0;
+      if (!current || nextTime >= currentTime) map.set(quote.clientId, quote);
+    });
+    return map;
+  }, [quotes]);
+
+  const projects = useMemo(() => {
+    const quoteRows: ProjectRow[] = quotes
+      .filter((quote) => shouldAppearInProjects(quote.status))
+      .map((quote) => ({
+        id: quote.id,
+        clientName: quote.clientName,
+        environment: quote.environment || 'Sem ambiente',
+        totalArea: quote.totalArea || 0,
+        totalPrice: quote.totalPrice || 0,
+        status: quote.status,
+        legacy: false,
+      }));
+
+    const legacyRows: ProjectRow[] = clients
+      .filter((client) => !latestQuoteByClient.has(client.id))
+      .map((client) => ({
+        id: `legacy-${client.id}`,
+        clientName: client.name,
+        environment: client.legacyProjectMode === 'orcamento_existente' ? 'Orçamento existente' : 'Projeto antigo',
+        totalArea: 0,
+        totalPrice: client.legacyManualQuote?.totalPrice || 0,
+        status: getClientDisplayStatus(client),
+        legacy: true,
+      }))
+      .filter((item) => shouldAppearInProjects(item.status));
+
+    return [...quoteRows, ...legacyRows]
+      .filter((item) => normalize(`${item.clientName} ${item.environment} ${item.status}`).includes(normalize(search)));
+  }, [clients, latestQuoteByClient, quotes, search]);
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Projetos</h1>
-        <p className="text-slate-500 mt-1">Todo orçamento aprovado entra automaticamente aqui.</p>
+        <p className="text-slate-500 mt-1">Acompanhamento sincronizado com os status dos cards dos clientes.</p>
       </header>
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
@@ -69,25 +119,29 @@ export const ProjectsPage: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {loading ?(
+              {loading ? (
                 <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Carregando projetos...</td></tr>
-              ) : projects.length === 0 ?(
+              ) : projects.length === 0 ? (
                 <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Nenhum projeto encontrado.</td></tr>
               ) : (
-                projects.map((quote) => (
-                  <tr key={quote.id} className="hover:bg-slate-50/50 transition-colors">
+                projects.map((project) => (
+                  <tr key={project.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-900">{quote.clientName}</div>
-                      <div className="text-xs text-brand-primary font-medium">{quote.environment || 'Sem ambiente'}</div>
+                      <div className="font-semibold text-slate-900">{project.clientName}</div>
+                      <div className="text-xs text-brand-primary font-medium">{project.environment}</div>
                     </td>
-                    <td className="px-6 py-4 font-mono text-slate-700">{(quote.totalArea || 0).toFixed(4)} m²</td>
-                    <td className="px-6 py-4 font-mono font-bold text-slate-900">{formatCurrency(quote.totalPrice || 0)}</td>
+                    <td className="px-6 py-4 font-mono text-slate-700">
+                      {project.legacy ? 'Projeto legado' : `${project.totalArea.toFixed(4)} m²`}
+                    </td>
+                    <td className="px-6 py-4 font-mono font-bold text-slate-900">
+                      {project.totalPrice > 0 ? formatCurrency(project.totalPrice) : '-'}
+                    </td>
                     <td className="px-6 py-4">
                       <span className={cn(
                         'inline-flex rounded-full px-3 py-1 text-[10px] font-bold uppercase',
-                        quoteStatusColor(quote.status),
+                        quoteStatusColor(project.status),
                       )}>
-                        {quote.status}
+                        {project.status}
                       </span>
                     </td>
                     <td className="px-6 py-4">

@@ -237,7 +237,7 @@ const legacyPiecesTotal = (pieces: LegacyClientPiece[]) =>
   pieces.reduce((sum, piece) => sum + Number(piece.value || 0), 0);
 
 export const ClientsPage: React.FC = () => {
-  const {user, profile, canEvaluateEmployees} = useAuth();
+  const {user, profile, canEvaluateEmployees, hasPermission} = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -418,6 +418,8 @@ export const ClientsPage: React.FC = () => {
     pending: selectedLegacyPieces.filter((piece) => !['Entrega', 'Finalizado'].includes(normalizeQuoteStatus(piece.status || 'Orçamento'))).length,
   };
   const legacyPiecesTotalValue = useMemo(() => legacyPiecesTotal(legacyPieces), [legacyPieces]);
+  const canViewClientValues = hasPermission('cliente', 'verValores');
+  const hiddenClientValueLabel = 'Valor oculto';
 
   const resetForm = () => {
     setName('');
@@ -1320,9 +1322,11 @@ export const ClientsPage: React.FC = () => {
                       <button type="button" title="Informações do orçamento" onClick={() => openClientDetail(client, 'quote')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
                         <ClipboardList className="h-4 w-4" />
                       </button>
-                      <button type="button" title="Valores detalhados" onClick={() => openClientDetail(client, 'values')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
-                        <Banknote className="h-4 w-4" />
-                      </button>
+                      {canViewClientValues && (
+                        <button type="button" title="Valores detalhados" onClick={() => openClientDetail(client, 'values')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                          <Banknote className="h-4 w-4" />
+                        </button>
+                      )}
                       <button type="button" title="Funcionários" onClick={() => openClientDetail(client, 'team')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
                         <Users className="h-4 w-4" />
                       </button>
@@ -1350,7 +1354,7 @@ export const ClientsPage: React.FC = () => {
                     {latestQuote && (
                       <div className="space-y-1">
                         <div className="text-xs font-bold text-brand-primary">
-                          {pieceSummary.total} {fixCorruptedText('peça(s) ·')} {formatCurrency(latestQuote.totalPrice || 0)}
+                          {pieceSummary.total} {fixCorruptedText('peça(s) ·')} {canViewClientValues ? formatCurrency(latestQuote.totalPrice || 0) : hiddenClientValueLabel}
                         </div>
                         <div className="text-[11px] font-semibold text-slate-500">
                           {pieceSummary.delivered} finalizada(s) · {pieceSummary.pending} em andamento
@@ -1360,7 +1364,7 @@ export const ClientsPage: React.FC = () => {
                     {!latestQuote && client.legacyProjectMode && client.legacyProjectMode !== 'sem_projeto' && (
                       <div className="space-y-1">
                         <div className="text-xs font-bold text-brand-primary">
-                          {legacyPieces.length} peça(s) · {formatCurrency(client.legacyManualQuote?.totalPrice || 0)}
+                          {legacyPieces.length} peça(s) · {canViewClientValues ? formatCurrency(client.legacyManualQuote?.totalPrice || 0) : hiddenClientValueLabel}
                         </div>
                         <div className="text-[11px] font-semibold text-slate-500">
                           {legacyDelivered} finalizada(s) · {legacyPending} em andamento
@@ -1491,7 +1495,7 @@ export const ClientsPage: React.FC = () => {
                       className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
                     >
                       {selectedClientQuotes.map((quote) => (
-                        <option key={quote.id} value={quote.id}>{quote.environment || 'Projeto'} · {formatCurrency(quote.totalPrice || 0)}</option>
+                        <option key={quote.id} value={quote.id}>{quote.environment || 'Projeto'} · {canViewClientValues ? formatCurrency(quote.totalPrice || 0) : hiddenClientValueLabel}</option>
                       ))}
                     </select>
                     {selectedQuote && (
@@ -1545,7 +1549,7 @@ export const ClientsPage: React.FC = () => {
                       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                         <div className="rounded-3xl bg-slate-50 p-5">
                           <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Valor fechado</div>
-                          <div className="mt-2 text-2xl font-display font-bold text-slate-900">{formatCurrency(selectedQuote.totalPrice || 0)}</div>
+                          <div className="mt-2 text-2xl font-display font-bold text-slate-900">{canViewClientValues ? formatCurrency(selectedQuote.totalPrice || 0) : hiddenClientValueLabel}</div>
                         </div>
                         <div className="rounded-3xl bg-slate-50 p-5">
                           <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Área total</div>
@@ -1693,9 +1697,9 @@ export const ClientsPage: React.FC = () => {
                           <section className="rounded-3xl border border-slate-100 p-5">
                             <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Valores detalhados</h3>
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                              <SummaryBox label="Valor total" value={formatCurrency(selectedQuote.totalPrice || 0)} highlight />
+                              <SummaryBox label="Valor total" value={canViewClientValues ? formatCurrency(selectedQuote.totalPrice || 0) : hiddenClientValueLabel} highlight />
                               <SummaryBox label="Área total" value={`${(selectedQuote.totalArea || 0).toFixed(4)} m²`} />
-                              <SummaryBox label="Valor médio por m²" value={selectedQuote.totalArea ? formatCurrency((selectedQuote.totalPrice || 0) / selectedQuote.totalArea) : '-'} />
+                              <SummaryBox label="Valor médio por m²" value={canViewClientValues ? (selectedQuote.totalArea ? formatCurrency((selectedQuote.totalPrice || 0) / selectedQuote.totalArea) : '-') : hiddenClientValueLabel} />
                               <SummaryBox label="Qtd. de peças" value={`${selectedQuote.pieces?.length || 0}`} />
                             </div>
                             <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1729,7 +1733,7 @@ export const ClientsPage: React.FC = () => {
                                     </div>
                                     <div className="text-right">
                                       <div className="font-mono text-sm font-bold text-brand-primary">{area.toFixed(4)} m²</div>
-                                      <div className="text-xs text-slate-500">{formatCurrency(averageValue)}</div>
+                                      <div className="text-xs text-slate-500">{canViewClientValues ? formatCurrency(averageValue) : hiddenClientValueLabel}</div>
                                     </div>
                                   </div>
                                 );
@@ -1885,7 +1889,7 @@ export const ClientsPage: React.FC = () => {
                     <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                       <div className="rounded-3xl bg-slate-50 p-5">
                         <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Valor lançado</div>
-                        <div className="mt-2 text-2xl font-display font-bold text-slate-900">{formatCurrency(selectedLegacyQuote.totalPrice || 0)}</div>
+                        <div className="mt-2 text-2xl font-display font-bold text-slate-900">{canViewClientValues ? formatCurrency(selectedLegacyQuote.totalPrice || 0) : hiddenClientValueLabel}</div>
                       </div>
                       <div className="rounded-3xl bg-slate-50 p-5">
                         <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Peças</div>
@@ -1919,7 +1923,7 @@ export const ClientsPage: React.FC = () => {
                                     {normalizeQuoteStatus(piece.status || 'Orçamento')}
                                   </span>
                                 </div>
-                                <div className="text-sm font-bold text-brand-primary">{formatCurrency(piece.value || 0)}</div>
+                                <div className="text-sm font-bold text-brand-primary">{canViewClientValues ? formatCurrency(piece.value || 0) : hiddenClientValueLabel}</div>
                                 <div className="text-xs text-slate-500">
                                   {(piece.items || []).length > 0 ? piece.items?.join(' · ') : 'Sem itens vinculados'}
                                 </div>
@@ -1941,7 +1945,7 @@ export const ClientsPage: React.FC = () => {
                                 <div className="text-xs text-slate-400">{(piece.items || []).join(' · ') || 'Sem itens vinculados'}</div>
                               </div>
                               <div className="text-right">
-                                <div className="font-mono text-sm font-bold text-brand-primary">{formatCurrency(piece.value || 0)}</div>
+                                <div className="font-mono text-sm font-bold text-brand-primary">{canViewClientValues ? formatCurrency(piece.value || 0) : hiddenClientValueLabel}</div>
                               </div>
                             </div>
                           ))}
@@ -2078,7 +2082,7 @@ export const ClientsPage: React.FC = () => {
                     <div className="space-y-1.5">
                       <label className="text-slate-500 font-medium text-sm">Valor total aprovado</label>
                       <input
-                        value={legacyTotalPrice}
+                        value={canViewClientValues ? legacyTotalPrice : hiddenClientValueLabel}
                         readOnly
                         className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 outline-none font-semibold text-slate-700"
                       />
@@ -2149,10 +2153,11 @@ export const ClientsPage: React.FC = () => {
                             <div className="space-y-1.5">
                               <label className="text-slate-500 font-medium text-sm">Valor da peça</label>
                               <input
-                                value={formatCurrencyInput(piece.value || 0)}
+                                value={canViewClientValues ? formatCurrencyInput(piece.value || 0) : hiddenClientValueLabel}
                                 onChange={(e) => updateLegacyPiece(piece.id, {value: parseCurrencyInput(e.target.value)})}
                                 placeholder="R$ 0,00"
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                                disabled={!canViewClientValues}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium disabled:cursor-not-allowed disabled:bg-slate-100"
                               />
                             </div>
                           </div>

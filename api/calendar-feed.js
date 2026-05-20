@@ -66,6 +66,19 @@ const escapeIcsText = (value = '') =>
     .replace(/,/g, '\\,')
     .replace(/;/g, '\\;');
 
+const foldIcsLine = (line = '') => {
+  const text = String(line);
+  const maxLength = 73;
+  if (text.length <= maxLength) return text;
+
+  const parts = [];
+  for (let index = 0; index < text.length; index += maxLength) {
+    parts.push(text.slice(index, index + maxLength));
+  }
+
+  return parts.map((part, index) => (index === 0 ? part : ` ${part}`)).join('\r\n');
+};
+
 const formatDateTimeUtc = (date) => {
   const yyyy = date.getUTCFullYear();
   const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
@@ -210,10 +223,11 @@ export default async function handler(req, res) {
         'END:VEVENT',
       ].filter(Boolean)),
       'END:VCALENDAR',
-    ].join('\r\n');
+    ].map(foldIcsLine).join('\r\n');
 
     res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
-    res.setHeader('Content-Disposition', 'inline; filename="dcoratto-cronograma.ics"');
+    res.setHeader('Content-Disposition', 'attachment; filename="dcoratto-cronograma.ics"');
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
     res.status(200).send(ics);
   } catch (error) {
     console.error('Calendar feed error', error);

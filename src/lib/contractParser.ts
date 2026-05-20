@@ -27,6 +27,11 @@ export type ParsedContractClient = {
   rawText: string;
 };
 
+export type ParsedLegacyQuotePiece = {
+  name: string;
+  value: number;
+};
+
 type LabelConfig = {
   key: keyof Omit<ParsedContractClient, 'contractNumber' | 'rawText'>;
   label: string;
@@ -122,6 +127,16 @@ const sanitizeValue = (value: string) =>
     .replace(/\s+/g, ' ')
     .replace(/^\d+\s*-\s*/, '')
     .trim();
+
+const parseBrazilianCurrency = (value: string) => {
+  const normalized = String(value || '')
+    .replace(/[^\d,.-]/g, '')
+    .replace(/\.(?=\d{3}(?:\D|$))/g, '')
+    .replace(',', '.');
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
 const extractPdfTokens = (buffer: ArrayBuffer) => {
   const raw = new TextDecoder('latin1').decode(new Uint8Array(buffer));
@@ -289,6 +304,23 @@ const coerceParsedClient = (payload: Record<string, unknown>): ParsedContractCli
   rawText: sanitizeValue(String(payload.rawText || '')),
 });
 
+const coerceParsedLegacyPieces = (payload: unknown): ParsedLegacyQuotePiece[] => {
+  const items = Array.isArray(payload)
+    ? payload
+    : Array.isArray((payload as any)?.pieces)
+      ? (payload as any).pieces
+      : [];
+
+  return items
+    .map((item) => ({
+      name: sanitizeValue(String((item as any)?.name || '')),
+      value: Number((item as any)?.value || 0),
+      line: sanitizeValue(String((item as any)?.line || '')),
+    }))
+    .filter((item) => item.name && item.value > 0 && isGranitosEMarmoresLine(item.line || ''))
+    .map(({name, value}) => ({name, value}));
+};
+
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 
 const isTransientGeminiError = (error: unknown) => {
@@ -392,4 +424,143 @@ export const parseClientContractPdf = async (file: File): Promise<ParsedContract
     contractNumber,
     rawText,
   };
+};
+
+const isItemToken = (value: string) => /^\d{1,3}$/.test(sanitizeValue(value));
+const isQuantityToken = (value: string) => /^\d+(?:[.,]\d+)?$/.test(sanitizeValue(value));
+const isDeadlineToken = (value: string) => /^\d{1,3}$/.test(sanitizeValue(value));
+const isCurrencyToken = (value: string) => /^\d{1,3}(?:\.\d{3})*,\d{2}$/.test(sanitizeValue(value));
+
+const isGranitosEMarmoresLine = (value: string) =>
+  normalizeText(value).includes('GRANITOS E MARMORES');
+
+const parseLegacyQuoteWithGeminiFallback = async (buffer: ArrayBuffer) => {
+  if (!GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY_NAO_CONFIGURADA');
+  }
+
+  const ai = new GoogleGenAI({apiKey: GEMINI_API_KEY});
+  const prompt = `
+Leia este PDF de orcamento/contrato e extraia apenas as linhas da tabela de produtos.
+Responda somente com JSON valido, sem markdown e sem explicacoes.
+
+Formato esperado:
+{
+  "pieces": [
+    {
+      "name": "texto da coluna DESCRICAO AMBIENTE/PRODUTO",
+      "line": "texto da coluna LINHA",
+      "value": 1234.56
+    }
+  ]
+}
+
+Regras:
+- Considere apenas itens onde a coluna LINHA seja GRANITOS E MARMORES.
+- O campo name deve vir da coluna DESCRICAO AMBIENTE/PRODUTO.
+- O campo value deve vir da coluna VALOR em numero.
+- Ignore qualquer linha de outra categoria.
+- Ignore total do pedido.
+- Se nao encontrar itens validos, retorne {"pieces":[]}.
+`.trim();
+
+  let lastError: unknown = null;
+  for (const model of GEMINI_MODELS) {
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents: [
+            {
+              role: 'user',
+              parts: [
+                {text: prompt},
+                {
+                  inlineData: {
+                    mimeType: 'application/pdf',
+                    data: arrayBufferToBase64(buffer),
+                  },
+                },
+              ],
+            },
+          ],
+        });
+
+        return coerceParsedLegacyPieces(extractJsonPayload(response.text || ''));
+      } catch (error) {
+        lastError = error;
+        if (isQuotaGeminiError(error)) throw new Error('GEMINI_QUOTA_EXCEDIDA');
+        if (!isTransientGeminiError(error)) throw error;
+        if (attempt < 2) await sleep(1200 * (attempt + 1));
+      }
+    }
+  }
+
+  if (isTransientGeminiError(lastError)) {
+    throw new Error('GEMINI_TEMPORARIAMENTE_INDISPONIVEL');
+  }
+
+  throw lastError instanceof Error ? lastError : new Error('GEMINI_FALHOU');
+};
+
+export const parseLegacyQuotePdf = async (file: File): Promise<ParsedLegacyQuotePiece[]> => {
+  const buffer = await file.arrayBuffer();
+  const tokens = extractPdfTokens(buffer).map((token) => sanitizeValue(token)).filter(Boolean);
+
+  const headerIndex = tokens.findIndex((token) => normalizeToken(token).includes('DESCRICAO AMBIENTE/PRODUTO'));
+  const bodyStart = headerIndex === -1
+    ? tokens.findIndex((token) => normalizeToken(token).includes('VALOR'))
+    : headerIndex;
+
+  if (bodyStart === -1) {
+    return parseLegacyQuoteWithGeminiFallback(buffer);
+  }
+
+  const totalIndex = tokens.findIndex((token, index) =>
+    index > bodyStart && normalizeToken(token).includes('TOTAL DO PEDIDO'),
+  );
+  const bodyTokens = tokens.slice(bodyStart + 1, totalIndex === -1 ? tokens.length : totalIndex);
+
+  const pieces: ParsedLegacyQuotePiece[] = [];
+
+  for (let index = 0; index < bodyTokens.length; index += 1) {
+    const itemToken = bodyTokens[index];
+    const quantityToken = bodyTokens[index + 1];
+    const descriptionToken = bodyTokens[index + 2];
+
+    if (!isItemToken(itemToken) || !isQuantityToken(quantityToken) || !descriptionToken) continue;
+
+    let deadlineIndex = -1;
+    for (let cursor = index + 3; cursor < Math.min(bodyTokens.length - 1, index + 12); cursor += 1) {
+      if (isDeadlineToken(bodyTokens[cursor]) && isCurrencyToken(bodyTokens[cursor + 1])) {
+        deadlineIndex = cursor;
+        break;
+      }
+    }
+
+    if (deadlineIndex === -1) continue;
+
+    const middleTokens = bodyTokens.slice(index + 3, deadlineIndex);
+    const lineText = middleTokens.join(' ');
+    const value = parseBrazilianCurrency(bodyTokens[deadlineIndex + 1]);
+
+    if (isGranitosEMarmoresLine(lineText) && descriptionToken.trim() && value > 0) {
+      pieces.push({
+        name: descriptionToken.trim(),
+        value,
+      });
+    }
+
+    index = deadlineIndex + 1;
+  }
+
+  if (pieces.length === 0) {
+    const fallbackPieces = await parseLegacyQuoteWithGeminiFallback(buffer);
+    if (fallbackPieces.length === 0) {
+      throw new Error('PDF_ORCAMENTO_SEM_PECAS_GRANITOS');
+    }
+    return fallbackPieces;
+  }
+
+  return pieces;
 };

@@ -12,7 +12,7 @@ import {logAuditEvent} from '../lib/auditLogs';
 import {QUOTE_STATUSES, normalizeQuoteStatus, quoteStatusColor, quoteStatusDotColor} from '../lib/quoteStatus';
 import {getHolidayInfo} from '../lib/holidays';
 import {formatMaterialSpecs} from '../lib/materialSpecs';
-import {parseClientContractPdf} from '../lib/contractParser';
+import {parseClientContractPdf, parseLegacyQuotePdf} from '../lib/contractParser';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -255,7 +255,9 @@ export const ClientsPage: React.FC = () => {
   const [statusMenuClientId, setStatusMenuClientId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [importingContract, setImportingContract] = useState(false);
+  const [importingLegacyQuotePdf, setImportingLegacyQuotePdf] = useState(false);
   const contractInputRef = useRef<HTMLInputElement | null>(null);
+  const legacyQuoteInputRef = useRef<HTMLInputElement | null>(null);
 
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -641,6 +643,31 @@ export const ClientsPage: React.FC = () => {
       }
     } finally {
       setImportingContract(false);
+    }
+  };
+
+  const handleImportLegacyQuotePdf = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setImportingLegacyQuotePdf(true);
+
+    try {
+      const parsedPieces = await parseLegacyQuotePdf(file);
+      setLegacyProjectMode('orcamento_existente');
+      setLegacyPieces(parsedPieces.map((piece) => ({
+        id: Math.random().toString(36).slice(2, 11),
+        name: piece.name,
+        status: 'Orçamento Aprovado',
+        value: piece.value,
+        items: [],
+      })));
+    } catch (error) {
+      console.error(error);
+      window.alert('Não consegui importar esse orçamento existente. Verifique se o PDF tem a tabela com "DESCRIÇÃO AMBIENTE/PRODUTO", "VALOR" e a linha "GRANITOS E MARMORES".');
+    } finally {
+      setImportingLegacyQuotePdf(false);
     }
   };
 
@@ -2051,14 +2078,36 @@ export const ClientsPage: React.FC = () => {
                     <div className="space-y-3">
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-sm font-bold text-slate-700">Peças do projeto</div>
-                        <button
-                          type="button"
-                          onClick={addLegacyPiece}
-                          className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-3 py-2 text-xs font-bold text-white"
-                        >
-                          <Plus className="h-4 w-4" />
-                          Adicionar peça
-                        </button>
+                        <div className="flex flex-wrap items-center justify-end gap-2">
+                          {legacyProjectMode === 'orcamento_existente' && (
+                            <>
+                              <input
+                                ref={legacyQuoteInputRef}
+                                type="file"
+                                accept="application/pdf"
+                                className="hidden"
+                                onChange={handleImportLegacyQuotePdf}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => legacyQuoteInputRef.current?.click()}
+                                disabled={importingLegacyQuotePdf}
+                                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <FileUp className="h-4 w-4" />
+                                {importingLegacyQuotePdf ? 'Lendo PDF...' : 'Importar PDF'}
+                              </button>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            onClick={addLegacyPiece}
+                            className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-3 py-2 text-xs font-bold text-white"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Adicionar peça
+                          </button>
+                        </div>
                       </div>
 
                       {legacyPieces.length === 0 && (

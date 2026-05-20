@@ -82,6 +82,20 @@ const quoteStage = (quote?: Quote): ClientStage => {
   return 'pre';
 };
 
+const getPieceDisplayStatus = (piece: QuotePiece, quote?: Quote): QuoteStatus =>
+  normalizeQuoteStatus(piece.pieceStatus || quote?.status || 'Orçamento');
+
+const getPieceAreaValue = (piece: QuotePiece) =>
+  piece.totalArea || piece.manualArea || piece.area || 0;
+
+const summarizeQuotePieces = (quote?: Quote) => {
+  const pieces = quote?.pieces || [];
+  const total = pieces.length;
+  const delivered = pieces.filter((piece) => ['Entrega', 'Finalizado'].includes(getPieceDisplayStatus(piece, quote))).length;
+  const pending = Math.max(0, total - delivered);
+  return {total, delivered, pending};
+};
+
 const clientStage = (client: Client, quote?: Quote): ClientStage => {
   if (quote) return quoteStage(quote);
   return client.manualStage || 'none';
@@ -1137,6 +1151,7 @@ export const ClientsPage: React.FC = () => {
           ) : (
             filteredClients.map((client) => {
               const latestQuote = latestQuoteByClient.get(client.id);
+              const pieceSummary = summarizeQuotePieces(latestQuote);
               const displayStatus = getClientDisplayStatus(client, latestQuote);
               const stage = statusToStage(displayStatus);
               const meta = stageMeta[stage];
@@ -1202,8 +1217,13 @@ export const ClientsPage: React.FC = () => {
                       <span className="line-clamp-2">{fixCorruptedText(client.address || 'Sem endereço cadastrado')}</span>
                     </div>
                     {latestQuote && (
-                      <div className="text-xs font-bold text-brand-primary">
-                        {latestQuote.pieces?.length || 0} {fixCorruptedText('peça(s) ·')} {formatCurrency(latestQuote.totalPrice || 0)}
+                      <div className="space-y-1">
+                        <div className="text-xs font-bold text-brand-primary">
+                          {pieceSummary.total} {fixCorruptedText('peça(s) ·')} {formatCurrency(latestQuote.totalPrice || 0)}
+                        </div>
+                        <div className="text-[11px] font-semibold text-slate-500">
+                          {pieceSummary.delivered} finalizada(s) · {pieceSummary.pending} em andamento
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1406,6 +1426,11 @@ export const ClientsPage: React.FC = () => {
                               <SummaryBox label="Prazo" value={`${selectedQuote.deliveryDays || 0} dia(s)`} />
                               <SummaryBox label="Responsável" value={selectedQuote.responsibleUserName || selectedQuote.responsible || '-'} />
                             </div>
+                            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+                              <SummaryBox label="Peças no orçamento" value={`${summarizeQuotePieces(selectedQuote).total}`} />
+                              <SummaryBox label="Peças finalizadas" value={`${summarizeQuotePieces(selectedQuote).delivered}`} />
+                              <SummaryBox label="Peças em andamento" value={`${summarizeQuotePieces(selectedQuote).pending}`} />
+                            </div>
                             {selectedQuoteCutoutRows.length > 0 && (
                               <div className="mt-4 flex flex-wrap gap-2">
                                 {selectedQuoteCutoutRows.map((item) => (
@@ -1430,10 +1455,15 @@ export const ClientsPage: React.FC = () => {
                                     </div>
                                   )}
                                   <div className="min-w-0">
-                                    <div className="font-bold text-slate-900">{piece.name}</div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <div className="font-bold text-slate-900">{piece.name}</div>
+                                      <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase', quoteStatusColor(getPieceDisplayStatus(piece, selectedQuote)))}>
+                                        {getPieceDisplayStatus(piece, selectedQuote)}
+                                      </span>
+                                    </div>
                                     <div className="text-xs text-slate-400">{piece.length || 0} x {piece.width || 0} cm</div>
                                     <div className="mt-1 text-xs text-slate-500">{materialById(piece.materialId)?.name || selectedQuote.materialName || 'Sem material'}</div>
-                                    <div className="mt-2 text-sm font-bold text-brand-primary">{((piece.totalArea || piece.manualArea || piece.area || 0)).toFixed(4)} m²</div>
+                                    <div className="mt-2 text-sm font-bold text-brand-primary">{getPieceAreaValue(piece).toFixed(4)} m²</div>
                                     {piece.sides?.length > 0 && (
                                       <div className="mt-1 text-xs text-slate-500">{piece.sides.length} adicional(is)</div>
                                     )}
@@ -1543,12 +1573,17 @@ export const ClientsPage: React.FC = () => {
                             <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Composição por peça</h3>
                             <div className="space-y-3">
                               {(selectedQuote.pieces || []).map((piece) => {
-                                const area = piece.totalArea || piece.manualArea || piece.area || 0;
+                                const area = getPieceAreaValue(piece);
                                 const averageValue = selectedQuote.totalArea ? ((selectedQuote.totalPrice || 0) * area) / selectedQuote.totalArea : 0;
                                 return (
                                   <div key={piece.id} className="rounded-2xl bg-slate-50 p-4 flex items-center justify-between gap-4">
                                     <div>
-                                      <div className="font-bold text-slate-900">{piece.name}</div>
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <div className="font-bold text-slate-900">{piece.name}</div>
+                                        <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase', quoteStatusColor(getPieceDisplayStatus(piece, selectedQuote)))}>
+                                          {getPieceDisplayStatus(piece, selectedQuote)}
+                                        </span>
+                                      </div>
                                       <div className="text-xs text-slate-400">{materialById(piece.materialId)?.name || selectedQuote.materialName || 'Sem material'}</div>
                                     </div>
                                     <div className="text-right">

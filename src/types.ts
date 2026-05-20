@@ -304,6 +304,7 @@ export interface StairConfig {
 export interface QuotePiece {
   id: string;
   name: string;
+  pieceStatus?: QuoteStatus;
   materialId: string;
   materialVariantKey?: string;
   materialLine?: string;

@@ -405,6 +405,16 @@ export const AdminPage: React.FC = () => {
     await updateDoc(doc(db, 'materials', material.id), {active: !material.active, updatedAt: serverTimestamp()});
   };
 
+  const deleteMaterialCatalogItem = async (material: Material) => {
+    const confirmed = window.confirm(`Tem certeza que deseja excluir a pedra "${material.name}"?`);
+    if (!confirmed) return;
+    const ok = await deleteFirestoreDoc('materials', material.id);
+    if (!ok) return;
+    if (editingMaterial?.id === material.id) {
+      resetMaterialForm();
+    }
+  };
+
   const addFixtureCatalogItem = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!fixtureForm.name.trim()) return;
@@ -725,6 +735,9 @@ export const AdminPage: React.FC = () => {
                 <div className="flex shrink-0 items-center gap-2">
                   <button type="button" onClick={() => startEditingMaterial(material)} className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/10 hover:text-brand-primary" title="Editar pedra" aria-label="Editar pedra">
                     <Pencil className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => deleteMaterialCatalogItem(material)} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Excluir pedra" aria-label="Excluir pedra">
+                    <Trash2 className="h-4 w-4" />
                   </button>
                   <button type="button" onClick={() => toggleMaterialCatalogItem(material)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', material.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
                     {material.active ?'Ativo' : 'Inativo'}

@@ -6,7 +6,7 @@ import {db} from '../lib/firebase';
 import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Profile, Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
-import {normalizeQuoteStatus, quoteStatusColor} from '../lib/quoteStatus';
+import {getClientDisplayStatus, normalizeQuoteStatus, quoteStatusColor, shouldAppearInProjects} from '../lib/quoteStatus';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -191,6 +191,14 @@ export const Dashboard: React.FC = () => {
       return acc;
     }, {});
   }, [quotes]);
+  const projectCount = useMemo(() => {
+    const quoteProjects = quotes.filter((quote) => shouldAppearInProjects(quote.status)).length;
+    const legacyProjects = clients
+      .filter((client) => !latestQuoteByClient[client.id])
+      .filter((client) => shouldAppearInProjects(getClientDisplayStatus(client)))
+      .length;
+    return quoteProjects + legacyProjects;
+  }, [clients, latestQuoteByClient, quotes]);
   const visibleNotes = notes.filter((note) => !note.targetUid || note.targetUid === user?.uid || note.userUid === user?.uid || isAdmin);
 
   const stageCounts = useMemo(() => {
@@ -274,7 +282,7 @@ export const Dashboard: React.FC = () => {
 
   const stats = [
     {label: 'Orçamentos', value: quotes.length, icon: FileText, color: 'text-brand-primary', bg: 'bg-brand-primary/10', path: '/quotes'},
-    {label: 'Projetos', value: quotes.filter((quote) => { const s = normalizeStatus(quote.status); return ['Orçamento Aprovado', 'Medição', 'Projeto', 'Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada', 'Conferência Final', 'Entrega', 'Finalizado'].includes(s); }).length, icon: FolderKanban, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/projects'},
+    {label: 'Projetos', value: projectCount, icon: FolderKanban, color: 'text-emerald-600', bg: 'bg-emerald-50', path: '/projects'},
     {label: 'Clientes', value: clients.length, icon: Users, color: 'text-blue-600', bg: 'bg-blue-50', path: '/clients'},
     {label: 'Materiais', value: materialsCount, icon: Package, color: 'text-purple-600', bg: 'bg-purple-50', path: '/materials'},
     {label: 'Itens em Estoque', value: inventory.length, icon: Database, color: 'text-amber-600', bg: 'bg-amber-50', path: '/inventory'},

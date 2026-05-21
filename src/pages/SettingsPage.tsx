@@ -3,7 +3,7 @@ import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, setDoc,
 import { db } from '../lib/firebase';
 import { useSettings, DEFAULT_SETTINGS } from '../hooks/useSettings';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, Plus, Trash2, Building, Phone, Mail, MapPin, Calculator, CreditCard, Scissors } from 'lucide-react';
+import { Save, Plus, Trash2, Building, Phone, Mail, MapPin, Calculator, CreditCard, Scissors, Pencil } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
 import { CondominiumRule, SupplierContact } from '../types';
@@ -806,11 +806,29 @@ const SupplierCatalogField: React.FC<{
     city: '',
     notes: '',
   });
+  const [editingSupplierName, setEditingSupplierName] = useState('');
 
   const handleAdd = async () => {
     const saved = await onAdd(draft);
     if (!saved) return;
     setDraft({name: '', whatsapp: '', contactName: '', city: '', notes: ''});
+    setEditingSupplierName('');
+  };
+
+  const startEditing = (supplier: SupplierContact) => {
+    setDraft({
+      name: supplier.name || '',
+      whatsapp: supplier.whatsapp || '',
+      contactName: supplier.contactName || '',
+      city: supplier.city || '',
+      notes: supplier.notes || '',
+    });
+    setEditingSupplierName(supplier.name);
+  };
+
+  const cancelEditing = () => {
+    setDraft({name: '', whatsapp: '', contactName: '', city: '', notes: ''});
+    setEditingSupplierName('');
   };
 
   return (
@@ -873,8 +891,18 @@ const SupplierCatalogField: React.FC<{
         ) : (
           <Plus className="w-4 h-4" />
         )}
-        {saving ? 'Salvando fornecedor...' : 'Adicionar fornecedor'}
+        {saving ? 'Salvando fornecedor...' : editingSupplierName ? 'Salvar fornecedor' : 'Adicionar fornecedor'}
       </button>
+      {editingSupplierName && (
+        <button
+          type="button"
+          onClick={cancelEditing}
+          disabled={saving}
+          className="ml-2 inline-flex items-center gap-2 rounded-xl bg-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          Cancelar edição
+        </button>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {suppliers.map((supplier) => (
@@ -887,15 +915,26 @@ const SupplierCatalogField: React.FC<{
                 {supplier.city && <div className="text-xs text-slate-500">Cidade: {supplier.city}</div>}
                 {supplier.notes && <div className="text-xs text-slate-400 mt-2">{supplier.notes}</div>}
               </div>
-              <button
-                type="button"
-                onClick={() => onRemove(supplier.name)}
-                disabled={saving}
-                className="rounded-xl bg-red-50 p-2 text-red-600 transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
-                title="Excluir fornecedor"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => startEditing(supplier)}
+                  disabled={saving}
+                  className="rounded-xl bg-brand-primary/10 p-2 text-brand-primary transition-all hover:bg-brand-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  title="Editar fornecedor"
+                >
+                  <Pencil className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onRemove(supplier.name)}
+                  disabled={saving}
+                  className="rounded-xl bg-red-50 p-2 text-red-600 transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                  title="Excluir fornecedor"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
         ))}

@@ -1,7 +1,7 @@
 ﻿import React, {useEffect, useMemo, useState} from 'react';
 import {collection, limit, onSnapshot, orderBy, query} from 'firebase/firestore';
 import {AlertCircle, BarChart3, Boxes, FileDown, Gauge, TrendingUp, Users} from 'lucide-react';
-import {Client, Employee, InventoryItem, InventoryPurchase, InventoryReservation, Material, ProductionStep, Quote, SystemEvent} from '../types';
+import {Client, Employee, InventoryItem, InventoryPurchase, InventoryReservation, LegacyPaymentInstallment, Material, ProductionStep, Quote, SystemEvent} from '../types';
 import {db} from '../lib/firebase';
 import {cn, formatCurrency} from '../lib/utils';
 import {QUOTE_STATUSES, getClientDisplayStatus, isQuoteApprovedOrBeyond, normalizeQuoteStatus} from '../lib/quoteStatus';
@@ -63,6 +63,17 @@ const periodLabel = (period: Period) => {
 
 const statusLabel = (status: string) => normalizeQuoteStatus(status);
 const isClosedSale = (status: string) => isQuoteApprovedOrBeyond(status);
+
+const summarizeLegacyPayments = (payments: LegacyPaymentInstallment[] = [], totalPrice = 0) => {
+  const paid = payments
+    .filter((payment) => payment.status === 'Pago')
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const pendingRegistered = payments
+    .filter((payment) => payment.status !== 'Pago')
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const pending = payments.length > 0 ? pendingRegistered : Math.max(0, totalPrice - paid);
+  return {paid, pending};
+};
 
 export const ReportsPage: React.FC = () => {
   const {hasPermission} = useAuth();
@@ -143,6 +154,7 @@ export const ReportsPage: React.FC = () => {
         client,
         totalPrice: client.legacyManualQuote?.totalPrice || 0,
         pieces: client.legacyManualQuote?.pieces || [],
+        payments: client.legacyManualQuote?.payments || [],
         status: getClientDisplayStatus(client),
       }));
   }, [clients, period]);
@@ -175,9 +187,14 @@ export const ReportsPage: React.FC = () => {
     });
   }, [period, purchases]);
 
+  const legacyReceived = filteredLegacySales.reduce((sum, sale) => sum + summarizeLegacyPayments(sale.payments, sale.totalPrice).paid, 0);
+  const legacyPending = filteredLegacySales.reduce((sum, sale) => sum + summarizeLegacyPayments(sale.payments, sale.totalPrice).pending, 0);
+
   const totalSold = filteredQuotes
     .filter((quote) => isClosedSale(quote.status))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) + filteredLegacySales.reduce((sum, sale) => sum + sale.totalPrice, 0);
+  const totalReceived = legacyReceived;
+  const pendingReceivable = legacyPending;
   const openValue = filteredQuotes
     .filter((quote) => ['Orçamento', 'Orçamento Aprovado', 'Medição', 'Projeto'].includes(statusLabel(quote.status)))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
@@ -278,6 +295,8 @@ export const ReportsPage: React.FC = () => {
         calendarEvents: filteredCalendarEvents,
         systemEvents: filteredSystemEvents,
         totalSold,
+        totalReceived,
+        pendingReceivable,
         openValue,
         refusedValue,
         conversionRate,
@@ -329,9 +348,11 @@ export const ReportsPage: React.FC = () => {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
         <ReportCard icon={TrendingUp} label="Valor vendido" value={canViewRevenue ? formatCurrency(totalSold) : hiddenRevenueLabel} tone="brand" />
-        <ReportCard icon={Gauge} label="Conversão" value={`${conversionRate}%`} tone="green" />
+        <ReportCard icon={Gauge} label="Valor recebido" value={canViewRevenue ? formatCurrency(totalReceived) : hiddenRevenueLabel} tone="green" />
+        <ReportCard icon={AlertCircle} label="A receber" value={canViewRevenue ? formatCurrency(pendingReceivable) : hiddenRevenueLabel} tone="amber" />
+        <ReportCard icon={BarChart3} label="Conversão" value={`${conversionRate}%`} tone="blue" />
         <ReportCard icon={Users} label="Clientes" value={String(clients.length)} tone="blue" />
         <ReportCard icon={Boxes} label="Itens em estoque" value={String(inventory.length)} tone="amber" />
       </div>
@@ -447,6 +468,8 @@ export const ReportsPage: React.FC = () => {
           <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Financeiro</h2>
           <div className="space-y-3">
             <MoneyLine label="Vendidos" value={canViewRevenue ? totalSold : hiddenRevenueLabel} className="text-green-700" />
+            <MoneyLine label="Recebidos" value={canViewRevenue ? totalReceived : hiddenRevenueLabel} className="text-emerald-700" />
+            <MoneyLine label="A receber" value={canViewRevenue ? pendingReceivable : hiddenRevenueLabel} className="text-amber-700" />
             <MoneyLine label="Em aberto" value={canViewRevenue ? openValue : hiddenRevenueLabel} className="text-amber-700" />
             <MoneyLine label="Recusados" value={canViewRevenue ? refusedValue : hiddenRevenueLabel} className="text-red-600" />
             <MoneyLine label="Ticket médio" value={canViewRevenue ? ((filteredQuotes.length + filteredLegacySales.length) ?((filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) + filteredLegacySales.reduce((sum, sale) => sum + sale.totalPrice, 0)) / (filteredQuotes.length + filteredLegacySales.length)) : 0) : hiddenRevenueLabel} className="text-slate-900" />

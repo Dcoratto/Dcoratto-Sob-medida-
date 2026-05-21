@@ -40,6 +40,21 @@ const MAX_IMAGE_SIZE_MB = 8;
 const MAX_STORED_IMAGE_BYTES = 850 * 1024;
 const IMAGE_MAX_SIDE = 900;
 const parseThicknessValue = (label: string) => Number(String(label || '').replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+const DEFAULT_STONE_CATEGORIES = [
+  'Granito',
+  'Mármore',
+  'Quartzito',
+  'Quartzo',
+  'Lâmina Ultracompacta',
+  'Porcelanato',
+  'Superfície Sinterizada',
+];
+const DEFAULT_STONE_LINES = [
+  'Nacional',
+  'Importado',
+  'Premium',
+  'Super Premium',
+];
 
 const assertValidImage = (file: File) => {
   if (!file.type.startsWith('image/')) {
@@ -379,7 +394,7 @@ export const AdminPage: React.FC = () => {
       await setDoc(doc(db, 'materials', materialId), {
         name,
         provider: materialForm.provider.trim(),
-        category: materialLine || materialForm.category.trim(),
+        category: materialForm.category.trim(),
         materialLine,
         materialType,
         thicknessLabel,
@@ -487,6 +502,8 @@ export const AdminPage: React.FC = () => {
   const materialCatalog = settings.materialCatalog;
   const supplierOptions = materialCatalog.suppliers || [];
   const thicknessOptions = materialForm.materialType === 'Lamina' ? materialCatalog.slabThicknesses : materialCatalog.naturalThicknesses;
+  const categoryOptions = Array.from(new Set([...(materialCatalog.materialTypes || []), ...DEFAULT_STONE_CATEGORIES]));
+  const materialLineOptions = Array.from(new Set([...(materialCatalog.materialLines || []), ...DEFAULT_STONE_LINES]));
 
   const deleteStoredFile = async (fileUrl?: unknown) => {
     if (typeof fileUrl !== 'string' || !fileUrl.startsWith('http')) return;
@@ -674,9 +691,13 @@ export const AdminPage: React.FC = () => {
             <option value="">Fornecedor</option>
             {supplierOptions.map((supplier) => <option key={supplier.name} value={supplier.name}>{supplier.name}</option>)}
           </select>
-          <select value={materialForm.materialLine} onChange={(event) => setMaterialForm((form) => ({...form, materialLine: event.target.value, category: event.target.value}))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <select value={materialForm.category} onChange={(event) => setMaterialForm((form) => ({...form, category: event.target.value}))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+            <option value="">Categoria</option>
+            {categoryOptions.map((category) => <option key={category} value={category}>{category}</option>)}
+          </select>
+          <select value={materialForm.materialLine} onChange={(event) => setMaterialForm((form) => ({...form, materialLine: event.target.value}))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
             <option value="">Linha do material</option>
-            {materialCatalog.materialLines.map((line) => <option key={line} value={line}>{line}</option>)}
+            {materialLineOptions.map((line) => <option key={line} value={line}>{line}</option>)}
           </select>
           <select value={materialForm.materialType} onChange={(event) => setMaterialForm((form) => ({...form, materialType: event.target.value, thicknessLabel: ''}))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
             {materialCatalog.materialTypes.map((type) => <option key={type} value={type}>{type}</option>)}

@@ -56,6 +56,8 @@ export interface ReportPdfData {
   calendarEvents?: Array<{id: string; title: string; clientName?: string; date: any; eventTime?: string; description?: string; city?: string}>;
   systemEvents?: SystemEvent[];
   totalSold: number;
+  totalReceived: number;
+  pendingReceivable: number;
   openValue: number;
   refusedValue: number;
   conversionRate: number;
@@ -163,9 +165,9 @@ export const generateReportPDF = async (data: ReportPdfData) => {
   sectionTitle(doc, 'Resumo executivo', y, primary);
   y += 8;
   card(doc, 14, y, 42, 'Fechado', money(data.totalSold), primary);
-  card(doc, 60, y, 40, 'Convers?o', `${data.conversionRate}%`, primary);
-  card(doc, 104, y, 42, 'Em aberto', money(data.openValue), primary);
-  card(doc, 150, y, 46, 'Estoque', `${data.inventory.length} itens`, primary);
+  card(doc, 60, y, 40, 'Recebido', money(data.totalReceived), primary);
+  card(doc, 104, y, 42, 'A receber', money(data.pendingReceivable), primary);
+  card(doc, 150, y, 46, 'Conversão', `${data.conversionRate}%`, primary);
   y += 34;
 
   sectionTitle(doc, 'Sum?rio por se??o', y, primary);
@@ -181,6 +183,8 @@ export const generateReportPDF = async (data: ReportPdfData) => {
     head: [['Indicador', 'Valor']],
     body: [
       ['Or?amentos fechados', money(data.totalSold)],
+      ['Valor recebido', money(data.totalReceived)],
+      ['Valor a receber', money(data.pendingReceivable)],
       ['Or?amentos em aberto', money(data.openValue)],
       ['Or?amentos recusados', money(data.refusedValue)],
       ['Ticket m?dio', money(data.quotes.length ?data.quotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) / data.quotes.length : 0)],
@@ -417,4 +421,3 @@ export const generateReportPDF = async (data: ReportPdfData) => {
   addFooter(doc, primary);
   doc.save(`Relatorio_DCoratto_${data.periodLabel.replace(/\s+/g, '_')}.pdf`);
 };
-

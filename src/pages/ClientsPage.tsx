@@ -3,7 +3,7 @@ import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDo
 import {Banknote, CheckCircle2, ClipboardList, Edit2, FileText, FileUp, Info, MapPin, Phone, Plus, Search, Trash2, User, Users, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
-import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureCategory, FixtureInfo, InventoryItem, LegacyClientPiece, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
+import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureCategory, FixtureInfo, InventoryItem, LegacyClientPiece, LegacyPaymentInstallment, LegacyPaymentStatus, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
 import {cn, formatCurrency, formatCurrencyInput, parseCurrencyInput} from '../lib/utils';
 import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
@@ -233,8 +233,34 @@ const buildLegacyPiece = (): LegacyClientPiece => ({
   items: [],
 });
 
+const legacyPaymentStatuses: LegacyPaymentStatus[] = ['Pendente', 'Pago', 'Vencido'];
+
+const buildLegacyPayment = (): LegacyPaymentInstallment => ({
+  id: Math.random().toString(36).slice(2, 11),
+  label: '',
+  amount: 0,
+  dueDate: '',
+  paidDate: '',
+  paymentMethod: '',
+  status: 'Pendente',
+  notes: '',
+});
+
 const legacyPiecesTotal = (pieces: LegacyClientPiece[]) =>
   pieces.reduce((sum, piece) => sum + Number(piece.value || 0), 0);
+
+const summarizeLegacyPayments = (payments: LegacyPaymentInstallment[] = [], totalPrice = 0) => {
+  const paid = payments
+    .filter((payment) => payment.status === 'Pago')
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const pendingInstallments = payments
+    .filter((payment) => payment.status !== 'Pago')
+    .reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const totalRegistered = payments.reduce((sum, payment) => sum + Number(payment.amount || 0), 0);
+  const pending = payments.length > 0 ? pendingInstallments : Math.max(0, totalPrice - paid);
+  const difference = totalPrice - totalRegistered;
+  return {paid, pending, totalRegistered, difference};
+};
 
 export const ClientsPage: React.FC = () => {
   const {user, profile, canEvaluateEmployees, hasPermission} = useAuth();
@@ -280,6 +306,7 @@ export const ClientsPage: React.FC = () => {
   const [legacyProjectMode, setLegacyProjectMode] = useState<Client['legacyProjectMode']>('sem_projeto');
   const [legacyTotalPrice, setLegacyTotalPrice] = useState(formatCurrency(0));
   const [legacyPieces, setLegacyPieces] = useState<LegacyClientPiece[]>([]);
+  const [legacyPayments, setLegacyPayments] = useState<LegacyPaymentInstallment[]>([]);
 
   useEffect(() => {
     const qClients = query(collection(db, 'clients'), orderBy('name', 'asc'));
@@ -412,12 +439,18 @@ export const ClientsPage: React.FC = () => {
     {label: 'Rebaixo italiano', count: selectedQuote?.cutouts?.wetAreaItalianRecess || 0},
   ].filter((item) => item.count > 0);
   const selectedLegacyPieces = selectedLegacyQuote?.pieces || [];
+  const selectedLegacyPayments = selectedLegacyQuote?.payments || [];
   const selectedLegacySummary = {
     total: selectedLegacyPieces.length,
     delivered: selectedLegacyPieces.filter((piece) => ['Entrega', 'Finalizado'].includes(normalizeQuoteStatus(piece.status || 'Orçamento'))).length,
     pending: selectedLegacyPieces.filter((piece) => !['Entrega', 'Finalizado'].includes(normalizeQuoteStatus(piece.status || 'Orçamento'))).length,
   };
+  const selectedLegacyPaymentsSummary = summarizeLegacyPayments(selectedLegacyPayments, selectedLegacyQuote?.totalPrice || 0);
   const legacyPiecesTotalValue = useMemo(() => legacyPiecesTotal(legacyPieces), [legacyPieces]);
+  const legacyPaymentsSummary = useMemo(
+    () => summarizeLegacyPayments(legacyPayments, legacyPiecesTotalValue),
+    [legacyPayments, legacyPiecesTotalValue],
+  );
   const canViewClientValues = hasPermission('cliente', 'verValores');
   const hiddenClientValueLabel = 'Valor oculto';
 
@@ -443,6 +476,7 @@ export const ClientsPage: React.FC = () => {
     setLegacyProjectMode('sem_projeto');
     setLegacyTotalPrice(formatCurrency(0));
     setLegacyPieces([]);
+    setLegacyPayments([]);
     setEditingClient(null);
   };
 
@@ -505,6 +539,18 @@ export const ClientsPage: React.FC = () => {
                 status: normalizeQuoteStatus(piece.status || 'Orçamento'),
                 value: Number(piece.value || 0),
                 items: (piece.items || []).map((item) => item.trim()).filter(Boolean),
+              })),
+            payments: legacyPayments
+              .filter((payment) => payment.label.trim() || Number(payment.amount || 0) > 0)
+              .map((payment) => ({
+                ...payment,
+                label: payment.label.trim(),
+                amount: Number(payment.amount || 0),
+                dueDate: payment.dueDate || '',
+                paidDate: payment.status === 'Pago' ? payment.paidDate || '' : '',
+                paymentMethod: payment.paymentMethod?.trim() || '',
+                status: payment.status || 'Pendente',
+                notes: payment.notes?.trim() || '',
               })),
           },
     };
@@ -665,6 +711,7 @@ export const ClientsPage: React.FC = () => {
         value: piece.value,
         items: [],
       })));
+      setLegacyPayments([]);
     } catch (error) {
       console.error(error);
       const code = error instanceof Error ? error.message : '';
@@ -700,6 +747,26 @@ export const ClientsPage: React.FC = () => {
 
   const removeLegacyPiece = (pieceId: string) => {
     setLegacyPieces((current) => current.filter((piece) => piece.id !== pieceId));
+  };
+
+  const addLegacyPayment = () => {
+    setLegacyPayments((current) => [...current, buildLegacyPayment()]);
+  };
+
+  const updateLegacyPayment = (paymentId: string, data: Partial<LegacyPaymentInstallment>) => {
+    setLegacyPayments((current) => current.map((payment) => (
+      payment.id === paymentId
+        ? {
+            ...payment,
+            ...data,
+            status: (data.status || payment.status || 'Pendente') as LegacyPaymentStatus,
+          }
+        : payment
+    )));
+  };
+
+  const removeLegacyPayment = (paymentId: string) => {
+    setLegacyPayments((current) => current.filter((payment) => payment.id !== paymentId));
   };
 
   useEffect(() => {
@@ -740,6 +807,15 @@ export const ClientsPage: React.FC = () => {
       status: normalizeQuoteStatus(piece.status || 'Orçamento'),
       value: Number(piece.value || 0),
       items: piece.items || [],
+    })));
+    setLegacyPayments((client.legacyManualQuote?.payments || []).map((payment) => ({
+      ...payment,
+      amount: Number(payment.amount || 0),
+      dueDate: payment.dueDate || '',
+      paidDate: payment.paidDate || '',
+      paymentMethod: payment.paymentMethod || '',
+      status: payment.status || 'Pendente',
+      notes: payment.notes || '',
     })));
     setShowModal(true);
   };
@@ -1901,6 +1977,14 @@ export const ClientsPage: React.FC = () => {
                       </div>
                     </section>
 
+                    {canViewClientValues && (
+                      <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <SummaryBox label="Recebido" value={formatCurrency(selectedLegacyPaymentsSummary.paid)} highlight />
+                        <SummaryBox label="Pendente" value={formatCurrency(selectedLegacyPaymentsSummary.pending)} />
+                        <SummaryBox label="Parcelas" value={`${selectedLegacyPayments.length || 0}`} />
+                      </section>
+                    )}
+
                     {(detailModal === 'quote' || detailModal === 'values') && (
                       <>
                         <section className="rounded-3xl border border-slate-100 p-5">
@@ -1931,6 +2015,33 @@ export const ClientsPage: React.FC = () => {
                             ))}
                           </div>
                         </section>
+
+                        {canViewClientValues && (
+                          <section className="rounded-3xl border border-slate-100 p-5">
+                            <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Parcelas do pagamento</h3>
+                            <div className="space-y-3">
+                              {selectedLegacyPayments.length > 0 ? selectedLegacyPayments.map((payment) => (
+                                <div key={payment.id} className="rounded-2xl bg-slate-50 p-4 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                  <div>
+                                    <div className="font-bold text-slate-900">{payment.label || 'Parcela sem nome'}</div>
+                                    <div className="text-xs text-slate-400">
+                                      {[payment.paymentMethod, payment.dueDate ? `Vencimento ${normalizeInputDateToDisplay(payment.dueDate)}` : '', payment.paidDate ? `Pago em ${normalizeInputDateToDisplay(payment.paidDate)}` : ''].filter(Boolean).join(' · ')}
+                                    </div>
+                                    {payment.notes && <div className="mt-1 text-xs text-slate-500">{payment.notes}</div>}
+                                  </div>
+                                  <div className="text-left md:text-right">
+                                    <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase', payment.status === 'Pago' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : payment.status === 'Vencido' ? 'border-red-200 bg-red-50 text-red-700' : 'border-amber-200 bg-amber-50 text-amber-700')}>
+                                      {payment.status}
+                                    </span>
+                                    <div className="mt-2 font-mono text-sm font-bold text-brand-primary">{formatCurrency(payment.amount || 0)}</div>
+                                  </div>
+                                </div>
+                              )) : (
+                                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">Nenhuma parcela cadastrada ainda.</div>
+                              )}
+                            </div>
+                          </section>
+                        )}
                       </>
                     )}
 
@@ -2174,6 +2285,87 @@ export const ClientsPage: React.FC = () => {
                         </div>
                       ))}
                     </div>
+
+                    {canViewClientValues && (
+                      <div className="space-y-4 rounded-3xl border border-slate-100 p-5">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <div className="text-sm font-bold text-slate-700">Parcelas do pagamento</div>
+                            <div className="text-xs text-slate-400">Controle o que já foi recebido e o que falta cobrar.</div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={addLegacyPayment}
+                            className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-3 py-2 text-xs font-bold text-white"
+                          >
+                            <Plus className="h-4 w-4" />
+                            Adicionar parcela
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                          <SummaryBox label="Recebido" value={formatCurrency(legacyPaymentsSummary.paid)} highlight />
+                          <SummaryBox label="Pendente" value={formatCurrency(legacyPaymentsSummary.pending)} />
+                          <SummaryBox label="Diferença para o total" value={formatCurrency(legacyPaymentsSummary.difference)} />
+                        </div>
+
+                        {legacyPayments.length === 0 && (
+                          <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">Nenhuma parcela cadastrada ainda.</div>
+                        )}
+
+                        {legacyPayments.map((payment, index) => (
+                          <div key={payment.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="text-sm font-bold text-slate-700">Parcela {index + 1}</div>
+                              <button type="button" onClick={() => removeLegacyPayment(payment.id)} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600">
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                              <FormField label="Nome da parcela" value={payment.label} onChange={(value) => updateLegacyPayment(payment.id, {label: value})} />
+                              <div className="space-y-1.5">
+                                <label className="text-slate-500 font-medium text-sm">Valor</label>
+                                <input
+                                  value={formatCurrencyInput(payment.amount || 0)}
+                                  onChange={(e) => updateLegacyPayment(payment.id, {amount: parseCurrencyInput(e.target.value)})}
+                                  placeholder="R$ 0,00"
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                                />
+                              </div>
+                              <div className="space-y-1.5">
+                                <label className="text-slate-500 font-medium text-sm">Status</label>
+                                <select
+                                  value={payment.status}
+                                  onChange={(e) => updateLegacyPayment(payment.id, {status: e.target.value as LegacyPaymentStatus})}
+                                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                                >
+                                  {legacyPaymentStatuses.map((status) => (
+                                    <option key={status} value={status}>{status}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                              <FormField label="Vencimento" value={payment.dueDate || ''} onChange={(value) => updateLegacyPayment(payment.id, {dueDate: value})} type="date" />
+                              <FormField label="Data do pagamento" value={payment.paidDate || ''} onChange={(value) => updateLegacyPayment(payment.id, {paidDate: value})} type="date" />
+                              <FormField label="Forma de pagamento" value={payment.paymentMethod || ''} onChange={(value) => updateLegacyPayment(payment.id, {paymentMethod: value})} />
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-slate-500 font-medium text-sm">Observações da parcela</label>
+                              <input
+                                value={payment.notes || ''}
+                                onChange={(e) => updateLegacyPayment(payment.id, {notes: e.target.value})}
+                                placeholder="Ex.: sinal, antes da entrega, saldo final"
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -2372,6 +2564,3 @@ const FixtureInput = ({label, value, type = 'text', onBlur}: {label: string; val
     </label>
   );
 };
-
-
-

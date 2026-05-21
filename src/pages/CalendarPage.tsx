@@ -182,6 +182,7 @@ export const CalendarPage: React.FC = () => {
   const [subscribeError, setSubscribeError] = useState('');
   const [subscriptionToken, setSubscriptionToken] = useState(profile?.calendarFeedToken || '');
   const [createError, setCreateError] = useState('');
+  const monthLabel = baseDate.toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'});
 
   useEffect(() => {
     if (!selectedEvent && !showCreateModal && !showSubscribeModal) return;
@@ -353,6 +354,29 @@ export const CalendarPage: React.FC = () => {
       .filter(Boolean) as Array<{event: CalendarEvent; condominium: CondominiumRule; reason: string}>;
   }, [condominiums, events]);
 
+  const mobileMonthDays = useMemo(() => {
+    return days
+      .filter((day) => day.getMonth() === baseDate.getMonth())
+      .map((day) => {
+        const dateKey = keyOf(day);
+        const nationalHoliday = getHolidayInfo(day).national;
+        const cityHolidays = altoTieteCities
+          .map((city) => ({city, name: getHolidayInfo(day, city).city}))
+          .filter((item) => item.name);
+        const dayEvents = eventByDay.get(dateKey) || [];
+
+        return {
+          day,
+          dateKey,
+          isToday: dateKey === keyOf(today),
+          nationalHoliday,
+          cityHolidays,
+          dayEvents,
+        };
+      })
+      .filter((item) => item.dayEvents.length || item.nationalHoliday || item.cityHolidays.length);
+  }, [altoTieteCities, baseDate, days, eventByDay, today]);
+
   const selectedClient = selectedEvent?.clientId ? clients.find((item) => item.id === selectedEvent.clientId) : null;
   const selectedEventDaysLeft = selectedEvent ?daysLeftFromToday(selectedEvent.date) : null;
   const subscriptionHttpsUrl = useMemo(() => {
@@ -517,32 +541,34 @@ export const CalendarPage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 sm:space-y-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Calendário operacional</h1>
           <p className="text-slate-500 mt-1">Medições, entregas, eventos manuais e feriados municipais.</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           <button
             type="button"
             onClick={handleOpenSubscribeModal}
             disabled={isPreparingSubscription}
-            className="inline-flex items-center gap-2 rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-3 py-2 text-sm font-bold text-brand-primary hover:bg-brand-primary/10 disabled:opacity-70"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-3 py-2 text-sm font-bold text-brand-primary hover:bg-brand-primary/10 disabled:opacity-70 sm:w-auto"
           >
             <CalendarPlus className="w-4 h-4" />
             {isPreparingSubscription ? 'Preparando assinatura...' : 'Assinar cronograma'}
           </button>
-          <button type="button" onClick={() => openCreateModal()} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">
+          <button type="button" onClick={() => openCreateModal()} className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 sm:w-auto">
             <Plus className="w-4 h-4" />Adicionar evento
           </button>
-          <button type="button" onClick={() => setBaseDate(new Date(baseDate.getFullYear(), baseDate.getMonth() - 1, 1))} className="rounded-xl border border-slate-200 bg-white p-2">
-            <ChevronLeft className="w-5 h-5 text-slate-500" />
-          </button>
-          <div className="min-w-[180px] text-center text-sm font-bold text-slate-700 capitalize">{baseDate.toLocaleDateString('pt-BR', {month: 'long', year: 'numeric'})}</div>
-          <button type="button" onClick={() => setBaseDate(new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1))} className="rounded-xl border border-slate-200 bg-white p-2">
-            <ChevronRight className="w-5 h-5 text-slate-500" />
-          </button>
+          <div className="grid grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2 sm:flex sm:items-center">
+            <button type="button" onClick={() => setBaseDate(new Date(baseDate.getFullYear(), baseDate.getMonth() - 1, 1))} className="rounded-xl border border-slate-200 bg-white p-2">
+              <ChevronLeft className="w-5 h-5 text-slate-500" />
+            </button>
+            <div className="min-w-0 text-center text-sm font-bold text-slate-700 capitalize">{monthLabel}</div>
+            <button type="button" onClick={() => setBaseDate(new Date(baseDate.getFullYear(), baseDate.getMonth() + 1, 1))} className="rounded-xl border border-slate-200 bg-white p-2">
+              <ChevronRight className="w-5 h-5 text-slate-500" />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -582,9 +608,64 @@ export const CalendarPage: React.FC = () => {
         </section>
       )}
 
-      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="grid grid-cols-7 border-b border-slate-100 text-center text-xs font-bold uppercase tracking-widest text-slate-400">{['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((label) => <div key={label} className="py-3">{label}</div>)}</div>
-        <div className="grid grid-cols-7">
+      <section className="overflow-hidden rounded-[28px] border border-slate-100 bg-white shadow-sm sm:rounded-[32px]">
+        <div className="border-b border-slate-100 px-4 py-4 sm:hidden">
+          <div className="text-sm font-bold text-slate-900">Agenda do mês</div>
+          <div className="mt-1 text-xs font-semibold uppercase tracking-widest text-slate-400">{monthLabel}</div>
+        </div>
+
+        <div className="space-y-3 p-4 sm:hidden">
+          {mobileMonthDays.length ? (
+            mobileMonthDays.map(({day, dateKey, isToday, nationalHoliday, cityHolidays, dayEvents}) => (
+              <div key={`mobile-${dateKey}`} className={cn('rounded-2xl border border-slate-100 bg-slate-50/70 p-4', isToday && 'border-brand-primary/30 bg-brand-primary/5')}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className={cn('text-sm font-bold capitalize', isToday ? 'text-brand-primary' : 'text-slate-900')}>
+                      {day.toLocaleDateString('pt-BR', {weekday: 'long', day: '2-digit', month: '2-digit'})}
+                      {isToday ? ' · Hoje' : ''}
+                    </div>
+                    {(nationalHoliday || cityHolidays.length > 0) && (
+                      <div className="mt-2 space-y-1">
+                        {nationalHoliday && <div className="rounded-lg bg-rose-50 px-2 py-1 text-[11px] font-bold text-rose-700">{nationalHoliday}</div>}
+                        {cityHolidays.slice(0, 2).map((holiday) => (
+                          <div key={`${dateKey}-${holiday.city}`} className="rounded-lg bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700">
+                            {holiday.city}: {holiday.name}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <button type="button" onClick={() => openCreateModal(day)} className="rounded-xl border border-slate-200 bg-white p-2 text-slate-500">
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="mt-3 space-y-2">
+                  {dayEvents.map((ev) => (
+                    <button
+                      key={ev.id}
+                      type="button"
+                      onClick={() => setSelectedEvent(ev)}
+                      className="w-full rounded-xl bg-white px-3 py-3 text-left shadow-sm ring-1 ring-slate-100 hover:bg-slate-50"
+                    >
+                      <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{eventLabel(ev.type)}</div>
+                      <div className="mt-1 text-sm font-bold text-slate-900">{calendarEventTitle(ev)}</div>
+                      <div className="mt-1 text-xs font-semibold text-slate-500">{eventTimeLabel(ev.date, ev.eventTime)}</div>
+                      <div className="mt-1 text-xs font-bold text-brand-primary/80">{countdownLabel(daysLeftFromToday(ev.date))}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">
+              Nenhum evento ou feriado relevante neste mês.
+            </div>
+          )}
+        </div>
+
+        <div className="hidden sm:grid sm:grid-cols-7 border-b border-slate-100 text-center text-xs font-bold uppercase tracking-widest text-slate-400">{['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((label) => <div key={label} className="py-3">{label}</div>)}</div>
+        <div className="hidden sm:grid sm:grid-cols-7">
           {days.map((day) => {
             const key = keyOf(day);
             const isCurrentMonth = day.getMonth() === baseDate.getMonth();
@@ -621,7 +702,7 @@ export const CalendarPage: React.FC = () => {
       </section>
 
       {selectedEvent && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => { setShowCreateModal(false); resetForm(); }}><div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-3xl bg-white border border-slate-100 shadow-2xl p-6" onClick={(event) => event.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4" onClick={() => setSelectedEvent(null)}><div className="h-[88svh] w-full overflow-y-auto rounded-t-[32px] border border-slate-100 bg-white p-5 shadow-2xl sm:h-auto sm:max-h-[92vh] sm:max-w-md sm:rounded-3xl sm:p-6" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{eventLabel(selectedEvent.type)}</div>
@@ -705,7 +786,7 @@ export const CalendarPage: React.FC = () => {
       )}
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => { setShowCreateModal(false); resetForm(); }}><div className="w-full max-w-md max-h-[92vh] overflow-y-auto rounded-3xl bg-white border border-slate-100 shadow-2xl p-6" onClick={(event) => event.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4" onClick={() => { setShowCreateModal(false); resetForm(); }}><div className="h-[88svh] w-full overflow-y-auto rounded-t-[32px] border border-slate-100 bg-white p-5 shadow-2xl sm:h-auto sm:max-h-[92vh] sm:max-w-md sm:rounded-3xl sm:p-6" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{editingEventId ? 'Editar evento' : 'Novo evento'}</div>
@@ -728,7 +809,7 @@ export const CalendarPage: React.FC = () => {
                 <input value={newEventTitle} onChange={(event) => setNewEventTitle(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary" placeholder="Ex: visita técnica" />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Data</label>
                   <input type="date" value={newEventDate} onChange={(event) => setNewEventDate(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary" required />
@@ -755,7 +836,7 @@ export const CalendarPage: React.FC = () => {
       )}
 
       {showSubscribeModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setShowSubscribeModal(false)}><div className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-3xl bg-white border border-slate-100 shadow-2xl p-6" onClick={(event) => event.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end bg-black/40 p-0 backdrop-blur-sm sm:items-center sm:justify-center sm:p-4" onClick={() => setShowSubscribeModal(false)}><div className="h-[88svh] w-full overflow-y-auto rounded-t-[32px] border border-slate-100 bg-white p-5 shadow-2xl sm:h-auto sm:max-h-[92vh] sm:max-w-lg sm:rounded-3xl sm:p-6" onClick={(event) => event.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Assinar cronograma</div>

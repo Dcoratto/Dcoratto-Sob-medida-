@@ -156,13 +156,13 @@ export const Sidebar: React.FC = () => {
       </aside>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-2 backdrop-blur lg:hidden">
-        <div className="grid grid-cols-5 gap-1">
+        <div className="grid grid-cols-5 gap-1 pb-[max(0px,env(safe-area-inset-bottom))]">
           {mobileQuickItems.map((item) => (
             <NavLink
               key={`mobile-${item.path}`}
               to={item.path}
               className={({isActive}) => cn(
-                'flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-[10px] font-bold transition-all',
+                'flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2.5 text-[10px] font-bold transition-all',
                 isActive ?'bg-brand-primary text-white shadow-lg shadow-brand-primary/20' : 'text-slate-500 hover:bg-slate-50 hover:text-brand-primary',
               )}
             >

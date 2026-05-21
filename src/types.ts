@@ -178,10 +178,24 @@ export interface LegacyClientPiece {
   items?: string[];
 }
 
+export type LegacyPaymentStatus = 'Pendente' | 'Pago' | 'Vencido';
+
+export interface LegacyPaymentInstallment {
+  id: string;
+  label: string;
+  amount: number;
+  dueDate?: string;
+  paidDate?: string;
+  paymentMethod?: string;
+  status: LegacyPaymentStatus;
+  notes?: string;
+}
+
 export interface LegacyManualQuote {
   totalPrice?: number;
   updatedAt?: any;
   pieces: LegacyClientPiece[];
+  payments?: LegacyPaymentInstallment[];
 }
 
 export interface CondominiumRule {

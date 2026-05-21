@@ -631,11 +631,7 @@ export const AdminPage: React.FC = () => {
         defaultOpen
       >
         <section className="space-y-6">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h2 className="font-display text-xl font-bold text-slate-900">Funcionários</h2>
-            <p className="text-sm text-slate-400">Cadastre a equipe para vincular responsaveis e avaliacoes aos projetos.</p>
-          </div>
+        <div className="flex items-center justify-end gap-4">
           <BriefcaseBusiness className="w-6 h-6 text-brand-primary" />
         </div>
 
@@ -710,10 +706,11 @@ export const AdminPage: React.FC = () => {
         description="Gerencie pedras e as opções de chapas no mesmo lugar."
       >
         <section className="space-y-6">
-        <div>
-          <h2 className="font-display text-xl font-bold text-slate-900">Catálogo de pedras</h2>
-          <p className="text-sm text-slate-400">{editingMaterial ?`Editando: ${editingMaterial.name}` : 'Cadastre as pedras aqui para seleção no estoque, compras e orçamentos.'}</p>
-        </div>
+        {editingMaterial && (
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
+            Editando pedra: {editingMaterial.name}
+          </div>
+        )}
 
         <form onSubmit={addMaterialCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           <input value={materialForm.name} onChange={(event) => setMaterialForm((form) => ({...form, name: event.target.value}))} placeholder="Nome da pedra" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
@@ -807,10 +804,11 @@ export const AdminPage: React.FC = () => {
         description="Cadastre cooktop, cuba, torneira e demais peças para orçamento."
       >
         <section className="space-y-6">
-        <div>
-          <h2 className="font-display text-xl font-bold text-slate-900">Catálogo de peças do cliente</h2>
-          <p className="text-sm text-slate-400">{editingFixture ?`Editando: ${editingFixture.name}` : 'Cadastre cooktop, cuba, torneira, torre de tomada e lixeira para seleção no orçamento.'}</p>
-        </div>
+        {editingFixture && (
+          <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
+            Editando peça: {editingFixture.name}
+          </div>
+        )}
 
         <form onSubmit={addFixtureCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           <input value={fixtureForm.name} onChange={(e) => setFixtureForm((f) => ({...f, name: e.target.value}))} placeholder="Nome da peça" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
@@ -932,8 +930,7 @@ export const AdminPage: React.FC = () => {
                 <ShieldAlert className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="font-display text-xl font-bold text-red-950">Zona de risco</h2>
-                <p className="mt-1 max-w-3xl text-sm text-red-700">
+                <p className="max-w-3xl text-sm text-red-700">
                   Use este botão apenas quando o sistema estiver pronto para começar do zero. Ele apaga clientes, orçamentos, materiais, estoque, reservas, compras, funcionários, condomínios e histórico.
                 </p>
                 <p className="mt-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-red-500">
@@ -986,10 +983,6 @@ export const AdminPage: React.FC = () => {
         description="Controle cargos, permissões individuais e bloqueios de acesso."
       >
         <section className="overflow-hidden rounded-[24px] border border-slate-100 bg-white p-2">
-        <div className="p-4">
-          <h2 className="font-display text-xl font-bold text-slate-900">Usuários do sistema</h2>
-          <p className="text-sm text-slate-400">Controle cargos, permissoes individuais e bloqueios de acesso.</p>
-        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>

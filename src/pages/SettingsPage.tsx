@@ -16,7 +16,11 @@ export const SettingsPage: React.FC = () => {
   const [success, setSuccess] = useState(false);
   const [supplierSaving, setSupplierSaving] = useState(false);
   const [supplierFeedback, setSupplierFeedback] = useState('');
+  const [materialCatalogSaving, setMaterialCatalogSaving] = useState(false);
+  const [materialCatalogFeedback, setMaterialCatalogFeedback] = useState('');
   const [condominiums, setCondominiums] = useState<CondominiumRule[]>([]);
+  const lastPersistedSettingsRef = React.useRef('');
+  const suppressNextAutosaveRef = React.useRef(false);
   const [editingCondominium, setEditingCondominium] = useState<CondominiumRule | null>(null);
   const [condoName, setCondoName] = useState('');
   const [condoCity, setCondoCity] = useState('');
@@ -32,6 +36,7 @@ export const SettingsPage: React.FC = () => {
   useEffect(() => {
     if (currentSettings) {
       setSettings(currentSettings);
+      lastPersistedSettingsRef.current = JSON.stringify(buildPersistedSettings(currentSettings));
     }
   }, [currentSettings]);
 
@@ -42,11 +47,11 @@ export const SettingsPage: React.FC = () => {
     return unsubscribe;
   }, []);
 
-  const buildPersistedSettings = () => {
-    const sanitizedPaymentMethods = settings.paymentMethods
+  const buildPersistedSettings = (sourceSettings = settings) => {
+    const sanitizedPaymentMethods = sourceSettings.paymentMethods
       .map((method) => ({name: method.name.trim(), adjustment: Number(method.adjustment) || 0}))
       .filter((method) => method.name);
-    const sanitizedSuppliers = settings.materialCatalog.suppliers
+    const sanitizedSuppliers = sourceSettings.materialCatalog.suppliers
       .map((supplier) => ({
         name: supplier.name.trim(),
         whatsapp: supplier.whatsapp?.trim() || '',
@@ -58,18 +63,30 @@ export const SettingsPage: React.FC = () => {
       .sort((a, b) => a.name.localeCompare(b.name));
 
     return {
-      ...settings,
+      ...sourceSettings,
       paymentMethods: sanitizedPaymentMethods.length ? sanitizedPaymentMethods : DEFAULT_SETTINGS.paymentMethods,
       materialCatalog: {
-        ...settings.materialCatalog,
-        materialCategories: (settings.materialCatalog.materialCategories || [])
+        ...sourceSettings.materialCatalog,
+        materialCategories: (sourceSettings.materialCatalog.materialCategories || [])
           .map((item) => item.trim())
           .filter(Boolean)
           .sort((a, b) => a.localeCompare(b, 'pt-BR', {sensitivity: 'base'})),
-        materialLines: (settings.materialCatalog.materialLines || [])
+        materialLines: (sourceSettings.materialCatalog.materialLines || [])
           .map((item) => item.trim())
           .filter(Boolean)
           .sort((a, b) => a.localeCompare(b, 'pt-BR', {sensitivity: 'base'})),
+        materialTypes: (sourceSettings.materialCatalog.materialTypes || [])
+          .map((item) => item.trim())
+          .filter(Boolean),
+        naturalThicknesses: (sourceSettings.materialCatalog.naturalThicknesses || [])
+          .map((item) => item.trim())
+          .filter(Boolean),
+        slabThicknesses: (sourceSettings.materialCatalog.slabThicknesses || [])
+          .map((item) => item.trim())
+          .filter(Boolean),
+        textures: (sourceSettings.materialCatalog.textures || [])
+          .map((item) => item.trim())
+          .filter(Boolean),
         suppliers: sanitizedSuppliers,
       },
     };
@@ -82,6 +99,7 @@ export const SettingsPage: React.FC = () => {
       const nextSettings = buildPersistedSettings();
       await setDoc(doc(db, 'settings', 'global'), nextSettings);
       setSettings(nextSettings);
+      lastPersistedSettingsRef.current = JSON.stringify(nextSettings);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
@@ -128,9 +146,11 @@ export const SettingsPage: React.FC = () => {
 
     setSupplierSaving(true);
     setSupplierFeedback('');
+    suppressNextAutosaveRef.current = true;
     try {
       await setDoc(doc(db, 'settings', 'global'), nextSettings, {merge: true});
       setSettings(nextSettings);
+      lastPersistedSettingsRef.current = JSON.stringify(buildPersistedSettings(nextSettings));
       setSupplierFeedback('Fornecedor salvo com sucesso.');
       setTimeout(() => setSupplierFeedback(''), 3000);
       return true;
@@ -155,9 +175,11 @@ export const SettingsPage: React.FC = () => {
 
     setSupplierSaving(true);
     setSupplierFeedback('');
+    suppressNextAutosaveRef.current = true;
     try {
       await setDoc(doc(db, 'settings', 'global'), nextSettings, {merge: true});
       setSettings(nextSettings);
+      lastPersistedSettingsRef.current = JSON.stringify(buildPersistedSettings(nextSettings));
       setSupplierFeedback('Fornecedor removido com sucesso.');
       setTimeout(() => setSupplierFeedback(''), 3000);
     } catch (err) {
@@ -172,23 +194,50 @@ export const SettingsPage: React.FC = () => {
     field: MaterialCatalogListField,
     updater: (current: string[]) => string[],
   ) => {
-    setSettings({
+    const nextSettings = {
       ...settings,
       materialCatalog: {
         ...settings.materialCatalog,
         [field]: updater(settings.materialCatalog[field] || []),
       },
-    });
+    };
+    setSettings(nextSettings);
+    return nextSettings;
   };
 
-  const addMaterialCatalogValue = (field: MaterialCatalogListField, value: string) => {
+  const persistMaterialCatalogSettings = async (nextSettings: typeof settings, successMessage: string) => {
+    if (!isAdmin || materialCatalogSaving) return false;
+
+    setMaterialCatalogSaving(true);
+    setMaterialCatalogFeedback('');
+    suppressNextAutosaveRef.current = true;
+    try {
+      const persistedSettings = buildPersistedSettings(nextSettings);
+      await setDoc(doc(db, 'settings', 'global'), persistedSettings, {merge: true});
+      setSettings(persistedSettings);
+      lastPersistedSettingsRef.current = JSON.stringify(persistedSettings);
+      setMaterialCatalogFeedback(successMessage);
+      setTimeout(() => setMaterialCatalogFeedback(''), 3000);
+      return true;
+    } catch (err) {
+      console.error(err);
+      setMaterialCatalogFeedback('Nao foi possivel salvar o catalogo de chapas.');
+      return false;
+    } finally {
+      setMaterialCatalogSaving(false);
+    }
+  };
+
+  const addMaterialCatalogValue = async (field: MaterialCatalogListField, value: string) => {
     const normalized = value.trim();
-    if (!normalized) return;
-    updateMaterialCatalogList(field, (current) => current.includes(normalized) ? current : [...current, normalized]);
+    if (!normalized) return false;
+    const nextSettings = updateMaterialCatalogList(field, (current) => current.includes(normalized) ? current : [...current, normalized]);
+    return persistMaterialCatalogSettings(nextSettings, 'Catalogo de chapas atualizado com sucesso.');
   };
 
-  const removeMaterialCatalogValue = (field: MaterialCatalogListField, value: string) => {
-    updateMaterialCatalogList(field, (current) => current.filter((item) => item !== value));
+  const removeMaterialCatalogValue = async (field: MaterialCatalogListField, value: string) => {
+    const nextSettings = updateMaterialCatalogList(field, (current) => current.filter((item) => item !== value));
+    return persistMaterialCatalogSettings(nextSettings, 'Catalogo de chapas atualizado com sucesso.');
   };
 
   const resetCondoForm = () => {
@@ -237,6 +286,34 @@ export const SettingsPage: React.FC = () => {
       current.includes(weekday) ?current.filter((item) => item !== weekday) : [...current, weekday].sort((a, b) => a - b)
     ));
   };
+
+  useEffect(() => {
+    if (!isAdmin || loading) return;
+    if (suppressNextAutosaveRef.current) {
+      suppressNextAutosaveRef.current = false;
+      return;
+    }
+
+    const persistedSettings = buildPersistedSettings(settings);
+    const serialized = JSON.stringify(persistedSettings);
+    if (!serialized || serialized === lastPersistedSettingsRef.current) return;
+
+    const timeoutId = window.setTimeout(async () => {
+      setSaving(true);
+      try {
+        await setDoc(doc(db, 'settings', 'global'), persistedSettings, {merge: true});
+        lastPersistedSettingsRef.current = serialized;
+        setSuccess(true);
+        window.setTimeout(() => setSuccess(false), 3000);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setSaving(false);
+      }
+    }, 700);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [isAdmin, loading, settings]);
 
   if (loading) return <div>Carregando...</div>;
 
@@ -594,6 +671,17 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
 
+          {materialCatalogFeedback && (
+            <div className={cn(
+              "rounded-2xl px-4 py-3 text-sm font-semibold",
+              materialCatalogFeedback.includes('sucesso')
+                ? "bg-green-50 text-green-700"
+                : "bg-red-50 text-red-700",
+            )}>
+              {materialCatalogFeedback}
+            </div>
+          )}
+
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             {[
               ['materialCategories', 'Categoria', 'Ex: Granito'],
@@ -610,6 +698,7 @@ export const SettingsPage: React.FC = () => {
                 values={settings.materialCatalog[field as MaterialCatalogListField] as string[]}
                 onAdd={(value) => addMaterialCatalogValue(field as MaterialCatalogListField, value)}
                 onRemove={(value) => removeMaterialCatalogValue(field as MaterialCatalogListField, value)}
+                saving={materialCatalogSaving}
               />
             ))}
           </div>
@@ -749,9 +838,10 @@ const MaterialCatalogField: React.FC<{
   label: string;
   placeholder: string;
   values: string[];
-  onAdd: (value: string) => void;
-  onRemove: (value: string) => void;
-}> = ({label, placeholder, values, onAdd, onRemove}) => {
+  onAdd: (value: string) => Promise<boolean> | boolean;
+  onRemove: (value: string) => Promise<boolean> | boolean;
+  saving: boolean;
+}> = ({label, placeholder, values, onAdd, onRemove, saving}) => {
   const [draft, setDraft] = useState('');
 
   return (
@@ -770,11 +860,12 @@ const MaterialCatalogField: React.FC<{
         />
         <button
           type="button"
-          onClick={() => {
-            onAdd(draft);
-            setDraft('');
+          disabled={saving}
+          onClick={async () => {
+            const saved = await onAdd(draft);
+            if (saved) setDraft('');
           }}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white"
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Plus className="w-4 h-4" />
           Adicionar
@@ -786,8 +877,9 @@ const MaterialCatalogField: React.FC<{
           <button
             key={value}
             type="button"
-            onClick={() => onRemove(value)}
-            className="inline-flex items-center gap-2 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+            disabled={saving}
+            onClick={async () => { await onRemove(value); }}
+            className="inline-flex items-center gap-2 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {value}
             <Trash2 className="w-3.5 h-3.5" />

@@ -331,10 +331,27 @@ export const InventoryPage: React.FC = () => {
       notes,
       photoUrl,
     };
+    const savedItem = {id: inventoryRef.id, ...data} as InventoryItem;
+    const syncSavedItem = () => {
+      setItems((current) => {
+        const nextItems = current.some((item) => item.id === savedItem.id)
+          ? current.map((item) => item.id === savedItem.id ? savedItem : item)
+          : [...current, savedItem];
+
+        return nextItems.sort((a, b) => String(a.code || '').localeCompare(String(b.code || ''), 'pt-BR', {sensitivity: 'base'}));
+      });
+      if (savedItem.rackId) {
+        setSelectedRackId(savedItem.rackId);
+        setFocusedInventoryId(savedItem.id);
+      }
+    };
 
     if (editingItem) {
       await updateDoc(inventoryRef, data);
-      await logSystemEvent({
+      syncSavedItem();
+      setShowModal(false);
+      resetForm();
+      void logSystemEvent({
         type: 'inventory_updated',
         title: 'Item de estoque atualizado',
         description: `${data.materialName} - ${data.code}`,
@@ -345,10 +362,13 @@ export const InventoryPage: React.FC = () => {
         userUid: user?.uid || '',
         userName: currentUserName,
         metadata: {area, cost: totalCost, minimumSalePrice: minimumSale, status},
-      });
+      }).catch((error) => console.error('Erro ao registrar histórico do estoque:', error));
     } else {
       await setDoc(inventoryRef, data);
-      await logSystemEvent({
+      syncSavedItem();
+      setShowModal(false);
+      resetForm();
+      void logSystemEvent({
         type: 'inventory_created',
         title: 'Item de estoque cadastrado',
         description: `${data.materialName} - ${data.code}`,
@@ -359,11 +379,8 @@ export const InventoryPage: React.FC = () => {
         userUid: user?.uid || '',
         userName: currentUserName,
         metadata: {area, cost: totalCost, minimumSalePrice: minimumSale, status},
-      });
+      }).catch((error) => console.error('Erro ao registrar histórico do estoque:', error));
     }
-
-    setShowModal(false);
-    resetForm();
   };
 
   const handleEdit = (item: InventoryItem) => {

@@ -1788,6 +1788,7 @@ export const InventoryPage: React.FC = () => {
                       const selected = materials.find((material) => material.id === nextId);
                       setSelectedMaterialId(nextId);
                       setMaterialName(selected?.name || '');
+                      setPhotoPreview(selected?.imageUrl || '');
                       if (!editingItem) {
                         setProvider(selected?.provider || '');
                         setCategory(selected?.category || '');

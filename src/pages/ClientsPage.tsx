@@ -369,6 +369,10 @@ export const ClientsPage: React.FC = () => {
   const selectedQuote = selectedClientQuotes.find((quote) => quote.id === selectedQuoteId) || selectedClientQuotes[0];
   const selectedLegacyQuote = selectedClient?.legacyManualQuote;
   const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
+  const sortedCondominiums = useMemo(
+    () => [...condominiums].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', {sensitivity: 'base'})),
+    [condominiums],
+  );
   const activeEmployees = useMemo(
     () => employees.filter((employee) => employee.active !== false),
     [employees],
@@ -2184,7 +2188,7 @@ export const ClientsPage: React.FC = () => {
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                   >
                     <option value="">Selecione um condomínio</option>
-                    {condominiums.map((condominium) => (
+                    {sortedCondominiums.map((condominium) => (
                       <option key={condominium.id} value={condominium.id}>{condominium.name} · {condominium.city}</option>
                     ))}
                   </select>

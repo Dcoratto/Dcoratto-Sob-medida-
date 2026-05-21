@@ -3,6 +3,9 @@ import {doc, onSnapshot} from 'firebase/firestore';
 import {db} from '../lib/firebase';
 import {Settings, SupplierContact} from '../types';
 
+const FIXED_MATERIAL_CATEGORIES = ['Granito', 'Mármore', 'Quartzito', 'Quartzo', 'Lâmina Ultracompacta', 'Porcelanato', 'Superfície Sinterizada'];
+const FIXED_MATERIAL_LINES = ['Nacional', 'Importado', 'Premium', 'Super Premium'];
+
 const normalizeSupplier = (supplier: string | SupplierContact): SupplierContact =>
   typeof supplier === 'string'
     ? {name: supplier}
@@ -51,8 +54,8 @@ export const DEFAULT_SETTINGS: Settings = {
     riskPercentage: 10,
   },
   materialCatalog: {
-    materialCategories: ['Granito', 'Mármore', 'Quartzito', 'Quartzo', 'Lâmina Ultracompacta', 'Porcelanato', 'Superfície Sinterizada'],
-    materialLines: ['Nacional', 'Importado', 'Premium', 'Super Premium'],
+    materialCategories: FIXED_MATERIAL_CATEGORIES,
+    materialLines: FIXED_MATERIAL_LINES,
     materialTypes: ['Chapa', 'Lamina'],
     naturalThicknesses: ['2cm'],
     slabThicknesses: ['6mm', '12mm'],
@@ -84,8 +87,8 @@ export const useSettings = () => {
           materialCatalog: {
             ...DEFAULT_SETTINGS.materialCatalog,
             ...(data.materialCatalog || {}),
-            materialCategories: data.materialCatalog?.materialCategories?.length ? data.materialCatalog.materialCategories : DEFAULT_SETTINGS.materialCatalog.materialCategories,
-            materialLines: data.materialCatalog?.materialLines?.length ? data.materialCatalog.materialLines : DEFAULT_SETTINGS.materialCatalog.materialLines,
+            materialCategories: FIXED_MATERIAL_CATEGORIES,
+            materialLines: FIXED_MATERIAL_LINES,
             materialTypes: data.materialCatalog?.materialTypes?.length ? data.materialCatalog.materialTypes : DEFAULT_SETTINGS.materialCatalog.materialTypes,
             naturalThicknesses: data.materialCatalog?.naturalThicknesses?.length ? data.materialCatalog.naturalThicknesses : DEFAULT_SETTINGS.materialCatalog.naturalThicknesses,
             slabThicknesses: data.materialCatalog?.slabThicknesses?.length ? data.materialCatalog.slabThicknesses : DEFAULT_SETTINGS.materialCatalog.slabThicknesses,

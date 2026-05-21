@@ -308,7 +308,7 @@ export const InventoryPage: React.FC = () => {
       materialName: selectedMaterial?.name || materialName.trim(),
       code: code.trim(),
       provider: provider.trim(),
-      category: materialLine.trim() || category.trim(),
+      category: category.trim(),
       materialLine: materialLine.trim(),
       materialType: materialType.trim(),
       thicknessLabel: thicknessLabel.trim(),
@@ -477,7 +477,7 @@ export const InventoryPage: React.FC = () => {
         materialName: selectedMaterialName,
         provider: purchaseProvider.trim(),
         code: slab.code,
-        category: purchaseMaterialLine.trim() || purchaseCategory.trim(),
+        category: purchaseCategory.trim(),
         materialLine: purchaseMaterialLine.trim(),
         materialType: purchaseMaterialType.trim(),
         thicknessLabel: purchaseThicknessLabel.trim() || slab.thickness,
@@ -794,6 +794,9 @@ export const InventoryPage: React.FC = () => {
   const selectedReservations = reservationMaterialId ? activeReservationsByMaterial(reservationMaterialId) : [];
   const quoteById = (quoteId: string) => quotes.find((quote) => quote.id === quoteId);
   const selectedPurchaseMaterial = materials.find((material) => material.id === purchaseMaterialId);
+  const selectedPurchaseSupplier = findSupplier(purchaseProvider);
+  const selectedInventoryMaterial = materials.find((material) => material.id === selectedMaterialId);
+  const selectedInventorySupplier = findSupplier(provider);
   const purchaseQuantityNumber = Math.max(1, Number(purchaseQuantity) || 1);
   const purchaseSlabRows = purchaseSlabs.slice(0, purchaseQuantityNumber);
   const purchasePreviewSlabs = purchaseMeasureMode === 'same'
@@ -1486,6 +1489,9 @@ export const InventoryPage: React.FC = () => {
                   <div>
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Imagem da pedra</div>
                     <div className="font-semibold text-slate-900">{selectedPurchaseMaterial?.name || 'Selecione uma pedra'}</div>
+                    <div className="text-sm text-slate-500">
+                      {selectedPurchaseMaterial ? formatMaterialSpecsWithProvider(selectedPurchaseMaterial) || 'Sem especificações cadastradas' : 'Imagem e informações aparecem aqui'}
+                    </div>
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -1503,9 +1509,24 @@ export const InventoryPage: React.FC = () => {
                     {supplierOptions.map((supplier) => <option key={supplier.name} value={supplier.name}>{supplier.name}</option>)}
                   </select>
                 </div>
+                <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-1">
+                  <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Dados do fornecedor</div>
+                  <div className="font-semibold text-slate-900">{selectedPurchaseSupplier?.name || 'Selecione um fornecedor'}</div>
+                  <div className="text-sm text-slate-500">{selectedPurchaseSupplier?.contactName ? `Contato: ${selectedPurchaseSupplier.contactName}` : 'Contato não cadastrado'}</div>
+                  <div className="text-sm text-slate-500">{selectedPurchaseSupplier?.whatsapp ? `WhatsApp: ${selectedPurchaseSupplier.whatsapp}` : 'WhatsApp não cadastrado'}</div>
+                  <div className="text-sm text-slate-500">{selectedPurchaseSupplier?.city ? `Cidade: ${selectedPurchaseSupplier.city}` : 'Cidade não cadastrada'}</div>
+                  {selectedPurchaseSupplier?.notes ? <div className="text-sm text-slate-500">{selectedPurchaseSupplier.notes}</div> : null}
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Categoria</label>
+                  <select value={purchaseCategory} onChange={(e) => setPurchaseCategory(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                    <option value="">Selecionar categoria</option>
+                    {materialCatalog.materialCategories.map((item) => <option key={item} value={item}>{item}</option>)}
+                  </select>
+                </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Linha do material</label>
-                  <select value={purchaseMaterialLine} onChange={(e) => { setPurchaseMaterialLine(e.target.value); setPurchaseCategory(e.target.value); }} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                  <select value={purchaseMaterialLine} onChange={(e) => { setPurchaseMaterialLine(e.target.value); }} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
                     <option value="">Selecionar linha</option>
                     {materialCatalog.materialLines.map((line) => <option key={line} value={line}>{line}</option>)}
                   </select>
@@ -1657,8 +1678,15 @@ export const InventoryPage: React.FC = () => {
                   </select>
                 </div>
                 <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Categoria</label>
+                  <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                    <option value="">Selecionar categoria</option>
+                    {materialCatalog.materialCategories.map((item) => <option key={item} value={item}>{item}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Linha do material</label>
-                  <select value={materialLine} onChange={(e) => { setMaterialLine(e.target.value); setCategory(e.target.value); }} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                  <select value={materialLine} onChange={(e) => { setMaterialLine(e.target.value); }} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
                     <option value="">Selecionar linha</option>
                     {materialCatalog.materialLines.map((line) => <option key={line} value={line}>{line}</option>)}
                   </select>

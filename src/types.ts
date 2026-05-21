@@ -461,6 +461,7 @@ export interface InventoryItem {
   materialName: string;
   code: string;
   provider: string;
+  rackId?: string;
   category?: string;
   materialLine?: string;
   materialType?: string;

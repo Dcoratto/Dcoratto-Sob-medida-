@@ -1,6 +1,6 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc} from 'firebase/firestore';
-import {AlertTriangle, CheckCircle2, Edit2, Eye, FileText, Filter, ImagePlus, MessageCircle, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
+import {AlertTriangle, CheckCircle2, Edit2, Eye, FileText, Filter, ImagePlus, LocateFixed, MapPin, MessageCircle, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
 import {getDownloadURL, ref, uploadBytes} from 'firebase/storage';
 import {db, storage} from '../lib/firebase';
@@ -14,6 +14,8 @@ import {formatMaterialSpecs, formatMaterialSpecsWithProvider} from '../lib/mater
 import {generatePurchaseOrderPdf} from '../lib/purchaseOrderPdfGenerator';
 
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
+
+const patioRacks = Array.from({length: 9}, (_, index) => `Cavalete ${index + 1}`);
 
 const normalizeStatus = (value: unknown) =>
   String(value || '')
@@ -81,6 +83,9 @@ export const InventoryPage: React.FC = () => {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [showLossModal, setShowLossModal] = useState(false);
   const [reservationMaterialId, setReservationMaterialId] = useState<string | null>(null);
+  const [selectedRackId, setSelectedRackId] = useState(patioRacks[0]);
+  const [focusedInventoryId, setFocusedInventoryId] = useState('');
+  const patioMapRef = useRef<HTMLDivElement | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -88,6 +93,7 @@ export const InventoryPage: React.FC = () => {
   const [materialName, setMaterialName] = useState('');
   const [code, setCode] = useState('');
   const [provider, setProvider] = useState('');
+  const [rackId, setRackId] = useState('');
   const [category, setCategory] = useState('');
   const [materialLine, setMaterialLine] = useState('');
   const [materialType, setMaterialType] = useState('Chapa');
@@ -167,6 +173,7 @@ export const InventoryPage: React.FC = () => {
     setMaterialName('');
     setCode('');
     setProvider('');
+    setRackId('');
     setCategory('');
     setMaterialLine('');
     setMaterialType('Chapa');
@@ -308,6 +315,7 @@ export const InventoryPage: React.FC = () => {
       materialName: selectedMaterial?.name || materialName.trim(),
       code: code.trim(),
       provider: provider.trim(),
+      rackId,
       category: category.trim(),
       materialLine: materialLine.trim(),
       materialType: materialType.trim(),
@@ -365,6 +373,7 @@ export const InventoryPage: React.FC = () => {
     setMaterialName(item.materialName);
     setCode(item.code);
     setProvider(item.provider);
+    setRackId(item.rackId || '');
     setCategory(item.category || materials.find((material) => material.id === item.materialId)?.category || '');
     setMaterialLine(item.materialLine || item.category || '');
     setMaterialType(item.materialType || 'Chapa');
@@ -691,11 +700,23 @@ export const InventoryPage: React.FC = () => {
   };
 
   const filteredItems = items.filter((item) => {
-    const searchText = `${item.materialName} ${item.code} ${item.provider} ${item.category || ''} ${item.materialLine || ''} ${item.materialType || ''} ${item.texture || ''} ${item.thicknessLabel || ''}`.toLowerCase();
+    const searchText = `${item.materialName} ${item.code} ${item.provider} ${item.rackId || ''} ${item.category || ''} ${item.materialLine || ''} ${item.materialType || ''} ${item.texture || ''} ${item.thicknessLabel || ''}`.toLowerCase();
     const matchesSearch = searchText.includes(search.toLowerCase());
     const matchesStatus = !statusFilter || item.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+  const activePatioItems = items.filter((item) => !['usada', 'descarte'].includes(normalizeStatus(item.status)));
+  const selectedRackItems = activePatioItems.filter((item) => item.rackId === selectedRackId);
+  const unassignedPatioItems = activePatioItems.filter((item) => !item.rackId);
+  const rackArea = (rack: string) => activePatioItems
+    .filter((item) => item.rackId === rack)
+    .reduce((acc, item) => acc + (item.area || 0), 0);
+  const locateInventoryItem = (item: InventoryItem) => {
+    const nextRack = item.rackId || '';
+    if (nextRack) setSelectedRackId(nextRack);
+    setFocusedInventoryId(item.id);
+    patioMapRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'});
+  };
 
   const quoteReservedArea = reservations
     .filter((reservation) => isActiveReservation(reservation))
@@ -1095,6 +1116,96 @@ export const InventoryPage: React.FC = () => {
         </div>
       )}
 
+      <div ref={patioMapRef} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-5">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <h2 className="font-display text-xl font-bold text-slate-900">Pátio de chapas</h2>
+            <p className="mt-1 text-sm text-slate-400">Localização física dos 9 cavaletes.</p>
+          </div>
+          {unassignedPatioItems.length > 0 && (
+            <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
+              {unassignedPatioItems.length} chapa(s) sem cavalete
+            </div>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+          <div className="rounded-[24px] border border-slate-100 bg-slate-50 p-4">
+            <div className="grid grid-cols-3 gap-3">
+              {patioRacks.map((rack) => {
+                const rackItems = activePatioItems.filter((item) => item.rackId === rack);
+                const isSelected = selectedRackId === rack;
+                const hasFocusedItem = rackItems.some((item) => item.id === focusedInventoryId);
+
+                return (
+                  <button
+                    key={rack}
+                    type="button"
+                    onClick={() => {
+                      setSelectedRackId(rack);
+                      setFocusedInventoryId('');
+                    }}
+                    className={cn(
+                      'min-h-[120px] rounded-2xl border p-4 text-left transition-all',
+                      isSelected ?'border-brand-primary bg-white shadow-lg shadow-brand-primary/10' : 'border-slate-200 bg-white hover:border-brand-primary/30',
+                      hasFocusedItem && 'ring-2 ring-brand-primary ring-offset-2 ring-offset-slate-50',
+                    )}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Cavalete</div>
+                        <div className="mt-1 text-2xl font-display font-bold text-slate-900">{rack.replace('Cavalete ', '')}</div>
+                      </div>
+                      <MapPin className={cn('h-5 w-5', isSelected ?'text-brand-primary' : 'text-slate-300')} />
+                    </div>
+                    <div className="mt-5 grid grid-cols-2 gap-2 text-xs font-semibold">
+                      <div className="rounded-xl bg-slate-50 px-3 py-2 text-slate-600">{rackItems.length} chapa(s)</div>
+                      <div className="rounded-xl bg-slate-50 px-3 py-2 text-slate-600">{formatNumber(rackArea(rack))} m²</div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-[24px] border border-slate-100 bg-white p-4">
+            <div className="flex items-center justify-between gap-3 border-b border-slate-50 pb-3">
+              <div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Selecionado</div>
+                <div className="font-display text-lg font-bold text-slate-900">{selectedRackId}</div>
+              </div>
+              <div className="rounded-2xl bg-slate-50 px-3 py-2 text-right">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Área</div>
+                <div className="font-mono text-sm font-bold text-slate-700">{formatNumber(rackArea(selectedRackId))} m²</div>
+              </div>
+            </div>
+
+            <div className="mt-4 max-h-[360px] space-y-2 overflow-y-auto pr-1">
+              {selectedRackItems.length === 0 ? (
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">Nenhuma chapa neste cavalete.</div>
+              ) : (
+                selectedRackItems.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setFocusedInventoryId(item.id)}
+                    className={cn(
+                      'w-full rounded-2xl border p-3 text-left transition-all',
+                      focusedInventoryId === item.id ?'border-brand-primary bg-brand-primary/5' : 'border-slate-100 bg-slate-50 hover:border-brand-primary/30',
+                    )}
+                  >
+                    <div className="font-bold text-slate-900">{item.materialName}</div>
+                    <div className="mt-1 text-xs font-mono text-brand-primary">{item.code || 'Sem lote'}</div>
+                    <div className="mt-1 text-xs text-slate-500">{formatMaterialSpecsWithProvider(item) || `${item.provider || 'Sem fornecedor'} · ${item.thicknessLabel || 'Sem espessura'}`}</div>
+                    <div className="mt-2 text-xs font-semibold text-slate-500">{item.length} x {item.width} cm · {formatNumber(item.area)} m²</div>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
         <div className="p-4 border-b border-slate-50 flex flex-col md:flex-row gap-4">
           <div className="relative flex-1">
@@ -1139,7 +1250,7 @@ export const InventoryPage: React.FC = () => {
                 <tr><td colSpan={6} className="px-6 py-10 text-center text-slate-400">Nenhuma pedra encontrada.</td></tr>
               ) : (
                 filteredItems.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/50 transition-colors group">
+                  <tr key={item.id} className={cn('transition-colors group', focusedInventoryId === item.id ?'bg-brand-primary/5' : 'hover:bg-slate-50/50')}>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 shrink-0 rounded-full border border-slate-200 bg-slate-100 overflow-hidden flex items-center justify-center">
@@ -1152,6 +1263,10 @@ export const InventoryPage: React.FC = () => {
                         <div>
                           <div className="font-semibold text-slate-900">{item.materialName}</div>
                           <div className="text-xs text-brand-primary font-mono">{item.code}</div>
+                          <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                            <MapPin className="h-3 w-3" />
+                            {item.rackId || 'Sem cavalete'}
+                          </div>
                           <div className="text-xs text-slate-400">{formatMaterialSpecsWithProvider(item) || `${item.category || 'Sem categoria'} · ${item.provider || 'Sem fornecedor'}`}</div>
                         </div>
                       </div>
@@ -1199,6 +1314,9 @@ export const InventoryPage: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button type="button" onClick={() => locateInventoryItem(item)} className="p-2 text-slate-400 hover:text-brand-primary hover:bg-brand-primary/5 rounded-lg transition-all" title="Localizar no pátio">
+                          <LocateFixed className="w-4 h-4" />
+                        </button>
                         {item.lossReason && hasPermission('estoque', 'movimentar') && (
                           <>
                             <button type="button" onClick={() => openEditLossModal(item)} className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all" title="Editar perda">
@@ -1696,6 +1814,13 @@ export const InventoryPage: React.FC = () => {
                   <select value={provider} onChange={(e) => setProvider(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
                     <option value="">Selecionar fornecedor</option>
                     {supplierOptions.map((supplier) => <option key={supplier.name} value={supplier.name}>{supplier.name}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-slate-500 font-medium text-sm">Cavalete no pátio</label>
+                  <select value={rackId} onChange={(e) => setRackId(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
+                    <option value="">Sem cavalete</option>
+                    {patioRacks.map((rack) => <option key={rack} value={rack}>{rack}</option>)}
                   </select>
                 </div>
                 <div className="space-y-1.5">

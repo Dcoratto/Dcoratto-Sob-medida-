@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc} from 'firebase/firestore';
+import {addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc} from 'firebase/firestore';
 import {AlertTriangle, CheckCircle2, Edit2, Eye, FileText, Filter, ImagePlus, LocateFixed, MapPin, MessageCircle, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
 import {getDownloadURL, ref, uploadBytes} from 'firebase/storage';
@@ -76,6 +76,7 @@ export const InventoryPage: React.FC = () => {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [reservations, setReservations] = useState<InventoryReservation[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
+  const [quotesLoaded, setQuotesLoaded] = useState(false);
   const [purchases, setPurchases] = useState<InventoryPurchase[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -149,11 +150,6 @@ export const InventoryPage: React.FC = () => {
       setReservations(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryReservation)));
     });
 
-    const qQuotes = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
-    const unsubscribeQuotes = onSnapshot(qQuotes, (snapshot) => {
-      setQuotes(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as Quote)));
-    });
-
     const qPurchases = query(collection(db, 'inventoryPurchases'), orderBy('purchasedAt', 'desc'));
     const unsubscribePurchases = onSnapshot(qPurchases, (snapshot) => {
       setPurchases(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryPurchase)));
@@ -163,10 +159,17 @@ export const InventoryPage: React.FC = () => {
       unsubscribeItems();
       unsubscribeMaterials();
       unsubscribeReservations();
-      unsubscribeQuotes();
       unsubscribePurchases();
     };
   }, []);
+
+  const ensureQuotesLoaded = async () => {
+    if (quotesLoaded) return;
+    const qQuotes = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(qQuotes);
+    setQuotes(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as Quote)));
+    setQuotesLoaded(true);
+  };
 
   const resetForm = () => {
     setSelectedMaterialId('');
@@ -671,8 +674,9 @@ export const InventoryPage: React.FC = () => {
     resetLossForm();
   };
 
-  const openEditLossModal = (item: InventoryItem) => {
+  const openEditLossModal = async (item: InventoryItem) => {
     if (!hasPermission('estoque', 'movimentar')) return;
+    await ensureQuotesLoaded();
     setLossQuoteId(item.lossQuoteId || '');
     setLossPieceId(item.lossPieceId || '');
     setLossInventoryId(item.id);
@@ -942,7 +946,8 @@ export const InventoryPage: React.FC = () => {
           {hasPermission('estoque', 'movimentar') && (
             <button
               type="button"
-              onClick={() => {
+              onClick={async () => {
+                await ensureQuotesLoaded();
                 resetLossForm();
                 setShowLossModal(true);
               }}

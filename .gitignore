@@ -1,5 +1,6 @@
 node_modules/
 .npm-cache/
+.vite-cache/
 build/
 dist/
 coverage/

@@ -452,6 +452,8 @@ export const ClientsPage: React.FC = () => {
     [legacyPayments, legacyPiecesTotalValue],
   );
   const canViewClientValues = hasPermission('cliente', 'verValores');
+  const canEditClientData = hasPermission('cliente', 'editarDados');
+  const canChangeClientStatus = hasPermission('cliente', 'alterarEtapa');
   const hiddenClientValueLabel = 'Valor oculto';
 
   const resetForm = () => {
@@ -1374,7 +1376,7 @@ export const ClientsPage: React.FC = () => {
               return (
                 <div
                   key={client.id}
-                  onClick={() => toggleStatusMenu(client.id)}
+                  onClick={() => openClientDetail(client, 'quote')}
                   className="group relative cursor-pointer rounded-[24px] border border-slate-100 bg-slate-50 p-6 text-left transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
                   <div className={cn('absolute top-4 right-4 w-3 h-3 rounded-full ring-4 ring-white', statusDotClass)} title={displayStatus} />
                   <div className="mb-4 flex items-start justify-between gap-4 pr-6">
@@ -1392,37 +1394,53 @@ export const ClientsPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex max-w-[52%] shrink-0 flex-wrap justify-end gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                      <button type="button" title="Dados do cliente" onClick={() => openClientDetail(client, 'client')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                      <button type="button" title="Dados do cliente" onClick={(event) => { event.stopPropagation(); openClientDetail(client, 'client'); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
                         <Info className="h-4 w-4" />
                       </button>
-                      <button type="button" title="Informações do orçamento" onClick={() => openClientDetail(client, 'quote')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                      <button type="button" title="Informações do orçamento" onClick={(event) => { event.stopPropagation(); openClientDetail(client, 'quote'); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
                         <ClipboardList className="h-4 w-4" />
                       </button>
                       {canViewClientValues && (
-                        <button type="button" title="Valores detalhados" onClick={() => openClientDetail(client, 'values')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                        <button type="button" title="Valores detalhados" onClick={(event) => { event.stopPropagation(); openClientDetail(client, 'values'); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
                           <Banknote className="h-4 w-4" />
                         </button>
                       )}
-                      <button type="button" title="Funcionários" onClick={() => openClientDetail(client, 'team')} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                      <button type="button" title="Funcionários" onClick={(event) => { event.stopPropagation(); openClientDetail(client, 'team'); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
                         <Users className="h-4 w-4" />
                       </button>
                       {client.googleDriveUrl && (
-                        <button type="button" title="Abrir pasta no Google Drive" onClick={() => openDriveFolder(client.googleDriveUrl)} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                        <button type="button" title="Abrir pasta no Google Drive" onClick={(event) => { event.stopPropagation(); openDriveFolder(client.googleDriveUrl); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
                           <GoogleDriveIcon className="h-4 w-4" />
                         </button>
                       )}
-                      <button type="button" onClick={(event) => { event.stopPropagation(); handleEdit(client); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button type="button" aria-label="Excluir" title="Excluir" onClick={(event) => { event.stopPropagation(); handleDelete(client.id); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-red-50 hover:text-red-600">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      {canEditClientData && (
+                        <button type="button" onClick={(event) => { event.stopPropagation(); handleEdit(client); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
+                          <Edit2 className="w-4 h-4" />
+                        </button>
+                      )}
+                      {canEditClientData && (
+                        <button type="button" aria-label="Excluir" title="Excluir" onClick={(event) => { event.stopPropagation(); handleDelete(client.id); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-red-50 hover:text-red-600">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <span className={cn('inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase', statusChipClass)}>
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (!canChangeClientStatus) return;
+                        toggleStatusMenu(client.id);
+                      }}
+                      className={cn(
+                        'inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase',
+                        statusChipClass,
+                        canChangeClientStatus ? 'cursor-pointer hover:opacity-90' : 'cursor-default',
+                      )}
+                    >
                       {fixCorruptedText(displayStatus)}
-                    </span>
+                    </button>
                     <div className="flex items-start gap-2 text-sm text-slate-600">
                       <MapPin className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
                       <span className="line-clamp-2">{fixCorruptedText(client.address || 'Sem endereço cadastrado')}</span>
@@ -1448,7 +1466,7 @@ export const ClientsPage: React.FC = () => {
                       </div>
                     )}
                   </div>
-                  {statusMenuClientId === client.id && (
+                  {canChangeClientStatus && statusMenuClientId === client.id && (
                     <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg shadow-slate-200/60" onClick={(event) => event.stopPropagation()}>
                       <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Alterar status</div>
                       {latestQuote ?(
@@ -1528,9 +1546,24 @@ export const ClientsPage: React.FC = () => {
                   </div>
                 )}
               </div>
-              <button type="button" onClick={() => setDetailModal(null)} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full transition-all text-slate-400">
-                <X className="w-6 h-6" />
-              </button>
+              <div className="flex items-center gap-2">
+                {canEditClientData && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDetailModal(null);
+                      handleEdit(selectedClient);
+                    }}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-100"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                    Editar
+                  </button>
+                )}
+                <button type="button" onClick={() => setDetailModal(null)} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full transition-all text-slate-400">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
             </div>
 
             <div className="overflow-auto p-6 space-y-6">
@@ -1578,7 +1611,8 @@ export const ClientsPage: React.FC = () => {
                       <select
                         value={normalizeQuoteStatus(selectedQuote.status)}
                         onChange={(event) => updateQuoteStatus(selectedQuote, event.target.value as QuoteStatus)}
-                        className={cn('rounded-2xl border px-4 py-3 font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20', quoteStatusColor(selectedQuote.status))}
+                        disabled={!canChangeClientStatus}
+                        className={cn('rounded-2xl border px-4 py-3 font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20 disabled:cursor-not-allowed disabled:opacity-60', quoteStatusColor(selectedQuote.status))}
                       >
                         {quoteStatuses.map((status) => (
                           <option key={status} value={status} className={quoteStatusColor(status)}>{status}</option>

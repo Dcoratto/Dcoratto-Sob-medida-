@@ -502,7 +502,7 @@ export const AdminPage: React.FC = () => {
   const materialCatalog = settings.materialCatalog;
   const supplierOptions = materialCatalog.suppliers || [];
   const thicknessOptions = materialForm.materialType === 'Lamina' ? materialCatalog.slabThicknesses : materialCatalog.naturalThicknesses;
-  const categoryOptions = Array.from(new Set([...(materialCatalog.materialTypes || []), ...DEFAULT_STONE_CATEGORIES]));
+  const categoryOptions = Array.from(new Set([...(materialCatalog.materialCategories || []), ...DEFAULT_STONE_CATEGORIES]));
   const materialLineOptions = Array.from(new Set([...(materialCatalog.materialLines || []), ...DEFAULT_STONE_LINES]));
 
   const deleteStoredFile = async (fileUrl?: unknown) => {

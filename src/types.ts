@@ -93,6 +93,7 @@ export interface Settings {
   };
   materialSuppliers?: SupplierContact[];
   materialCatalog: {
+    materialCategories: string[];
     materialLines: string[];
     materialTypes: string[];
     naturalThicknesses: string[];

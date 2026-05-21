@@ -51,7 +51,8 @@ export const DEFAULT_SETTINGS: Settings = {
     riskPercentage: 10,
   },
   materialCatalog: {
-    materialLines: ['Granito', 'Marmore', 'Quartzito', 'Quartzo', 'Onix', 'Lamina Ultracompacta'],
+    materialCategories: ['Granito', 'Mármore', 'Quartzito', 'Quartzo', 'Lâmina Ultracompacta', 'Porcelanato', 'Superfície Sinterizada'],
+    materialLines: ['Nacional', 'Importado', 'Premium', 'Super Premium'],
     materialTypes: ['Chapa', 'Lamina'],
     naturalThicknesses: ['2cm'],
     slabThicknesses: ['6mm', '12mm'],
@@ -83,6 +84,7 @@ export const useSettings = () => {
           materialCatalog: {
             ...DEFAULT_SETTINGS.materialCatalog,
             ...(data.materialCatalog || {}),
+            materialCategories: data.materialCatalog?.materialCategories?.length ? data.materialCatalog.materialCategories : DEFAULT_SETTINGS.materialCatalog.materialCategories,
             materialLines: data.materialCatalog?.materialLines?.length ? data.materialCatalog.materialLines : DEFAULT_SETTINGS.materialCatalog.materialLines,
             materialTypes: data.materialCatalog?.materialTypes?.length ? data.materialCatalog.materialTypes : DEFAULT_SETTINGS.materialCatalog.materialTypes,
             naturalThicknesses: data.materialCatalog?.naturalThicknesses?.length ? data.materialCatalog.naturalThicknesses : DEFAULT_SETTINGS.materialCatalog.naturalThicknesses,

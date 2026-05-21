@@ -588,7 +588,8 @@ export const SettingsPage: React.FC = () => {
 
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
             {[
-              ['materialLines', 'Linha do material', 'Ex: Granito'],
+              ['materialCategories', 'Categoria', 'Ex: Granito'],
+              ['materialLines', 'Linha do material', 'Ex: Premium'],
               ['materialTypes', 'Tipo do material', 'Ex: Chapa'],
               ['naturalThicknesses', 'Espessuras naturais', 'Ex: 2cm'],
               ['slabThicknesses', 'Espessuras de laminas', 'Ex: 12mm'],

@@ -1822,7 +1822,7 @@ export const ClientsPage: React.FC = () => {
                                                       )}
                                                       title={`${rating} ponto(s)`}
                                                     >
-                                                      {rating <= 2 ?'â˜¹' : rating === 3 ?'â—‹' : 'â˜º'}
+                                                      {rating <= 2 ?'☹' : rating === 3 ?'◯' : '☺'}
                                                     </button>
                                                   ))}
                                                 </div>
@@ -2372,7 +2372,6 @@ const FixtureInput = ({label, value, type = 'text', onBlur}: {label: string; val
     </label>
   );
 };
-
 
 
 

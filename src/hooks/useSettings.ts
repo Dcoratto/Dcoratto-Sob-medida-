@@ -6,8 +6,9 @@ import {Settings, SupplierContact} from '../types';
 
 const normalizeSupplier = (supplier: string | SupplierContact): SupplierContact =>
   typeof supplier === 'string'
-    ? {name: repairText(supplier)}
+    ? {id: repairText(supplier), name: repairText(supplier)}
     : {
+      id: repairText(supplier.id || supplier.name || ''),
       name: repairText(supplier.name || ''),
       whatsapp: repairText(supplier.whatsapp || ''),
       contactName: repairText(supplier.contactName || ''),

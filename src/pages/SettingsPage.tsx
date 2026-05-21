@@ -32,6 +32,7 @@ export const SettingsPage: React.FC = () => {
   const [blockCityHolidays, setBlockCityHolidays] = useState(true);
   const [condoNotes, setCondoNotes] = useState('');
   type MaterialCatalogListField = Exclude<keyof typeof settings.materialCatalog, 'suppliers'>;
+  const createSupplierId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
   useEffect(() => {
     if (currentSettings) {
@@ -53,6 +54,7 @@ export const SettingsPage: React.FC = () => {
       .filter((method) => method.name);
     const sanitizedSuppliers = sourceSettings.materialCatalog.suppliers
       .map((supplier) => ({
+        id: supplier.id?.trim() || `${supplier.name.trim()}-${supplier.whatsapp?.trim() || supplier.city?.trim() || 'supplier'}`,
         name: supplier.name.trim(),
         whatsapp: supplier.whatsapp?.trim() || '',
         contactName: supplier.contactName?.trim() || '',
@@ -126,6 +128,7 @@ export const SettingsPage: React.FC = () => {
     const normalizedName = supplier.name.trim();
     if (!normalizedName || !isAdmin || supplierSaving) return false;
     const nextSupplier = {
+      id: supplier.id || createSupplierId(),
       name: normalizedName,
       whatsapp: supplier.whatsapp?.trim() || '',
       contactName: supplier.contactName?.trim() || '',
@@ -138,7 +141,7 @@ export const SettingsPage: React.FC = () => {
       materialCatalog: {
         ...settings.materialCatalog,
         suppliers: [
-          ...settings.materialCatalog.suppliers.filter((item) => item.name !== normalizedName),
+          ...settings.materialCatalog.suppliers.filter((item) => item.id !== nextSupplier.id),
           nextSupplier,
         ].sort((a, b) => a.name.localeCompare(b.name)),
       },
@@ -163,13 +166,13 @@ export const SettingsPage: React.FC = () => {
     }
   };
 
-  const removeSupplier = async (name: string) => {
-    if (!isAdmin || supplierSaving) return;
+  const removeSupplier = async (supplierId: string) => {
+    if (!isAdmin || supplierSaving || !supplierId) return;
     const nextSettings = {
       ...settings,
       materialCatalog: {
         ...settings.materialCatalog,
-        suppliers: settings.materialCatalog.suppliers.filter((supplier) => supplier.name !== name),
+        suppliers: settings.materialCatalog.suppliers.filter((supplier) => supplier.id !== supplierId),
       },
     };
 
@@ -896,40 +899,42 @@ const MaterialCatalogField: React.FC<{
 const SupplierCatalogField: React.FC<{
   suppliers: SupplierContact[];
   onAdd: (supplier: SupplierContact) => Promise<boolean>;
-  onRemove: (name: string) => Promise<void>;
+  onRemove: (supplierId: string) => Promise<void>;
   saving: boolean;
   feedback: string;
 }> = ({suppliers, onAdd, onRemove, saving, feedback}) => {
   const [draft, setDraft] = useState<SupplierContact>({
+    id: '',
     name: '',
     whatsapp: '',
     contactName: '',
     city: '',
     notes: '',
   });
-  const [editingSupplierName, setEditingSupplierName] = useState('');
+  const [editingSupplierId, setEditingSupplierId] = useState('');
 
   const handleAdd = async () => {
     const saved = await onAdd(draft);
     if (!saved) return;
-    setDraft({name: '', whatsapp: '', contactName: '', city: '', notes: ''});
-    setEditingSupplierName('');
+    setDraft({id: '', name: '', whatsapp: '', contactName: '', city: '', notes: ''});
+    setEditingSupplierId('');
   };
 
   const startEditing = (supplier: SupplierContact) => {
     setDraft({
+      id: supplier.id || '',
       name: supplier.name || '',
       whatsapp: supplier.whatsapp || '',
       contactName: supplier.contactName || '',
       city: supplier.city || '',
       notes: supplier.notes || '',
     });
-    setEditingSupplierName(supplier.name);
+    setEditingSupplierId(supplier.id || supplier.name);
   };
 
   const cancelEditing = () => {
-    setDraft({name: '', whatsapp: '', contactName: '', city: '', notes: ''});
-    setEditingSupplierName('');
+    setDraft({id: '', name: '', whatsapp: '', contactName: '', city: '', notes: ''});
+    setEditingSupplierId('');
   };
 
   return (
@@ -992,9 +997,9 @@ const SupplierCatalogField: React.FC<{
         ) : (
           <Plus className="w-4 h-4" />
         )}
-        {saving ? 'Salvando fornecedor...' : editingSupplierName ? 'Salvar fornecedor' : 'Adicionar fornecedor'}
+        {saving ? 'Salvando fornecedor...' : editingSupplierId ? 'Salvar fornecedor' : 'Adicionar fornecedor'}
       </button>
-      {editingSupplierName && (
+      {editingSupplierId && (
         <button
           type="button"
           onClick={cancelEditing}
@@ -1007,7 +1012,7 @@ const SupplierCatalogField: React.FC<{
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {suppliers.map((supplier) => (
-          <div key={supplier.name} className="rounded-2xl border border-slate-200 bg-white p-4">
+          <div key={supplier.id || `${supplier.name}-${supplier.whatsapp || ''}-${supplier.city || ''}`} className="rounded-2xl border border-slate-200 bg-white p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="font-bold text-slate-800">{supplier.name}</div>
@@ -1028,7 +1033,7 @@ const SupplierCatalogField: React.FC<{
                 </button>
                 <button
                   type="button"
-                  onClick={() => onRemove(supplier.name)}
+                  onClick={() => onRemove(supplier.id || '')}
                   disabled={saving}
                   className="rounded-xl bg-red-50 p-2 text-red-600 transition-all hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
                   title="Excluir fornecedor"

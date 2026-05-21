@@ -402,7 +402,6 @@ export const AdminPage: React.FC = () => {
     setSavingMaterial(true);
     setMaterialError('');
     try {
-      const materialId = editingMaterial?.id || slugify(name);
       const materialLine = materialForm.materialLine.trim();
       const materialType = materialForm.materialType.trim() || 'Chapa';
       const thicknessLabel = materialForm.thicknessLabel.trim();
@@ -411,7 +410,7 @@ export const AdminPage: React.FC = () => {
       if (materialImageFile) {
         imageUrl = await optimizeCatalogImage(materialImageFile);
       }
-      await setDoc(doc(db, 'materials', materialId), {
+      const materialPayload = {
         name,
         provider: materialForm.provider.trim(),
         category: materialForm.category.trim(),
@@ -420,13 +419,21 @@ export const AdminPage: React.FC = () => {
         thicknessLabel,
         texture,
         thickness: parseThicknessValue(thicknessLabel),
-        baseCostPerM2: 0,
-        marginPercentage: 0,
-        pricePerM2: 0,
+        baseCostPerM2: editingMaterial?.baseCostPerM2 ?? 0,
+        marginPercentage: editingMaterial?.marginPercentage ?? 0,
+        pricePerM2: editingMaterial?.pricePerM2 ?? 0,
         ...(imageUrl ?{imageUrl} : {}),
         active: editingMaterial?.active ?? true,
         updatedAt: serverTimestamp(),
-      }, {merge: true});
+      };
+      if (editingMaterial?.id) {
+        await setDoc(doc(db, 'materials', editingMaterial.id), materialPayload, {merge: true});
+      } else {
+        await addDoc(collection(db, 'materials'), {
+          ...materialPayload,
+          createdAt: serverTimestamp(),
+        });
+      }
       resetMaterialForm();
     } catch (error: any) {
       console.error('Erro ao cadastrar pedra:', error);

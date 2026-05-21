@@ -104,6 +104,7 @@ export interface Settings {
 }
 
 export interface SupplierContact {
+  id?: string;
   name: string;
   whatsapp?: string;
   contactName?: string;

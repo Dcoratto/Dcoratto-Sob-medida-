@@ -2,7 +2,7 @@
 import {EmailAuthProvider, reauthenticateWithCredential} from 'firebase/auth';
 import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from 'firebase/firestore';
 import {deleteObject, getDownloadURL, ref as storageRef, uploadBytes} from 'firebase/storage';
-import {AlertTriangle, BriefcaseBusiness, CheckCircle2, Mail, Pencil, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
+import {AlertTriangle, BriefcaseBusiness, CheckCircle2, ChevronDown, Mail, Pencil, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
 import {auth, db, storage} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {useAuth} from '../contexts/AuthContext';
@@ -92,6 +92,26 @@ const getCatalogSaveErrorMessage = (error: any, itemName: string) => {
   }
   return message || `Não foi possível cadastrar ${itemName}.`;
 };
+
+const AdminAccordionSection: React.FC<{
+  title: string;
+  description: string;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}> = ({title, description, defaultOpen = false, children}) => (
+  <details open={defaultOpen} className="group rounded-[32px] border border-slate-100 bg-white shadow-sm overflow-hidden">
+    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 md:p-6">
+      <div>
+        <h2 className="font-display text-xl font-bold text-slate-900">{title}</h2>
+        <p className="text-sm text-slate-400">{description}</p>
+      </div>
+      <ChevronDown className="h-5 w-5 text-slate-400 transition-transform group-open:rotate-180" />
+    </summary>
+    <div className="px-5 pb-5 md:px-6 md:pb-6">
+      {children}
+    </div>
+  </details>
+);
 
 export const AdminPage: React.FC = () => {
   const {isAdmin, accessUser, user: authUser, isMasterAdmin: masterAdmin} = useAuth();
@@ -605,7 +625,12 @@ export const AdminPage: React.FC = () => {
         <p className="text-slate-500 mt-1">Gerencie usuários, permissões e funcionários da produção.</p>
       </header>
 
-      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-6">
+      <AdminAccordionSection
+        title="Funcionários"
+        description="Cadastre a equipe para vincular responsáveis e avaliações aos projetos."
+        defaultOpen
+      >
+        <section className="space-y-6">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="font-display text-xl font-bold text-slate-900">Funcionários</h2>
@@ -677,9 +702,14 @@ export const AdminPage: React.FC = () => {
             <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum funcionário cadastrado.</div>
           )}
         </div>
-      </section>
+        </section>
+      </AdminAccordionSection>
 
-      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-6">
+      <AdminAccordionSection
+        title="Catálogo de pedras e chapas"
+        description="Gerencie pedras e as opções de chapas no mesmo lugar."
+      >
+        <section className="space-y-6">
         <div>
           <h2 className="font-display text-xl font-bold text-slate-900">Catálogo de pedras</h2>
           <p className="text-sm text-slate-400">{editingMaterial ?`Editando: ${editingMaterial.name}` : 'Cadastre as pedras aqui para seleção no estoque, compras e orçamentos.'}</p>
@@ -769,9 +799,14 @@ export const AdminPage: React.FC = () => {
           ))}
           {materials.length === 0 && <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-400">Nenhuma pedra cadastrada.</div>}
         </div>
-      </section>
+        </section>
+      </AdminAccordionSection>
 
-      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-6">
+      <AdminAccordionSection
+        title="Catálogo de peças do cliente"
+        description="Cadastre cooktop, cuba, torneira e demais peças para orçamento."
+      >
+        <section className="space-y-6">
         <div>
           <h2 className="font-display text-xl font-bold text-slate-900">Catálogo de peças do cliente</h2>
           <p className="text-sm text-slate-400">{editingFixture ?`Editando: ${editingFixture.name}` : 'Cadastre cooktop, cuba, torneira, torre de tomada e lixeira para seleção no orçamento.'}</p>
@@ -875,18 +910,22 @@ export const AdminPage: React.FC = () => {
           ))}
           {fixtureCatalog.length === 0 && <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-400">Nenhuma peça cadastrada.</div>}
         </div>
-      </section>
+        </section>
+      </AdminAccordionSection>
 
-      <section className="space-y-4">
-        <div className="sr-only">
-          <h2 className="font-display text-xl font-bold text-slate-900">Configurações do sistema</h2>
-          <p className="text-sm text-slate-400">As configurações foram migradas para a área de Admin.</p>
-        </div>
+      <AdminAccordionSection
+        title="Configurações, catálogo de chapas e condomínios"
+        description="Defina configurações gerais, regras de condomínio e opções de chapas."
+      >
         <SettingsPage />
-      </section>
+      </AdminAccordionSection>
 
       {isAdmin && (
-        <section className="rounded-[32px] border border-red-100 bg-red-50/60 p-6 shadow-sm">
+        <AdminAccordionSection
+          title="Zona de risco"
+          description="Ações críticas para limpar dados operacionais do sistema."
+        >
+          <section className="rounded-[24px] border border-red-100 bg-red-50/60 p-6 shadow-sm">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
             <div className="flex gap-4">
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-red-100 text-red-600">
@@ -938,10 +977,15 @@ export const AdminPage: React.FC = () => {
               {resetMessage && <p className="text-sm font-semibold text-green-700">{resetMessage}</p>}
             </form>
           </div>
-        </section>
+          </section>
+        </AdminAccordionSection>
       )}
 
-      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
+      <AdminAccordionSection
+        title="Usuários do sistema"
+        description="Controle cargos, permissões individuais e bloqueios de acesso."
+      >
+        <section className="overflow-hidden rounded-[24px] border border-slate-100 bg-white p-2">
         <div className="p-4">
           <h2 className="font-display text-xl font-bold text-slate-900">Usuários do sistema</h2>
           <p className="text-sm text-slate-400">Controle cargos, permissoes individuais e bloqueios de acesso.</p>
@@ -1059,7 +1103,8 @@ export const AdminPage: React.FC = () => {
             </tbody>
           </table>
         </div>
-      </section>
+        </section>
+      </AdminAccordionSection>
     </div>
   );
 };

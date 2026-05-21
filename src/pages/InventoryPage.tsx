@@ -89,6 +89,7 @@ export const InventoryPage: React.FC = () => {
   const patioMapRef = useRef<HTMLDivElement | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
 
   const [selectedMaterialId, setSelectedMaterialId] = useState('');
   const [materialName, setMaterialName] = useState('');
@@ -136,24 +137,29 @@ export const InventoryPage: React.FC = () => {
 
   useEffect(() => {
     const qItems = query(collection(db, 'inventory'), orderBy('code', 'asc'));
+    const handleReadError = (error: unknown, label: string) => {
+      console.error(`Erro ao carregar ${label}:`, error);
+      setLoadError('O Firebase atingiu o limite diário de leitura. A aba de estoque pode ficar incompleta até a cota ser renovada.');
+      setLoading(false);
+    };
     const unsubscribeItems = onSnapshot(qItems, (snapshot) => {
       setItems(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryItem)));
       setLoading(false);
-    });
+    }, (error) => handleReadError(error, 'itens de estoque'));
 
     const qMaterials = query(collection(db, 'materials'), orderBy('name', 'asc'));
     const unsubscribeMaterials = onSnapshot(qMaterials, (snapshot) => {
       setMaterials(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as Material)));
-    });
+    }, (error) => handleReadError(error, 'pedras do catálogo'));
 
     const unsubscribeReservations = onSnapshot(collection(db, 'inventoryReservations'), (snapshot) => {
       setReservations(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryReservation)));
-    });
+    }, (error) => handleReadError(error, 'reservas do estoque'));
 
     const qPurchases = query(collection(db, 'inventoryPurchases'), orderBy('purchasedAt', 'desc'));
     const unsubscribePurchases = onSnapshot(qPurchases, (snapshot) => {
       setPurchases(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryPurchase)));
-    });
+    }, (error) => handleReadError(error, 'histórico de compras'));
 
     return () => {
       unsubscribeItems();
@@ -165,10 +171,15 @@ export const InventoryPage: React.FC = () => {
 
   const ensureQuotesLoaded = async () => {
     if (quotesLoaded) return;
-    const qQuotes = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
-    const snapshot = await getDocs(qQuotes);
-    setQuotes(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as Quote)));
-    setQuotesLoaded(true);
+    try {
+      const qQuotes = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(qQuotes);
+      setQuotes(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as Quote)));
+      setQuotesLoaded(true);
+    } catch (error) {
+      console.error('Erro ao carregar orçamentos para perdas:', error);
+      setLoadError('O Firebase atingiu o limite diário de leitura. Orçamentos e perdas podem não carregar até a cota ser renovada.');
+    }
   };
 
   const resetForm = () => {
@@ -972,6 +983,12 @@ export const InventoryPage: React.FC = () => {
           )}
         </div>
       </header>
+
+      {loadError && (
+        <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-800">
+          {loadError}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">

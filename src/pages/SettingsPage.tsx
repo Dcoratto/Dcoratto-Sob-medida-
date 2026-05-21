@@ -62,8 +62,14 @@ export const SettingsPage: React.FC = () => {
       paymentMethods: sanitizedPaymentMethods.length ? sanitizedPaymentMethods : DEFAULT_SETTINGS.paymentMethods,
       materialCatalog: {
         ...settings.materialCatalog,
-        materialCategories: DEFAULT_SETTINGS.materialCatalog.materialCategories,
-        materialLines: DEFAULT_SETTINGS.materialCatalog.materialLines,
+        materialCategories: (settings.materialCatalog.materialCategories || [])
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b, 'pt-BR', {sensitivity: 'base'})),
+        materialLines: (settings.materialCatalog.materialLines || [])
+          .map((item) => item.trim())
+          .filter(Boolean)
+          .sort((a, b) => a.localeCompare(b, 'pt-BR', {sensitivity: 'base'})),
         suppliers: sanitizedSuppliers,
       },
     };
@@ -604,7 +610,6 @@ export const SettingsPage: React.FC = () => {
                 values={settings.materialCatalog[field as MaterialCatalogListField] as string[]}
                 onAdd={(value) => addMaterialCatalogValue(field as MaterialCatalogListField, value)}
                 onRemove={(value) => removeMaterialCatalogValue(field as MaterialCatalogListField, value)}
-                locked={field === 'materialCategories' || field === 'materialLines'}
               />
             ))}
           </div>
@@ -746,61 +751,47 @@ const MaterialCatalogField: React.FC<{
   values: string[];
   onAdd: (value: string) => void;
   onRemove: (value: string) => void;
-  locked?: boolean;
-}> = ({label, placeholder, values, onAdd, onRemove, locked = false}) => {
+}> = ({label, placeholder, values, onAdd, onRemove}) => {
   const [draft, setDraft] = useState('');
 
   return (
     <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4 space-y-3">
       <div>
         <div className="font-bold text-slate-800">{label}</div>
-        <div className="text-xs text-slate-400">
-          {locked ? 'Essas opções estão fixas e sincronizadas com o restante do sistema.' : 'Adicione, remova e reorganize conforme o uso da marmoraria.'}
-        </div>
+        <div className="text-xs text-slate-400">Adicione, remova e reorganize conforme o uso da marmoraria.</div>
       </div>
 
-      {!locked && (
-        <div className="flex gap-2">
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder={placeholder}
-            className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
-          />
-          <button
-            type="button"
-            onClick={() => {
-              onAdd(draft);
-              setDraft('');
-            }}
-            className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white"
-          >
-            <Plus className="w-4 h-4" />
-            Adicionar
-          </button>
-        </div>
-      )}
+      <div className="flex gap-2">
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          placeholder={placeholder}
+          className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
+        />
+        <button
+          type="button"
+          onClick={() => {
+            onAdd(draft);
+            setDraft('');
+          }}
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white"
+        >
+          <Plus className="w-4 h-4" />
+          Adicionar
+        </button>
+      </div>
 
       <div className="flex flex-wrap gap-2">
         {values.map((value) => (
-          locked ? (
-            <div
-              key={value}
-              className="inline-flex items-center gap-2 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600"
-            >
-              {value}
-            </div>
-          ) : (
-            <button
-              key={value}
-              type="button"
-              onClick={() => onRemove(value)}
-              className="inline-flex items-center gap-2 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-            >
-              {value}
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          )
+          <button
+            key={value}
+            type="button"
+            onClick={() => onRemove(value)}
+            className="inline-flex items-center gap-2 rounded-full bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+          >
+            {value}
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
         ))}
         {values.length === 0 && (
           <div className="text-sm font-semibold text-slate-400">Nenhuma opcao cadastrada.</div>

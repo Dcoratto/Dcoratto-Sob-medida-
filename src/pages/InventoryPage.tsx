@@ -1517,6 +1517,27 @@ export const InventoryPage: React.FC = () => {
                   <div className="text-sm text-slate-500">{selectedPurchaseSupplier?.city ? `Cidade: ${selectedPurchaseSupplier.city}` : 'Cidade não cadastrada'}</div>
                   {selectedPurchaseSupplier?.notes ? <div className="text-sm text-slate-500">{selectedPurchaseSupplier.notes}</div> : null}
                 </div>
+                <div className="md:col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                  <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Informações da pedra selecionada</div>
+                  <div className="mt-3 grid grid-cols-1 md:grid-cols-[140px,1fr] gap-4">
+                    <div className="h-28 overflow-hidden rounded-2xl border border-slate-200 bg-white flex items-center justify-center">
+                      {selectedPurchaseMaterial?.imageUrl ?(
+                        <img src={selectedPurchaseMaterial.imageUrl} alt={selectedPurchaseMaterial.name} className="h-full w-full object-cover" />
+                      ) : (
+                        <PackageCheck className="h-6 w-6 text-slate-400" />
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div><span className="font-semibold text-slate-700">Nome:</span> <span className="text-slate-600">{selectedPurchaseMaterial?.name || '-'}</span></div>
+                      <div><span className="font-semibold text-slate-700">Fornecedor:</span> <span className="text-slate-600">{selectedPurchaseMaterial?.provider || '-'}</span></div>
+                      <div><span className="font-semibold text-slate-700">Categoria:</span> <span className="text-slate-600">{selectedPurchaseMaterial?.category || '-'}</span></div>
+                      <div><span className="font-semibold text-slate-700">Linha:</span> <span className="text-slate-600">{selectedPurchaseMaterial?.materialLine || '-'}</span></div>
+                      <div><span className="font-semibold text-slate-700">Tipo:</span> <span className="text-slate-600">{selectedPurchaseMaterial?.materialType || '-'}</span></div>
+                      <div><span className="font-semibold text-slate-700">Textura:</span> <span className="text-slate-600">{selectedPurchaseMaterial?.texture || '-'}</span></div>
+                      <div><span className="font-semibold text-slate-700">Espessura:</span> <span className="text-slate-600">{selectedPurchaseMaterial?.thicknessLabel || '-'}</span></div>
+                    </div>
+                  </div>
+                </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Categoria</label>
                   <select value={purchaseCategory} onChange={(e) => setPurchaseCategory(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">

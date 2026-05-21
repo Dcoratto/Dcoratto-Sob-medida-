@@ -502,8 +502,8 @@ export const AdminPage: React.FC = () => {
   const materialCatalog = settings.materialCatalog;
   const supplierOptions = materialCatalog.suppliers || [];
   const thicknessOptions = materialForm.materialType === 'Lamina' ? materialCatalog.slabThicknesses : materialCatalog.naturalThicknesses;
-  const categoryOptions = Array.from(new Set([...(materialCatalog.materialCategories || []), ...DEFAULT_STONE_CATEGORIES]));
-  const materialLineOptions = DEFAULT_STONE_LINES;
+  const categoryOptions = materialCatalog.materialCategories?.length ? materialCatalog.materialCategories : DEFAULT_STONE_CATEGORIES;
+  const materialLineOptions = materialCatalog.materialLines?.length ? materialCatalog.materialLines : DEFAULT_STONE_LINES;
 
   const deleteStoredFile = async (fileUrl?: unknown) => {
     if (typeof fileUrl !== 'string' || !fileUrl.startsWith('http')) return;

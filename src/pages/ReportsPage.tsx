@@ -318,12 +318,12 @@ export const ReportsPage: React.FC = () => {
 
   return (
     <div className="space-y-8 pb-20">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Relatórios</h1>
           <p className="text-slate-500 mt-1">Visão geral da marmoraria, produção, prazos, materiais e equipe.</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2 lg:justify-end">
           {(['today', 'week', 'month', 'year', 'all'] as Period[]).map((item) => (
             <button
               key={item}
@@ -348,7 +348,7 @@ export const ReportsPage: React.FC = () => {
         </div>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <ReportCard icon={TrendingUp} label="Valor vendido" value={canViewRevenue ? formatCurrency(totalSold) : hiddenRevenueLabel} tone="brand" />
         <ReportCard icon={Gauge} label="Valor recebido" value={canViewRevenue ? formatCurrency(totalReceived) : hiddenRevenueLabel} tone="green" />
         <ReportCard icon={AlertCircle} label="A receber" value={canViewRevenue ? formatCurrency(pendingReceivable) : hiddenRevenueLabel} tone="amber" />
@@ -630,7 +630,7 @@ export const ReportsPage: React.FC = () => {
               </div>
             );
           })}
-          {evaluationHistory.length === 0 && <EmptyText>Nenhuma avaliacao registrada no periodo.</EmptyText>}
+          {evaluationHistory.length === 0 && <EmptyText>Nenhuma avaliação registrada no período.</EmptyText>}
         </div>
       </section>
     </div>

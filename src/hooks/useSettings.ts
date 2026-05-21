@@ -1,26 +1,32 @@
-import {useEffect, useState} from 'react';
+﻿import {useEffect, useState} from 'react';
 import {doc, onSnapshot} from 'firebase/firestore';
 import {db} from '../lib/firebase';
+import {repairText} from '../lib/utils';
 import {Settings, SupplierContact} from '../types';
 
 const normalizeSupplier = (supplier: string | SupplierContact): SupplierContact =>
   typeof supplier === 'string'
-    ? {name: supplier}
+    ? {name: repairText(supplier)}
     : {
-      name: supplier.name || '',
-      whatsapp: supplier.whatsapp || '',
-      contactName: supplier.contactName || '',
-      city: supplier.city || '',
-      notes: supplier.notes || '',
+      name: repairText(supplier.name || ''),
+      whatsapp: repairText(supplier.whatsapp || ''),
+      contactName: repairText(supplier.contactName || ''),
+      city: repairText(supplier.city || ''),
+      notes: repairText(supplier.notes || ''),
     };
+
+const sanitizeList = (values: string[] | undefined, fallback: string[]) => {
+  const sanitized = (values || []).map((item) => repairText(item).trim()).filter(Boolean);
+  return sanitized.length ? Array.from(new Set(sanitized)) : fallback;
+};
 
 export const DEFAULT_SETTINGS: Settings = {
   companyName: "D'Coratto Sob Medida",
   phone: '(00) 00000-0000',
   email: 'contato@dcoratto.com.br',
-  address: 'Endereco da marmoraria',
+  address: 'Endereço da marmoraria',
   defaultValidity: 15,
-  defaultNotes: 'Or�amento sujeito � confirma��o de medidas no local.',
+  defaultNotes: 'Orçamento sujeito à confirmação de medidas no local.',
   laborRatePerLinearMeter: 120,
   defaultFrontonHeight: 10,
   defaultSkirtHeight: 4,
@@ -38,9 +44,9 @@ export const DEFAULT_SETTINGS: Settings = {
     sinkSculptedPrice: 800,
   },
   paymentMethods: [
-    {name: 'A vista (Dinheiro/Pix)', adjustment: -5},
-    {name: 'Cartao de Debito', adjustment: 0},
-    {name: 'Cartao de Credito 1x', adjustment: 3},
+    {name: 'À vista (Dinheiro/Pix)', adjustment: -5},
+    {name: 'Cartão de Débito', adjustment: 0},
+    {name: 'Cartão de Crédito 1x', adjustment: 3},
     {name: 'Parcelado 10x', adjustment: 15},
   ],
   sculptedSinkRates: {
@@ -51,9 +57,9 @@ export const DEFAULT_SETTINGS: Settings = {
     riskPercentage: 10,
   },
   materialCatalog: {
-    materialCategories: ['Granito', 'M�rmore', 'Quartzito', 'Quartzo', 'L�mina Ultracompacta', 'Porcelanato', 'Superf�cie Sinterizada'],
+    materialCategories: ['Granito', 'Mármore', 'Quartzito', 'Quartzo', 'Lâmina Ultracompacta', 'Porcelanato', 'Superfície Sinterizada'],
     materialLines: ['Nacional', 'Importado', 'Premium', 'Super Premium'],
-    materialTypes: ['Chapa', 'Lamina'],
+    materialTypes: ['Chapa', 'Lâmina'],
     naturalThicknesses: ['2cm'],
     slabThicknesses: ['6mm', '12mm'],
     textures: ['Polido', 'Escovado', 'Acetinado', 'Flameado', 'Fosco', 'Levigado'],
@@ -72,6 +78,11 @@ export const useSettings = () => {
         setSettings({
           ...DEFAULT_SETTINGS,
           ...data,
+          companyName: repairText(data.companyName || DEFAULT_SETTINGS.companyName),
+          phone: repairText(data.phone || DEFAULT_SETTINGS.phone),
+          email: repairText(data.email || DEFAULT_SETTINGS.email),
+          address: repairText(data.address || DEFAULT_SETTINGS.address),
+          defaultNotes: repairText(data.defaultNotes || DEFAULT_SETTINGS.defaultNotes),
           cutoutPrices: {
             ...DEFAULT_SETTINGS.cutoutPrices,
             ...(data.cutoutPrices || {}),
@@ -84,12 +95,12 @@ export const useSettings = () => {
           materialCatalog: {
             ...DEFAULT_SETTINGS.materialCatalog,
             ...(data.materialCatalog || {}),
-            materialCategories: data.materialCatalog?.materialCategories?.length ? data.materialCatalog.materialCategories : DEFAULT_SETTINGS.materialCatalog.materialCategories,
-            materialLines: data.materialCatalog?.materialLines?.length ? data.materialCatalog.materialLines : DEFAULT_SETTINGS.materialCatalog.materialLines,
-            materialTypes: data.materialCatalog?.materialTypes?.length ? data.materialCatalog.materialTypes : DEFAULT_SETTINGS.materialCatalog.materialTypes,
-            naturalThicknesses: data.materialCatalog?.naturalThicknesses?.length ? data.materialCatalog.naturalThicknesses : DEFAULT_SETTINGS.materialCatalog.naturalThicknesses,
-            slabThicknesses: data.materialCatalog?.slabThicknesses?.length ? data.materialCatalog.slabThicknesses : DEFAULT_SETTINGS.materialCatalog.slabThicknesses,
-            textures: data.materialCatalog?.textures?.length ? data.materialCatalog.textures : DEFAULT_SETTINGS.materialCatalog.textures,
+            materialCategories: sanitizeList(data.materialCatalog?.materialCategories, DEFAULT_SETTINGS.materialCatalog.materialCategories),
+            materialLines: sanitizeList(data.materialCatalog?.materialLines, DEFAULT_SETTINGS.materialCatalog.materialLines),
+            materialTypes: sanitizeList(data.materialCatalog?.materialTypes, DEFAULT_SETTINGS.materialCatalog.materialTypes),
+            naturalThicknesses: sanitizeList(data.materialCatalog?.naturalThicknesses, DEFAULT_SETTINGS.materialCatalog.naturalThicknesses),
+            slabThicknesses: sanitizeList(data.materialCatalog?.slabThicknesses, DEFAULT_SETTINGS.materialCatalog.slabThicknesses),
+            textures: sanitizeList(data.materialCatalog?.textures, DEFAULT_SETTINGS.materialCatalog.textures),
             suppliers: (data.materialCatalog?.suppliers || DEFAULT_SETTINGS.materialCatalog.suppliers).map(normalizeSupplier).filter((supplier) => supplier.name),
           },
         } as Settings);

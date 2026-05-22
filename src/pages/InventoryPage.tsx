@@ -1,4 +1,4 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc} from '../lib/firestore';
 import {AlertTriangle, CheckCircle2, Edit2, Eye, FileText, Filter, ImagePlus, LocateFixed, MapPin, MessageCircle, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
@@ -16,6 +16,15 @@ import {optimizeImageFile} from '../lib/imageUtils';
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
 const patioRacks = Array.from({length: 9}, (_, index) => `Cavalete ${index + 1}`);
+const patioRackRows = [
+  ['Cavalete 1'],
+  ['Cavalete 2', 'Cavalete 3'],
+  ['Cavalete 4', 'Cavalete 5'],
+  ['Cavalete 6', 'Cavalete 7'],
+  ['Cavalete 8'],
+  ['Cavalete 9'],
+] as const;
+const UNASSIGNED_PANEL_ID = '__unassigned__';
 
 const normalizeStatus = (value: unknown) =>
   String(value || '')
@@ -85,6 +94,7 @@ export const InventoryPage: React.FC = () => {
   const [showLossModal, setShowLossModal] = useState(false);
   const [reservationMaterialId, setReservationMaterialId] = useState<string | null>(null);
   const [selectedRackId, setSelectedRackId] = useState(patioRacks[0]);
+  const [selectedPatioPanel, setSelectedPatioPanel] = useState<string>(patioRacks[0]);
   const [focusedInventoryId, setFocusedInventoryId] = useState('');
   const patioMapRef = useRef<HTMLDivElement | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
@@ -739,14 +749,44 @@ export const InventoryPage: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
   const activePatioItems = items.filter((item) => !['usada', 'descarte'].includes(normalizeStatus(item.status)));
-  const selectedRackItems = activePatioItems.filter((item) => item.rackId === selectedRackId);
+  const rackItemsMap = useMemo(() => patioRacks.reduce((map, rack) => {
+    map.set(rack, activePatioItems.filter((item) => item.rackId === rack));
+    return map;
+  }, new Map<string, InventoryItem[]>()), [activePatioItems]);
   const unassignedPatioItems = activePatioItems.filter((item) => !item.rackId);
   const rackArea = (rack: string) => activePatioItems
     .filter((item) => item.rackId === rack)
     .reduce((acc, item) => acc + (item.area || 0), 0);
+  const selectedRackItems = selectedPatioPanel === UNASSIGNED_PANEL_ID
+    ? unassignedPatioItems
+    : (rackItemsMap.get(selectedPatioPanel) || []);
+  const rackAreaMap = useMemo(() => patioRacks.reduce((map, rack) => {
+    map.set(rack, rackArea(rack));
+    return map;
+  }, new Map<string, number>()), [activePatioItems]);
+  const maxRackArea = Math.max(0, ...Array.from(rackAreaMap.values()));
+  const selectedRackArea = selectedPatioPanel === UNASSIGNED_PANEL_ID ? 0 : (rackAreaMap.get(selectedPatioPanel) || 0);
+  const rackOccupancyPercent = (rack: string) => {
+    const area = rackAreaMap.get(rack) || 0;
+    if (!maxRackArea) return 0;
+    return Math.round((area / maxRackArea) * 100);
+  };
+  const statusCountForRack = (rack: string) => {
+    const rackItems = rackItemsMap.get(rack) || [];
+    return {
+      available: rackItems.filter((item) => normalizeStatus(item.status) === 'disponivel').length,
+      reserved: rackItems.filter((item) => normalizeStatus(item.status) === 'reservada').length,
+      scraps: rackItems.filter((item) => normalizeStatus(item.status) === 'retalho').length,
+    };
+  };
   const locateInventoryItem = (item: InventoryItem) => {
     const nextRack = item.rackId || '';
-    if (nextRack) setSelectedRackId(nextRack);
+    if (nextRack) {
+      setSelectedRackId(nextRack);
+      setSelectedPatioPanel(nextRack);
+    } else {
+      setSelectedPatioPanel(UNASSIGNED_PANEL_ID);
+    }
     setFocusedInventoryId(item.id);
     patioMapRef.current?.scrollIntoView({behavior: 'smooth', block: 'start'});
   };
@@ -1160,51 +1200,110 @@ export const InventoryPage: React.FC = () => {
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <h2 className="font-display text-xl font-bold text-slate-900">Pátio de chapas</h2>
-            <p className="mt-1 text-sm text-slate-400">Localização física dos 9 cavaletes.</p>
+            <p className="mt-1 text-sm text-slate-400">Esquema do pátio visto de cima, com 9 cavaletes organizados por fileiras.</p>
           </div>
-          {unassignedPatioItems.length > 0 && (
-            <div className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700">
-              {unassignedPatioItems.length} chapa(s) sem cavalete
+          <div className="flex flex-wrap items-center gap-2">
+            {unassignedPatioItems.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedPatioPanel(UNASSIGNED_PANEL_ID);
+                  setFocusedInventoryId('');
+                }}
+                className="rounded-2xl bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-700 hover:bg-amber-100 transition-all"
+              >
+                {unassignedPatioItems.length} chapa(s) sem cavalete
+              </button>
+            )}
+            <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
+              {activePatioItems.length} chapa(s) no pátio
             </div>
-          )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-          <div className="rounded-[24px] border border-slate-100 bg-slate-50 p-4">
-            <div className="grid grid-cols-3 gap-3">
-              {patioRacks.map((rack) => {
-                const rackItems = activePatioItems.filter((item) => item.rackId === rack);
-                const isSelected = selectedRackId === rack;
-                const hasFocusedItem = rackItems.some((item) => item.id === focusedInventoryId);
-
-                return (
-                  <button
-                    key={rack}
-                    type="button"
-                    onClick={() => {
-                      setSelectedRackId(rack);
-                      setFocusedInventoryId('');
-                    }}
+          <div className="rounded-[28px] border border-slate-100 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95),_rgba(248,250,252,0.9)_55%,_rgba(241,245,249,0.9))] p-5">
+            <div className="rounded-[24px] border border-slate-200/80 bg-white/70 p-4 shadow-inner shadow-slate-100/80">
+              <div className="space-y-4">
+                {patioRackRows.map((row, rowIndex) => (
+                  <div
+                    key={`row-${rowIndex}`}
                     className={cn(
-                      'min-h-[120px] rounded-2xl border p-4 text-left transition-all',
-                      isSelected ?'border-brand-primary bg-white shadow-lg shadow-brand-primary/10' : 'border-slate-200 bg-white hover:border-brand-primary/30',
-                      hasFocusedItem && 'ring-2 ring-brand-primary ring-offset-2 ring-offset-slate-50',
+                      'grid gap-4',
+                      row.length === 1 ? 'grid-cols-1 justify-items-center' : 'grid-cols-1 md:grid-cols-2',
                     )}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Cavalete</div>
-                        <div className="mt-1 text-2xl font-display font-bold text-slate-900">{rack.replace('Cavalete ', '')}</div>
-                      </div>
-                      <MapPin className={cn('h-5 w-5', isSelected ?'text-brand-primary' : 'text-slate-300')} />
-                    </div>
-                    <div className="mt-5 grid grid-cols-2 gap-2 text-xs font-semibold">
-                      <div className="rounded-xl bg-slate-50 px-3 py-2 text-slate-600">{rackItems.length} chapa(s)</div>
-                      <div className="rounded-xl bg-slate-50 px-3 py-2 text-slate-600">{formatNumber(rackArea(rack))} m²</div>
-                    </div>
-                  </button>
-                );
-              })}
+                    {row.map((rack) => {
+                      const rackItems = rackItemsMap.get(rack) || [];
+                      const isSelected = selectedPatioPanel === rack;
+                      const hasFocusedItem = rackItems.some((item) => item.id === focusedInventoryId);
+                      const area = rackAreaMap.get(rack) || 0;
+                      const occupancy = rackOccupancyPercent(rack);
+                      const counts = statusCountForRack(rack);
+                      const hasReserved = counts.reserved > 0;
+                      const hasScraps = counts.scraps > 0;
+
+                      return (
+                        <button
+                          key={rack}
+                          type="button"
+                          onClick={() => {
+                            setSelectedRackId(rack);
+                            setSelectedPatioPanel(rack);
+                            setFocusedInventoryId('');
+                          }}
+                          className={cn(
+                            'group relative w-full max-w-[480px] rounded-[30px] border bg-white/95 px-5 py-4 text-left transition-all',
+                            isSelected ? 'border-brand-primary shadow-[0_18px_50px_-28px_rgba(155,112,69,0.65)]' : 'border-slate-200 hover:border-brand-primary/35 hover:bg-white',
+                            hasFocusedItem && 'ring-2 ring-brand-primary ring-offset-2 ring-offset-slate-50',
+                          )}
+                        >
+                          <div className="relative overflow-hidden rounded-[24px] border border-slate-100 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] px-4 py-4">
+                            <div className="pointer-events-none absolute inset-y-4 left-4 w-6 rounded-full border border-slate-300 bg-slate-100/80" />
+                            <div className="pointer-events-none absolute inset-y-4 right-4 w-6 rounded-full border border-slate-300 bg-slate-100/80" />
+                            <div className="pointer-events-none absolute left-[calc(1rem+1.5rem)] right-[calc(1rem+1.5rem)] top-1/2 h-2 -translate-y-1/2 rounded-full bg-slate-200" />
+                            <div className="pointer-events-none absolute left-[calc(1rem+1.5rem)] right-[calc(1rem+1.5rem)] top-1/2 h-2 -translate-y-1/2 rounded-full bg-brand-primary/15" style={{width: `${Math.max(14, occupancy)}%`}} />
+
+                            <div className="relative z-10 flex items-start justify-between gap-3">
+                              <div>
+                                <div className="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Cavalete</div>
+                                <div className="mt-1 font-display text-2xl font-bold text-slate-900">{rack.replace('Cavalete ', '')}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">Ocupação</div>
+                                <div className="mt-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{occupancy}%</div>
+                              </div>
+                            </div>
+
+                            <div className="relative z-10 mt-14 grid grid-cols-2 gap-2 text-xs font-semibold">
+                              <div className="rounded-xl bg-slate-50 px-3 py-2 text-slate-700">{rackItems.length} chapa(s)</div>
+                              <div className="rounded-xl bg-slate-50 px-3 py-2 text-slate-700">{formatNumber(area)} m²</div>
+                            </div>
+
+                            <div className="relative z-10 mt-3 flex flex-wrap gap-2">
+                              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-700">
+                                {counts.available} disponível
+                              </span>
+                              <span className={cn(
+                                'rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest',
+                                hasReserved ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500',
+                              )}>
+                                {counts.reserved} reservada
+                              </span>
+                              <span className={cn(
+                                'rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest',
+                                hasScraps ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500',
+                              )}>
+                                {counts.scraps} retalho
+                              </span>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -1212,33 +1311,114 @@ export const InventoryPage: React.FC = () => {
             <div className="flex items-center justify-between gap-3 border-b border-slate-50 pb-3">
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Selecionado</div>
-                <div className="font-display text-lg font-bold text-slate-900">{selectedRackId}</div>
+                <div className="font-display text-lg font-bold text-slate-900">
+                  {selectedPatioPanel === UNASSIGNED_PANEL_ID ? 'Sem cavalete' : selectedPatioPanel}
+                </div>
               </div>
               <div className="rounded-2xl bg-slate-50 px-3 py-2 text-right">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Área</div>
-                <div className="font-mono text-sm font-bold text-slate-700">{formatNumber(rackArea(selectedRackId))} m²</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                  {selectedPatioPanel === UNASSIGNED_PANEL_ID ? 'Pendentes' : 'Área'}
+                </div>
+                <div className="font-mono text-sm font-bold text-slate-700">
+                  {selectedPatioPanel === UNASSIGNED_PANEL_ID ? `${unassignedPatioItems.length} chapa(s)` : `${formatNumber(selectedRackArea)} m²`}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              <div className="rounded-2xl bg-slate-50 px-3 py-3">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Itens</div>
+                <div className="mt-1 font-mono text-lg font-bold text-slate-900">{selectedRackItems.length}</div>
+              </div>
+              <div className="rounded-2xl bg-amber-50 px-3 py-3">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-amber-700">Reservadas</div>
+                <div className="mt-1 font-mono text-lg font-bold text-amber-800">
+                  {selectedRackItems.filter((item) => normalizeStatus(item.status) === 'reservada').length}
+                </div>
+              </div>
+              <div className="rounded-2xl bg-emerald-50 px-3 py-3">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-emerald-700">Disponíveis</div>
+                <div className="mt-1 font-mono text-lg font-bold text-emerald-800">
+                  {selectedRackItems.filter((item) => normalizeStatus(item.status) === 'disponivel').length}
+                </div>
               </div>
             </div>
 
             <div className="mt-4 max-h-[360px] space-y-2 overflow-y-auto pr-1">
               {selectedRackItems.length === 0 ? (
-                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">Nenhuma chapa neste cavalete.</div>
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">
+                  {selectedPatioPanel === UNASSIGNED_PANEL_ID ? 'Nenhuma chapa está sem cavalete.' : 'Nenhuma chapa neste cavalete.'}
+                </div>
               ) : (
                 selectedRackItems.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setFocusedInventoryId(item.id)}
-                    className={cn(
-                      'w-full rounded-2xl border p-3 text-left transition-all',
-                      focusedInventoryId === item.id ?'border-brand-primary bg-brand-primary/5' : 'border-slate-100 bg-slate-50 hover:border-brand-primary/30',
-                    )}
-                  >
-                    <div className="font-bold text-slate-900">{item.materialName}</div>
-                    <div className="mt-1 text-xs font-mono text-brand-primary">{item.code || 'Sem lote'}</div>
-                    <div className="mt-1 text-xs text-slate-500">{formatMaterialSpecsWithProvider(item) || `${item.provider || 'Sem fornecedor'} · ${item.thicknessLabel || 'Sem espessura'}`}</div>
-                    <div className="mt-2 text-xs font-semibold text-slate-500">{item.length} x {item.width} cm · {formatNumber(item.area)} m²</div>
-                  </button>
+                  (() => {
+                    const reservation = activeReservationsByMaterial(item.materialId)[0];
+                    const linkedQuote = reservation ? quoteById(reservation.quoteId) : null;
+                    const statusTone = normalizeStatus(item.status) === 'reservada'
+                      ? 'bg-amber-50 text-amber-700'
+                      : normalizeStatus(item.status) === 'retalho'
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'bg-emerald-50 text-emerald-700';
+                    return (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          'w-full rounded-2xl border p-3 text-left transition-all',
+                          focusedInventoryId === item.id ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-100 bg-slate-50 hover:border-brand-primary/30',
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="font-bold text-slate-900">{item.materialName}</div>
+                            <div className="mt-1 text-xs font-mono text-brand-primary">{item.code || 'Sem lote'}</div>
+                            <div className="mt-1 text-xs text-slate-500">{formatMaterialSpecsWithProvider(item) || `${item.provider || 'Sem fornecedor'} · ${item.thicknessLabel || 'Sem espessura'}`}</div>
+                          </div>
+                          <span className={cn('rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest', statusTone)}>
+                            {item.status}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-500">
+                          <div>{item.length} x {item.width} cm</div>
+                          <div className="text-right">{formatNumber(item.area)} m²</div>
+                          <div>{formatCurrency(item.cost)}</div>
+                          <div className="text-right">Mín. {formatCurrency(item.minimumSalePrice ?? item.cost)}</div>
+                        </div>
+
+                        {linkedQuote && (
+                          <div className="mt-3 rounded-xl bg-white px-3 py-2 text-xs text-slate-600">
+                            <span className="font-bold text-slate-800">Reserva ativa:</span> {linkedQuote.clientName || reservation?.clientName || 'Cliente não informado'}
+                          </div>
+                        )}
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setFocusedInventoryId(item.id)}
+                            className="rounded-xl bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-slate-600 hover:bg-slate-100 transition-all"
+                          >
+                            Destacar
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleEdit(item)}
+                            className="rounded-xl bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-brand-primary hover:bg-brand-primary/5 transition-all"
+                          >
+                            Mover / editar
+                          </button>
+                          {linkedQuote && (
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/quotes/edit/${linkedQuote.id}`)}
+                              className="rounded-xl bg-white px-3 py-2 text-[11px] font-bold uppercase tracking-widest text-amber-700 hover:bg-amber-50 transition-all"
+                            >
+                              Ver orçamento
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()
                 ))
               )}
             </div>

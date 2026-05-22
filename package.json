@@ -11,7 +11,8 @@
     "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
     "lint": "tsc --noEmit",
     "build:supabase-import": "node scripts/build-supabase-import.mjs",
-    "bootstrap:supabase-auth": "node scripts/bootstrap-supabase-auth.mjs"
+    "bootstrap:supabase-auth": "node scripts/bootstrap-supabase-auth.mjs",
+    "reset:supabase-users": "node scripts/reset-supabase-users.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

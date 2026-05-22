@@ -203,7 +203,7 @@ export const Login: React.FC = () => {
             <div className="flex-1">
               <div className="text-sm font-bold text-slate-900">Primeiro acesso no Supabase?</div>
               <p className="mt-1 text-xs text-slate-500">
-                Use seu e-mail e toque em receber link. O sistema vai conectar sua conta nova ao cadastro antigo automaticamente.
+                Use seu e-mail e toque em receber link. Agora os acessos nascem do zero no Supabase e nao reaproveitam usuarios antigos do Firebase.
               </p>
               <button
                 type="button"

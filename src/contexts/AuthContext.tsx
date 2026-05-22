@@ -1,5 +1,5 @@
 import React, {createContext, useContext, useEffect, useState} from 'react';
-import {collection, doc, getDoc, getDocs, limit, onSnapshot, query, setDoc, updateDoc, where} from '../lib/firestore';
+import {doc, getDoc, onSnapshot, setDoc, updateDoc} from '../lib/firestore';
 import {auth, AuthUser} from '../lib/auth';
 import {db} from '../lib/firestore';
 import {AccessUser, Profile} from '../types';
@@ -28,12 +28,6 @@ const AuthContext = createContext<AuthContextType>({
   hasPermission: () => false,
   canEvaluateEmployees: false,
 });
-
-const findFirstByField = async (collectionName: string, field: string, value: string) => {
-  if (!value) return null;
-  const snapshot = await getDocs(query(collection(db, collectionName), where(field, '==', value), limit(1)));
-  return snapshot.docs[0] || null;
-};
 
 export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) => {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -70,12 +64,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       const displayName = authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuário';
       const master = isMasterAdmin(authUser);
 
-      let profileDoc: any =
-        await findFirstByField('profiles', 'authUserId', authUser.id) ||
-        await findFirstByField('profiles', 'email', email);
+      const profileRef = doc(db, 'profiles', authUser.id);
+      let profileDoc: any = await getDoc(profileRef);
 
-      if (!profileDoc) {
-        const profileRef = doc(db, 'profiles', authUser.id);
+      if (!profileDoc.exists()) {
         await setDoc(profileRef, {
           name: displayName,
           email,
@@ -86,19 +78,17 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         });
         profileDoc = await getDoc(profileRef);
       } else if (profileDoc.data()?.authUserId !== authUser.id) {
-        await updateDoc(profileDoc.ref, {
+        await updateDoc(profileRef, {
           authUserId: authUser.id,
           email,
           name: profileDoc.data()?.name || displayName,
         });
       }
 
-      let accessUserDoc: any =
-        await findFirstByField('users', 'authUserId', authUser.id) ||
-        await findFirstByField('users', 'email', email);
+      const accessRef = doc(db, 'users', authUser.id);
+      let accessUserDoc: any = await getDoc(accessRef);
 
-      if (!accessUserDoc) {
-        const accessRef = doc(db, 'users', authUser.id);
+      if (!accessUserDoc.exists()) {
         const role = master ? 'administrativo' : 'vendedor';
         await setDoc(accessRef, {
           nome: displayName,
@@ -113,16 +103,13 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         });
         accessUserDoc = await getDoc(accessRef);
       } else if (accessUserDoc.data()?.authUserId !== authUser.id) {
-        await updateDoc(accessUserDoc.ref, {
+        await updateDoc(accessRef, {
           authUserId: authUser.id,
           email,
           name: accessUserDoc.data()?.name || displayName,
           nome: accessUserDoc.data()?.nome || displayName,
         });
       }
-
-      const profileRef = doc(db, 'profiles', profileDoc.id);
-      const accessRef = doc(db, 'users', accessUserDoc.id);
 
       let profileResolved = false;
       let accessResolved = false;

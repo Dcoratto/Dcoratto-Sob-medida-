@@ -72,6 +72,18 @@ drop policy if exists "authenticated_write_materials_images" on storage.objects;
 drop policy if exists "authenticated_write_inventory_images" on storage.objects;
 drop policy if exists "authenticated_write_fixture_files" on storage.objects;
 drop policy if exists "authenticated_write_company_files" on storage.objects;
+drop policy if exists "authenticated_insert_materials_images" on storage.objects;
+drop policy if exists "authenticated_update_materials_images" on storage.objects;
+drop policy if exists "authenticated_delete_materials_images" on storage.objects;
+drop policy if exists "authenticated_insert_inventory_images" on storage.objects;
+drop policy if exists "authenticated_update_inventory_images" on storage.objects;
+drop policy if exists "authenticated_delete_inventory_images" on storage.objects;
+drop policy if exists "authenticated_insert_fixture_files" on storage.objects;
+drop policy if exists "authenticated_update_fixture_files" on storage.objects;
+drop policy if exists "authenticated_delete_fixture_files" on storage.objects;
+drop policy if exists "authenticated_insert_company_files" on storage.objects;
+drop policy if exists "authenticated_update_company_files" on storage.objects;
+drop policy if exists "authenticated_delete_company_files" on storage.objects;
 
 create policy "authenticated_insert_materials_images" on storage.objects
 for insert to authenticated

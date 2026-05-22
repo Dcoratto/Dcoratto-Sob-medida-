@@ -371,40 +371,45 @@ export const InventoryPage: React.FC = () => {
       }
     };
 
-    if (editingItem) {
-      await updateDoc(inventoryRef, data);
-      syncSavedItem();
-      setShowModal(false);
-      resetForm();
-      void logSystemEvent({
-        type: 'inventory_updated',
-        title: 'Item de estoque atualizado',
-        description: `${data.materialName} - ${data.code}`,
-        entityType: 'inventory',
-        entityId: inventoryRef.id,
-        materialId,
-        materialName: data.materialName,
-        userUid: appUid || '',
-        userName: currentUserName,
-        metadata: {area, cost: totalCost, minimumSalePrice: minimumSale, status},
-      }).catch((error) => console.error('Erro ao registrar histórico do estoque:', error));
-    } else {
-      await setDoc(inventoryRef, data);
-      syncSavedItem();
-      setShowModal(false);
-      resetForm();
-      void logSystemEvent({
-        type: 'inventory_created',
-        title: 'Item de estoque cadastrado',
-        description: `${data.materialName} - ${data.code}`,
-        entityType: 'inventory',
-        entityId: inventoryRef.id,
-        materialId,
-        materialName: data.materialName,
-        userUid: appUid || '',
-        userName: currentUserName,
-        metadata: {area, cost: totalCost, minimumSalePrice: minimumSale, status},
-      }).catch((error) => console.error('Erro ao registrar histórico do estoque:', error));
+    try {
+      if (editingItem) {
+        await updateDoc(inventoryRef, data);
+        syncSavedItem();
+        setShowModal(false);
+        resetForm();
+        void logSystemEvent({
+          type: 'inventory_updated',
+          title: 'Item de estoque atualizado',
+          description: `${data.materialName} - ${data.code}`,
+          entityType: 'inventory',
+          entityId: inventoryRef.id,
+          materialId,
+          materialName: data.materialName,
+          userUid: appUid || '',
+          userName: currentUserName,
+          metadata: {area, cost: totalCost, minimumSalePrice: minimumSale, status},
+        }).catch((error) => console.error('Erro ao registrar histórico do estoque:', error));
+      } else {
+        await setDoc(inventoryRef, data);
+        syncSavedItem();
+        setShowModal(false);
+        resetForm();
+        void logSystemEvent({
+          type: 'inventory_created',
+          title: 'Item de estoque cadastrado',
+          description: `${data.materialName} - ${data.code}`,
+          entityType: 'inventory',
+          entityId: inventoryRef.id,
+          materialId,
+          materialName: data.materialName,
+          userUid: appUid || '',
+          userName: currentUserName,
+          metadata: {area, cost: totalCost, minimumSalePrice: minimumSale, status},
+        }).catch((error) => console.error('Erro ao registrar histórico do estoque:', error));
+      }
+    } catch (error) {
+      console.error('Erro ao salvar item de estoque:', error);
+      window.alert('Não foi possível salvar este item do estoque agora. Confira os dados e tente novamente.');
     }
   };
 

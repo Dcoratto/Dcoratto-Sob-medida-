@@ -675,7 +675,8 @@ export const QuoteEditor: React.FC = () => {
       setOriginalStatus(status);
       navigate('/quotes');
     } catch (err) {
-      console.error(err);
+      console.error('Erro ao salvar orçamento:', err);
+      window.alert('Não foi possível salvar este orçamento agora. Tente novamente em instantes.');
     } finally {
       setSaving(false);
     }

@@ -6,6 +6,11 @@ const authListener = (
 ) => supabase.auth.onAuthStateChange((event, session) => callback(event, session, session?.user ?? null));
 
 const getCurrentUser = async () => {
+  const {data: sessionData} = await supabase.auth.getSession();
+  if (sessionData.session?.user) {
+    return sessionData.session.user;
+  }
+
   const {data} = await supabase.auth.getUser();
   return data.user ?? null;
 };

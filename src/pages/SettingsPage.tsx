@@ -105,7 +105,8 @@ export const SettingsPage: React.FC = () => {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      console.error(err);
+      console.error('Erro ao salvar configurações:', err);
+      window.alert('Não foi possível salvar as configurações agora. Tente novamente em instantes.');
     } finally {
       setSaving(false);
     }
@@ -269,12 +270,17 @@ export const SettingsPage: React.FC = () => {
       blockCityHolidays,
       notes: condoNotes.trim(),
     };
-    if (editingCondominium) {
-      await updateDoc(doc(db, 'condominiums', editingCondominium.id), data);
-    } else {
-      await addDoc(collection(db, 'condominiums'), data);
+    try {
+      if (editingCondominium) {
+        await updateDoc(doc(db, 'condominiums', editingCondominium.id), data);
+      } else {
+        await addDoc(collection(db, 'condominiums'), data);
+      }
+      resetCondoForm();
+    } catch (error) {
+      console.error('Erro ao salvar condomínio:', error);
+      window.alert('Não foi possível salvar este condomínio agora. Tente novamente em instantes.');
     }
-    resetCondoForm();
   };
 
   const removeCondominium = async (id: string) => {

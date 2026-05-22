@@ -531,36 +531,41 @@ export const ClientsPage: React.FC = () => {
           },
     };
 
-    if (editingClient) {
-      await updateDoc(doc(db, 'clients', editingClient.id), data);
-      await logSystemEvent({
-        type: 'client_updated',
-        title: 'Cliente atualizado',
-        description: name,
-        entityType: 'client',
-        entityId: editingClient.id,
-        clientId: editingClient.id,
-        clientName: name,
-        userUid: appUid || '',
-        userName: currentUserName,
-      });
-    } else {
-      const createdRef = await addDoc(collection(db, 'clients'), data);
-      await logSystemEvent({
-        type: 'client_created',
-        title: 'Cliente criado',
-        description: name,
-        entityType: 'client',
-        entityId: createdRef.id,
-        clientId: createdRef.id,
-        clientName: name,
-        userUid: appUid || '',
-        userName: currentUserName,
-      });
-    }
+    try {
+      if (editingClient) {
+        await updateDoc(doc(db, 'clients', editingClient.id), data);
+        await logSystemEvent({
+          type: 'client_updated',
+          title: 'Cliente atualizado',
+          description: name,
+          entityType: 'client',
+          entityId: editingClient.id,
+          clientId: editingClient.id,
+          clientName: name,
+          userUid: appUid || '',
+          userName: currentUserName,
+        });
+      } else {
+        const createdRef = await addDoc(collection(db, 'clients'), data);
+        await logSystemEvent({
+          type: 'client_created',
+          title: 'Cliente criado',
+          description: name,
+          entityType: 'client',
+          entityId: createdRef.id,
+          clientId: createdRef.id,
+          clientName: name,
+          userUid: appUid || '',
+          userName: currentUserName,
+        });
+      }
 
-    setShowModal(false);
-    resetForm();
+      setShowModal(false);
+      resetForm();
+    } catch (error) {
+      console.error('Erro ao salvar cliente:', error);
+      window.alert('Não foi possível salvar este cliente agora. Verifique se a sessão continua ativa e tente novamente.');
+    }
   };
 
   const handleImportContract = async (event: React.ChangeEvent<HTMLInputElement>) => {

@@ -154,9 +154,68 @@ const getCollectionNameFromTable = (tableName: string) => {
   return entry?.[0] || snakeToCamel(tableName);
 };
 
+const isRetryableTransportError = (error: unknown) => {
+  const message = String((error as {message?: string})?.message || error || '').toLowerCase();
+  return [
+    'failed to fetch',
+    'networkerror',
+    'network request failed',
+    'load failed',
+    'fetch failed',
+    'gateway timeout',
+  ].some((snippet) => message.includes(snippet));
+};
+
+const isRetryableAuthError = (error: unknown) => {
+  const message = String((error as {message?: string; code?: string; details?: string})?.message || (error as {code?: string})?.code || error || '').toLowerCase();
+  const details = String((error as {details?: string})?.details || '').toLowerCase();
+  return [
+    'jwt expired',
+    'invalid jwt',
+    'auth session missing',
+    'refresh token',
+    'token has expired',
+    'session_not_found',
+    'session not found',
+    'invalid claim',
+  ].some((snippet) => message.includes(snippet) || details.includes(snippet));
+};
+
+const refreshAuthSession = async () => {
+  const {data: sessionData} = await supabase.auth.getSession();
+  const refreshToken = sessionData.session?.refresh_token;
+  if (!refreshToken) return;
+  await supabase.auth.refreshSession({refresh_token: refreshToken});
+};
+
+const withSupabaseRetry = async <T>(operation: () => Promise<T>): Promise<T> => {
+  try {
+    return await operation();
+  } catch (error) {
+    if (isRetryableAuthError(error)) {
+      try {
+        await refreshAuthSession();
+        return await operation();
+      } catch (retryError) {
+        throw retryError;
+      }
+    }
+
+    if (isRetryableTransportError(error)) {
+      await new Promise((resolve) => window.setTimeout(resolve, 350));
+      return await operation();
+    }
+
+    throw error;
+  }
+};
+
 const normalizeTopLevelValueForDb = (table: string, field: string, value: unknown) => {
   const config = getTableConfig(table);
   const transformedValue = config.toDb ? config.toDb(field, value) : value;
+  if (transformedValue instanceof Date) {
+    return transformedValue.toISOString();
+  }
   if (transformedValue && typeof transformedValue === 'object') {
     if (transformedValue instanceof Timestamp) {
       return transformedValue.toDate().toISOString();
@@ -210,12 +269,43 @@ const mapDataToDb = (table: string, data: Record<string, unknown>) => {
   return mapped;
 };
 
+const applyManagedTimestamps = (
+  table: string,
+  data: Record<string, unknown>,
+  options?: {merge?: boolean; existingData?: Record<string, unknown> | undefined},
+) => {
+  const config = getTableConfig(table);
+  if (!config.timestampFields?.length) return data;
+
+  const nextData = {...data};
+  const hasCreatedAt = config.timestampFields.includes('createdAt');
+  const hasUpdatedAt = config.timestampFields.includes('updatedAt');
+  const existingData = options?.existingData || {};
+
+  if (hasCreatedAt && !options?.merge && typeof nextData.createdAt === 'undefined') {
+    nextData.createdAt = serverTimestamp();
+  }
+
+  if (hasCreatedAt && options?.merge && typeof nextData.createdAt === 'undefined' && typeof existingData.createdAt !== 'undefined') {
+    nextData.createdAt = existingData.createdAt;
+  }
+
+  if (hasUpdatedAt && typeof nextData.updatedAt === 'undefined') {
+    nextData.updatedAt = serverTimestamp();
+  }
+
+  return nextData;
+};
+
 const generateId = () => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   return Array.from({length: 20}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
 };
 
 const unwrapTimestampValue = (value: unknown): unknown => {
+  if (value instanceof Date) {
+    return value.toISOString();
+  }
   if (value instanceof Timestamp) {
     return value.toDate().toISOString();
   }
@@ -303,13 +393,13 @@ const buildSelectQuery = (table: string, clauses: QueryClause[] = []) => {
 
 const fetchRows = async (target: CollectionReference | QueryReference) => {
   const clauses = target.kind === 'query' ? target.clauses : [];
-  const {data, error} = await buildSelectQuery(target.table, clauses);
+  const {data, error} = await withSupabaseRetry(() => buildSelectQuery(target.table, clauses));
   if (error) throw error;
   return (data || []).map((row) => new QueryDocumentSnapshot(target.table, row.id as string, mapRowFromDb(target.table, row as Record<string, unknown>)));
 };
 
 const fetchDocument = async (target: DocumentReference) => {
-  const {data, error} = await supabase.from(getTableConfig(target.table).table).select('*').eq('id', target.id).maybeSingle();
+  const {data, error} = await withSupabaseRetry(() => supabase.from(getTableConfig(target.table).table).select('*').eq('id', target.id).maybeSingle());
   if (error) throw error;
   if (!data) return new DocumentSnapshot(target, null);
   return new DocumentSnapshot(target, mapRowFromDb(target.table, data as Record<string, unknown>));
@@ -494,16 +584,19 @@ export const addDoc = async (reference: CollectionReference, data: object) => {
 
 export const setDoc = async (reference: DocumentReference, data: object, options?: {merge?: boolean}) => {
   let payload = data as Record<string, unknown>;
+  let currentData: Record<string, unknown> | undefined;
 
   if (options?.merge) {
     const current = await getDoc(reference);
-    payload = applyArrayUnionMarkers(current.data() || {}, data as Record<string, unknown>);
+    currentData = current.data() || {};
+    payload = applyArrayUnionMarkers(currentData, data as Record<string, unknown>);
   } else {
     payload = applyArrayUnionMarkers({}, data as Record<string, unknown>);
   }
 
+  payload = applyManagedTimestamps(reference.table, payload, {merge: options?.merge, existingData: currentData});
   const mapped = mapDataToDb(reference.table, payload);
-  const {error} = await supabase.from(getTableConfig(reference.table).table).upsert({id: reference.id, ...mapped}, {onConflict: 'id'});
+  const {error} = await withSupabaseRetry(() => supabase.from(getTableConfig(reference.table).table).upsert({id: reference.id, ...mapped}, {onConflict: 'id'}));
   if (error) throw error;
   notifyTableListeners(reference.table);
 };
@@ -514,15 +607,17 @@ export const updateDoc = async (reference: DocumentReference, data: object) => {
     throw new Error(`Documento ${reference.table}/${reference.id} não encontrado.`);
   }
 
-  const payload = applyArrayUnionMarkers(current.data() || {}, data as Record<string, unknown>);
+  const currentData = current.data() || {};
+  let payload = applyArrayUnionMarkers(currentData, data as Record<string, unknown>);
+  payload = applyManagedTimestamps(reference.table, payload, {merge: true, existingData: currentData});
   const mapped = mapDataToDb(reference.table, payload);
-  const {error} = await supabase.from(getTableConfig(reference.table).table).update(mapped).eq('id', reference.id);
+  const {error} = await withSupabaseRetry(() => supabase.from(getTableConfig(reference.table).table).update(mapped).eq('id', reference.id));
   if (error) throw error;
   notifyTableListeners(reference.table);
 };
 
 export const deleteDoc = async (reference: DocumentReference) => {
-  const {error} = await supabase.from(getTableConfig(reference.table).table).delete().eq('id', reference.id);
+  const {error} = await withSupabaseRetry(() => supabase.from(getTableConfig(reference.table).table).delete().eq('id', reference.id));
   if (error) throw error;
   notifyTableListeners(reference.table);
 };

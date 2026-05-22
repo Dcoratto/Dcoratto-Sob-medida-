@@ -72,7 +72,17 @@ type TableConfig = {
 const TABLE_CONFIG: Record<string, TableConfig> = {
   auditLogs: {table: 'audit_logs', timestampFields: ['createdAt']},
   calendarEvents: {table: 'calendar_events', timestampFields: ['date', 'createdAt', 'updatedAt']},
-  clients: {table: 'clients', timestampFields: ['createdAt', 'updatedAt']},
+  clients: {
+    table: 'clients',
+    timestampFields: ['createdAt', 'updatedAt'],
+    toDb: (field, value) => {
+      if (field === 'condominiumId') {
+        const normalized = String(value || '').trim();
+        return normalized || null;
+      }
+      return value;
+    },
+  },
   condominiums: {table: 'condominiums', timestampFields: ['createdAt', 'updatedAt']},
   dashboardNotes: {table: 'dashboard_notes', timestampFields: ['createdAt', 'updatedAt']},
   employees: {table: 'employees', timestampFields: ['createdAt', 'updatedAt']},

@@ -466,6 +466,7 @@ export const ClientsPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const selectedCondominium = condominiums.find((item) => item.id === condominiumId);
+    const normalizedCondominiumId = selectedCondominium?.id || null;
     const selectedCondoAddressMode = selectedCondominium?.addressMode || 'street';
     const includeStreet = addressType !== 'condominio' || selectedCondoAddressMode === 'street';
     const includeLot = addressType === 'condominio' && selectedCondoAddressMode === 'lot';
@@ -495,7 +496,7 @@ export const ClientsPage: React.FC = () => {
       zipCode: zipCode.trim(),
       neighborhood: neighborhood.trim(),
       addressType,
-      condominiumId: selectedCondominium?.id || '',
+      condominiumId: normalizedCondominiumId,
       condominiumName: selectedCondominium?.name || '',
       block: block.trim(),
       lot: lot.trim(),

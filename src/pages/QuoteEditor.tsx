@@ -129,33 +129,68 @@ export const QuoteEditor: React.FC = () => {
     });
   }, [inventory, materials]);
 
-  const minimumSalePerM2FromInventory = (materialIdToFind?: string) => {
+  const minimumSalePerM2FromInventory = (materialIdToFind?: string, materialVariantKey?: string) => {
     if (!materialIdToFind) return 0;
-    const stockItems = inventory.filter((item) => item.materialId === materialIdToFind && !['usada', 'descarte'].includes(normalizeStockStatus(item.status)));
+    const stockItems = inventory.filter((item) =>
+      item.materialId === materialIdToFind &&
+      !['usada', 'descarte'].includes(normalizeStockStatus(item.status)) &&
+      (!materialVariantKey || buildMaterialVariantKey(item) === materialVariantKey),
+    );
     const stockArea = stockItems.reduce((sum, item) => sum + (item.area || 0), 0);
     const minimumSaleTotal = stockItems.reduce((sum, item) => sum + (item.minimumSalePrice ?? item.cost ?? 0), 0);
     return stockArea > 0 ? minimumSaleTotal / stockArea : 0;
   };
 
-  const materialWithUserPrice = (idToFind?: string) => {
+  const materialWithUserPrice = (idToFind?: string, materialVariantKey?: string) => {
     const baseMaterial = materials.find((material) => material.id === idToFind);
-    const userPrice = userMaterialPrices.find((price) => price.materialId === idToFind);
-    const minimumSalePerM2 = minimumSalePerM2FromInventory(idToFind);
-    const fallbackPrice = minimumSalePerM2 || baseMaterial?.pricePerM2 || 0;
+    const matchedVariant = materialVariantKey
+      ? materialVariantOptions.find((material) => material.id === idToFind && material.variantKey === materialVariantKey)
+      : undefined;
+    const userPrice = userMaterialPrices.find((price) =>
+      (materialVariantKey && price.materialVariantKey === materialVariantKey) ||
+      (!price.materialVariantKey && price.materialId === idToFind),
+    );
+    const minimumSalePerM2 = minimumSalePerM2FromInventory(idToFind, materialVariantKey);
+    const fallbackMinimum = minimumSalePerM2 || baseMaterial?.baseMinimumSalePerM2 || baseMaterial?.baseCostPerM2 || 0;
+    const fallbackPrice = userPrice?.pricePerM2 || matchedVariant?.pricePerM2 || baseMaterial?.pricePerM2 || fallbackMinimum;
     return baseMaterial && userPrice
-      ?{...baseMaterial, baseMinimumSalePerM2: minimumSalePerM2, marginPercentage: userPrice.marginPercentage, pricePerM2: userPrice.pricePerM2}
+      ?{
+        ...baseMaterial,
+        provider: matchedVariant?.provider || baseMaterial.provider || '',
+        category: matchedVariant?.category || baseMaterial.category || '',
+        materialLine: matchedVariant?.materialLine || baseMaterial.materialLine || '',
+        materialType: matchedVariant?.materialType || baseMaterial.materialType || '',
+        thicknessLabel: matchedVariant?.thicknessLabel || baseMaterial.thicknessLabel || '',
+        texture: matchedVariant?.texture || baseMaterial.texture || '',
+        imageUrl: matchedVariant?.imageUrl || baseMaterial.imageUrl || '',
+        baseMinimumSalePerM2: fallbackMinimum,
+        marginPercentage: userPrice.marginPercentage,
+        pricePerM2: userPrice.pricePerM2,
+      }
       : baseMaterial
-        ?{...baseMaterial, baseMinimumSalePerM2: minimumSalePerM2, pricePerM2: fallbackPrice}
+        ?{
+          ...baseMaterial,
+          provider: matchedVariant?.provider || baseMaterial.provider || '',
+          category: matchedVariant?.category || baseMaterial.category || '',
+          materialLine: matchedVariant?.materialLine || baseMaterial.materialLine || '',
+          materialType: matchedVariant?.materialType || baseMaterial.materialType || '',
+          thicknessLabel: matchedVariant?.thicknessLabel || baseMaterial.thicknessLabel || '',
+          texture: matchedVariant?.texture || baseMaterial.texture || '',
+          imageUrl: matchedVariant?.imageUrl || baseMaterial.imageUrl || '',
+          baseMinimumSalePerM2: fallbackMinimum,
+          marginPercentage: userPrice?.marginPercentage ?? baseMaterial.marginPercentage,
+          pricePerM2: fallbackPrice,
+        }
         : undefined;
   };
   const selectedClient = clients.find(c => c.id === clientId);
-  const { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithUserPrice(piece.materialId || materialId));
+  const { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithUserPrice(piece.materialId || materialId, piece.materialVariantKey));
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
   
   const selectedPaymentAdjustment = settings.paymentMethods.find(m => m.name === paymentMethod)?.adjustment || 0;
   const totalPrice = calculateTotal(pieces, cutouts, selectedPaymentAdjustment);
   const totalArea = pieces.reduce((acc, p) => acc + calculatePieceArea(p).totalArea, 0);
-  const pieceAreaDetails = pieces.map((piece) => ({piece, totals: calculatePieceArea(piece), material: materialWithUserPrice(piece.materialId || materialId)}));
+  const pieceAreaDetails = pieces.map((piece) => ({piece, totals: calculatePieceArea(piece), material: materialWithUserPrice(piece.materialId || materialId, piece.materialVariantKey)}));
   const stonesCost = pieceAreaDetails.reduce((acc, item) => acc + item.totals.totalArea * (item.material?.pricePerM2 || 0), 0);
   const laborCost = calculateLabor(pieces);
   const cutoutsCost = calculateCutouts(cutouts);
@@ -171,14 +206,22 @@ export const QuoteEditor: React.FC = () => {
       .filter((item) => normalizeStockStatus(item.status) === 'reservada')
       .reduce((sum, item) => sum + (item.area || 0), 0);
     const quoteReserved = reservations
-      .filter((reservation) => reservation.materialId === materialIdToCheck && reservation.quoteId !== id)
+      .filter((reservation) =>
+        reservation.materialId === materialIdToCheck &&
+        reservation.quoteId !== id &&
+        (!variantKey || (reservation.materialVariantKey || buildMaterialVariantKey(reservation)) === variantKey),
+      )
       .reduce((sum, reservation) => sum + (reservation.area || 0), 0);
     const reserved = manualReserved + quoteReserved;
     return {total: physicalTotal, reserved, available: Math.max(0, physicalTotal - reserved)};
   };
-  const materialLotInfo = (materialIdToCheck: string, requiredArea: number) => {
+  const materialLotInfo = (materialIdToCheck: string, requiredArea: number, variantKey?: string) => {
     const lots = inventory
-      .filter((item) => item.materialId === materialIdToCheck && !['usada', 'descarte', 'reservada'].includes(normalizeStockStatus(item.status)))
+      .filter((item) =>
+        item.materialId === materialIdToCheck &&
+        !['usada', 'descarte', 'reservada'].includes(normalizeStockStatus(item.status)) &&
+        (!variantKey || buildMaterialVariantKey(item) === variantKey),
+      )
       .map((item) => ({...item, availableArea: item.area || 0}))
       .sort((a, b) => b.availableArea - a.availableArea);
     const singleLot = lots.find((item) => item.availableArea >= requiredArea);
@@ -579,7 +622,8 @@ export const QuoteEditor: React.FC = () => {
     setSaving(true);
     const firstAssigned = employeeAssignments.find((item) => item.employeeId);
     const primaryMaterialId = pieces[0]?.materialId || materialId || '';
-    const primaryMaterial = materialWithUserPrice(primaryMaterialId);
+    const primaryMaterialVariantKey = pieces[0]?.materialVariantKey;
+    const primaryMaterial = materialWithUserPrice(primaryMaterialId, primaryMaterialVariantKey);
     const piecesWithStatus = pieces.map((piece) => ensurePieceWorkflowStatus(piece, status));
     
     const quoteData: Partial<Quote> = {
@@ -885,11 +929,11 @@ export const QuoteEditor: React.FC = () => {
             {pieces.map((piece, pIdx) => {
               const pieceArea = calculatePieceArea(piece).totalArea;
               const stairDetails = calculateStairArea(piece);
-              const pieceMaterial = materialWithUserPrice(piece.materialId);
+              const pieceMaterial = materialWithUserPrice(piece.materialId, piece.materialVariantKey);
               const stock = piece.materialId ?materialStock(piece.materialId, piece.materialVariantKey) : {available: 0};
               const hasMaterial = Boolean(piece.materialId);
               const hasEnoughStock = hasMaterial && stock.available >= pieceArea;
-              const lotInfo = hasMaterial ?materialLotInfo(piece.materialId, pieceArea) : null;
+              const lotInfo = hasMaterial ?materialLotInfo(piece.materialId, pieceArea, piece.materialVariantKey) : null;
               const pieceWorkflowStatus = normalizeQuoteStatus(piece.pieceStatus || status);
               return (
               <div key={piece.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
@@ -1288,7 +1332,7 @@ export const QuoteEditor: React.FC = () => {
                           <div className="bg-white border border-slate-100 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                             {(() => {
                               const pieceTotals = calculatePieceArea(piece);
-                              const pieceMaterial = materialWithUserPrice(piece.materialId || materialId);
+                              const pieceMaterial = materialWithUserPrice(piece.materialId || materialId, piece.materialVariantKey);
                               const calc = calculateSculptedSink(piece.sculptedSink, pieceMaterial);
                               return (
                                 <>

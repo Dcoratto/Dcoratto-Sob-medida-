@@ -103,67 +103,132 @@ export const MaterialsPage: React.FC = () => {
   const activeReservations = reservations.filter((reservation) => !['recusado', 'cancelado', 'finalizado'].includes(normalizeStatus(reservation.quoteStatus)));
   const soldReservations = reservations.filter((reservation) => normalizeStatus(reservation.quoteStatus) === 'finalizado');
 
-  const materialRows: MaterialWithUserPrice[] = Array.from(
-    activeStockItems.reduce((map, item) => {
+  const materialRows: MaterialWithUserPrice[] = React.useMemo(() => {
+    const stockByVariant = activeStockItems.reduce((map, item) => {
       const variantKey = buildMaterialVariantKey(item);
       const current = map.get(variantKey) || [];
       current.push(item);
       map.set(variantKey, current);
       return map;
-    }, new Map<string, InventoryItem[]>()),
-  ).map(([variantKey, stockItems]) => {
-    const baseMaterial = materials.find((material) => material.id === stockItems[0]?.materialId);
-    const stockArea = stockItems.reduce((acc, item) => acc + (item.area || 0), 0);
-    const stockCost = stockItems.reduce((acc, item) => acc + (item.cost || 0), 0);
-    const stockMinimumSale = stockItems.reduce((acc, item) => acc + (item.minimumSalePrice ?? item.cost ?? 0), 0);
-    const manualReservedArea = stockItems
-      .filter((item) => normalizeStatus(item.status) === 'reservada')
-      .reduce((acc, item) => acc + (item.area || 0), 0);
-    const quoteReservedArea = activeReservations
-      .filter((reservation) => (reservation.materialVariantKey || buildMaterialVariantKey(reservation)) === variantKey)
-      .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
-    const soldArea = soldReservations
-      .filter((reservation) => (reservation.materialVariantKey || buildMaterialVariantKey(reservation)) === variantKey)
-      .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
-    const availableArea = Math.max(0, stockArea - manualReservedArea - quoteReservedArea - soldArea);
-    const missingArea = Math.max(0, quoteReservedArea - Math.max(0, stockArea - manualReservedArea - soldArea));
-    const baseCostPerM2 = stockArea > 0 ? stockCost / stockArea : 0;
-    const baseMinimumSalePerM2 = stockArea > 0 ? stockMinimumSale / stockArea : baseCostPerM2;
-    const userPrice = userPrices.find((price) =>
-      price.materialVariantKey === variantKey ||
-      (!price.materialVariantKey && price.materialId === stockItems[0]?.materialId),
-    );
-    const margin = userPrice?.marginPercentage ?? 0;
-    const pricePerM2 = userPrice?.pricePerM2 ?? baseMinimumSalePerM2 * (1 + margin / 100);
+    }, new Map<string, InventoryItem[]>());
 
-    return {
-      ...(baseMaterial || {id: stockItems[0].materialId, name: stockItems[0].materialName, pricePerM2: 0, provider: '', category: '', active: true}),
-      id: variantKey,
-      baseMaterialId: stockItems[0].materialId,
-      materialVariantKey: variantKey,
-      name: stockItems[0].materialName,
-      provider: stockItems[0].provider || baseMaterial?.provider || '',
-      category: stockItems[0].category || baseMaterial?.category || '',
-      materialLine: stockItems[0].materialLine || baseMaterial?.materialLine || stockItems[0].category || baseMaterial?.category || '',
-      materialType: stockItems[0].materialType || baseMaterial?.materialType || '',
-      thicknessLabel: stockItems[0].thicknessLabel || baseMaterial?.thicknessLabel || '',
-      texture: stockItems[0].texture || baseMaterial?.texture || '',
-      imageUrl: stockItems[0].photoUrl || baseMaterial?.imageUrl || '',
-      stockArea,
-      stockCost,
-      stockMinimumSale,
-      manualReservedArea,
-      quoteReservedArea,
-      soldArea,
-      availableArea,
-      missingArea,
-      baseCostPerM2,
-      baseMinimumSalePerM2,
-      pricePerM2: baseMinimumSalePerM2,
-      userMarginPercentage: margin,
-      userPricePerM2: pricePerM2,
-    };
-  });
+    const variantSeeds = new Map<string, {
+      baseMaterialId: string;
+      name: string;
+      provider?: string;
+      category?: string;
+      materialLine?: string;
+      materialType?: string;
+      thicknessLabel?: string;
+      texture?: string;
+      imageUrl?: string;
+    }>();
+
+    stockByVariant.forEach((stockItems, variantKey) => {
+      const first = stockItems[0];
+      const baseMaterial = materials.find((material) => material.id === first?.materialId);
+      variantSeeds.set(variantKey, {
+        baseMaterialId: first.materialId,
+        name: first.materialName,
+        provider: first.provider || baseMaterial?.provider || '',
+        category: first.category || baseMaterial?.category || '',
+        materialLine: first.materialLine || baseMaterial?.materialLine || first.category || baseMaterial?.category || '',
+        materialType: first.materialType || baseMaterial?.materialType || '',
+        thicknessLabel: first.thicknessLabel || baseMaterial?.thicknessLabel || '',
+        texture: first.texture || baseMaterial?.texture || '',
+        imageUrl: first.photoUrl || baseMaterial?.imageUrl || '',
+      });
+    });
+
+    materials.forEach((material) => {
+      const variantKey = buildMaterialVariantKey(material);
+      if (variantSeeds.has(variantKey)) return;
+      variantSeeds.set(variantKey, {
+        baseMaterialId: material.id,
+        name: material.name,
+        provider: material.provider || '',
+        category: material.category || '',
+        materialLine: material.materialLine || material.category || '',
+        materialType: material.materialType || '',
+        thicknessLabel: material.thicknessLabel || '',
+        texture: material.texture || '',
+        imageUrl: material.imageUrl || '',
+      });
+    });
+
+    return Array.from(variantSeeds.entries()).map(([variantKey, seed]) => {
+      const stockItems = stockByVariant.get(variantKey) || [];
+      const baseMaterial = materials.find((material) => material.id === seed.baseMaterialId);
+      const stockArea = stockItems.reduce((acc, item) => acc + (item.area || 0), 0);
+      const stockCost = stockItems.reduce((acc, item) => acc + (item.cost || 0), 0);
+      const stockMinimumSale = stockItems.reduce((acc, item) => acc + (item.minimumSalePrice ?? item.cost ?? 0), 0);
+      const manualReservedArea = stockItems
+        .filter((item) => normalizeStatus(item.status) === 'reservada')
+        .reduce((acc, item) => acc + (item.area || 0), 0);
+      const quoteReservedArea = activeReservations
+        .filter((reservation) => {
+          const reservationVariantKey = reservation.materialVariantKey || buildMaterialVariantKey(reservation);
+          return reservationVariantKey
+            ? reservationVariantKey === variantKey
+            : reservation.materialId === seed.baseMaterialId;
+        })
+        .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+      const soldArea = soldReservations
+        .filter((reservation) => {
+          const reservationVariantKey = reservation.materialVariantKey || buildMaterialVariantKey(reservation);
+          return reservationVariantKey
+            ? reservationVariantKey === variantKey
+            : reservation.materialId === seed.baseMaterialId;
+        })
+        .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+      const availableArea = Math.max(0, stockArea - manualReservedArea - quoteReservedArea - soldArea);
+      const missingArea = Math.max(0, quoteReservedArea - Math.max(0, stockArea - manualReservedArea - soldArea));
+      const baseCostPerM2 = stockArea > 0 ? stockCost / stockArea : (baseMaterial?.baseCostPerM2 ?? 0);
+      const baseMinimumSalePerM2 = stockArea > 0
+        ? stockMinimumSale / stockArea
+        : (baseMaterial?.baseMinimumSalePerM2 ?? baseCostPerM2);
+      const userPrice = userPrices.find((price) =>
+        price.materialVariantKey === variantKey ||
+        (!price.materialVariantKey && price.materialId === seed.baseMaterialId),
+      );
+      const margin = userPrice?.marginPercentage ?? baseMaterial?.marginPercentage ?? 0;
+      const pricePerM2 = userPrice?.pricePerM2
+        ?? baseMaterial?.pricePerM2
+        ?? (baseMinimumSalePerM2 * (1 + margin / 100));
+
+      return {
+        ...(baseMaterial || {id: seed.baseMaterialId, name: seed.name, pricePerM2: 0, provider: '', category: '', active: true}),
+        id: variantKey,
+        baseMaterialId: seed.baseMaterialId,
+        materialVariantKey: variantKey,
+        name: seed.name,
+        provider: seed.provider || '',
+        category: seed.category || '',
+        materialLine: seed.materialLine || '',
+        materialType: seed.materialType || '',
+        thicknessLabel: seed.thicknessLabel || '',
+        texture: seed.texture || '',
+        imageUrl: seed.imageUrl || '',
+        stockArea,
+        stockCost,
+        stockMinimumSale,
+        manualReservedArea,
+        quoteReservedArea,
+        soldArea,
+        availableArea,
+        missingArea,
+        baseCostPerM2,
+        baseMinimumSalePerM2,
+        pricePerM2,
+        userMarginPercentage: margin,
+        userPricePerM2: pricePerM2,
+      };
+    }).sort((a, b) => {
+      const byName = a.name.localeCompare(b.name, 'pt-BR', {sensitivity: 'base'});
+      if (byName !== 0) return byName;
+      return formatMaterialSpecsWithProvider(a).localeCompare(formatMaterialSpecsWithProvider(b), 'pt-BR', {sensitivity: 'base'});
+    });
+  }, [activeReservations, activeStockItems, materials, soldReservations, userPrices]);
 
   const handleEdit = (material: MaterialWithUserPrice) => {
     if (!hasPermission('materiais', 'editar')) return;
@@ -205,7 +270,21 @@ export const MaterialsPage: React.FC = () => {
       }, {merge: true});
     }
 
-    await updateDoc(doc(db, 'materials', editingMaterial.baseMaterialId || editingMaterial.id), {active});
+    await updateDoc(doc(db, 'materials', editingMaterial.baseMaterialId || editingMaterial.id), {
+      active,
+      provider: editingMaterial.provider || '',
+      category: editingMaterial.category || '',
+      materialLine: editingMaterial.materialLine || '',
+      materialType: editingMaterial.materialType || '',
+      thicknessLabel: editingMaterial.thicknessLabel || '',
+      texture: editingMaterial.texture || '',
+      imageUrl: editingMaterial.imageUrl || '',
+      baseCostPerM2: baseCost,
+      baseMinimumSalePerM2: baseMinimumSale,
+      marginPercentage: normalizedMargin,
+      pricePerM2,
+      updatedAt: serverTimestamp(),
+    });
 
     setShowModal(false);
     setEditingMaterial(null);

@@ -1,17 +1,15 @@
-import React, {useEffect, useState} from 'react';
-import {collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, where} from '../lib/firestore';
+﻿import React, {useEffect, useMemo, useState} from 'react';
+import {collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc} from '../lib/firestore';
 import {AlertTriangle, Edit2, Eye, PackageCheck, Search, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
 import {db} from '../lib/firestore';
-import {InventoryItem, InventoryReservation, Material, Quote, UserMaterialPrice} from '../types';
+import {InventoryItem, InventoryReservation, Material, Quote} from '../types';
 import {cn, formatCurrency, formatNumber} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {formatMaterialSpecsWithProvider} from '../lib/materialSpecs';
-import {buildMaterialVariantKey} from '../lib/materialVariants';
 
-type MaterialWithUserPrice = Material & {
+type MaterialStockRow = Material & {
   baseMaterialId: string;
-  materialVariantKey: string;
   stockArea: number;
   stockCost: number;
   stockMinimumSale: number;
@@ -21,8 +19,6 @@ type MaterialWithUserPrice = Material & {
   availableArea: number;
   missingArea: number;
   baseMinimumSalePerM2: number;
-  userMarginPercentage: number;
-  userPricePerM2: number;
 };
 
 const AREA_UNIT = 'm²';
@@ -36,21 +32,20 @@ const normalizeStatus = (value: unknown) =>
     .replace(/[\u0300-\u036f]/g, '');
 
 export const MaterialsPage: React.FC = () => {
-  const {user, appUid, hasPermission} = useAuth();
+  const {hasPermission} = useAuth();
   const navigate = useNavigate();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [reservations, setReservations] = useState<InventoryReservation[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
-  const [userPrices, setUserPrices] = useState<UserMaterialPrice[]>([]);
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [reservationMaterialId, setReservationMaterialId] = useState<string | null>(null);
-  const [editingMaterial, setEditingMaterial] = useState<MaterialWithUserPrice | null>(null);
-  const [marginPercentage, setMarginPercentage] = useState('');
+  const [editingMaterial, setEditingMaterial] = useState<MaterialStockRow | null>(null);
   const [salePricePerM2, setSalePricePerM2] = useState('');
   const [active, setActive] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [savingPrice, setSavingPrice] = useState(false);
 
   useEffect(() => {
     const q = query(collection(db, 'materials'), orderBy('name', 'asc'));
@@ -87,78 +82,23 @@ export const MaterialsPage: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    if (!appUid) {
-      setUserPrices([]);
-      return;
-    }
-    const q = query(collection(db, 'userMaterialPrices'), where('userId', '==', appUid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setUserPrices(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as UserMaterialPrice)));
-    });
-    return unsubscribe;
-  }, [appUid]);
-
   const activeStockItems = inventory.filter((item) => !['usada', 'descarte'].includes(normalizeStatus(item.status)));
   const activeReservations = reservations.filter((reservation) => !['recusado', 'cancelado', 'finalizado'].includes(normalizeStatus(reservation.quoteStatus)));
   const soldReservations = reservations.filter((reservation) => normalizeStatus(reservation.quoteStatus) === 'finalizado');
+  const materialsById = useMemo(() => new Map(materials.map((material) => [material.id, material])), [materials]);
 
-  const materialRows: MaterialWithUserPrice[] = React.useMemo(() => {
-    const stockByVariant = activeStockItems.reduce((map, item) => {
-      const variantKey = buildMaterialVariantKey(item);
-      const current = map.get(variantKey) || [];
+  const materialRows: MaterialStockRow[] = useMemo(() => {
+    const stockByMaterialId = activeStockItems.reduce((map, item) => {
+      if (!item.materialId) return map;
+      const current = map.get(item.materialId) || [];
       current.push(item);
-      map.set(variantKey, current);
+      map.set(item.materialId, current);
       return map;
     }, new Map<string, InventoryItem[]>());
 
-    const variantSeeds = new Map<string, {
-      baseMaterialId: string;
-      name: string;
-      provider?: string;
-      category?: string;
-      materialLine?: string;
-      materialType?: string;
-      thicknessLabel?: string;
-      texture?: string;
-      imageUrl?: string;
-    }>();
-
-    stockByVariant.forEach((stockItems, variantKey) => {
+    return Array.from(stockByMaterialId.entries()).map(([materialId, stockItems]) => {
       const first = stockItems[0];
-      const baseMaterial = materials.find((material) => material.id === first?.materialId);
-      variantSeeds.set(variantKey, {
-        baseMaterialId: first.materialId,
-        name: first.materialName,
-        provider: first.provider || baseMaterial?.provider || '',
-        category: first.category || baseMaterial?.category || '',
-        materialLine: first.materialLine || baseMaterial?.materialLine || first.category || baseMaterial?.category || '',
-        materialType: first.materialType || baseMaterial?.materialType || '',
-        thicknessLabel: first.thicknessLabel || baseMaterial?.thicknessLabel || '',
-        texture: first.texture || baseMaterial?.texture || '',
-        imageUrl: first.photoUrl || baseMaterial?.imageUrl || '',
-      });
-    });
-
-    materials.forEach((material) => {
-      const variantKey = buildMaterialVariantKey(material);
-      if (variantSeeds.has(variantKey)) return;
-      variantSeeds.set(variantKey, {
-        baseMaterialId: material.id,
-        name: material.name,
-        provider: material.provider || '',
-        category: material.category || '',
-        materialLine: material.materialLine || material.category || '',
-        materialType: material.materialType || '',
-        thicknessLabel: material.thicknessLabel || '',
-        texture: material.texture || '',
-        imageUrl: material.imageUrl || '',
-      });
-    });
-
-    return Array.from(variantSeeds.entries()).map(([variantKey, seed]) => {
-      const stockItems = stockByVariant.get(variantKey) || [];
-      const baseMaterial = materials.find((material) => material.id === seed.baseMaterialId);
+      const baseMaterial = materialsById.get(materialId);
       const stockArea = stockItems.reduce((acc, item) => acc + (item.area || 0), 0);
       const stockCost = stockItems.reduce((acc, item) => acc + (item.cost || 0), 0);
       const stockMinimumSale = stockItems.reduce((acc, item) => acc + (item.minimumSalePrice ?? item.cost ?? 0), 0);
@@ -166,20 +106,10 @@ export const MaterialsPage: React.FC = () => {
         .filter((item) => normalizeStatus(item.status) === 'reservada')
         .reduce((acc, item) => acc + (item.area || 0), 0);
       const quoteReservedArea = activeReservations
-        .filter((reservation) => {
-          const reservationVariantKey = reservation.materialVariantKey || buildMaterialVariantKey(reservation);
-          return reservationVariantKey
-            ? reservationVariantKey === variantKey
-            : reservation.materialId === seed.baseMaterialId;
-        })
+        .filter((reservation) => reservation.materialId === materialId)
         .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
       const soldArea = soldReservations
-        .filter((reservation) => {
-          const reservationVariantKey = reservation.materialVariantKey || buildMaterialVariantKey(reservation);
-          return reservationVariantKey
-            ? reservationVariantKey === variantKey
-            : reservation.materialId === seed.baseMaterialId;
-        })
+        .filter((reservation) => reservation.materialId === materialId)
         .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
       const availableArea = Math.max(0, stockArea - manualReservedArea - quoteReservedArea - soldArea);
       const missingArea = Math.max(0, quoteReservedArea - Math.max(0, stockArea - manualReservedArea - soldArea));
@@ -187,28 +117,18 @@ export const MaterialsPage: React.FC = () => {
       const baseMinimumSalePerM2 = stockArea > 0
         ? stockMinimumSale / stockArea
         : (baseMaterial?.baseMinimumSalePerM2 ?? baseCostPerM2);
-      const userPrice = userPrices.find((price) =>
-        price.materialVariantKey === variantKey ||
-        (!price.materialVariantKey && price.materialId === seed.baseMaterialId),
-      );
-      const margin = userPrice?.marginPercentage ?? baseMaterial?.marginPercentage ?? 0;
-      const pricePerM2 = userPrice?.pricePerM2
-        ?? baseMaterial?.pricePerM2
-        ?? (baseMinimumSalePerM2 * (1 + margin / 100));
 
       return {
-        ...(baseMaterial || {id: seed.baseMaterialId, name: seed.name, pricePerM2: 0, provider: '', category: '', active: true}),
-        id: variantKey,
-        baseMaterialId: seed.baseMaterialId,
-        materialVariantKey: variantKey,
-        name: seed.name,
-        provider: seed.provider || '',
-        category: seed.category || '',
-        materialLine: seed.materialLine || '',
-        materialType: seed.materialType || '',
-        thicknessLabel: seed.thicknessLabel || '',
-        texture: seed.texture || '',
-        imageUrl: seed.imageUrl || '',
+        ...(baseMaterial || {id: materialId, name: first.materialName, pricePerM2: 0, provider: '', category: '', active: true}),
+        baseMaterialId: materialId,
+        name: baseMaterial?.name || first.materialName,
+        provider: baseMaterial?.provider || first.provider || '',
+        category: baseMaterial?.category || first.category || '',
+        materialLine: baseMaterial?.materialLine || first.materialLine || first.category || '',
+        materialType: baseMaterial?.materialType || first.materialType || '',
+        thicknessLabel: baseMaterial?.thicknessLabel || first.thicknessLabel || '',
+        texture: baseMaterial?.texture || first.texture || '',
+        imageUrl: baseMaterial?.imageUrl || first.photoUrl || '',
         stockArea,
         stockCost,
         stockMinimumSale,
@@ -219,22 +139,15 @@ export const MaterialsPage: React.FC = () => {
         missingArea,
         baseCostPerM2,
         baseMinimumSalePerM2,
-        pricePerM2,
-        userMarginPercentage: margin,
-        userPricePerM2: pricePerM2,
+        pricePerM2: baseMaterial?.pricePerM2 ?? 0,
       };
-    }).sort((a, b) => {
-      const byName = a.name.localeCompare(b.name, 'pt-BR', {sensitivity: 'base'});
-      if (byName !== 0) return byName;
-      return formatMaterialSpecsWithProvider(a).localeCompare(formatMaterialSpecsWithProvider(b), 'pt-BR', {sensitivity: 'base'});
-    });
-  }, [activeReservations, activeStockItems, materials, soldReservations, userPrices]);
+    }).sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', {sensitivity: 'base'}));
+  }, [activeReservations, activeStockItems, materialsById, soldReservations]);
 
-  const handleEdit = (material: MaterialWithUserPrice) => {
+  const handleEdit = (material: MaterialStockRow) => {
     if (!hasPermission('materiais', 'editar')) return;
     setEditingMaterial(material);
-    setMarginPercentage(String(material.userMarginPercentage ?? 0));
-    setSalePricePerM2(String(material.userPricePerM2 || 0));
+    setSalePricePerM2(String(material.pricePerM2 || 0));
     setActive(material.active);
     setShowModal(true);
   };
@@ -247,49 +160,41 @@ export const MaterialsPage: React.FC = () => {
       return;
     }
 
-    const margin = Number(marginPercentage || 0);
-    const baseCost = editingMaterial.baseCostPerM2 ?? 0;
-    const baseMinimumSale = editingMaterial.baseMinimumSalePerM2 ?? baseCost;
-    const hasTypedSalePrice = salePricePerM2 !== '' && !Number.isNaN(Number(salePricePerM2));
-    const pricePerM2 = hasTypedSalePrice ? Number(salePricePerM2) : baseMinimumSale * (1 + margin / 100);
-    const normalizedMargin = baseMinimumSale > 0
-      ? ((pricePerM2 / baseMinimumSale) - 1) * 100
-      : margin;
+    setSavingPrice(true);
+    try {
+      const baseCost = editingMaterial.baseCostPerM2 ?? 0;
+      const baseMinimumSale = editingMaterial.baseMinimumSalePerM2 ?? baseCost;
+      const pricePerM2 = Math.max(0, Number(salePricePerM2) || 0);
+      const marginPercentage = baseMinimumSale > 0
+        ? ((pricePerM2 / baseMinimumSale) - 1) * 100
+        : 0;
 
-    if (appUid) {
-      await setDoc(doc(db, 'userMaterialPrices', `${appUid}_${editingMaterial.materialVariantKey}`), {
-        userId: appUid,
-        materialId: editingMaterial.baseMaterialId,
-        materialVariantKey: editingMaterial.materialVariantKey,
+      await setDoc(doc(db, 'materials', editingMaterial.baseMaterialId), {
+        name: editingMaterial.name,
+        active,
+        provider: editingMaterial.provider || '',
+        category: editingMaterial.category || '',
+        materialLine: editingMaterial.materialLine || '',
+        materialType: editingMaterial.materialType || '',
+        thicknessLabel: editingMaterial.thicknessLabel || '',
+        texture: editingMaterial.texture || '',
+        imageUrl: editingMaterial.imageUrl || '',
         baseCostPerM2: baseCost,
         baseMinimumSalePerM2: baseMinimumSale,
-        marginPercentage: normalizedMargin,
+        marginPercentage,
         pricePerM2,
-        finalPricePerM2: pricePerM2,
         updatedAt: serverTimestamp(),
       }, {merge: true});
+
+      setShowModal(false);
+      setEditingMaterial(null);
+      setSalePricePerM2('');
+    } catch (error) {
+      console.error('Erro ao salvar preço do material:', error);
+      alert('Não foi possível salvar o preço desta pedra.');
+    } finally {
+      setSavingPrice(false);
     }
-
-    await updateDoc(doc(db, 'materials', editingMaterial.baseMaterialId || editingMaterial.id), {
-      active,
-      provider: editingMaterial.provider || '',
-      category: editingMaterial.category || '',
-      materialLine: editingMaterial.materialLine || '',
-      materialType: editingMaterial.materialType || '',
-      thicknessLabel: editingMaterial.thicknessLabel || '',
-      texture: editingMaterial.texture || '',
-      imageUrl: editingMaterial.imageUrl || '',
-      baseCostPerM2: baseCost,
-      baseMinimumSalePerM2: baseMinimumSale,
-      marginPercentage: normalizedMargin,
-      pricePerM2,
-      updatedAt: serverTimestamp(),
-    });
-
-    setShowModal(false);
-    setEditingMaterial(null);
-    setMarginPercentage('');
-    setSalePricePerM2('');
   };
 
   const handleStatusChange = async (material: Material, nextActive: boolean) => {
@@ -297,18 +202,19 @@ export const MaterialsPage: React.FC = () => {
       alert('Você não tem permissão para editar materiais. Fale com o administrador.');
       return;
     }
-    await updateDoc(doc(db, 'materials', material.id), {active: nextActive});
+    await updateDoc(doc(db, 'materials', material.id), {active: nextActive, updatedAt: serverTimestamp()});
   };
 
   const filteredMaterials = materialRows.filter((material) => {
     const searchText = `${material.name} ${material.provider} ${material.category} ${material.materialLine || ''} ${material.materialType || ''} ${material.thicknessLabel || ''} ${material.texture || ''}`.toLowerCase();
     return searchText.includes(search.toLowerCase());
   });
+
   const selectedReservationMaterial = reservationMaterialId
-    ? materialRows.find((material) => material.materialVariantKey === reservationMaterialId) || materialRows.find((material) => material.baseMaterialId === reservationMaterialId) || materials.find((material) => material.id === reservationMaterialId)
+    ? materialRows.find((material) => material.baseMaterialId === reservationMaterialId) || materials.find((material) => material.id === reservationMaterialId)
     : null;
   const selectedReservations = reservationMaterialId
-    ? activeReservations.filter((reservation) => (reservation.materialVariantKey || reservation.materialId) === reservationMaterialId || reservation.materialId === reservationMaterialId)
+    ? activeReservations.filter((reservation) => reservation.materialId === reservationMaterialId)
     : [];
   const quoteById = (quoteId: string) => quotes.find((quote) => quote.id === quoteId);
 
@@ -317,7 +223,7 @@ export const MaterialsPage: React.FC = () => {
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Materiais</h1>
-          <p className="text-slate-500 mt-1">Controle margem, disponibilidade e reservas somente das pedras que existem no estoque.</p>
+          <p className="text-slate-500 mt-1">Aqui aparecem somente as pedras já cadastradas no estoque. Nesta tela você define apenas o preço final de venda.</p>
         </div>
       </header>
 
@@ -360,7 +266,6 @@ export const MaterialsPage: React.FC = () => {
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{LABEL_AVAILABLE}</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Faltando</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{LABEL_MINIMUM_SALE}</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Margem</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Venda/m²</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
@@ -368,12 +273,12 @@ export const MaterialsPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ? (
-                <tr><td colSpan={11} className="px-6 py-10 text-center text-slate-400">Carregando materiais...</td></tr>
+                <tr><td colSpan={10} className="px-6 py-10 text-center text-slate-400">Carregando materiais...</td></tr>
               ) : filteredMaterials.length === 0 ? (
-                <tr><td colSpan={11} className="px-6 py-10 text-center text-slate-400">Nenhum material encontrado. Compre ou adicione uma chapa no estoque primeiro.</td></tr>
+                <tr><td colSpan={10} className="px-6 py-10 text-center text-slate-400">Nenhuma pedra do estoque disponível para precificar.</td></tr>
               ) : (
                 filteredMaterials.map((material) => (
-                  <tr key={material.id} className="hover:bg-slate-50/50 transition-colors group">
+                  <tr key={material.baseMaterialId} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100 flex items-center justify-center">
@@ -399,7 +304,7 @@ export const MaterialsPage: React.FC = () => {
                       {material.quoteReservedArea > 0 ? (
                         <button
                           type="button"
-                          onClick={() => setReservationMaterialId(material.materialVariantKey)}
+                          onClick={() => setReservationMaterialId(material.baseMaterialId)}
                           className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700 hover:bg-amber-100 transition-all"
                         >
                           <Eye className="h-3.5 w-3.5" />
@@ -412,15 +317,14 @@ export const MaterialsPage: React.FC = () => {
                     <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.soldArea)} {AREA_UNIT}</td>
                     <td className="px-6 py-4 font-mono text-sm font-bold text-green-700">{formatNumber(material.availableArea)} {AREA_UNIT}</td>
                     <td className="px-6 py-4">
-                      <span className={cn('font-mono text-sm font-bold', material.missingArea > 0 ?'text-red-600' : 'text-slate-400')}>
+                      <span className={cn('font-mono text-sm font-bold', material.missingArea > 0 ? 'text-red-600' : 'text-slate-400')}>
                         {formatNumber(material.missingArea)} {AREA_UNIT}
                       </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-sm text-slate-600">
                       {formatCurrency(material.baseMinimumSalePerM2 ?? 0)}
                     </td>
-                    <td className="px-6 py-4 font-mono text-sm text-slate-900">{material.userMarginPercentage ?? 0}%</td>
-                    <td className="px-6 py-4 font-mono font-bold text-brand-primary">{formatCurrency(material.userPricePerM2 || 0)}</td>
+                    <td className="px-6 py-4 font-mono font-bold text-brand-primary">{formatCurrency(material.pricePerM2 || 0)}</td>
                     <td className="px-6 py-4">
                       <select
                         value={material.active ? 'active' : 'inactive'}
@@ -464,7 +368,7 @@ export const MaterialsPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Mínimo de venda por m²</label>
                   <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono text-slate-600">
@@ -472,34 +376,12 @@ export const MaterialsPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Margem (%)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={marginPercentage}
-                    onChange={(e) => {
-                      const nextMargin = e.target.value;
-                      const base = editingMaterial.baseMinimumSalePerM2 ?? 0;
-                      setMarginPercentage(nextMargin);
-                      setSalePricePerM2(String(base * (1 + Number(nextMargin || 0) / 100)));
-                    }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono"
-                  />
-                </div>
-                <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Venda final por m²</label>
                   <input
                     type="number"
                     step="0.01"
                     value={salePricePerM2}
-                    onChange={(e) => {
-                      const nextPrice = e.target.value;
-                      const base = editingMaterial.baseMinimumSalePerM2 ?? 0;
-                      setSalePricePerM2(nextPrice);
-                      if (base > 0) {
-                        setMarginPercentage(String(((Number(nextPrice || 0) / base) - 1) * 100));
-                      }
-                    }}
+                    onChange={(e) => setSalePricePerM2(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono"
                   />
                 </div>
@@ -510,7 +392,7 @@ export const MaterialsPage: React.FC = () => {
                 <div className="text-2xl font-display font-bold text-brand-primary mt-1">
                   {formatCurrency(Number(salePricePerM2) || 0)}
                 </div>
-                <p className="mt-1 text-xs text-slate-500">A margem e aplicada em cima do valor minimo de venda, nao mais sobre o custo de compra.</p>
+                <p className="mt-1 text-xs text-slate-500">O valor mínimo vem do estoque. Aqui você define somente o preço final de venda desta pedra.</p>
               </div>
 
               <div className="flex items-center gap-2 pt-2">
@@ -524,8 +406,8 @@ export const MaterialsPage: React.FC = () => {
                 <label htmlFor="active" className="text-slate-700 font-medium cursor-pointer">Material disponível para venda</label>
               </div>
 
-              <button type="submit" className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
-                Salvar preco
+              <button type="submit" disabled={savingPrice} className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95 disabled:opacity-60">
+                {savingPrice ? 'Salvando...' : 'Salvar preço'}
               </button>
             </form>
           </div>
@@ -580,4 +462,3 @@ export const MaterialsPage: React.FC = () => {
     </div>
   );
 };
-

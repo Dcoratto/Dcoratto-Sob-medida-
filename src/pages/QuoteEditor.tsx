@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, where } from '../lib/firestore';
+import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot } from '../lib/firestore';
 import { db } from '../lib/firestore';
 import { useSettings } from '../hooks/useSettings';
-import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory, UserMaterialPrice } from '../types';
+import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
 import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
@@ -42,7 +42,6 @@ export const QuoteEditor: React.FC = () => {
   const [materials, setMaterials] = useState<Material[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [reservations, setReservations] = useState<InventoryReservation[]>([]);
-  const [userMaterialPrices, setUserMaterialPrices] = useState<UserMaterialPrice[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [condominiums, setCondominiums] = useState<CondominiumRule[]>([]);
   const [loading, setLoading] = useState(true);
@@ -146,14 +145,10 @@ export const QuoteEditor: React.FC = () => {
     const matchedVariant = materialVariantKey
       ? materialVariantOptions.find((material) => material.id === idToFind && material.variantKey === materialVariantKey)
       : undefined;
-    const userPrice = userMaterialPrices.find((price) =>
-      (materialVariantKey && price.materialVariantKey === materialVariantKey) ||
-      (!price.materialVariantKey && price.materialId === idToFind),
-    );
     const minimumSalePerM2 = minimumSalePerM2FromInventory(idToFind, materialVariantKey);
     const fallbackMinimum = minimumSalePerM2 || baseMaterial?.baseMinimumSalePerM2 || baseMaterial?.baseCostPerM2 || 0;
-    const fallbackPrice = userPrice?.pricePerM2 || matchedVariant?.pricePerM2 || baseMaterial?.pricePerM2 || fallbackMinimum;
-    return baseMaterial && userPrice
+    const fallbackPrice = matchedVariant?.pricePerM2 || baseMaterial?.pricePerM2 || fallbackMinimum;
+    return baseMaterial
       ?{
         ...baseMaterial,
         provider: matchedVariant?.provider || baseMaterial.provider || '',
@@ -164,24 +159,9 @@ export const QuoteEditor: React.FC = () => {
         texture: matchedVariant?.texture || baseMaterial.texture || '',
         imageUrl: matchedVariant?.imageUrl || baseMaterial.imageUrl || '',
         baseMinimumSalePerM2: fallbackMinimum,
-        marginPercentage: userPrice.marginPercentage,
-        pricePerM2: userPrice.pricePerM2,
+        pricePerM2: fallbackPrice,
       }
-      : baseMaterial
-        ?{
-          ...baseMaterial,
-          provider: matchedVariant?.provider || baseMaterial.provider || '',
-          category: matchedVariant?.category || baseMaterial.category || '',
-          materialLine: matchedVariant?.materialLine || baseMaterial.materialLine || '',
-          materialType: matchedVariant?.materialType || baseMaterial.materialType || '',
-          thicknessLabel: matchedVariant?.thicknessLabel || baseMaterial.thicknessLabel || '',
-          texture: matchedVariant?.texture || baseMaterial.texture || '',
-          imageUrl: matchedVariant?.imageUrl || baseMaterial.imageUrl || '',
-          baseMinimumSalePerM2: fallbackMinimum,
-          marginPercentage: userPrice?.marginPercentage ?? baseMaterial.marginPercentage,
-          pricePerM2: fallbackPrice,
-        }
-        : undefined;
+      : undefined;
   };
   const selectedClient = clients.find(c => c.id === clientId);
   const { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithUserPrice(piece.materialId || materialId, piece.materialVariantKey));
@@ -270,12 +250,6 @@ export const QuoteEditor: React.FC = () => {
       setMaterials(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Material)));
     });
 
-    const unsubUserPrices = appUid
-      ?onSnapshot(query(collection(db, 'userMaterialPrices'), where('userId', '==', appUid)), (snap) => {
-        setUserMaterialPrices(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserMaterialPrice)));
-      })
-      : undefined;
-
     const unsubInventory = onSnapshot(collection(db, 'inventory'), (snap) => {
       setInventory(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItem)));
     });
@@ -340,12 +314,11 @@ export const QuoteEditor: React.FC = () => {
       unsubClients();
       unsubCondominiums();
       unsubMaterials();
-      unsubUserPrices?.();
       unsubInventory();
       unsubReservations();
       unsubFixtureCatalog();
     };
-  }, [appUid, id]);
+  }, [id]);
 
   useEffect(() => {
     if (!id && !responsible && currentUserName !== 'Usuário') {

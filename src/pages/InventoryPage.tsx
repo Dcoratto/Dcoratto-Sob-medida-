@@ -1,8 +1,8 @@
-﻿import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc} from '../lib/firestore';
 import {AlertTriangle, CheckCircle2, Edit2, Eye, FileText, Filter, ImagePlus, LocateFixed, MapPin, MessageCircle, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
-import {db} from '../lib/firebase';
+import {db} from '../lib/firestore';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote} from '../types';
 import {cn, formatCurrency, formatNumber} from '../lib/utils';
@@ -1969,6 +1969,7 @@ export const InventoryPage: React.FC = () => {
     </div>
   );
 };
+
 
 
 

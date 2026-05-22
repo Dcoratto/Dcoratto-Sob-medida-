@@ -1,6 +1,6 @@
-ï»¿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, setDoc, updateDoc } from '../lib/firestore';
-import { db } from '../lib/firebase';
+import { db } from '../lib/firestore';
 import { useSettings, DEFAULT_SETTINGS } from '../hooks/useSettings';
 import { useAuth } from '../contexts/AuthContext';
 import { Save, Plus, Trash2, Building, Phone, Mail, MapPin, Calculator, CreditCard, Scissors, Pencil } from 'lucide-react';
@@ -799,7 +799,7 @@ export const SettingsPage: React.FC = () => {
                 <div>
                   <div className="font-bold text-slate-900">{condo.name}</div>
                   <div className="text-xs text-slate-500">
-                    {condo.city} Â· {(condo.addressMode || 'street') === 'lot' ? 'Quadra e lote' : 'Rua e numero'} Â· {condo.workStartHour}-{condo.workEndHour} Â· Dias: {condo.allowedWeekdays.map((item) => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'][item]).join(', ')}
+                    {condo.city} · {(condo.addressMode || 'street') === 'lot' ? 'Quadra e lote' : 'Rua e numero'} · {condo.workStartHour}-{condo.workEndHour} · Dias: {condo.allowedWeekdays.map((item) => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'][item]).join(', ')}
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -982,7 +982,7 @@ const SupplierCatalogField: React.FC<{
       <textarea
         value={draft.notes}
         onChange={(e) => setDraft({...draft, notes: e.target.value})}
-        placeholder="ObservaÃ§Ãµes do fornecedor"
+        placeholder="Observações do fornecedor"
         className="w-full min-h-[72px] bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
       />
 
@@ -1006,7 +1006,7 @@ const SupplierCatalogField: React.FC<{
           disabled={saving}
           className="ml-2 inline-flex items-center gap-2 rounded-xl bg-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Cancelar ediÃ§Ã£o
+          Cancelar edição
         </button>
       )}
 
@@ -1051,5 +1051,6 @@ const SupplierCatalogField: React.FC<{
     </div>
   );
 };
+
 
 

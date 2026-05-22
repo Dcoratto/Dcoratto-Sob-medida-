@@ -1,8 +1,9 @@
-ï»¿import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from '../lib/firestore';
 import {deleteObject, ref as storageRef} from '../lib/storage';
 import {AlertTriangle, BriefcaseBusiness, CheckCircle2, ChevronDown, Mail, Pencil, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
-import {db, storage} from '../lib/firebase';
+import {db} from '../lib/firestore';
+import {storage} from '../lib/storage';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {useAuth} from '../contexts/AuthContext';
 import {AccessRole, AccessUser, Employee, EmployeeRole, FixtureCatalogItem, FixtureCategory, Material, PermissionMap} from '../types';
@@ -41,12 +42,12 @@ const IMAGE_MAX_SIDE = 900;
 const parseThicknessValue = (label: string) => Number(String(label || '').replace(',', '.').replace(/[^\d.]/g, '')) || 0;
 const DEFAULT_STONE_CATEGORIES = [
   'Granito',
-  'MÃ¡rmore',
+  'Mármore',
   'Quartzito',
   'Quartzo',
-  'LÃ¢mina Ultracompacta',
+  'Lâmina Ultracompacta',
   'Porcelanato',
-  'SuperfÃ­cie Sinterizada',
+  'Superfície Sinterizada',
 ];
 const DEFAULT_STONE_LINES = [
   'Nacional',
@@ -77,9 +78,9 @@ const getCatalogSaveErrorMessage = (error: any, itemName: string) => {
   const message = String(error?.message || '');
   const code = String(error?.code || '');
   if (code.includes('permission-denied') || message.includes('Missing or insufficient permissions')) {
-    return `Sem permissÃ£o para salvar ${itemName}. Entre novamente e confirme se o acesso ao sistema foi liberado corretamente.`;
+    return `Sem permissão para salvar ${itemName}. Entre novamente e confirme se o acesso ao sistema foi liberado corretamente.`;
   }
-  return message || `NÃ£o foi possÃ­vel cadastrar ${itemName}.`;
+  return message || `Não foi possível cadastrar ${itemName}.`;
 };
 
 const AdminAccordionSection: React.FC<{
@@ -206,8 +207,8 @@ export const AdminPage: React.FC = () => {
         setEmployeeError('');
       },
       (error) => {
-        console.error('Erro ao carregar funcionÃ¡rios:', error);
-        setEmployeeError('NÃ£o foi possÃ­vel carregar os funcionÃ¡rios agora.');
+        console.error('Erro ao carregar funcionários:', error);
+        setEmployeeError('Não foi possível carregar os funcionários agora.');
       },
     );
     return unsubscribe;
@@ -222,7 +223,7 @@ export const AdminPage: React.FC = () => {
       updatedAt: serverTimestamp(),
       updatedByUid: authUser?.uid || '',
       updatedByEmail: authUser?.email || '',
-      updatedByName: accessUser?.nome || authUser?.user_metadata?.name || authUser?.email || 'UsuÃ¡rio',
+      updatedByName: accessUser?.nome || authUser?.user_metadata?.name || authUser?.email || 'Usuário',
     });
     await logAuditEvent({user: accessUser || authUser, action: 'toggle_user_block', module: 'admin', targetId: target.uid, oldValue: target.blocked, newValue: !target.blocked});
   };
@@ -236,7 +237,7 @@ export const AdminPage: React.FC = () => {
       updatedAt: serverTimestamp(),
       updatedByUid: authUser?.uid || '',
       updatedByEmail: authUser?.email || '',
-      updatedByName: accessUser?.nome || authUser?.user_metadata?.name || authUser?.email || 'UsuÃ¡rio',
+      updatedByName: accessUser?.nome || authUser?.user_metadata?.name || authUser?.email || 'Usuário',
     });
     await logAuditEvent({user: accessUser || authUser, action: 'change_user_role', module: 'admin', targetId: target.uid, oldValue: target.role, newValue: newRole});
   };
@@ -256,7 +257,7 @@ export const AdminPage: React.FC = () => {
       updatedAt: serverTimestamp(),
       updatedByUid: authUser?.uid || '',
       updatedByEmail: authUser?.email || '',
-      updatedByName: accessUser?.nome || authUser?.user_metadata?.name || authUser?.email || 'UsuÃ¡rio',
+      updatedByName: accessUser?.nome || authUser?.user_metadata?.name || authUser?.email || 'Usuário',
     });
     await logAuditEvent({user: accessUser || authUser, action: 'change_user_permission', module: 'admin', targetId: target.uid, oldValue: target.permissions?.[module]?.[action as never], newValue: checked});
   };
@@ -275,7 +276,7 @@ export const AdminPage: React.FC = () => {
     event.preventDefault();
     const employeeName = employeeForm.name.trim();
     if (!employeeName) {
-      setEmployeeError('Informe o nome do funcionÃ¡rio antes de adicionar.');
+      setEmployeeError('Informe o nome do funcionário antes de adicionar.');
       return;
     }
 
@@ -291,8 +292,8 @@ export const AdminPage: React.FC = () => {
       });
       setEmployeeForm({name: '', role: 'Medidor', phone: ''});
     } catch (error) {
-      console.error('Erro ao adicionar funcionÃ¡rio:', error);
-      setEmployeeError('NÃ£o foi possÃ­vel adicionar o funcionÃ¡rio. Confira sua conexÃ£o e tente novamente.');
+      console.error('Erro ao adicionar funcionário:', error);
+      setEmployeeError('Não foi possível adicionar o funcionário. Confira sua conexão e tente novamente.');
     } finally {
       setSavingEmployee(false);
     }
@@ -303,7 +304,7 @@ export const AdminPage: React.FC = () => {
   };
 
   const deleteEmployee = async (employeeId: string) => {
-    const confirmed = window.confirm('Tem certeza que deseja excluir este funcionÃ¡rio?');
+    const confirmed = window.confirm('Tem certeza que deseja excluir este funcionário?');
     if (!confirmed) return;
     const ok = await deleteFirestoreDoc('employees', employeeId);
     if (!ok) return;
@@ -492,8 +493,8 @@ export const AdminPage: React.FC = () => {
       }
       resetFixtureForm(fixtureForm.category);
     } catch (error: any) {
-      console.error('Erro ao cadastrar peÃ§a:', error);
-      setFixtureError(getCatalogSaveErrorMessage(error, 'a peÃ§a'));
+      console.error('Erro ao cadastrar peça:', error);
+      setFixtureError(getCatalogSaveErrorMessage(error, 'a peça'));
     } finally {
       setSavingFixture(false);
     }
@@ -515,7 +516,7 @@ export const AdminPage: React.FC = () => {
     try {
       await deleteObject(storageRef(storage, fileUrl));
     } catch (error) {
-      console.warn('NÃ£o foi possÃ­vel excluir arquivo armazenado:', error);
+      console.warn('Não foi possível excluir arquivo armazenado:', error);
     }
   };
 
@@ -563,7 +564,7 @@ export const AdminPage: React.FC = () => {
     }
 
     if (!authUser?.email) {
-      setResetError('NÃ£o foi possÃ­vel confirmar sua conta. Entre novamente e tente de novo.');
+      setResetError('Não foi possível confirmar sua conta. Entre novamente e tente de novo.');
       return;
     }
 
@@ -572,7 +573,7 @@ export const AdminPage: React.FC = () => {
       return;
     }
 
-    const confirmed = window.confirm('Esta aÃ§Ã£o vai apagar clientes, orÃ§amentos, materiais, estoque, compras, funcionÃ¡rios, condomÃ­nios e histÃ³rico. Deseja continuar?');
+    const confirmed = window.confirm('Esta ação vai apagar clientes, orçamentos, materiais, estoque, compras, funcionários, condomínios e histórico. Deseja continuar?');
     if (!confirmed) return;
 
     setResettingData(true);
@@ -583,10 +584,10 @@ export const AdminPage: React.FC = () => {
       }
 
       setResetConfirmation('');
-      setResetMessage(`${totalDeleted} registros foram excluÃ­dos. UsuÃ¡rios, permissÃµes e configuraÃ§Ãµes foram mantidos.`);
+      setResetMessage(`${totalDeleted} registros foram excluídos. Usuários, permissões e configurações foram mantidos.`);
     } catch (error) {
       console.error('Erro ao resetar dados:', error);
-      setResetError('NÃ£o foi possÃ­vel limpar os dados. Tente novamente em instantes.');
+      setResetError('Não foi possível limpar os dados. Tente novamente em instantes.');
     } finally {
       setResettingData(false);
     }
@@ -595,13 +596,13 @@ export const AdminPage: React.FC = () => {
   return (
     <div className="space-y-6 pb-20">
       <header>
-        <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">AdministraÃ§Ã£o</h1>
-        <p className="text-slate-500 mt-1">Gerencie usuÃ¡rios, permissÃµes e funcionÃ¡rios da produÃ§Ã£o.</p>
+        <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Administração</h1>
+        <p className="text-slate-500 mt-1">Gerencie usuários, permissões e funcionários da produção.</p>
       </header>
 
       <AdminAccordionSection
-        title="FuncionÃ¡rios"
-        description="Cadastre a equipe para vincular responsÃ¡veis e avaliaÃ§Ãµes aos projetos."
+        title="Funcionários"
+        description="Cadastre a equipe para vincular responsáveis e avaliações aos projetos."
         defaultOpen
       >
         <section className="space-y-6">
@@ -617,7 +618,7 @@ export const AdminPage: React.FC = () => {
               setEmployeeError('');
               setEmployeeForm((form) => ({...form, name: event.target.value}));
             }}
-            placeholder="Nome do funcionÃ¡rio"
+            placeholder="Nome do funcionário"
             className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20"
           />
           <select
@@ -652,7 +653,7 @@ export const AdminPage: React.FC = () => {
             <div key={employee.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 flex items-center justify-between gap-3">
               <div>
                 <div className="font-bold text-slate-900">{employee.name}</div>
-                <div className="text-xs text-slate-400">{employee.role}{employee.phone ?` Â· ${employee.phone}` : ''}</div>
+                <div className="text-xs text-slate-400">{employee.role}{employee.phone ?` · ${employee.phone}` : ''}</div>
               </div>
               <div className="flex items-center gap-1">
                 <button
@@ -669,15 +670,15 @@ export const AdminPage: React.FC = () => {
             </div>
           ))}
           {employees.length === 0 && (
-            <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum funcionÃ¡rio cadastrado.</div>
+            <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum funcionário cadastrado.</div>
           )}
         </div>
         </section>
       </AdminAccordionSection>
 
       <AdminAccordionSection
-        title="CatÃ¡logo de pedras e chapas"
-        description="Gerencie pedras e as opÃ§Ãµes de chapas no mesmo lugar."
+        title="Catálogo de pedras e chapas"
+        description="Gerencie pedras e as opções de chapas no mesmo lugar."
       >
         <section className="space-y-6">
         {editingMaterial && (
@@ -728,7 +729,7 @@ export const AdminPage: React.FC = () => {
           </button>
           {editingMaterial && (
             <button type="button" onClick={resetMaterialForm} className="rounded-2xl bg-slate-100 px-4 py-3 font-bold text-slate-600 hover:bg-slate-200">
-              Cancelar ediÃ§Ã£o
+              Cancelar edição
             </button>
           )}
         </form>
@@ -747,10 +748,10 @@ export const AdminPage: React.FC = () => {
                 <div>
                   <div className="font-bold text-slate-900">{material.name}</div>
                   <div className="text-xs text-slate-400">
-                    {material.materialLine || material.category || 'Sem categoria'} Â· {material.provider || 'Sem fornecedor'}
+                    {material.materialLine || material.category || 'Sem categoria'} · {material.provider || 'Sem fornecedor'}
                   </div>
                   <div className="mt-1 text-xs text-slate-400">
-                    {[material.materialType, material.thicknessLabel, material.texture].filter(Boolean).join(' Â· ') || 'Sem especificaÃ§Ãµes'}
+                    {[material.materialType, material.thicknessLabel, material.texture].filter(Boolean).join(' · ') || 'Sem especificações'}
                   </div>
                   <div className="mt-1 text-xs font-semibold text-slate-500">Preco e margem definidos na aba Materiais.</div>
                 </div>
@@ -774,18 +775,18 @@ export const AdminPage: React.FC = () => {
       </AdminAccordionSection>
 
       <AdminAccordionSection
-        title="CatÃ¡logo de peÃ§as do cliente"
-        description="Cadastre cooktop, cuba, torneira e demais peÃ§as para orÃ§amento."
+        title="Catálogo de peças do cliente"
+        description="Cadastre cooktop, cuba, torneira e demais peças para orçamento."
       >
         <section className="space-y-6">
         {editingFixture && (
           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
-            Editando peÃ§a: {editingFixture.name}
+            Editando peça: {editingFixture.name}
           </div>
         )}
 
         <form onSubmit={addFixtureCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-          <input value={fixtureForm.name} onChange={(e) => setFixtureForm((f) => ({...f, name: e.target.value}))} placeholder="Nome da peÃ§a" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input value={fixtureForm.name} onChange={(e) => setFixtureForm((f) => ({...f, name: e.target.value}))} placeholder="Nome da peça" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <select value={fixtureForm.category} onChange={(e) => setFixtureForm((f) => ({...f, category: e.target.value as FixtureCategory}))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
             <option value="cooktop">Cooktop</option>
             <option value="sink">Cuba</option>
@@ -798,7 +799,7 @@ export const AdminPage: React.FC = () => {
           <input value={fixtureForm.width} onChange={(e) => setFixtureForm((f) => ({...f, width: e.target.value}))} placeholder="Largura (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input value={fixtureForm.depth} onChange={(e) => setFixtureForm((f) => ({...f, depth: e.target.value}))} placeholder="Profundidade (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input value={fixtureForm.height} onChange={(e) => setFixtureForm((f) => ({...f, height: e.target.value}))} placeholder="Altura (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
-          <input value={fixtureForm.diameter} onChange={(e) => setFixtureForm((f) => ({...f, diameter: e.target.value}))} placeholder="DiÃ¢metro (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
+          <input value={fixtureForm.diameter} onChange={(e) => setFixtureForm((f) => ({...f, diameter: e.target.value}))} placeholder="Diâmetro (cm)" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <input value={fixtureForm.imageUrl} onChange={(e) => setFixtureForm((f) => ({...f, imageUrl: e.target.value}))} placeholder="URL da imagem" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-2" />
           <label className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 cursor-pointer md:col-span-2 xl:col-span-1">
             {fixtureImageFile ? fixtureImageFile.name : 'Upload da imagem'}
@@ -824,13 +825,13 @@ export const AdminPage: React.FC = () => {
               }}
             />
           </label>
-          <input value={fixtureForm.notes} onChange={(e) => setFixtureForm((f) => ({...f, notes: e.target.value}))} placeholder="InformaÃ§Ãµes" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-1" />
+          <input value={fixtureForm.notes} onChange={(e) => setFixtureForm((f) => ({...f, notes: e.target.value}))} placeholder="Informações" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-1" />
           <button type="submit" disabled={savingFixture} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-white disabled:opacity-60">
-            {savingFixture ?'Salvando...' : editingFixture ? 'Salvar peÃ§a' : 'Cadastrar peÃ§a'}
+            {savingFixture ?'Salvando...' : editingFixture ? 'Salvar peça' : 'Cadastrar peça'}
           </button>
           {editingFixture && (
             <button type="button" onClick={() => resetFixtureForm()} className="rounded-2xl bg-slate-100 px-4 py-3 font-bold text-slate-600 hover:bg-slate-200">
-              Cancelar ediÃ§Ã£o
+              Cancelar edição
             </button>
           )}
         </form>
@@ -854,9 +855,9 @@ export const AdminPage: React.FC = () => {
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="font-bold text-slate-900">{item.name}</div>
-                  <div className="text-xs text-slate-400">{item.category} Â· {[item.brand, item.model].filter(Boolean).join(' / ')}</div>
+                  <div className="text-xs text-slate-400">{item.category} · {[item.brand, item.model].filter(Boolean).join(' / ')}</div>
                   <div className="mt-1 text-xs font-semibold text-slate-500">
-                    {[item.width ?`${item.width} cm largura` : '', item.depth ?`${item.depth} cm profundidade` : '', item.diameter ?`${item.diameter} cm diÃ¢metro` : ''].filter(Boolean).join(' Â· ') || 'Sem medidas cadastradas'}
+                    {[item.width ?`${item.width} cm largura` : '', item.depth ?`${item.depth} cm profundidade` : '', item.diameter ?`${item.diameter} cm diâmetro` : ''].filter(Boolean).join(' · ') || 'Sem medidas cadastradas'}
                   </div>
                   {item.manualUrl && (
                     <a
@@ -865,12 +866,12 @@ export const AdminPage: React.FC = () => {
                       rel="noreferrer"
                       className="mt-2 inline-flex items-center rounded-full bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-blue-700 hover:bg-blue-100"
                     >
-                      Manual disponÃ­vel
+                      Manual disponível
                     </a>
                   )}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
-                  <button type="button" onClick={() => startEditingFixture(item)} className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/10 hover:text-brand-primary" title="Editar peÃ§a" aria-label="Editar peÃ§a">
+                  <button type="button" onClick={() => startEditingFixture(item)} className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/10 hover:text-brand-primary" title="Editar peça" aria-label="Editar peça">
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button type="button" onClick={() => toggleFixtureCatalogItem(item)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', item.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
@@ -880,14 +881,14 @@ export const AdminPage: React.FC = () => {
               </div>
             </div>
           ))}
-          {fixtureCatalog.length === 0 && <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-400">Nenhuma peÃ§a cadastrada.</div>}
+          {fixtureCatalog.length === 0 && <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-400">Nenhuma peça cadastrada.</div>}
         </div>
         </section>
       </AdminAccordionSection>
 
       <AdminAccordionSection
-        title="ConfiguraÃ§Ãµes, catÃ¡logo de chapas e condomÃ­nios"
-        description="Defina configuraÃ§Ãµes gerais, regras de condomÃ­nio e opÃ§Ãµes de chapas."
+        title="Configurações, catálogo de chapas e condomínios"
+        description="Defina configurações gerais, regras de condomínio e opções de chapas."
       >
         <SettingsPage />
       </AdminAccordionSection>
@@ -895,7 +896,7 @@ export const AdminPage: React.FC = () => {
       {isAdmin && (
         <AdminAccordionSection
           title="Zona de risco"
-          description="AÃ§Ãµes crÃ­ticas para limpar dados operacionais do sistema."
+          description="Ações críticas para limpar dados operacionais do sistema."
         >
           <section className="rounded-[24px] border border-red-100 bg-red-50/60 p-6 shadow-sm">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -905,11 +906,11 @@ export const AdminPage: React.FC = () => {
               </div>
               <div>
                 <p className="max-w-3xl text-sm text-red-700">
-                  Use este botÃ£o apenas quando o sistema estiver pronto para comeÃ§ar do zero. Ele apaga clientes, orÃ§amentos, materiais, estoque, reservas, compras, funcionÃ¡rios, condomÃ­nios e histÃ³rico.
+                  Use este botão apenas quando o sistema estiver pronto para começar do zero. Ele apaga clientes, orçamentos, materiais, estoque, reservas, compras, funcionários, condomínios e histórico.
                 </p>
                 <p className="mt-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-red-500">
                   <AlertTriangle className="h-4 w-4" />
-                  UsuÃ¡rios, permissÃµes e configuraÃ§Ãµes da empresa serÃ£o mantidos.
+                  Usuários, permissões e configurações da empresa serão mantidos.
                 </p>
               </div>
             </div>
@@ -943,15 +944,15 @@ export const AdminPage: React.FC = () => {
       )}
 
       <AdminAccordionSection
-        title="UsuÃ¡rios do sistema"
-        description="Controle cargos, permissÃµes individuais e bloqueios de acesso."
+        title="Usuários do sistema"
+        description="Controle cargos, permissões individuais e bloqueios de acesso."
       >
         <section className="overflow-hidden rounded-[24px] border border-slate-100 bg-white p-2">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-50">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">UsuÃ¡rio</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Usuário</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Funcao</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Permissoes</th>
@@ -965,7 +966,7 @@ export const AdminPage: React.FC = () => {
                 users.map((user) => {
                   const userIsMaster = isMasterAdmin(user);
                   const effectivePermissions = mergePermissions(user);
-                  const displayName = user.nome || user.email || 'UsuÃ¡rio';
+                  const displayName = user.nome || user.email || 'Usuário';
                   const updatedBy = user.updatedByName || user.updatedByEmail;
                   const canEditThisUser = canAlterUsers && !userIsMaster;
 
@@ -984,7 +985,7 @@ export const AdminPage: React.FC = () => {
                           <Mail className="w-3 h-3" /> {user.email}
                         </div>
                         <div className="mt-2 text-[11px] text-slate-400">
-                          Atualizado por: {updatedBy || 'NÃ£o informado'}
+                          Atualizado por: {updatedBy || 'Não informado'}
                         </div>
                       </td>
                       <td className="px-6 py-4 min-w-[190px]">
@@ -1065,6 +1066,7 @@ export const AdminPage: React.FC = () => {
     </div>
   );
 };
+
 
 
 

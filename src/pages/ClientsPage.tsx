@@ -1,7 +1,7 @@
-﻿import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from '../lib/firestore';
 import {Banknote, CheckCircle2, ClipboardList, Edit2, FileText, FileUp, Info, MapPin, Phone, Plus, Search, Trash2, User, Users, X} from 'lucide-react';
-import {db} from '../lib/firebase';
+import {db} from '../lib/firestore';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureCategory, FixtureInfo, InventoryItem, LegacyClientPiece, LegacyPaymentInstallment, LegacyPaymentStatus, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
 import {cn, formatCurrency, formatCurrencyInput, parseCurrencyInput} from '../lib/utils';
@@ -1934,7 +1934,7 @@ export const ClientsPage: React.FC = () => {
                                                       )}
                                                       title={`${rating} ponto(s)`}
                                                     >
-                                                      {rating <= 2 ?'☹' : rating === 3 ?'◯' : '☺'}
+                                                      {rating <= 2 ?'?' : rating === 3 ?'?' : '?'}
                                                     </button>
                                                   ))}
                                                 </div>
@@ -2600,3 +2600,4 @@ const FixtureInput = ({label, value, type = 'text', onBlur}: {label: string; val
     </label>
   );
 };
+

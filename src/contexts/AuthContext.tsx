@@ -1,7 +1,7 @@
 import React, {createContext, useContext, useEffect, useState} from 'react';
 import {collection, doc, getDoc, getDocs, limit, onSnapshot, query, setDoc, updateDoc, where} from '../lib/firestore';
 import {auth, AuthUser} from '../lib/auth';
-import {db} from '../lib/firebase';
+import {db} from '../lib/firestore';
 import {AccessUser, Profile} from '../types';
 import {getDefaultPermissions, isMasterAdmin, MASTER_ADMIN_EMAIL} from '../lib/permissions';
 
@@ -207,3 +207,4 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
 };
 
 export const useAuth = () => useContext(AuthContext);
+

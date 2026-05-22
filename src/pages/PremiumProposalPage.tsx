@@ -4,7 +4,7 @@ import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
 import {ArrowLeft, Expand, FileText, Printer, Sparkles, X} from 'lucide-react';
 import {useNavigate, useParams} from 'react-router-dom';
-import {db} from '../lib/firebase';
+import {db} from '../lib/firestore';
 import {useSettings} from '../hooks/useSettings';
 import {convertImageUrlToWebp} from '../lib/imageUtils';
 import {Material, Quote, QuotePiece} from '../types';
@@ -746,3 +746,4 @@ const ProposalImage = ({
     </button>
   );
 };
+

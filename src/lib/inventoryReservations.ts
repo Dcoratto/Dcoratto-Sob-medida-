@@ -1,5 +1,5 @@
 import {collection, deleteDoc, doc, getDocs, query, serverTimestamp, setDoc, where} from './firestore';
-import {db} from './firebase';
+import {db} from './firestore';
 import {Quote, QuoteStatus} from '../types';
 import {isQuoteApprovedOrBeyond, normalizeText} from './quoteStatus';
 import {buildMaterialVariantKey} from './materialVariants';
@@ -97,3 +97,4 @@ export const applyQuoteInventoryByStatusTransition = async (
   const nextQuoteStatus = (nextStatus as QuoteStatus | undefined) ?? quote.status;
   await syncQuoteReservation(quoteId, {...quote, status: nextQuoteStatus});
 };
+

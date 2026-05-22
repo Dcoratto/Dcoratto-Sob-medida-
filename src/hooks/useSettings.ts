@@ -1,6 +1,6 @@
-ï»¿import {useEffect, useState} from 'react';
+import {useEffect, useState} from 'react';
 import {doc, onSnapshot} from '../lib/firestore';
-import {db} from '../lib/firebase';
+import {db} from '../lib/firestore';
 import {repairText} from '../lib/utils';
 import {Settings, SupplierContact} from '../types';
 
@@ -25,9 +25,9 @@ export const DEFAULT_SETTINGS: Settings = {
   companyName: "D'Coratto Sob Medida",
   phone: '(00) 00000-0000',
   email: 'contato@dcoratto.com.br',
-  address: 'EndereÃ§o da marmoraria',
+  address: 'Endereço da marmoraria',
   defaultValidity: 15,
-  defaultNotes: 'OrÃ§amento sujeito Ã  confirmaÃ§Ã£o de medidas no local.',
+  defaultNotes: 'Orçamento sujeito à confirmação de medidas no local.',
   laborRatePerLinearMeter: 120,
   defaultFrontonHeight: 10,
   defaultSkirtHeight: 4,
@@ -45,9 +45,9 @@ export const DEFAULT_SETTINGS: Settings = {
     sinkSculptedPrice: 800,
   },
   paymentMethods: [
-    {name: 'Ã€ vista (Dinheiro/Pix)', adjustment: -5},
-    {name: 'CartÃ£o de DÃ©bito', adjustment: 0},
-    {name: 'CartÃ£o de CrÃ©dito 1x', adjustment: 3},
+    {name: 'À vista (Dinheiro/Pix)', adjustment: -5},
+    {name: 'Cartão de Débito', adjustment: 0},
+    {name: 'Cartão de Crédito 1x', adjustment: 3},
     {name: 'Parcelado 10x', adjustment: 15},
   ],
   sculptedSinkRates: {
@@ -58,9 +58,9 @@ export const DEFAULT_SETTINGS: Settings = {
     riskPercentage: 10,
   },
   materialCatalog: {
-    materialCategories: ['Granito', 'MÃ¡rmore', 'Quartzito', 'Quartzo', 'LÃ¢mina Ultracompacta', 'Porcelanato', 'SuperfÃ­cie Sinterizada'],
+    materialCategories: ['Granito', 'Mármore', 'Quartzito', 'Quartzo', 'Lâmina Ultracompacta', 'Porcelanato', 'Superfície Sinterizada'],
     materialLines: ['Nacional', 'Importado', 'Premium', 'Super Premium'],
-    materialTypes: ['Chapa', 'LÃ¢mina'],
+    materialTypes: ['Chapa', 'Lâmina'],
     naturalThicknesses: ['2cm'],
     slabThicknesses: ['6mm', '12mm'],
     textures: ['Polido', 'Escovado', 'Acetinado', 'Flameado', 'Fosco', 'Levigado'],
@@ -114,3 +114,4 @@ export const useSettings = () => {
 
   return {settings, loading};
 };
+

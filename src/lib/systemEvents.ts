@@ -1,5 +1,5 @@
 import {addDoc, collection, serverTimestamp} from './firestore';
-import {db} from './firebase';
+import {db} from './firestore';
 import {SystemEvent} from '../types';
 
 export type SystemEventInput = Omit<SystemEvent, 'id' | 'createdAt'>;
@@ -14,3 +14,4 @@ export const logSystemEvent = async (event: SystemEventInput) => {
     console.error('Erro ao registrar evento do sistema:', error);
   }
 };
+

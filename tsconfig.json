@@ -24,5 +24,7 @@
     "resolveJsonModule": true,
     "esModuleInterop": true,
     "noEmit": true
-  }
+  },
+  "include": ["src", "api", "scripts", "*.ts", "*.tsx", "*.mjs", "*.js"],
+  "exclude": ["node_modules", "dist", "Marmoraria", "dist-verify", "dist-verify-final", "dist-verify-final-2", "dist-verify-final-3"]
 }

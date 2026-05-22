@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {doc, setDoc, updateDoc} from '../lib/firestore';
-import {db} from '../lib/firebase';
+import {db} from '../lib/firestore';
 import {useAuth} from '../contexts/AuthContext';
 import {Briefcase, Camera, Mail, Phone, Save, Upload, User} from 'lucide-react';
 import {cn} from '../lib/utils';
@@ -219,3 +219,4 @@ export const ProfilePage: React.FC = () => {
     </div>
   );
 };
+

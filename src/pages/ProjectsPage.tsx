@@ -2,7 +2,7 @@ import React, {useEffect, useMemo, useState} from 'react';
 import {collection, onSnapshot, orderBy, query} from '../lib/firestore';
 import {useNavigate} from 'react-router-dom';
 import {ClipboardCheck, Search} from 'lucide-react';
-import {db} from '../lib/firebase';
+import {db} from '../lib/firestore';
 import {Client, Quote} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {getClientDisplayStatus, quoteStatusColor, shouldAppearInProjects} from '../lib/quoteStatus';
@@ -164,3 +164,4 @@ export const ProjectsPage: React.FC = () => {
     </div>
   );
 };
+

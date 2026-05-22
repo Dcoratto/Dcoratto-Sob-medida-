@@ -1,8 +1,8 @@
-﻿import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, Timestamp} from '../lib/firestore';
 import {useNavigate} from 'react-router-dom';
 import {AlertCircle, CheckCircle2, Clock, Database, FileText, FolderKanban, Package, Plus, StickyNote, Trash2, TrendingUp, Users} from 'lucide-react';
-import {db} from '../lib/firebase';
+import {db} from '../lib/firestore';
 import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Profile, Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
@@ -725,7 +725,7 @@ export const Dashboard: React.FC = () => {
                 <h3 className="mt-1 text-xl font-display font-bold text-slate-900">{selectedDeadlineEvent.clientName || 'Evento'}</h3>
                 <div className="mt-1 text-sm font-semibold text-slate-500">{selectedDeadlineEvent.date.toLocaleDateString('pt-BR')}</div>
               </div>
-              <button type="button" onClick={() => setSelectedDeadlineEvent(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">✕</button>
+              <button type="button" onClick={() => setSelectedDeadlineEvent(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">?</button>
             </div>
 
             {selectedDeadlineClient ? (
@@ -770,6 +770,7 @@ export const Dashboard: React.FC = () => {
     </div>
   );
 };
+
 
 
 

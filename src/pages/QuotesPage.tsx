@@ -4,7 +4,7 @@ import {useLocation, useNavigate} from 'react-router-dom';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
 import {Copy, Edit2, FileText, Plus, Search, Trash2} from 'lucide-react';
-import {db} from '../lib/firebase';
+import {db} from '../lib/firestore';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Quote, QuoteStatus} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
@@ -289,3 +289,4 @@ export const QuotesPage: React.FC = () => {
     </div>
   );
 };
+

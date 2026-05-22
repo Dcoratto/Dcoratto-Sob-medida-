@@ -1,7 +1,7 @@
-ï»¿import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {addDoc, collection, deleteDoc, doc, onSnapshot, Timestamp, updateDoc} from '../lib/firestore';
 import {AlertTriangle, CalendarPlus, ChevronLeft, ChevronRight, Copy, ExternalLink, MapPin, Phone, Plus, X} from 'lucide-react';
-import {db} from '../lib/firebase';
+import {db} from '../lib/firestore';
 import {Client, CondominiumRule, Quote} from '../types';
 import {cn} from '../lib/utils';
 import {getHolidayInfo} from '../lib/holidays';
@@ -48,34 +48,34 @@ interface ManualCalendarEvent {
   purchaseGroupId?: string;
 }
 
-const altoTieteCities = ['SÃ£o Paulo', 'ArujÃ¡', 'Mogi das Cruzes', 'Suzano', 'PoÃ¡', 'Itaquaquecetuba', 'Ferraz de Vasconcelos', 'Guarulhos', 'Biritiba Mirim', 'SalesÃ³polis', 'Santa Isabel'];
+const altoTieteCities = ['São Paulo', 'Arujá', 'Mogi das Cruzes', 'Suzano', 'Poá', 'Itaquaquecetuba', 'Ferraz de Vasconcelos', 'Guarulhos', 'Biritiba Mirim', 'Salesópolis', 'Santa Isabel'];
 
 const fixCorruptedText = (value: unknown) =>
   String(value || '')
-    .replace(/ÃƒÂ§/g, 'Ã§')
-    .replace(/ÃƒÂ£/g, 'Ã£')
-    .replace(/ÃƒÂ¡/g, 'Ã¡')
-    .replace(/ÃƒÂ¢/g, 'Ã¢')
-    .replace(/ÃƒÂª/g, 'Ãª')
-    .replace(/ÃƒÂ©/g, 'Ã©')
-    .replace(/ÃƒÂ­/g, 'Ã­')
-    .replace(/ÃƒÂ³/g, 'Ã³')
-    .replace(/ÃƒÂ´/g, 'Ã´')
-    .replace(/ÃƒÂµ/g, 'Ãµ')
-    .replace(/ÃƒÂº/g, 'Ãº')
-    .replace(/ÃƒÂ/g, 'Ã')
-    .replace(/Ãƒâ€°/g, 'Ã‰')
-    .replace(/Ãƒâ€œ/g, 'Ã“')
-    .replace(/ÃƒÅ¡/g, 'Ãš')
-    .replace(/Ãƒâ€¡/g, 'Ã‡')
-    .replace(/ÃƒÂ­/g, 'Ã­')
-    .replace(/ÃƒÂ±/g, 'Ã±')
-    .replace(/Ã‚Â·/g, 'Â·')
-    .replace(/Ã‚Âº/g, 'Âº')
-    .replace(/Ã‚Âª/g, 'Âª')
-    .replace(/Ã‚Â²/g, 'Â²')
-    .replace(/Ã‚ /g, ' ')
-    .replace(/Ã‚/g, '');
+    .replace(/Ã§/g, 'ç')
+    .replace(/Ã£/g, 'ã')
+    .replace(/Ã¡/g, 'á')
+    .replace(/Ã¢/g, 'â')
+    .replace(/Ãª/g, 'ê')
+    .replace(/Ã©/g, 'é')
+    .replace(/Ã­/g, 'í')
+    .replace(/Ã³/g, 'ó')
+    .replace(/Ã´/g, 'ô')
+    .replace(/Ãµ/g, 'õ')
+    .replace(/Ãº/g, 'ú')
+    .replace(/Ã/g, 'Á')
+    .replace(/Ã‰/g, 'É')
+    .replace(/Ã“/g, 'Ó')
+    .replace(/Ãš/g, 'Ú')
+    .replace(/Ã‡/g, 'Ç')
+    .replace(/Ã­/g, 'í')
+    .replace(/Ã±/g, 'ñ')
+    .replace(/Â·/g, '·')
+    .replace(/Âº/g, 'º')
+    .replace(/Âª/g, 'ª')
+    .replace(/Â²/g, '²')
+    .replace(/Â /g, ' ')
+    .replace(/Â/g, '');
 
 const toDate = (value: any) => {
   if (!value) return null;
@@ -117,20 +117,20 @@ const startOfMonthGrid = (date: Date) => {
   return output;
 };
 
-const eventLabel = (type: EventType) => type === 'entrega' ? 'Entrega' : type === 'medicao' ? 'MediÃ§Ã£o' : type === 'pedido' ? 'Pedido' : 'Evento';
+const eventLabel = (type: EventType) => type === 'entrega' ? 'Entrega' : type === 'medicao' ? 'Medição' : type === 'pedido' ? 'Pedido' : 'Evento';
 const eventTimeLabel = (date: Date, eventTime?: string) => eventTime || date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
 const calendarEventTitle = (event: CalendarEvent) => {
-  if (event.type === 'manual' || event.type === 'pedido') return [fixCorruptedText(event.title || 'Evento'), fixCorruptedText(event.clientName)].filter(Boolean).join(' Â· ');
-  return `${eventLabel(event.type)} Â· ${fixCorruptedText(event.clientName || event.title || 'Cliente')}`;
+  if (event.type === 'manual' || event.type === 'pedido') return [fixCorruptedText(event.title || 'Evento'), fixCorruptedText(event.clientName)].filter(Boolean).join(' · ');
+  return `${eventLabel(event.type)} · ${fixCorruptedText(event.clientName || event.title || 'Cliente')}`;
 };
 const countdownLabel = (daysLeft: number) => {
-  if (daysLeft < 0) return 'Evento jÃ¡ ocorreu';
+  if (daysLeft < 0) return 'Evento já ocorreu';
   if (daysLeft === 0) return 'Hoje';
   if (daysLeft === 1) return 'Falta 1 dia';
   return `Faltam ${daysLeft} dias`;
 };
 const clientFullAddress = (client: Client | null) => {
-  if (!client) return 'NÃ£o informado';
+  if (!client) return 'Não informado';
 
   const locationBits = [
     fixCorruptedText(client.address),
@@ -147,11 +147,11 @@ const clientFullAddress = (client: Client | null) => {
     client.lot ? `Lote ${fixCorruptedText(client.lot)}` : '',
   ].filter(Boolean);
 
-  return [...locationBits, ...condominiumBits].join(' Â· ') || 'NÃ£o informado';
+  return [...locationBits, ...condominiumBits].join(' · ') || 'Não informado';
 };
 
 const clientAddressTypeLabel = (type?: Client['addressType']) =>
-  type === 'apartamento' ? 'Apartamento' : type === 'condominio' ? 'CondomÃ­nio' : type === 'casa' ? 'Casa' : 'NÃ£o informado';
+  type === 'apartamento' ? 'Apartamento' : type === 'condominio' ? 'Condomínio' : type === 'casa' ? 'Casa' : 'Não informado';
 const createCalendarFeedToken = () => {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
     return crypto.randomUUID().replace(/-/g, '');
@@ -199,13 +199,13 @@ export const CalendarPage: React.FC = () => {
     const message = String((error as {message?: string} | undefined)?.message || '');
     switch (code) {
       case 'permission-denied':
-        return 'Sem permissÃ£o para salvar evento. FaÃ§a login novamente e confirme se o seu acesso estÃ¡ liberado.';
+        return 'Sem permissão para salvar evento. Faça login novamente e confirme se o seu acesso está liberado.';
       case 'unauthenticated':
-        return 'SessÃ£o expirada. Entre novamente para salvar o evento.';
+        return 'Sessão expirada. Entre novamente para salvar o evento.';
       case 'unavailable':
-        return 'Sem conexÃ£o com o servidor no momento. Tente novamente em instantes.';
+        return 'Sem conexão com o servidor no momento. Tente novamente em instantes.';
       default:
-        return message ? `NÃ£o foi possÃ­vel salvar o evento. ${message}` : 'NÃ£o foi possÃ­vel salvar o evento. Tente novamente.';
+        return message ? `Não foi possível salvar o evento. ${message}` : 'Não foi possível salvar o evento. Tente novamente.';
     }
   };
 
@@ -347,7 +347,7 @@ export const CalendarPage: React.FC = () => {
         const holidayBlocked = (holiday.national && condominium.blockNationalHolidays) || (holiday.city && condominium.blockCityHolidays);
         if (!dayBlocked && !holidayBlocked) return null;
         const reason = dayBlocked
-          ? `dia nÃ£o permitido (${['seg', 'ter', 'qua', 'qui', 'sex', 'sÃ¡b', 'dom'][weekday]})`
+          ? `dia não permitido (${['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'][weekday]})`
           : `feriado bloqueado (${holiday.national || holiday.city})`;
         return {event, condominium, reason};
       })
@@ -399,7 +399,7 @@ export const CalendarPage: React.FC = () => {
     const weekday = (date.getDay() + 6) % 7;
     const dayBlocked = !condominium.allowedWeekdays.includes(weekday);
     const holidayBlocked = (holiday.national && condominium.blockNationalHolidays) || (holiday.city && condominium.blockCityHolidays);
-    if (dayBlocked) return `${fixCorruptedText(condominium.name)}: dia nÃ£o permitido (${['seg', 'ter', 'qua', 'qui', 'sex', 'sÃ¡b', 'dom'][weekday]}).`;
+    if (dayBlocked) return `${fixCorruptedText(condominium.name)}: dia não permitido (${['seg', 'ter', 'qua', 'qui', 'sex', 'sáb', 'dom'][weekday]}).`;
     if (holidayBlocked) return `${condominium.name}: ${holiday.national || holiday.city} em ${condominium.city}.`;
     return '';
   };
@@ -422,7 +422,7 @@ export const CalendarPage: React.FC = () => {
 
   const handleOpenSubscribeModal = async () => {
     if (!appUid) {
-      setSubscribeError('FaÃ§a login novamente para gerar o link de assinatura.');
+      setSubscribeError('Faça login novamente para gerar o link de assinatura.');
       setShowSubscribeModal(true);
       return;
     }
@@ -439,8 +439,8 @@ export const CalendarPage: React.FC = () => {
       setSubscriptionToken(token);
       setShowSubscribeModal(true);
     } catch (error) {
-      console.error('Erro ao preparar assinatura do calendÃ¡rio', error);
-      setSubscribeError('NÃ£o foi possÃ­vel preparar o link de assinatura agora. Tente novamente.');
+      console.error('Erro ao preparar assinatura do calendário', error);
+      setSubscribeError('Não foi possível preparar o link de assinatura agora. Tente novamente.');
       setShowSubscribeModal(true);
     } finally {
       setIsPreparingSubscription(false);
@@ -452,8 +452,8 @@ export const CalendarPage: React.FC = () => {
     try {
       await navigator.clipboard.writeText(subscriptionHttpsUrl);
     } catch (error) {
-      console.error('Erro ao copiar link do calendÃ¡rio', error);
-      setSubscribeError('NÃ£o foi possÃ­vel copiar o link automaticamente. Copie manualmente abaixo.');
+      console.error('Erro ao copiar link do calendário', error);
+      setSubscribeError('Não foi possível copiar o link automaticamente. Copie manualmente abaixo.');
     }
   };
 
@@ -479,7 +479,7 @@ export const CalendarPage: React.FC = () => {
 
     const selectedBaseDate = parseInputDate(newEventDate);
     if (!selectedBaseDate) {
-      setCreateError('Data invÃ¡lida. Selecione uma data vÃ¡lida.');
+      setCreateError('Data inválida. Selecione uma data válida.');
       return;
     }
 
@@ -491,7 +491,7 @@ export const CalendarPage: React.FC = () => {
     const title = newEventTitle.trim() || (client ? `Evento - ${client.name}` : 'Evento manual');
     const blockedReason = getCondominiumBlockReason(client, selectedDate);
     if (blockedReason) {
-      setCreateError(`NÃ£o Ã© possÃ­vel agendar nessa data. ${blockedReason}`);
+      setCreateError(`Não é possível agendar nessa data. ${blockedReason}`);
       return;
     }
 
@@ -516,7 +516,7 @@ export const CalendarPage: React.FC = () => {
           ...payload,
           createdAt: Timestamp.now(),
           createdByUid: appUid || '',
-          createdByName: fixCorruptedText(profile?.name || user?.user_metadata?.name || user?.email || 'UsuÃ¡rio'),
+          createdByName: fixCorruptedText(profile?.name || user?.user_metadata?.name || user?.email || 'Usuário'),
         });
       }
       setShowCreateModal(false);
@@ -544,8 +544,8 @@ export const CalendarPage: React.FC = () => {
     <div className="space-y-5 sm:space-y-6">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">CalendÃ¡rio operacional</h1>
-          <p className="text-slate-500 mt-1">MediÃ§Ãµes, entregas, eventos manuais e feriados municipais.</p>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Calendário operacional</h1>
+          <p className="text-slate-500 mt-1">Medições, entregas, eventos manuais e feriados municipais.</p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
           <button
@@ -583,7 +583,7 @@ export const CalendarPage: React.FC = () => {
                 onClick={() => setSelectedEvent(event)}
                 className={cn('block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-white/70', level === 'maximo' ? 'text-rose-900' : 'text-amber-800')}
               >
-                {level === 'maximo' ? 'ALERTA MÃXIMO' : 'ALERTA DE PRAZO'}: {fixCorruptedText(event.clientName || event.title)} em {event.date.toLocaleDateString('pt-BR')} Ã s {eventTimeLabel(event.date, event.eventTime)} ({daysLeft === 0 ? 'hoje' : `faltam ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`})
+                {level === 'maximo' ? 'ALERTA MÁXIMO' : 'ALERTA DE PRAZO'}: {fixCorruptedText(event.clientName || event.title)} em {event.date.toLocaleDateString('pt-BR')} às {eventTimeLabel(event.date, event.eventTime)} ({daysLeft === 0 ? 'hoje' : `faltam ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`})
               </button>
             ))}
           </div>
@@ -592,7 +592,7 @@ export const CalendarPage: React.FC = () => {
 
       {restrictions.length > 0 && (
         <section className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
-          <div className="flex items-center gap-2 text-amber-800 font-bold"><AlertTriangle className="w-5 h-5" />RestriÃ§Ãµes de condomÃ­nio</div>
+          <div className="flex items-center gap-2 text-amber-800 font-bold"><AlertTriangle className="w-5 h-5" />Restrições de condomínio</div>
           <div className="mt-3 space-y-2">
             {restrictions.slice(0, 8).map(({event, condominium, reason}) => (
               <button
@@ -610,7 +610,7 @@ export const CalendarPage: React.FC = () => {
 
       <section className="overflow-hidden rounded-[28px] border border-slate-100 bg-white shadow-sm sm:rounded-[32px]">
         <div className="border-b border-slate-100 px-4 py-4 sm:hidden">
-          <div className="text-sm font-bold text-slate-900">Agenda do mÃªs</div>
+          <div className="text-sm font-bold text-slate-900">Agenda do mês</div>
           <div className="mt-1 text-xs font-semibold uppercase tracking-widest text-slate-400">{monthLabel}</div>
         </div>
 
@@ -622,7 +622,7 @@ export const CalendarPage: React.FC = () => {
                   <div>
                     <div className={cn('text-sm font-bold capitalize', isToday ? 'text-brand-primary' : 'text-slate-900')}>
                       {day.toLocaleDateString('pt-BR', {weekday: 'long', day: '2-digit', month: '2-digit'})}
-                      {isToday ? ' Â· Hoje' : ''}
+                      {isToday ? ' · Hoje' : ''}
                     </div>
                     {(nationalHoliday || cityHolidays.length > 0) && (
                       <div className="mt-2 space-y-1">
@@ -659,12 +659,12 @@ export const CalendarPage: React.FC = () => {
             ))
           ) : (
             <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">
-              Nenhum evento ou feriado relevante neste mÃªs.
+              Nenhum evento ou feriado relevante neste mês.
             </div>
           )}
         </div>
 
-        <div className="hidden sm:grid sm:grid-cols-7 border-b border-slate-100 text-center text-xs font-bold uppercase tracking-widest text-slate-400">{['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'SÃ¡b', 'Dom'].map((label) => <div key={label} className="py-3">{label}</div>)}</div>
+        <div className="hidden sm:grid sm:grid-cols-7 border-b border-slate-100 text-center text-xs font-bold uppercase tracking-widest text-slate-400">{['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map((label) => <div key={label} className="py-3">{label}</div>)}</div>
         <div className="hidden sm:grid sm:grid-cols-7">
           {days.map((day) => {
             const key = keyOf(day);
@@ -677,7 +677,7 @@ export const CalendarPage: React.FC = () => {
             return (
               <div key={key} className={cn('min-h-[132px] border-r border-b border-slate-100 p-2', !isCurrentMonth && 'bg-slate-50/70', isToday && 'bg-brand-primary/5 ring-1 ring-brand-primary/30')}>
                 <div className="flex items-start justify-between gap-2">
-                  <div className={cn('text-xs font-bold', isToday ? 'text-brand-primary' : isCurrentMonth ? 'text-slate-700' : 'text-slate-400')}>{day.getDate()}{isToday ? ' Â· Hoje' : ''}</div>
+                  <div className={cn('text-xs font-bold', isToday ? 'text-brand-primary' : isCurrentMonth ? 'text-slate-700' : 'text-slate-400')}>{day.getDate()}{isToday ? ' · Hoje' : ''}</div>
                   <button type="button" onClick={() => openCreateModal(day)} className="rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600" title="Adicionar evento">
                     <Plus className="w-3.5 h-3.5" />
                   </button>
@@ -707,7 +707,7 @@ export const CalendarPage: React.FC = () => {
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{eventLabel(selectedEvent.type)}</div>
                 <h3 className="mt-1 text-xl font-display font-bold text-slate-900">{calendarEventTitle(selectedEvent)}</h3>
-                <div className="mt-1 text-sm font-semibold text-slate-500">{selectedEvent.date.toLocaleDateString('pt-BR')} Â· {eventTimeLabel(selectedEvent.date, selectedEvent.eventTime)} Â· {fixCorruptedText(selectedEvent.status || 'Sem status')}</div>
+                <div className="mt-1 text-sm font-semibold text-slate-500">{selectedEvent.date.toLocaleDateString('pt-BR')} · {eventTimeLabel(selectedEvent.date, selectedEvent.eventTime)} · {fixCorruptedText(selectedEvent.status || 'Sem status')}</div>
               </div>
               <button type="button" onClick={() => setSelectedEvent(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
             </div>
@@ -724,8 +724,8 @@ export const CalendarPage: React.FC = () => {
 
               {(selectedEvent.type === 'manual' || selectedEvent.type === 'pedido') && (
                 <>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{fixCorruptedText(selectedEvent.description?.trim() || 'Sem descriÃ§Ã£o.')}</div>
-                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-500">Criado por: <span className="text-slate-700">{fixCorruptedText(selectedEvent.createdByName || 'NÃ£o informado')}</span></div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{fixCorruptedText(selectedEvent.description?.trim() || 'Sem descrição.')}</div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-500">Criado por: <span className="text-slate-700">{fixCorruptedText(selectedEvent.createdByName || 'Não informado')}</span></div>
                 </>
               )}
 
@@ -733,8 +733,8 @@ export const CalendarPage: React.FC = () => {
                 <div className="rounded-2xl bg-slate-50 px-4 py-3">
                   <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Detalhes do pedido</div>
                   <div className="mt-1 space-y-1 text-sm font-semibold text-slate-800">
-                    <div>Fornecedor: {fixCorruptedText(selectedEvent.supplier || 'NÃ£o informado')}</div>
-                    <div>Material: {fixCorruptedText(selectedEvent.materialName || selectedEvent.title || 'NÃ£o informado')}</div>
+                    <div>Fornecedor: {fixCorruptedText(selectedEvent.supplier || 'Não informado')}</div>
+                    <div>Material: {fixCorruptedText(selectedEvent.materialName || selectedEvent.title || 'Não informado')}</div>
                   </div>
                 </div>
               )}
@@ -748,26 +748,26 @@ export const CalendarPage: React.FC = () => {
                   <div className="rounded-2xl bg-slate-50 px-4 py-3">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400"><Phone className="w-4 h-4" />Contato</div>
                     <div className="mt-1 space-y-1 text-sm font-semibold text-slate-800">
-                      <div>Telefone: {fixCorruptedText(selectedClient.phone || 'NÃ£o informado')}</div>
-                      <div>E-mail: {fixCorruptedText(selectedClient.email || 'NÃ£o informado')}</div>
+                      <div>Telefone: {fixCorruptedText(selectedClient.phone || 'Não informado')}</div>
+                      <div>E-mail: {fixCorruptedText(selectedClient.email || 'Não informado')}</div>
                     </div>
                   </div>
                   <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400"><MapPin className="w-4 h-4" />EndereÃ§o completo</div>
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400"><MapPin className="w-4 h-4" />Endereço completo</div>
                     <div className="mt-1 text-sm font-semibold text-slate-800">{clientFullAddress(selectedClient)}</div>
                   </div>
                   <div className="rounded-2xl bg-slate-50 px-4 py-3">
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Detalhes do cadastro</div>
                     <div className="mt-1 space-y-1 text-sm font-semibold text-slate-800">
                       <div>Tipo: {clientAddressTypeLabel(selectedClient.addressType)}</div>
-                      <div>CPF: {fixCorruptedText(selectedClient.cpf || 'NÃ£o informado')}</div>
-                      <div>RG: {fixCorruptedText(selectedClient.rg || 'NÃ£o informado')}</div>
-                      <div>Nascimento: {fixCorruptedText(selectedClient.birthDate || 'NÃ£o informado')}</div>
+                      <div>CPF: {fixCorruptedText(selectedClient.cpf || 'Não informado')}</div>
+                      <div>RG: {fixCorruptedText(selectedClient.rg || 'Não informado')}</div>
+                      <div>Nascimento: {fixCorruptedText(selectedClient.birthDate || 'Não informado')}</div>
                     </div>
                   </div>
                   {selectedClient.notes?.trim() && (
                     <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                      <div className="text-xs font-bold uppercase tracking-widest text-slate-400">ObservaÃ§Ãµes do cliente</div>
+                      <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Observações do cliente</div>
                       <div className="mt-1 text-sm font-semibold text-slate-800 whitespace-pre-wrap">{fixCorruptedText(selectedClient.notes)}</div>
                     </div>
                   )}
@@ -790,7 +790,7 @@ export const CalendarPage: React.FC = () => {
             <div className="flex items-start justify-between gap-3">
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{editingEventId ? 'Editar evento' : 'Novo evento'}</div>
-                <h3 className="mt-1 text-xl font-display font-bold text-slate-900">{editingEventId ? 'Atualizar no calendÃ¡rio' : 'Adicionar no calendÃ¡rio'}</h3>
+                <h3 className="mt-1 text-xl font-display font-bold text-slate-900">{editingEventId ? 'Atualizar no calendário' : 'Adicionar no calendário'}</h3>
               </div>
               <button type="button" onClick={() => { setShowCreateModal(false); resetForm(); }} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
             </div>
@@ -805,8 +805,8 @@ export const CalendarPage: React.FC = () => {
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">TÃ­tulo</label>
-                <input value={newEventTitle} onChange={(event) => setNewEventTitle(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary" placeholder="Ex: visita tÃ©cnica" />
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Título</label>
+                <input value={newEventTitle} onChange={(event) => setNewEventTitle(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary" placeholder="Ex: visita técnica" />
               </div>
 
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -815,20 +815,20 @@ export const CalendarPage: React.FC = () => {
                   <input type="date" value={newEventDate} onChange={(event) => setNewEventDate(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary" required />
                 </div>
                 <div>
-                  <label className="text-xs font-bold uppercase tracking-widest text-slate-500">HorÃ¡rio</label>
+                  <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Horário</label>
                   <input type="time" value={newEventTime} onChange={(event) => setNewEventTime(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary" required />
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">DescriÃ§Ã£o (opcional)</label>
-                <textarea value={newEventDescription} onChange={(event) => setNewEventDescription(event.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary" placeholder="Detalhes do que serÃ¡ feito" />
+                <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Descrição (opcional)</label>
+                <textarea value={newEventDescription} onChange={(event) => setNewEventDescription(event.target.value)} rows={3} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary" placeholder="Detalhes do que será feito" />
               </div>
 
               {createError && <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{createError}</div>}
 
               <button type="submit" disabled={isSavingEvent} className="w-full rounded-xl bg-brand-primary px-3 py-2 text-sm font-bold text-white hover:brightness-105 disabled:opacity-70">
-                {isSavingEvent ? 'Salvando...' : editingEventId ? 'Salvar alteraÃ§Ãµes' : 'Salvar evento'}
+                {isSavingEvent ? 'Salvando...' : editingEventId ? 'Salvar alterações' : 'Salvar evento'}
               </button>
             </form>
           </div>
@@ -841,7 +841,7 @@ export const CalendarPage: React.FC = () => {
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Assinar cronograma</div>
                 <h3 className="mt-1 text-xl font-display font-bold text-slate-900">Sincronizar com iPhone e Android</h3>
-                <p className="mt-2 text-sm text-slate-500">Depois de assinar uma vez, o calendÃ¡rio do aparelho passa a acompanhar seu cronograma por link.</p>
+                <p className="mt-2 text-sm text-slate-500">Depois de assinar uma vez, o calendário do aparelho passa a acompanhar seu cronograma por link.</p>
               </div>
               <button type="button" onClick={() => setShowSubscribeModal(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
             </div>
@@ -856,7 +856,7 @@ export const CalendarPage: React.FC = () => {
               >
                 <div>
                   <div className="text-sm font-bold text-slate-900">Assinar no iPhone</div>
-                  <div className="text-xs text-slate-500">Abre o app CalendÃ¡rio com o link de assinatura.</div>
+                  <div className="text-xs text-slate-500">Abre o app Calendário com o link de assinatura.</div>
                 </div>
                 <ExternalLink className="w-4 h-4 text-slate-400" />
               </a>
@@ -879,7 +879,7 @@ export const CalendarPage: React.FC = () => {
 
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Link de assinatura</div>
-                <div className="mt-2 break-all text-sm font-semibold text-slate-700">{subscriptionHttpsUrl || 'Link indisponÃ­vel no momento.'}</div>
+                <div className="mt-2 break-all text-sm font-semibold text-slate-700">{subscriptionHttpsUrl || 'Link indisponível no momento.'}</div>
                 <button
                   type="button"
                   onClick={handleCopySubscriptionLink}
@@ -896,7 +896,7 @@ export const CalendarPage: React.FC = () => {
               </div>
 
               <div className="rounded-2xl bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-                ObservaÃ§Ã£o sobre Android: o app Google Calendar nem sempre aceita uma nova assinatura direto no celular. Se ele nÃ£o adicionar sozinho, abra o Google Calendar no navegador ou use o link copiado para concluir a assinatura.
+                Observação sobre Android: o app Google Calendar nem sempre aceita uma nova assinatura direto no celular. Se ele não adicionar sozinho, abra o Google Calendar no navegador ou use o link copiado para concluir a assinatura.
               </div>
 
               {subscribeError && (
@@ -910,4 +910,5 @@ export const CalendarPage: React.FC = () => {
     </div>
   );
 };
+
 

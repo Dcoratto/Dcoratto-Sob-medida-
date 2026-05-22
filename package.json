@@ -10,9 +10,7 @@
     "preview": "vite preview --configLoader runner --host=0.0.0.0",
     "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
     "lint": "tsc --noEmit",
-    "export:firebase": "node scripts/export-firebase-firestore.mjs",
     "build:supabase-import": "node scripts/build-supabase-import.mjs",
-    "migrate:firebase-storage": "node scripts/migrate-firebase-storage-to-supabase.mjs",
     "bootstrap:supabase-auth": "node scripts/bootstrap-supabase-auth.mjs"
   },
   "dependencies": {
@@ -25,8 +23,6 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
-    "firebase": "^12.12.1",
-    "firebase-admin": "^13.8.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^0.546.0",

@@ -1,9 +1,9 @@
-Ôªøimport { doc, deleteDoc } from './firestore';
-import { db } from './firebase';
+import { doc, deleteDoc } from './firestore';
+import { db } from './firestore';
 
 export async function deleteRecordDoc(collectionName: string, id: string) {
   if (!collectionName || !id) {
-    window.alert('N√£o foi poss√≠vel excluir: registro inv√°lido.');
+    window.alert('N„o foi possÌvel excluir: registro inv·lido.');
     return false;
   }
 
@@ -13,9 +13,10 @@ export async function deleteRecordDoc(collectionName: string, id: string) {
     return true;
   } catch (error) {
     console.error('Erro ao excluir registro:', error);
-    window.alert('N√£o foi poss√≠vel excluir agora. Tente novamente em alguns instantes.');
+    window.alert('N„o foi possÌvel excluir agora. Tente novamente em alguns instantes.');
     return false;
   }
 }
 
 export const deleteFirestoreDoc = deleteRecordDoc;
+

@@ -1,6 +1,6 @@
 import {addDoc, collection, serverTimestamp} from './firestore';
 import {AuthUser} from './auth';
-import {db} from './firebase';
+import {db} from './firestore';
 import {AccessUser} from '../types';
 
 export const logAuditEvent = async ({

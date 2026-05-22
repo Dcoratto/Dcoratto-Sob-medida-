@@ -20,7 +20,7 @@ export default defineConfig(({mode}) => {
     },
     optimizeDeps: {
       noDiscovery: true,
-      include: [],
+      include: ['react-router-dom', 'react-router', 'cookie'],
     },
     server: {
       hmr: process.env.DISABLE_HMR !== 'true',

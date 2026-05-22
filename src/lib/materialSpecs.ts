@@ -1,3 +1,5 @@
+import {repairText} from './utils';
+
 type MaterialSpecFields = {
   materialLine?: string;
   materialType?: string;
@@ -18,14 +20,14 @@ const formatThicknessLabel = (material: MaterialSpecFields) => {
 
 export const formatMaterialSpecs = (material: MaterialSpecFields) =>
   [
-    material.materialLine,
-    material.materialType,
+    repairText(material.materialLine || ''),
+    repairText(material.materialType || ''),
     formatThicknessLabel(material),
-    material.texture,
+    repairText(material.texture || ''),
   ].filter(Boolean).join(' | ');
 
 export const formatMaterialSpecsWithProvider = (material: MaterialSpecFields) =>
   [
     formatMaterialSpecs(material),
-    material.provider,
+    repairText(material.provider || ''),
   ].filter(Boolean).join(' | ');

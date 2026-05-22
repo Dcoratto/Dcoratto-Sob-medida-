@@ -741,7 +741,7 @@ export const SettingsPage: React.FC = () => {
                 onChange={(e) => setCondoAddressMode(e.target.value as CondominiumRule['addressMode'])}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
               >
-                <option value="street">Rua e numero</option>
+                <option value="street">Rua e n√∫mero</option>
                 <option value="lot">Quadra e lote</option>
               </select>
               <p className="text-xs text-slate-400">Essa escolha define quais campos aparecem ao vincular o condominio no cadastro do cliente.</p>
@@ -799,7 +799,7 @@ export const SettingsPage: React.FC = () => {
                 <div>
                   <div className="font-bold text-slate-900">{condo.name}</div>
                   <div className="text-xs text-slate-500">
-                    {condo.city} ∑ {(condo.addressMode || 'street') === 'lot' ? 'Quadra e lote' : 'Rua e numero'} ∑ {condo.workStartHour}-{condo.workEndHour} ∑ Dias: {condo.allowedWeekdays.map((item) => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'][item]).join(', ')}
+                    {condo.city} ¬∑ {(condo.addressMode || 'street') === 'lot' ? 'Quadra e lote' : 'Rua e n√∫mero'} ¬∑ {condo.workStartHour}-{condo.workEndHour} ¬∑ Dias: {condo.allowedWeekdays.map((item) => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab', 'Dom'][item]).join(', ')}
                   </div>
                 </div>
                 <div className="flex gap-2">
@@ -982,7 +982,7 @@ const SupplierCatalogField: React.FC<{
       <textarea
         value={draft.notes}
         onChange={(e) => setDraft({...draft, notes: e.target.value})}
-        placeholder="ObservaÁıes do fornecedor"
+        placeholder="Observa√ß√µes do fornecedor"
         className="w-full min-h-[72px] bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
       />
 
@@ -1006,7 +1006,7 @@ const SupplierCatalogField: React.FC<{
           disabled={saving}
           className="ml-2 inline-flex items-center gap-2 rounded-xl bg-slate-200 px-4 py-2.5 text-sm font-bold text-slate-700 transition-all hover:bg-slate-300 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Cancelar ediÁ„o
+          Cancelar edi√ß√£o
         </button>
       )}
 

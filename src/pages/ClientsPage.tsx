@@ -4,7 +4,7 @@ import {Banknote, CheckCircle2, ClipboardList, Edit2, FileText, FileUp, Info, Ma
 import {db} from '../lib/firestore';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureCategory, FixtureInfo, InventoryItem, LegacyClientPiece, LegacyPaymentInstallment, LegacyPaymentStatus, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
-import {cn, formatCurrency, formatCurrencyInput, parseCurrencyInput} from '../lib/utils';
+import {cn, formatCurrency, formatCurrencyInput, parseCurrencyInput, repairText} from '../lib/utils';
 import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
@@ -168,37 +168,7 @@ const normalizeInputDateToDisplay = (value: string) => {
   return `${day}/${month}/${year}`;
 };
 
-const fixCorruptedText = (value: unknown) => {
-  const text = String(value || '');
-  if (!text) return '';
-
-  return text
-    .replace(/Ã§/g, 'ç')
-    .replace(/Ã£/g, 'ã')
-    .replace(/Ã¡/g, 'á')
-    .replace(/Ã¢/g, 'â')
-    .replace(/Ãª/g, 'ê')
-    .replace(/Ã©/g, 'é')
-    .replace(/Ã­/g, 'í')
-    .replace(/Ã³/g, 'ó')
-    .replace(/Ã´/g, 'ô')
-    .replace(/Ãµ/g, 'õ')
-    .replace(/Ãº/g, 'ú')
-    .replace(/Ã/g, 'Á')
-    .replace(/Ã‡/g, 'Ç')
-    .replace(/Ãƒ/g, 'Ã')
-    .replace(/Ã‰/g, 'É')
-    .replace(/ÃŠ/g, 'Ê')
-    .replace(/Ã“/g, 'Ó')
-    .replace(/Ã”/g, 'Ô')
-    .replace(/Ãš/g, 'Ú')
-    .replace(/Ã­/g, 'í')
-    .replace(/Ã±/g, 'ñ')
-    .replace(/Â·/g, '·')
-    .replace(/Âº/g, 'º')
-    .replace(/Âª/g, 'ª')
-    .replace(/Â/g, '');
-};
+const fixCorruptedText = repairText;
 
 const deriveStreetAddress = (client: Client) => {
   if (client.streetAddress?.trim()) return client.streetAddress.trim();

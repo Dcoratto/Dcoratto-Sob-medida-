@@ -36,8 +36,9 @@ export const auth = {
     supabase.auth.resetPasswordForEmail(email, {
       redirectTo: window.location.origin,
     }),
+  updatePassword: (password: string) =>
+    supabase.auth.updateUser({password}),
   signOut: () => supabase.auth.signOut(),
 };
 
 export type AuthUser = User;
-

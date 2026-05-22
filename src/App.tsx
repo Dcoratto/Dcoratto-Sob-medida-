@@ -4,7 +4,7 @@
  */
 
 import React, {Suspense, lazy} from 'react';
-import {HashRouter, Navigate, Route, Routes} from 'react-router-dom';
+import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom';
 import {AuthProvider, useAuth} from './contexts/AuthContext';
 import {Shell} from './components/layout/Shell';
 import {PermissionModule} from './lib/permissions';
@@ -72,7 +72,7 @@ const RouteLoadingFallback = () => (
 export default function App() {
   return (
     <AuthProvider>
-      <HashRouter>
+      <BrowserRouter>
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -96,7 +96,7 @@ export default function App() {
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Suspense>
-      </HashRouter>
+      </BrowserRouter>
     </AuthProvider>
   );
 }

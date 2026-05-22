@@ -1,3 +1,4 @@
+import {repairTextDeep} from './utils';
 import {supabase} from './supabase';
 
 type TableName = string;
@@ -181,7 +182,7 @@ const normalizeTopLevelValueFromDb = (table: string, field: string, value: unkno
     return new Timestamp(new Date(transformedValue));
   }
 
-  return transformedValue;
+  return repairTextDeep(transformedValue);
 };
 
 const mapRowFromDb = (table: string, row: Record<string, unknown>) => {

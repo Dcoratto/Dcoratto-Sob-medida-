@@ -1,15 +1,29 @@
-﻿import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { auth } from '../lib/auth';
-import { useAuth } from '../contexts/AuthContext';
-import { Logo } from '../components/layout/Logo';
-import { Mail, Lock, User as UserIcon, ArrowRight, KeyRound, Link as LinkIcon } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import React, {useEffect, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
+import {auth} from '../lib/auth';
+import {useAuth} from '../contexts/AuthContext';
+import {Logo} from '../components/layout/Logo';
+import {Mail, Lock, User as UserIcon, ArrowRight, KeyRound, Link as LinkIcon} from 'lucide-react';
+import {motion, AnimatePresence} from 'motion/react';
+
+type AuthScreenMode = 'login' | 'signup' | 'recovery';
+
+const getAuthScreenMode = (): AuthScreenMode => {
+  if (typeof window === 'undefined') return 'login';
+
+  const searchParams = new URLSearchParams(window.location.search);
+  const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+  const authType = (hashParams.get('type') || searchParams.get('type') || '').toLowerCase();
+
+  if (authType === 'recovery') return 'recovery';
+  if (authType === 'invite') return 'signup';
+  return 'login';
+};
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
-  const [isLogin, setIsLogin] = useState(true);
+  const {user, loading: authLoading} = useAuth();
+  const [mode, setMode] = useState<AuthScreenMode>(() => getAuthScreenMode());
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -17,11 +31,18 @@ export const Login: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const isLogin = mode === 'login';
+  const isRecovery = mode === 'recovery';
+
   useEffect(() => {
-    if (!authLoading && user) {
+    setMode(getAuthScreenMode());
+  }, []);
+
+  useEffect(() => {
+    if (!authLoading && user && !isRecovery) {
       navigate('/');
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, isRecovery, navigate]);
 
   const translateError = (message: string) => {
     const text = String(message || '').toLowerCase();
@@ -30,6 +51,7 @@ export const Login: React.FC = () => {
     if (text.includes('user already registered')) return 'Este e-mail já está cadastrado. Use entrar ou link por e-mail.';
     if (text.includes('password should be at least')) return 'A senha deve ter pelo menos 6 caracteres.';
     if (text.includes('invalid email')) return 'E-mail inválido.';
+    if (text.includes('auth session missing')) return 'Abra novamente o link recebido por e-mail para redefinir sua senha.';
     return 'Ocorreu um erro. Tente novamente.';
   };
 
@@ -40,7 +62,17 @@ export const Login: React.FC = () => {
     setLoading(true);
 
     try {
-      if (isLogin) {
+      if (isRecovery) {
+        const {error: updateError} = await auth.updatePassword(password);
+        if (updateError) throw updateError;
+        if (typeof window !== 'undefined') {
+          window.history.replaceState({}, document.title, '/login');
+        }
+        setSuccess('Senha atualizada com sucesso. Você já pode entrar no sistema.');
+        setPassword('');
+        setMode('login');
+        navigate('/');
+      } else if (isLogin) {
         const {error: signInError} = await auth.signInWithPassword(email, password);
         if (signInError) throw signInError;
       } else {
@@ -96,65 +128,69 @@ export const Login: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FBFBFD] p-6">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md bg-white rounded-[32px] shadow-2xl shadow-slate-200/50 p-8 md:p-12 border border-slate-100"
+        initial={{opacity: 0, y: 20}}
+        animate={{opacity: 1, y: 0}}
+        className="w-full max-w-md rounded-[32px] border border-slate-100 bg-white p-8 shadow-2xl shadow-slate-200/50 md:p-12"
       >
-        <div className="flex flex-col items-center mb-10">
-          <Logo className="scale-125 mb-4" />
+        <div className="mb-10 flex flex-col items-center">
+          <Logo className="mb-4 scale-125" />
           <h1 className="text-2xl font-display font-semibold text-slate-900">
-            {isLogin ? 'Bem-vindo de volta' : 'Crie sua conta'}
+            {isRecovery ? 'Defina sua nova senha' : isLogin ? 'Bem-vindo de volta' : 'Crie sua conta'}
           </h1>
-          <p className="text-slate-500 text-sm mt-2 text-center">
-            {isLogin
-              ? 'Entre com senha ou receba um link por e-mail para acessar'
-              : 'Crie um novo acesso usando o Supabase'}
+          <p className="mt-2 text-center text-sm text-slate-500">
+            {isRecovery
+              ? 'Crie uma nova senha para concluir sua recuperação de acesso'
+              : isLogin
+                ? 'Entre com senha ou receba um link por e-mail para acessar'
+                : 'Crie um novo acesso usando o Supabase'}
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <AnimatePresence mode="wait">
-            {!isLogin && (
+            {!isLogin && !isRecovery && (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
+                initial={{opacity: 0, height: 0}}
+                animate={{opacity: 1, height: 'auto'}}
+                exit={{opacity: 0, height: 0}}
                 className="relative"
               >
-                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                <UserIcon className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
                   placeholder="Nome completo"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none transition-all placeholder:text-slate-400"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-12 pr-4 outline-none transition-all placeholder:text-slate-400 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
                 />
               </motion.div>
             )}
           </AnimatePresence>
 
-          <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
-              type="email"
-              placeholder="E-mail"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none transition-all placeholder:text-slate-400"
-            />
-          </div>
+          {!isRecovery && (
+            <div className="relative">
+              <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+              <input
+                type="email"
+                placeholder="E-mail"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-12 pr-4 outline-none transition-all placeholder:text-slate-400 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
+              />
+            </div>
+          )}
 
           <div className="relative">
-            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             <input
               type="password"
-              placeholder={isLogin ? 'Senha' : 'Crie uma senha'}
+              placeholder={isRecovery ? 'Nova senha' : isLogin ? 'Senha' : 'Crie uma senha'}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary outline-none transition-all placeholder:text-slate-400"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-12 pr-4 outline-none transition-all placeholder:text-slate-400 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20"
             />
           </div>
 
@@ -163,73 +199,75 @@ export const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={handleForgotPassword}
-                className="text-xs font-semibold text-brand-primary hover:underline flex items-center gap-1"
+                className="flex items-center gap-1 text-xs font-semibold text-brand-primary hover:underline"
               >
-                <KeyRound className="w-3 h-3" />
+                <KeyRound className="h-3 w-3" />
                 Esqueceu sua senha?
               </button>
             </div>
           )}
 
           {error && (
-            <p className="text-red-500 text-xs px-2 font-medium">{error}</p>
+            <p className="px-2 text-xs font-medium text-red-500">{error}</p>
           )}
 
           {success && (
-            <p className="text-green-600 text-xs px-2 font-medium">{success}</p>
+            <p className="px-2 text-xs font-medium text-green-600">{success}</p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-brand-primary hover:bg-brand-primary/90 text-white py-4 rounded-2xl font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-brand-primary/20 disabled:opacity-50 active:scale-[0.98]"
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-primary py-4 font-semibold text-white shadow-lg shadow-brand-primary/20 transition-all hover:bg-brand-primary/90 active:scale-[0.98] disabled:opacity-50"
           >
             {loading ? (
-              <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/30 border-t-white" />
             ) : (
               <>
-                {isLogin ? 'Entrar' : 'Cadastrar'}
-                <ArrowRight className="w-5 h-5" />
+                {isRecovery ? 'Salvar nova senha' : isLogin ? 'Entrar' : 'Cadastrar'}
+                <ArrowRight className="h-5 w-5" />
               </>
             )}
           </button>
         </form>
 
-        <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-          <div className="flex items-start gap-3">
-            <div className="rounded-xl bg-white p-2 text-brand-primary shadow-sm">
-              <LinkIcon className="w-4 h-4" />
-            </div>
-            <div className="flex-1">
-              <div className="text-sm font-bold text-slate-900">Primeiro acesso no Supabase?</div>
-              <p className="mt-1 text-xs text-slate-500">
-                Use seu e-mail e toque em receber link. Agora os acessos nascem do zero no Supabase e nao reaproveitam usuarios antigos do Firebase.
-              </p>
-              <button
-                type="button"
-                onClick={handleEmailLink}
-                disabled={loading}
-                className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
-              >
-                <Mail className="w-4 h-4" />
-                Receber link por e-mail
-              </button>
+        {!isRecovery && (
+          <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-xl bg-white p-2 text-brand-primary shadow-sm">
+                <LinkIcon className="h-4 w-4" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-bold text-slate-900">Primeiro acesso no Supabase?</div>
+                <p className="mt-1 text-xs text-slate-500">
+                  Use seu e-mail e toque em receber link. Agora os acessos nascem do zero no Supabase e nao reaproveitam usuarios antigos do Firebase.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleEmailLink}
+                  disabled={loading}
+                  className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+                >
+                  <Mail className="h-4 w-4" />
+                  Receber link por e-mail
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
-        <p className="mt-8 text-center text-sm text-slate-500">
-          {isLogin ? 'Não tem uma conta?' : 'Já possui uma conta?'}
-          <button
-            onClick={() => setIsLogin(!isLogin)}
-            className="ml-1 font-semibold text-brand-primary hover:underline"
-          >
-            {isLogin ? 'Cadastre-se' : 'Faça login'}
-          </button>
-        </p>
+        {!isRecovery && (
+          <p className="mt-8 text-center text-sm text-slate-500">
+            {isLogin ? 'Não tem uma conta?' : 'Já possui uma conta?'}
+            <button
+              onClick={() => setMode(isLogin ? 'signup' : 'login')}
+              className="ml-1 font-semibold text-brand-primary hover:underline"
+            >
+              {isLogin ? 'Cadastre-se' : 'Faça login'}
+            </button>
+          </p>
+        )}
       </motion.div>
     </div>
   );
 };
-
-

@@ -23,10 +23,10 @@ interface ManualCalendarEvent {
 }
 
 const productionStepLabels: Record<ProductionStep, string> = {
-  medicao: 'Medição',
+  medicao: 'MediÃ§Ã£o',
   corte: 'Corte',
   acabamento: 'Acabamento',
-  instalacao: 'Instalação',
+  instalacao: 'InstalaÃ§Ã£o',
   entrega: 'Entrega',
 };
 
@@ -55,10 +55,10 @@ const periodStart = (period: Period) => {
 
 const periodLabel = (period: Period) => {
   if (period === 'today') return 'Hoje';
-  if (period === 'week') return 'últimos 7 dias';
-  if (period === 'month') return 'Mês atual';
+  if (period === 'week') return 'Ãºltimos 7 dias';
+  if (period === 'month') return 'MÃªs atual';
   if (period === 'year') return 'Ano atual';
-  return 'Todo o período';
+  return 'Todo o perÃ­odo';
 };
 
 const statusLabel = (status: string) => normalizeQuoteStatus(status);
@@ -196,7 +196,7 @@ export const ReportsPage: React.FC = () => {
   const totalReceived = legacyReceived;
   const pendingReceivable = legacyPending;
   const openValue = filteredQuotes
-    .filter((quote) => ['Orçamento', 'Orçamento Aprovado', 'Medição', 'Projeto'].includes(statusLabel(quote.status)))
+    .filter((quote) => ['OrÃ§amento', 'OrÃ§amento Aprovado', 'MediÃ§Ã£o', 'Projeto'].includes(statusLabel(quote.status)))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
   const refusedValue = filteredQuotes
     .filter((quote) => ['recusado', 'cancelado'].includes(normalize(quote.status)))
@@ -223,7 +223,7 @@ export const ReportsPage: React.FC = () => {
   const legacyQuoteDetails = filteredLegacySales.map(({client, totalPrice, pieces, status}) => ({
     id: `legacy-${client.id}`,
     clientName: client.name,
-    environment: 'Orçamento existente',
+    environment: 'OrÃ§amento existente',
     status,
     totalPrice,
     piecesCount: pieces.length,
@@ -279,7 +279,7 @@ export const ReportsPage: React.FC = () => {
 
   const exportReport = async () => {
     if (!hasPermission('relatorios', 'exportar')) {
-      alert('Você não tem permissão para exportar relatórios. Fale com o administrador.');
+      alert('VocÃª nÃ£o tem permissÃ£o para exportar relatÃ³rios. Fale com o administrador.');
       return;
     }
     try {
@@ -320,8 +320,8 @@ export const ReportsPage: React.FC = () => {
     <div className="space-y-8 pb-20">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Relatórios</h1>
-          <p className="text-slate-500 mt-1">Visão geral da marmoraria, produção, prazos, materiais e equipe.</p>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">RelatÃ³rios</h1>
+          <p className="text-slate-500 mt-1">VisÃ£o geral da marmoraria, produÃ§Ã£o, prazos, materiais e equipe.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2 lg:justify-end">
           {(['today', 'week', 'month', 'year', 'all'] as Period[]).map((item) => (
@@ -331,7 +331,7 @@ export const ReportsPage: React.FC = () => {
               onClick={() => setPeriod(item)}
               className={cn('rounded-xl px-4 py-2 text-xs font-bold uppercase transition-all', period === item ?'bg-brand-primary text-white' : 'bg-white text-slate-500 hover:bg-slate-50')}
             >
-              {item === 'today' ?'Hoje' : item === 'week' ?'Semana' : item === 'month' ?'Mês' : item === 'year' ?'Ano' : 'Tudo'}
+              {item === 'today' ?'Hoje' : item === 'week' ?'Semana' : item === 'month' ?'MÃªs' : item === 'year' ?'Ano' : 'Tudo'}
             </button>
           ))}
           {hasPermission('relatorios', 'exportar') && (
@@ -352,26 +352,26 @@ export const ReportsPage: React.FC = () => {
         <ReportCard icon={TrendingUp} label="Valor vendido" value={canViewRevenue ? formatCurrency(totalSold) : hiddenRevenueLabel} tone="brand" />
         <ReportCard icon={Gauge} label="Valor recebido" value={canViewRevenue ? formatCurrency(totalReceived) : hiddenRevenueLabel} tone="green" />
         <ReportCard icon={AlertCircle} label="A receber" value={canViewRevenue ? formatCurrency(pendingReceivable) : hiddenRevenueLabel} tone="amber" />
-        <ReportCard icon={BarChart3} label="Conversão" value={`${conversionRate}%`} tone="blue" />
+        <ReportCard icon={BarChart3} label="ConversÃ£o" value={`${conversionRate}%`} tone="blue" />
         <ReportCard icon={Users} label="Clientes" value={String(clients.length)} tone="blue" />
         <ReportCard icon={Boxes} label="Itens em estoque" value={String(inventory.length)} tone="amber" />
       </div>
 
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
-          <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Orçamentos detalhados</h2>
+          <h2 className="font-display text-xl font-bold text-slate-900 mb-5">OrÃ§amentos detalhados</h2>
           <div className="space-y-3">
             {quoteDetails.slice(0, 20).map(({quote, pieces, cutoutsTotal, fixtures}) => (
               <div key={quote.id} className="rounded-2xl bg-slate-50 p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <div className="font-bold text-slate-900">{quote.clientName}</div>
-                    <div className="text-sm text-slate-500">{quote.environment || 'Sem ambiente'} · {quote.status}</div>
-                    <div className="mt-1 text-xs text-slate-400">{pieces} peça(s) · {cutoutsTotal} recorte(s) · {fixtures} item(ns) cadastrados</div>
+                    <div className="text-sm text-slate-500">{quote.environment || 'Sem ambiente'} Â· {quote.status}</div>
+                    <div className="mt-1 text-xs text-slate-400">{pieces} peÃ§a(s) Â· {cutoutsTotal} recorte(s) Â· {fixtures} item(ns) cadastrados</div>
                   </div>
                   <div className="text-left md:text-right">
                     <div className="font-mono font-bold text-brand-primary">{canViewRevenue ? formatCurrency(quote.totalPrice || 0) : hiddenRevenueLabel}</div>
-                    <div className="text-xs text-slate-400">{(quote.totalArea || 0).toFixed(4)} m²</div>
+                    <div className="text-xs text-slate-400">{(quote.totalArea || 0).toFixed(4)} mÂ²</div>
                   </div>
                 </div>
               </div>
@@ -381,8 +381,8 @@ export const ReportsPage: React.FC = () => {
                 <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                   <div>
                     <div className="font-bold text-slate-900">{quote.clientName}</div>
-                    <div className="text-sm text-slate-500">{quote.environment} · {quote.status}</div>
-                    <div className="mt-1 text-xs text-slate-400">{quote.piecesCount} peça(s) · {quote.itemsCount} item(ns) cadastrados</div>
+                    <div className="text-sm text-slate-500">{quote.environment} Â· {quote.status}</div>
+                    <div className="mt-1 text-xs text-slate-400">{quote.piecesCount} peÃ§a(s) Â· {quote.itemsCount} item(ns) cadastrados</div>
                   </div>
                   <div className="text-left md:text-right">
                     <div className="font-mono font-bold text-brand-primary">{canViewRevenue ? formatCurrency(quote.totalPrice || 0) : hiddenRevenueLabel}</div>
@@ -391,7 +391,7 @@ export const ReportsPage: React.FC = () => {
                 </div>
               </div>
             ))}
-            {quoteDetails.length === 0 && legacyQuoteDetails.length === 0 && <EmptyText>Nenhum orçamento no período.</EmptyText>}
+            {quoteDetails.length === 0 && legacyQuoteDetails.length === 0 && <EmptyText>Nenhum orÃ§amento no perÃ­odo.</EmptyText>}
           </div>
         </div>
 
@@ -399,30 +399,30 @@ export const ReportsPage: React.FC = () => {
           <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Resumo do estoque</h2>
           <div className="space-y-3">
             <MoneyLine label="Custo em estoque" value={canViewRevenue ? inventoryCost : hiddenRevenueLabel} className="text-slate-900" />
-            <InfoLine label="Área total" value={`${inventoryArea.toFixed(2)} m²`} />
-            <InfoLine label="Reservado em orçamentos" value={`${reservedArea.toFixed(2)} m²`} />
-            <InfoLine label="Vendido/finalizado" value={`${soldArea.toFixed(2)} m²`} />
-            <InfoLine label="Compra pendente" value={`${purchasePendingArea.toFixed(2)} m²`} />
-            <InfoLine label="Perdas/descarte" value={`${lossArea.toFixed(2)} m²`} danger />
+            <InfoLine label="?rea total" value={`${inventoryArea.toFixed(2)} mÂ²`} />
+            <InfoLine label="Reservado em orÃ§amentos" value={`${reservedArea.toFixed(2)} mÂ²`} />
+            <InfoLine label="Vendido/finalizado" value={`${soldArea.toFixed(2)} mÂ²`} />
+            <InfoLine label="Compra pendente" value={`${purchasePendingArea.toFixed(2)} mÂ²`} />
+            <InfoLine label="Perdas/descarte" value={`${lossArea.toFixed(2)} mÂ²`} danger />
           </div>
         </div>
       </section>
 
       <section className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
-          <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Calendário operacional</h2>
+          <h2 className="font-display text-xl font-bold text-slate-900 mb-5">CalendÃ¡rio operacional</h2>
           <div className="space-y-3">
             {filteredCalendarEvents.slice(0, 20).map((event) => {
               const date = toDate(event.date);
               return (
                 <div key={event.id} className="rounded-2xl bg-slate-50 p-4">
-                  <div className="font-bold text-slate-900">{[event.title, event.clientName].filter(Boolean).join(' · ')}</div>
-                  <div className="text-sm text-slate-500">{date ?date.toLocaleDateString('pt-BR') : '-'} {event.eventTime ?`às ${event.eventTime}` : ''}</div>
-                  <div className="mt-1 text-xs text-slate-400">{[event.city, event.createdByName, event.description].filter(Boolean).join(' · ')}</div>
+                  <div className="font-bold text-slate-900">{[event.title, event.clientName].filter(Boolean).join(' Â· ')}</div>
+                  <div className="text-sm text-slate-500">{date ?date.toLocaleDateString('pt-BR') : '-'} {event.eventTime ?`Ã s ${event.eventTime}` : ''}</div>
+                  <div className="mt-1 text-xs text-slate-400">{[event.city, event.createdByName, event.description].filter(Boolean).join(' Â· ')}</div>
                 </div>
               );
             })}
-            {filteredCalendarEvents.length === 0 && <EmptyText>Nenhum evento manual no período.</EmptyText>}
+            {filteredCalendarEvents.length === 0 && <EmptyText>Nenhum evento manual no perÃ­odo.</EmptyText>}
           </div>
         </div>
 
@@ -432,25 +432,25 @@ export const ReportsPage: React.FC = () => {
             {filteredPurchases.slice(0, 10).map((purchase) => (
               <div key={purchase.id} className="rounded-2xl bg-slate-50 p-4">
                 <div className="font-bold text-slate-900">{purchase.materialName}</div>
-                <div className="text-sm text-slate-500">{purchase.status} · {purchase.code || 'Sem lote'} · {(purchase.area || 0).toFixed(2)} m²</div>
-                <div className="mt-1 text-xs text-slate-400">Comprou: {purchase.purchasedByName || '-'} · Recebeu: {purchase.receivedByName || '-'}</div>
+                <div className="text-sm text-slate-500">{purchase.status} Â· {purchase.code || 'Sem lote'} Â· {(purchase.area || 0).toFixed(2)} mÂ²</div>
+                <div className="mt-1 text-xs text-slate-400">Comprou: {purchase.purchasedByName || '-'} Â· Recebeu: {purchase.receivedByName || '-'}</div>
               </div>
             ))}
             {lossItems.slice(0, 8).map((item) => (
               <div key={`loss-${item.id}`} className="rounded-2xl bg-red-50 p-4">
                 <div className="font-bold text-red-900">Perda: {item.materialName}</div>
-                <div className="text-sm text-red-700">{item.lossReason || 'Descarte'} · {item.lossClientName || 'Sem cliente'} · {(item.area || 0).toFixed(2)} m²</div>
+                <div className="text-sm text-red-700">{item.lossReason || 'Descarte'} Â· {item.lossClientName || 'Sem cliente'} Â· {(item.area || 0).toFixed(2)} mÂ²</div>
                 <div className="mt-1 text-xs text-red-500">{item.lossNotes || item.notes || '-'}</div>
               </div>
             ))}
-            {filteredPurchases.length === 0 && lossItems.length === 0 && <EmptyText>Nenhuma compra ou perda no período.</EmptyText>}
+            {filteredPurchases.length === 0 && lossItems.length === 0 && <EmptyText>Nenhuma compra ou perda no perÃ­odo.</EmptyText>}
           </div>
         </div>
       </section>
 
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
-          <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Funil de orçamento e produção</h2>
+          <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Funil de orÃ§amento e produÃ§Ã£o</h2>
           <div className="space-y-3">
             {statusCounts.map((item) => (
               <div key={item.status} className="grid grid-cols-[160px_1fr_40px] items-center gap-3">
@@ -472,7 +472,7 @@ export const ReportsPage: React.FC = () => {
             <MoneyLine label="A receber" value={canViewRevenue ? pendingReceivable : hiddenRevenueLabel} className="text-amber-700" />
             <MoneyLine label="Em aberto" value={canViewRevenue ? openValue : hiddenRevenueLabel} className="text-amber-700" />
             <MoneyLine label="Recusados" value={canViewRevenue ? refusedValue : hiddenRevenueLabel} className="text-red-600" />
-            <MoneyLine label="Ticket médio" value={canViewRevenue ? ((filteredQuotes.length + filteredLegacySales.length) ?((filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) + filteredLegacySales.reduce((sum, sale) => sum + sale.totalPrice, 0)) / (filteredQuotes.length + filteredLegacySales.length)) : 0) : hiddenRevenueLabel} className="text-slate-900" />
+            <MoneyLine label="Ticket mÂ²dio" value={canViewRevenue ? ((filteredQuotes.length + filteredLegacySales.length) ?((filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) + filteredLegacySales.reduce((sum, sale) => sum + sale.totalPrice, 0)) / (filteredQuotes.length + filteredLegacySales.length)) : 0) : hiddenRevenueLabel} className="text-slate-900" />
           </div>
         </div>
       </section>
@@ -485,12 +485,12 @@ export const ReportsPage: React.FC = () => {
               <div key={item.name} className="rounded-2xl bg-slate-50 p-4 flex items-center justify-between gap-4">
                 <div>
                   <div className="font-bold text-slate-900">{item.name}</div>
-                  <div className="text-xs text-slate-400">{item.count} orçamento(s)</div>
+                  <div className="text-xs text-slate-400">{item.count} orÃ§amento(s)</div>
                 </div>
                 <div className="font-mono font-bold text-brand-primary">{canViewRevenue ? formatCurrency(item.value) : hiddenRevenueLabel}</div>
               </div>
             ))}
-            {materialSales.length === 0 && <EmptyText>Nenhum material vendido no período.</EmptyText>}
+            {materialSales.length === 0 && <EmptyText>Nenhum material vendido no perÃ­odo.</EmptyText>}
           </div>
         </div>
 
@@ -508,13 +508,13 @@ export const ReportsPage: React.FC = () => {
                 </div>
               </div>
             ))}
-            {deadlineAlerts.length === 0 && <EmptyText>Nenhum prazo crítico no período.</EmptyText>}
+            {deadlineAlerts.length === 0 && <EmptyText>Nenhum prazo crÃ­tico no perÃ­odo.</EmptyText>}
           </div>
         </div>
       </section>
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
-        <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Histórico de produção</h2>
+        <h2 className="font-display text-xl font-bold text-slate-900 mb-5">HistÃ³rico de produÃ§Ã£o</h2>
         <div className="space-y-3">
           {productionHistory.map(({quote, item}, index) => {
             const date = toDate(item.changedAt);
@@ -533,14 +533,14 @@ export const ReportsPage: React.FC = () => {
                       <div className="text-xs text-slate-400">Alterado por {item.changedByName}</div>
                     )}
                     <div className="text-xs text-slate-400">
-                      {[item.responsibleEmployeeName, item.step ?productionStepLabels[item.step] : ''].filter(Boolean).join(' · ')}
+                      {[item.responsibleEmployeeName, item.step ?productionStepLabels[item.step] : ''].filter(Boolean).join(' Â· ')}
                     </div>
                   </div>
                 </div>
               </div>
             );
           })}
-          {productionHistory.length === 0 && <EmptyText>Nenhuma movimentação de produção no período.</EmptyText>}
+          {productionHistory.length === 0 && <EmptyText>Nenhuma movimentaÃ§Ã£o de produÃ§Ã£o no perÃ­odo.</EmptyText>}
         </div>
       </section>
 
@@ -556,20 +556,20 @@ export const ReportsPage: React.FC = () => {
                     <div className="font-bold text-slate-900">{event.title}</div>
                     <div className="text-sm text-slate-600">{event.description || event.clientName || event.materialName || '-'}</div>
                     <div className="mt-1 text-xs text-slate-400">
-                      {[event.clientName, event.materialName, event.employeeName, event.quoteStatus].filter(Boolean).join(' · ')}
+                      {[event.clientName, event.materialName, event.employeeName, event.quoteStatus].filter(Boolean).join(' Â· ')}
                     </div>
                   </div>
                   <div className="text-left md:text-right">
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">
                       {date ?date.toLocaleDateString('pt-BR') : 'Sem data'}
                     </div>
-                    <div className="text-xs text-slate-400">Usuário: {event.userName || 'Não informado'}</div>
+                    <div className="text-xs text-slate-400">UsuÃ¡rio: {event.userName || 'NÃ£o informado'}</div>
                   </div>
                 </div>
               </div>
             );
           })}
-          {filteredSystemEvents.length === 0 && <EmptyText>Nenhuma movimentação registrada no período.</EmptyText>}
+          {filteredSystemEvents.length === 0 && <EmptyText>Nenhuma movimentaÃ§Ã£o registrada no perÃ­odo.</EmptyText>}
         </div>
       </section>
 
@@ -597,17 +597,17 @@ export const ReportsPage: React.FC = () => {
                 </div>
                 <div className="rounded-xl bg-white p-3">
                   <div className="font-bold text-slate-900">{evaluations.length}</div>
-                  <div className="text-slate-400">avaliações</div>
+                  <div className="text-slate-400">avaliaÃ§Ãµes</div>
                 </div>
               </div>
             </div>
           ))}
-          {employeeStats.length === 0 && <EmptyText>Nenhum funcionário cadastrado.</EmptyText>}
+          {employeeStats.length === 0 && <EmptyText>Nenhum funcionÃ¡rio cadastrado.</EmptyText>}
         </div>
       </section>
 
       <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
-        <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Avaliações registradas</h2>
+        <h2 className="font-display text-xl font-bold text-slate-900 mb-5">AvaliaÃ§Ãµes registradas</h2>
         <div className="space-y-3">
           {evaluationHistory.map(({quote, item}, index) => {
             const date = toDate(item.createdAt);
@@ -623,14 +623,14 @@ export const ReportsPage: React.FC = () => {
                       {date ?date.toLocaleDateString('pt-BR') : 'Sem data'}
                     </div>
                     <div className="text-xs text-slate-400">
-                      Nota {item.rating}/5 - Avaliado por {item.evaluatedByName || 'Não informado'}
+                      Nota {item.rating}/5 - Avaliado por {item.evaluatedByName || 'NÃ£o informado'}
                     </div>
                   </div>
                 </div>
               </div>
             );
           })}
-          {evaluationHistory.length === 0 && <EmptyText>Nenhuma avaliação registrada no período.</EmptyText>}
+          {evaluationHistory.length === 0 && <EmptyText>Nenhuma avaliaÃ§Ã£o registrada no perÃ­odo.</EmptyText>}
         </div>
       </section>
     </div>

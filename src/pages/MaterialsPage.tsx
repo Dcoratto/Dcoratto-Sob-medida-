@@ -25,9 +25,9 @@ type MaterialWithUserPrice = Material & {
   userPricePerM2: number;
 };
 
-const AREA_UNIT = 'M²';
-const LABEL_AVAILABLE = 'Disponível';
-const LABEL_MINIMUM_SALE = 'Mínimo venda/M²';
+const AREA_UNIT = 'mÂ²';
+const LABEL_AVAILABLE = 'DisponÃ­vel';
+const LABEL_MINIMUM_SALE = 'MÃ­nimo venda/mÂ²';
 
 const normalizeStatus = (value: unknown) =>
   String(value || '')
@@ -178,7 +178,7 @@ export const MaterialsPage: React.FC = () => {
     e.preventDefault();
     if (!editingMaterial) return;
     if (!hasPermission('materiais', 'editar')) {
-      alert('Você não tem permissão para editar materiais. Fale com o administrador.');
+      alert('VocÃª nÃ£o tem permissÃ£o para editar materiais. Fale com o administrador.');
       return;
     }
 
@@ -215,7 +215,7 @@ export const MaterialsPage: React.FC = () => {
 
   const handleStatusChange = async (material: Material, nextActive: boolean) => {
     if (!hasPermission('materiais', 'editar')) {
-      alert('Você não tem permissão para editar materiais. Fale com o administrador.');
+      alert('VocÃª nÃ£o tem permissÃ£o para editar materiais. Fale com o administrador.');
       return;
     }
     await updateDoc(doc(db, 'materials', material.id), {active: nextActive});
@@ -249,8 +249,8 @@ export const MaterialsPage: React.FC = () => {
               <AlertTriangle className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="font-display text-lg font-bold text-red-900">Material faltando para orçamento</h2>
-              <p className="mt-1 text-sm text-red-700">Existe reserva em orçamento maior que a área disponível no estoque. Clique no reservado para ver qual orçamento está usando.</p>
+              <h2 className="font-display text-lg font-bold text-red-900">Material faltando para orÃ§amento</h2>
+              <p className="mt-1 text-sm text-red-700">Existe reserva em orÃ§amento maior que a Ã¡rea disponÃ­vel no estoque. Clique no reservado para ver qual orÃ§amento estÃ¡ usando.</p>
             </div>
           </div>
         </div>
@@ -282,9 +282,9 @@ export const MaterialsPage: React.FC = () => {
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Faltando</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">{LABEL_MINIMUM_SALE}</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Margem</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Venda/M²</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Venda/mÂ²</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">AÃ§Ãµes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -306,14 +306,14 @@ export const MaterialsPage: React.FC = () => {
                         </div>
                         <div>
                           <div className="font-semibold text-slate-900">{material.name}</div>
-                          <div className="text-xs text-slate-400">{formatMaterialSpecsWithProvider(material) || `${material.category || 'Sem categoria'} · ${material.provider || 'Sem fornecedor'}`}</div>
+                          <div className="text-xs text-slate-400">{formatMaterialSpecsWithProvider(material) || `${material.category || 'Sem categoria'} Â· ${material.provider || 'Sem fornecedor'}`}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 font-mono text-sm text-slate-600">
                       <div>{formatNumber(material.stockArea)} {AREA_UNIT}</div>
                       {material.manualReservedArea > 0 && (
-                        <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-amber-600">{formatNumber(material.manualReservedArea)} M² reservado manual</div>
+                        <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-amber-600">{formatNumber(material.manualReservedArea)} mÂ² reservado manual</div>
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -376,7 +376,7 @@ export const MaterialsPage: React.FC = () => {
           <div className="bg-white w-full max-w-md rounded-[32px] shadow-2xl p-8 space-y-6 animate-in fade-in zoom-in duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-display font-bold text-slate-900">Preço de venda</h2>
+                <h2 className="text-2xl font-display font-bold text-slate-900">PreÃ§o de venda</h2>
                 <p className="text-sm text-slate-500 mt-1">{editingMaterial.name}</p>
               </div>
               <button type="button" onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
@@ -387,7 +387,7 @@ export const MaterialsPage: React.FC = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Mínimo de venda por M²</label>
+                  <label className="text-slate-500 font-medium text-sm">MÃ­nimo de venda por mÂ²</label>
                   <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono text-slate-600">
                     {formatCurrency(editingMaterial.baseMinimumSalePerM2 ?? 0)}
                   </div>
@@ -408,7 +408,7 @@ export const MaterialsPage: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-slate-500 font-medium text-sm">Venda final por M²</label>
+                  <label className="text-slate-500 font-medium text-sm">Venda final por mÂ²</label>
                   <input
                     type="number"
                     step="0.01"
@@ -427,7 +427,7 @@ export const MaterialsPage: React.FC = () => {
               </div>
 
               <div className="bg-brand-primary/5 border border-brand-primary/10 rounded-2xl p-4">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Preço de venda final</div>
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">PreÃ§o de venda final</div>
                 <div className="text-2xl font-display font-bold text-brand-primary mt-1">
                   {formatCurrency(Number(salePricePerM2) || 0)}
                 </div>
@@ -442,7 +442,7 @@ export const MaterialsPage: React.FC = () => {
                   onChange={(e) => setActive(e.target.checked)}
                   className="w-5 h-5 rounded-md border-slate-300 text-brand-primary focus:ring-brand-primary"
                 />
-                <label htmlFor="active" className="text-slate-700 font-medium cursor-pointer">Material disponível para venda</label>
+                <label htmlFor="active" className="text-slate-700 font-medium cursor-pointer">Material disponÃ­vel para venda</label>
               </div>
 
               <button type="submit" className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
@@ -458,7 +458,7 @@ export const MaterialsPage: React.FC = () => {
           <div className="bg-white w-full max-w-2xl rounded-[32px] shadow-2xl p-8 space-y-6 animate-in fade-in zoom-in duration-300">
             <div className="flex items-center justify-between">
               <div>
-                <h2 className="text-2xl font-display font-bold text-slate-900">Reservas em orçamento</h2>
+                <h2 className="text-2xl font-display font-bold text-slate-900">Reservas em orÃ§amento</h2>
                 <p className="text-sm text-slate-500 mt-1">{selectedReservationMaterial.name}</p>
               </div>
               <button type="button" onClick={() => setReservationMaterialId(null)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
@@ -468,7 +468,7 @@ export const MaterialsPage: React.FC = () => {
 
             <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
               {selectedReservations.length === 0 ? (
-                <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Nenhum orçamento reservando este material.</div>
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500">Nenhum orÃ§amento reservando este material.</div>
               ) : (
                 selectedReservations.map((reservation) => {
                   const quote = quoteById(reservation.quoteId);
@@ -481,13 +481,13 @@ export const MaterialsPage: React.FC = () => {
                     >
                       <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2">
                         <div>
-                          <div className="font-bold text-slate-900">{reservation.clientName || quote?.clientName || 'Cliente não informado'}</div>
-                          <div className="mt-1 text-xs text-slate-400">Orçamento #{reservation.quoteId.slice(0, 8)} · {reservation.quoteStatus}</div>
+                          <div className="font-bold text-slate-900">{reservation.clientName || quote?.clientName || 'Cliente nÃ£o informado'}</div>
+                          <div className="mt-1 text-xs text-slate-400">OrÃ§amento #{reservation.quoteId.slice(0, 8)} Â· {reservation.quoteStatus}</div>
                           {quote?.environment && <div className="mt-1 text-xs text-slate-500">Ambiente: {quote.environment}</div>}
                         </div>
                         <div className="rounded-xl bg-white px-3 py-2 text-right">
                           <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Usando</div>
-                          <div className="font-mono font-bold text-amber-700">{formatNumber(reservation.area || 0)} M²</div>
+                          <div className="font-mono font-bold text-amber-700">{formatNumber(reservation.area || 0)} mÂ²</div>
                         </div>
                       </div>
                     </button>

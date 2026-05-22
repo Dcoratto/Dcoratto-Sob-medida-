@@ -39,7 +39,6 @@ const resetCollections = [
 const MAX_IMAGE_SIZE_MB = 8;
 const MAX_STORED_IMAGE_BYTES = 850 * 1024;
 const IMAGE_MAX_SIDE = 900;
-const parseThicknessValue = (label: string) => Number(String(label || '').replace(',', '.').replace(/[^\d.]/g, '')) || 0;
 const DEFAULT_STONE_CATEGORIES = [
   'Granito',
   'Mármore',
@@ -407,7 +406,6 @@ export const AdminPage: React.FC = () => {
         materialType,
         thicknessLabel,
         texture,
-        thickness: parseThicknessValue(thicknessLabel),
         baseCostPerM2: editingMaterial?.baseCostPerM2 ?? 0,
         marginPercentage: editingMaterial?.marginPercentage ?? 0,
         pricePerM2: editingMaterial?.pricePerM2 ?? 0,

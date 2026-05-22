@@ -1,0 +1,104 @@
+[
+  {
+    "table": "settings",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-24-40-674Z\\settings.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\settings.sql",
+    "rowCount": 1
+  },
+  {
+    "table": "profiles",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-24-40-674Z\\profiles.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\profiles.sql",
+    "rowCount": 10
+  },
+  {
+    "table": "users",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-24-40-674Z\\users.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\users.sql",
+    "rowCount": 8
+  },
+  {
+    "table": "employees",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-24-40-674Z\\employees.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\employees.sql",
+    "rowCount": 0
+  },
+  {
+    "table": "condominiums",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-24-40-674Z\\condominiums.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\condominiums.sql",
+    "rowCount": 10
+  },
+  {
+    "table": "clients",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-20-912Z\\clients.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\clients.sql",
+    "rowCount": 13
+  },
+  {
+    "table": "materials",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-04-497Z\\materials.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\materials.sql",
+    "rowCount": 23
+  },
+  {
+    "table": "user_material_prices",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-04-497Z\\userMaterialPrices.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\user_material_prices.sql",
+    "rowCount": 7
+  },
+  {
+    "table": "fixture_catalog",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-04-497Z\\fixtureCatalog.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\fixture_catalog.sql",
+    "rowCount": 9
+  },
+  {
+    "table": "quotes",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-20-912Z\\quotes.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\quotes.sql",
+    "rowCount": 1
+  },
+  {
+    "table": "inventory",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\inventory.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\inventory.sql",
+    "rowCount": 3
+  },
+  {
+    "table": "inventory_reservations",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\inventoryReservations.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\inventory_reservations.sql",
+    "rowCount": 1
+  },
+  {
+    "table": "inventory_purchases",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\inventoryPurchases.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\inventory_purchases.sql",
+    "rowCount": 0
+  },
+  {
+    "table": "calendar_events",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\calendarEvents.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\calendar_events.sql",
+    "rowCount": 4
+  },
+  {
+    "table": "dashboard_notes",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\dashboardNotes.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\dashboard_notes.sql",
+    "rowCount": 0
+  },
+  {
+    "table": "system_events",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\systemEvents.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\system_events.sql",
+    "rowCount": 84
+  },
+  {
+    "table": "audit_logs",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\auditLogs.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-2026-05-22T12-32-00-616Z\\audit_logs.sql",
+    "rowCount": 161
+  }
+]

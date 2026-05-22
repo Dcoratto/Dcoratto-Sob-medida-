@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, setDoc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, setDoc, updateDoc } from '../lib/firestore';
 import { db } from '../lib/firebase';
 import { useSettings, DEFAULT_SETTINGS } from '../hooks/useSettings';
 import { useAuth } from '../contexts/AuthContext';

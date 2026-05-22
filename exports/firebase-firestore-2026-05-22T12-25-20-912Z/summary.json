@@ -1,0 +1,15 @@
+{
+  "projectId": "ai-studio-applet-webapp-2ecc9",
+  "firestoreDatabaseId": "ai-studio-1e79ab13-281e-49ca-b45c-a24a4386b051",
+  "exportedAt": "2026-05-22T12:25:23.112Z",
+  "collections": [
+    {
+      "collectionName": "clients",
+      "count": 13
+    },
+    {
+      "collectionName": "quotes",
+      "count": 1
+    }
+  ]
+}

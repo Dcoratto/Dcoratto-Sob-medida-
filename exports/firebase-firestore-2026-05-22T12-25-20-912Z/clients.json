@@ -1,0 +1,1035 @@
+[
+  {
+    "id": "2fmLjYQJTXsn2TvQ8rpO",
+    "name": "ANDRÉIA FLORENÇO MACHADO",
+    "email": "andreia.florenco@icloud.com",
+    "cpf": "274.461.818-77",
+    "rg": "26.763.109-1",
+    "zipCode": "08725225",
+    "neighborhood": "Vila Caputera",
+    "tower": "",
+    "apartmentNumber": "",
+    "lot": "2",
+    "condominiumId": "b3K2Xqo2kemKp7VHwFsU",
+    "address": "Bairro Vila Caputera · Mogi Das Cruzes · CEP 08725225 · Condomínio Condomínio Real Park II · Quadra P · Lote 2",
+    "city": "Mogi Das Cruzes",
+    "addressType": "condominio",
+    "condominiumName": "Condomínio Real Park II",
+    "block": "P",
+    "googleDriveUrl": "https://drive.google.com/open?id=12ydCTG9An-nRfr_Dn_TICrs_SL_wCPgf&usp=drive_fs",
+    "phone": "11-959852611",
+    "streetAddress": "Bairro Vila Caputera",
+    "legacyProjectMode": "orcamento_existente",
+    "birthDate": "17/09/1978",
+    "manualQuoteStatus": "Projeto",
+    "manualStage": "approved",
+    "legacyManualQuote": {
+      "totalPrice": 78758.55,
+      "updatedAt": {
+        "__type": "timestamp",
+        "iso": "2026-05-20T16:04:57.505Z",
+        "seconds": 1779293097,
+        "nanoseconds": 505000000
+      },
+      "pieces": [
+        {
+          "value": 4164.07,
+          "status": "Projeto",
+          "items": [],
+          "id": "ztoonsaz1",
+          "name": "AS-MARMO - AREA DE SERVIÇO"
+        },
+        {
+          "items": [],
+          "status": "Projeto",
+          "id": "r2o9bg1fx",
+          "name": "AT-MARMO - COZINHA COMPLETA",
+          "value": 46847.21
+        },
+        {
+          "status": "Projeto",
+          "items": [],
+          "id": "m5cbgwt5k",
+          "name": "AU-MARMO - WC ANA",
+          "value": 6870.69
+        },
+        {
+          "value": 3372.89,
+          "name": "AV-MARMO - WC ANDRE",
+          "status": "Projeto",
+          "items": [],
+          "id": "sdtx981rm"
+        },
+        {
+          "name": "AW-MARMO - WC MASTER",
+          "id": "s87jk82d1",
+          "items": [],
+          "status": "Projeto",
+          "value": 2654.58
+        },
+        {
+          "value": 3018.95,
+          "name": "AX-MARMO - WC VISITAS",
+          "status": "Projeto",
+          "items": [],
+          "id": "qex8vryi3"
+        },
+        {
+          "name": "AY-MARMO - WC EXTERNO",
+          "items": [],
+          "status": "Projeto",
+          "id": "3pc4l1qmu",
+          "value": 1358.55
+        },
+        {
+          "value": 3809.11,
+          "status": "Projeto",
+          "items": [],
+          "id": "ly52f4dj8",
+          "name": "AZ-MARMO - WC LAVABO"
+        },
+        {
+          "value": 6662.5,
+          "name": "BA-SOLEIRAS PISCINA E REVEST. SPA",
+          "id": "xbxzcy9i8",
+          "items": [],
+          "status": "Projeto"
+        }
+      ]
+    },
+    "notes": ""
+  },
+  {
+    "id": "64cCeHqubs3t2vdBaEk4",
+    "name": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+    "email": "FLAVIAESTEVES@GMAIL.COM",
+    "cpf": "403.359.728-02",
+    "rg": "466244630",
+    "birthDate": "",
+    "zipCode": "08771910",
+    "neighborhood": "Parque Residencial Itapeti",
+    "tower": "",
+    "apartmentNumber": "",
+    "lot": "16/17",
+    "condominiumId": "loBkEedr4HsiFG7aQbih",
+    "address": "Bairro Parque Residencial Itapeti · Mogi Das Cruzes · CEP 08771910 · Condomínio Aruã · Quadra 66 · Lote 16/17",
+    "city": "Mogi Das Cruzes",
+    "phone": "11-984157509",
+    "addressType": "condominio",
+    "condominiumName": "Aruã",
+    "block": "66",
+    "googleDriveUrl": "https://drive.google.com/open?id=17VVJmsd1TgB3EPLzrfAgurUtZguBKW4g&usp=drive_fs",
+    "manualStage": "ready",
+    "manualQuoteStatus": "Entrega",
+    "notes": "",
+    "streetAddress": "Bairro Parque Residencial Itapeti",
+    "legacyProjectMode": "orcamento_existente",
+    "legacyManualQuote": {
+      "totalPrice": 36329.189999999995,
+      "updatedAt": {
+        "__type": "timestamp",
+        "iso": "2026-05-21T12:52:04.162Z",
+        "seconds": 1779367924,
+        "nanoseconds": 162000000
+      },
+      "pieces": [
+        {
+          "items": [],
+          "value": 13689.62,
+          "name": "AN-LAMINA ULTRACOMPACTА COZINHA",
+          "id": "gpwadrniq",
+          "status": "Finalizado"
+        },
+        {
+          "value": 2598.38,
+          "items": [],
+          "id": "0ks4bne0o",
+          "status": "Finalizado",
+          "name": "AO-GRANITO LAVANDERIA"
+        },
+        {
+          "items": [],
+          "value": 4811.77,
+          "name": "AP-MARMORE LAVABO",
+          "id": "mm774nufo",
+          "status": "Finalizado"
+        },
+        {
+          "value": 7915.48,
+          "items": [],
+          "id": "u15w2onnz",
+          "status": "Acabamento",
+          "name": "AQ-GRANITO ÁREA GOURMET"
+        },
+        {
+          "name": "AR-QUARTZO WC. FLAVIA",
+          "status": "Finalizado",
+          "id": "ty6zpa6j2",
+          "items": [],
+          "value": 2502.15
+        },
+        {
+          "value": 2309.66,
+          "items": [],
+          "status": "Acabamento",
+          "id": "wncjz4vkp",
+          "name": "AS-GRANITO W.C GOURMET"
+        },
+        {
+          "status": "Finalizado",
+          "id": "exz4f2ex4",
+          "name": "AT-QUARTZO WC. SOCIAL",
+          "value": 2502.13,
+          "items": []
+        }
+      ]
+    }
+  },
+  {
+    "id": "xBzVKRyqc2ItEubnYu5Q",
+    "name": "GUSTAVO ROMÃO ",
+    "phone": "11-961745785",
+    "email": "gustavoromao40@gmail.com",
+    "googleDriveUrl": "https://drive.google.com/open?id=1lrh68ekJPt17WT14b0yhA4cn1mroF3ZZ&usp=drive_fs",
+    "cpf": "44015583833",
+    "rg": "437779658",
+    "birthDate": "13/02/1995",
+    "address": "Estr. Dos Fernandes, 1512  · Bairro Parque santana · Suzano · CEP 08664005 · Condomínio Residencial Terra do sol · Torre E · Apto 4",
+    "streetAddress": "Estr. Dos Fernandes, 1512",
+    "notes": "",
+    "city": "Suzano",
+    "zipCode": "08664005",
+    "neighborhood": "Parque santana",
+    "addressType": "apartamento",
+    "condominiumId": "lVQdhuAHfipDlWyWPVt9",
+    "condominiumName": "Residencial Terra do sol",
+    "block": "",
+    "lot": "",
+    "tower": "E",
+    "apartmentNumber": "4",
+    "manualQuoteStatus": "Acabamento",
+    "manualStage": "production"
+  },
+  {
+    "id": "ovlaChV0aMFEDfFgVDem",
+    "name": "EDLENE CRISTINA DA SILVA CERRINI",
+    "email": "cerriniedlene@gmail.com",
+    "cpf": "352.646.358-11",
+    "rg": "30023350",
+    "zipCode": "08772720",
+    "neighborhood": "Taboão",
+    "tower": "",
+    "apartmentNumber": "",
+    "phone": "11-987986323",
+    "addressType": "condominio",
+    "googleDriveUrl": "https://drive.google.com/open?id=1fiG2fkaxj16XYGHGq5COcbbmFiMMFQUi&usp=drive_fs",
+    "lot": "17",
+    "condominiumId": "Yu5GaSapNZ2Ti5xwkXJc",
+    "address": "Bairro Taboão · Mogi Das Cruzes · CEP 08772720 · Condomínio Monterrey Ville · Quadra 14 · Lote 17",
+    "city": "Mogi Das Cruzes",
+    "condominiumName": "Monterrey Ville",
+    "block": "14",
+    "manualQuoteStatus": "Projeto",
+    "manualStage": "approved",
+    "notes": "",
+    "streetAddress": "Bairro Taboão",
+    "birthDate": "26/02/1986",
+    "legacyManualQuote": {
+      "totalPrice": 54983.33,
+      "updatedAt": {
+        "__type": "timestamp",
+        "iso": "2026-05-20T16:28:39.456Z",
+        "seconds": 1779294519,
+        "nanoseconds": 456000000
+      },
+      "pieces": [
+        {
+          "id": "pfz0vss53",
+          "name": "AG-MARMORARIA - COZINHA",
+          "status": "Orçamento Aprovado",
+          "value": 32368.51,
+          "items": []
+        },
+        {
+          "id": "jmvb20cyl",
+          "name": "AH-MARMORARIA - LAVABO",
+          "status": "Orçamento Aprovado",
+          "value": 6567.52,
+          "items": []
+        },
+        {
+          "id": "wfx9kpj4v",
+          "name": "AJ-MAMORARIA - WC MASTER",
+          "status": "Orçamento Aprovado",
+          "value": 2292.99,
+          "items": []
+        },
+        {
+          "id": "0zdf8dj4o",
+          "name": "AK-MARMORARIA SUÍTE BRENDA",
+          "status": "Orçamento Aprovado",
+          "value": 1590.3,
+          "items": []
+        },
+        {
+          "id": "7yy3fk4vv",
+          "name": "AZ-MARMORARIA - DESPENSA",
+          "status": "Orçamento Aprovado",
+          "value": 3846.69,
+          "items": []
+        },
+        {
+          "id": "b0redu9zj",
+          "name": "BA-MARMORARIA HALL",
+          "status": "Orçamento Aprovado",
+          "value": 8317.32,
+          "items": []
+        }
+      ]
+    },
+    "legacyProjectMode": "orcamento_existente"
+  },
+  {
+    "id": "5I7m5M9LDrBCv1iCNQ9G",
+    "name": "WILLIAM SILVA DIAS DO VALE",
+    "email": "wil.vale@hotmail.com",
+    "cpf": "417.903.038-18",
+    "rg": "505269351",
+    "city": "Guarulhos",
+    "zipCode": "07262202",
+    "neighborhood": "Jardim Guaracy",
+    "addressType": "casa",
+    "condominiumId": "",
+    "condominiumName": "",
+    "block": "",
+    "lot": "",
+    "tower": "",
+    "apartmentNumber": "",
+    "googleDriveUrl": "https://drive.google.com/open?id=1NjVqq7xvirC93VPoqKJgVR1QIFwu8uGF&usp=drive_fs",
+    "phone": "11-978587458",
+    "birthDate": "12/01/1998",
+    "manualStage": "production",
+    "manualQuoteStatus": "Acabamento",
+    "address": "Rua Alecrim, 121 · Bairro Jardim Guaracy · Guarulhos · CEP 07262202",
+    "notes": "",
+    "streetAddress": "Rua Alecrim, 121",
+    "legacyManualQuote": {
+      "totalPrice": 3906.14,
+      "updatedAt": {
+        "__type": "timestamp",
+        "iso": "2026-05-20T18:22:24.037Z",
+        "seconds": 1779301344,
+        "nanoseconds": 37000000
+      },
+      "pieces": [
+        {
+          "id": "mwkmevwgg",
+          "name": "AQ-BANCADA COZINHA",
+          "status": "Orçamento",
+          "value": 3906.14,
+          "items": []
+        }
+      ]
+    },
+    "legacyProjectMode": "orcamento_existente"
+  },
+  {
+    "id": "6L0OAqTfW04EuARfHjkd",
+    "email": "MARCOSMV@GMAIL.COM",
+    "cpf": "45.745.082/0001-31",
+    "birthDate": "22/03/2022",
+    "zipCode": "08080700",
+    "neighborhood": "Parque Paulistano",
+    "tower": "",
+    "apartmentNumber": "",
+    "lot": "21",
+    "condominiumId": "q50vj4T1sLvH4bolhvms",
+    "city": "Mogi Das Cruzes",
+    "rg": "",
+    "addressType": "condominio",
+    "block": "5",
+    "address": "Bairro Parque Paulistano · Mogi Das Cruzes · CEP 08080700 · Condomínio Aruã Brisas II · Quadra 5 · Lote 21",
+    "condominiumName": "Aruã Brisas II",
+    "googleDriveUrl": "https://drive.google.com/open?id=1JEXwpx4rheLIKsbD7pgQlkxZmLAwj3ao&usp=drive_fs",
+    "phone": "11-941451557",
+    "streetAddress": "Bairro Parque Paulistano",
+    "name": "MARCOS MV",
+    "manualStage": "production",
+    "manualQuoteStatus": "Acabamento",
+    "notes": "",
+    "legacyProjectMode": "orcamento_existente",
+    "legacyManualQuote": {
+      "totalPrice": 93586.5,
+      "updatedAt": {
+        "__type": "timestamp",
+        "iso": "2026-05-20T18:18:47.389Z",
+        "seconds": 1779301127,
+        "nanoseconds": 389000000
+      },
+      "pieces": [
+        {
+          "id": "tn5f834fs",
+          "name": "DR-COZINHA",
+          "status": "Orçamento",
+          "value": 58419.15,
+          "items": []
+        },
+        {
+          "id": "yx2nceq9r",
+          "name": "DS-LAVABO",
+          "status": "Orçamento",
+          "value": 3374.22,
+          "items": []
+        },
+        {
+          "id": "6xvs1vbyx",
+          "name": "DT-LIVING",
+          "status": "Orçamento",
+          "value": 16719.96,
+          "items": []
+        },
+        {
+          "id": "3pdzwjvpk",
+          "name": "DU-A.S.",
+          "status": "Orçamento",
+          "value": 4834.68,
+          "items": []
+        },
+        {
+          "id": "vu8ma5f2c",
+          "name": "DV-WC A.S",
+          "status": "Orçamento",
+          "value": 1208.68,
+          "items": []
+        },
+        {
+          "id": "oklbn3hm9",
+          "name": "DW-WC SUITE 1",
+          "status": "Orçamento",
+          "value": 2316.63,
+          "items": []
+        },
+        {
+          "id": "r9iubpjb4",
+          "name": "DX-WC SUITE 2",
+          "status": "Orçamento",
+          "value": 1158.31,
+          "items": []
+        },
+        {
+          "id": "ol3by3be2",
+          "name": "DY-WC SUITE 3",
+          "status": "Orçamento",
+          "value": 1485.68,
+          "items": []
+        },
+        {
+          "id": "smvimmkxd",
+          "name": "DZ-WC SUITE MASTER",
+          "status": "Orçamento",
+          "value": 4069.19,
+          "items": []
+        }
+      ]
+    }
+  },
+  {
+    "id": "1sIpUMT2Vm2jmKjCLAW4",
+    "name": "RODOLFO SOUZA",
+    "phone": "11-954396771",
+    "email": "Engc.rodolfo@gmail.com",
+    "googleDriveUrl": "https://drive.google.com/open?id=1X2kPxVj0eKoI4nvYFYgwiNYyTnf7dAY9&usp=drive_fs",
+    "cpf": "41665080833",
+    "rg": "374224031",
+    "birthDate": "22/05/1994",
+    "notes": "",
+    "zipCode": "08771343",
+    "neighborhood": "Jardim Piata A",
+    "addressType": "condominio",
+    "block": "17",
+    "lot": "01",
+    "tower": "",
+    "apartmentNumber": "",
+    "legacyProjectMode": "sem_projeto",
+    "legacyManualQuote": null,
+    "manualQuoteStatus": "Projeto",
+    "manualStage": "approved",
+    "condominiumId": "h8UiN8Un5ip3VgoUMTEl",
+    "address": "Bairro Jardim Piata A · Mogi das Cruzes · CEP 08771343 · Condomínio Aruã Ecopark Lagos II · Quadra 17 · Lote 01",
+    "city": "Mogi das Cruzes",
+    "condominiumName": "Aruã Ecopark Lagos II",
+    "streetAddress": "Bairro Jardim Piata A"
+  },
+  {
+    "id": "3BJG2inpejc9SIY0UT9e",
+    "name": "AUGUSTO DA SILVA MARIA",
+    "email": "augusto@gmail.com",
+    "cpf": "128.446.018-55",
+    "rg": "23309683",
+    "birthDate": "08/04/1970",
+    "zipCode": "08771000",
+    "neighborhood": "Parque Residencial Itapeti",
+    "tower": "",
+    "apartmentNumber": "",
+    "phone": "11-947465689",
+    "googleDriveUrl": "https://drive.google.com/open?id=1BaaRm1HPDrTIRThrCqiXFrM8ZFPM0QQn&usp=drive_fs",
+    "manualQuoteStatus": "Projeto",
+    "manualStage": "approved",
+    "notes": "",
+    "legacyProjectMode": "orcamento_existente",
+    "lot": "7",
+    "legacyManualQuote": {
+      "totalPrice": 70000,
+      "updatedAt": {
+        "__type": "timestamp",
+        "iso": "2026-05-21T13:35:36.940Z",
+        "seconds": 1779370536,
+        "nanoseconds": 940000000
+      },
+      "pieces": [
+        {
+          "value": 18311.29,
+          "items": [],
+          "status": "Orçamento Aprovado",
+          "id": "xezjvq0fm",
+          "name": "AE-COZINHA"
+        },
+        {
+          "name": "AF-COZINHA BANCADA",
+          "id": "kgmiv5222",
+          "status": "Orçamento Aprovado",
+          "items": [],
+          "value": 6612.41
+        },
+        {
+          "items": [],
+          "value": 5137.33,
+          "name": "AG-LAVABO AREA SOCIAL",
+          "id": "dmp34aqm1",
+          "status": "Orçamento Aprovado"
+        },
+        {
+          "status": "Orçamento Aprovado",
+          "id": "i93xh5d3s",
+          "name": "AH-LAVABO AREA GOURMET",
+          "value": 5137.33,
+          "items": []
+        },
+        {
+          "items": [],
+          "value": 3763.98,
+          "name": "AI-A.S.",
+          "id": "vx526gxuf",
+          "status": "Orçamento Aprovado"
+        },
+        {
+          "items": [],
+          "value": 4303.16,
+          "name": "AJ-WC SUITE 1",
+          "id": "40ocxhb85",
+          "status": "Orçamento Aprovado"
+        },
+        {
+          "value": 4303.16,
+          "items": [],
+          "id": "zg4mpa78x",
+          "status": "Orçamento Aprovado",
+          "name": "AK-WC SUITE 2"
+        },
+        {
+          "status": "Orçamento Aprovado",
+          "id": "htxe76jvz",
+          "name": "AL-WC HOSPEDE",
+          "value": 2695.82,
+          "items": []
+        },
+        {
+          "value": 2695.82,
+          "items": [],
+          "id": "82pczn6m4",
+          "status": "Orçamento Aprovado",
+          "name": "AM-WC ACADEMIA"
+        },
+        {
+          "value": 4526.96,
+          "items": [],
+          "status": "Orçamento Aprovado",
+          "id": "e0kcf54p5",
+          "name": "AN-WC SUITE MASTER"
+        },
+        {
+          "value": 6612.41,
+          "items": [],
+          "id": "lz6smbmm6",
+          "status": "Orçamento Aprovado",
+          "name": "AO-AREA GOURMET"
+        },
+        {
+          "id": "78zm3ckji",
+          "status": "Orçamento Aprovado",
+          "name": "AP-AREA GOURMET BANCADA",
+          "value": 5900.33,
+          "items": []
+        }
+      ],
+      "payments": []
+    },
+    "condominiumId": "loBkEedr4HsiFG7aQbih",
+    "address": "Bairro Parque Residencial Itapeti · Mogi Das Cruzes · CEP 08771000 · Condomínio Aruã · Quadra 45 · Lote 7",
+    "city": "Mogi Das Cruzes",
+    "streetAddress": "",
+    "addressType": "condominio",
+    "condominiumName": "Aruã",
+    "block": "45"
+  },
+  {
+    "id": "qwSnpzidNlTx1mmZ2g6J",
+    "name": "ERICK IGNACIO RODRIGUES",
+    "email": "erickignaciorodrigues@uol.com.br",
+    "googleDriveUrl": "",
+    "cpf": "421.055.828-18",
+    "rg": "537692046",
+    "birthDate": "16/05/2001",
+    "streetAddress": "Estrada São Judas, 190",
+    "zipCode": "06817170",
+    "neighborhood": "Parque Esplanada",
+    "block": "",
+    "lot": "",
+    "condominiumId": "FRCi7OrqxPs5ErNVi6Gw",
+    "address": "Estrada São Judas, 190 · Bairro Parque Esplanada · São Paulo · CEP 06817170 · Condomínio Parque Firenze · Torre C · Apto 126",
+    "city": "São Paulo",
+    "addressType": "apartamento",
+    "condominiumName": "Parque Firenze",
+    "apartmentNumber": "126",
+    "tower": "C",
+    "manualStage": "ready",
+    "phone": "11-974591900",
+    "manualQuoteStatus": "Conferência Final",
+    "notes": "",
+    "legacyProjectMode": "orcamento_existente",
+    "legacyManualQuote": {
+      "totalPrice": 26979.609999999997,
+      "updatedAt": {
+        "__type": "timestamp",
+        "iso": "2026-05-21T12:52:35.430Z",
+        "seconds": 1779367955,
+        "nanoseconds": 430000000
+      },
+      "pieces": [
+        {
+          "items": [],
+          "value": 14642.8,
+          "name": "AH-PIA COZINHA (QUARTZO)",
+          "id": "vaitk9wur",
+          "status": "Finalizado"
+        },
+        {
+          "name": "AI-PIA LAVANDERIA (QUARTZO)",
+          "id": "unxjdcdw6",
+          "status": "Finalizado",
+          "items": [],
+          "value": 4524.76
+        },
+        {
+          "id": "ltifx6aw3",
+          "status": "Finalizado",
+          "name": "AJ-PIA ÁREA GOURMET (PRETO SGE)",
+          "value": 2578.58,
+          "items": []
+        },
+        {
+          "name": "AK-WC SOCIAL (PRETO SGE)",
+          "status": "Finalizado",
+          "id": "f5u9x8q2z",
+          "items": [],
+          "value": 2616.74
+        },
+        {
+          "name": "AL-WC CASAL (PRETO SGE)",
+          "id": "3tfbmspaw",
+          "status": "Finalizado",
+          "items": [],
+          "value": 2616.73
+        }
+      ]
+    }
+  },
+  {
+    "id": "C8SHDfkAL681sIsxlokq",
+    "email": "",
+    "cpf": "",
+    "rg": "",
+    "birthDate": "2026-05-18",
+    "notes": "",
+    "city": "Mogi das Cruzes",
+    "zipCode": "08.773-130",
+    "neighborhood": "Teste",
+    "addressType": "casa",
+    "condominiumId": "",
+    "condominiumName": "",
+    "block": "",
+    "lot": "",
+    "tower": "",
+    "apartmentNumber": "",
+    "name": "ALINE ARMOND",
+    "address": "Teste · Bairro Teste · Mogi das Cruzes · CEP 08.773-130 · Bairro Teste · Mogi das Cruzes · CEP 08.773-130 · Bairro Teste · Mogi das Cruzes · CEP 08.773-130",
+    "phone": "11-999889941",
+    "googleDriveUrl": ""
+  },
+  {
+    "id": "gEWmiJYzWgWREB5AWXRa",
+    "name": "CARLOS CESAR ROMEIRO DA COSTA",
+    "email": "carlosindtamy@gmail.com",
+    "googleDriveUrl": "",
+    "cpf": "335.094.468-01",
+    "rg": "41.284.844",
+    "birthDate": "10/06/1986",
+    "city": "São Paulo",
+    "zipCode": "03069000",
+    "neighborhood": "Vila Zilda (Tatuapé)",
+    "block": "",
+    "lot": "",
+    "condominiumId": "aJB6QPCWmiCMGlSMkn7W",
+    "phone": "11-978419062",
+    "streetAddress": "Rua Doutor Ângelo Vita, 210",
+    "addressType": "apartamento",
+    "condominiumName": "Linea Home Resort",
+    "apartmentNumber": "155",
+    "tower": "B",
+    "manualQuoteStatus": "Medição",
+    "manualStage": "approved",
+    "address": "Rua Doutor Ângelo Vita, 210 · Bairro Vila Zilda (Tatuapé) · São Paulo · CEP 03069000 · Condomínio Linea Home Resort · Torre B · Apto 155",
+    "notes": "",
+    "legacyManualQuote": {
+      "totalPrice": 20000.000000000004,
+      "updatedAt": {
+        "__type": "timestamp",
+        "iso": "2026-05-20T16:27:47.994Z",
+        "seconds": 1779294467,
+        "nanoseconds": 994000000
+      },
+      "pieces": [
+        {
+          "id": "bgl0pa3pe",
+          "name": "AA-BANCADA COZINHA",
+          "status": "Orçamento Aprovado",
+          "value": 3000.94,
+          "items": []
+        },
+        {
+          "id": "pms0dhnvj",
+          "name": "AB-ILHA COZINHA",
+          "status": "Orçamento Aprovado",
+          "value": 3844.97,
+          "items": []
+        },
+        {
+          "id": "g3e9qbb0s",
+          "name": "AC-BANCADA ÁREA DE SERVIÇO",
+          "status": "Orçamento Aprovado",
+          "value": 3063.42,
+          "items": []
+        },
+        {
+          "id": "pc56wvq5y",
+          "name": "AD-BANCADA BANHO 2",
+          "status": "Orçamento Aprovado",
+          "value": 3219.73,
+          "items": []
+        },
+        {
+          "id": "eqg7m1oq2",
+          "name": "AE-PRATELEIRA BANHO 2",
+          "status": "Orçamento Aprovado",
+          "value": 593.95,
+          "items": []
+        },
+        {
+          "id": "h11unrt8a",
+          "name": "AF-BANCADA BANHO 1",
+          "status": "Orçamento Aprovado",
+          "value": 3219.73,
+          "items": []
+        },
+        {
+          "id": "0t14molwc",
+          "name": "AG-PRATELEIRA BANHO 1",
+          "status": "Orçamento Aprovado",
+          "value": 625.22,
+          "items": []
+        },
+        {
+          "id": "0luvnbb42",
+          "name": "AI-BANCADA ÁREA GOURMET",
+          "status": "Orçamento Aprovado",
+          "value": 2432.04,
+          "items": []
+        }
+      ]
+    },
+    "legacyProjectMode": "orcamento_existente"
+  },
+  {
+    "id": "wsvf1T38vJrhMMmyHlLF",
+    "name": "BRUNO PIRES DOS SANTOS",
+    "email": "brunopiress@live.com",
+    "cpf": "351.392.918-86",
+    "birthDate": "",
+    "zipCode": "08771910",
+    "neighborhood": "Parque Residencial Itapeti",
+    "tower": "",
+    "apartmentNumber": "",
+    "lot": "9",
+    "condominiumId": "QINoeIcx40lbFcdoHfFE",
+    "city": "Mogi Das Cruzes",
+    "addressType": "condominio",
+    "block": "12",
+    "googleDriveUrl": "https://drive.google.com/open?id=1cJu8ngIqAw_JtP9W3m-pMZPr6MdtCa0h&usp=drive_fs",
+    "phone": "11-947649405",
+    "rg": "47277900",
+    "streetAddress": "Bairro Parque Residencial Itapeti",
+    "address": "Bairro Parque Residencial Itapeti · Mogi Das Cruzes · CEP 08771910 · Condomínio Aruã Ecopark Lagos · Quadra 12 · Lote 9",
+    "notes": "",
+    "condominiumName": "Aruã Ecopark Lagos",
+    "legacyManualQuote": {
+      "totalPrice": 244243.69,
+      "updatedAt": {
+        "__type": "timestamp",
+        "iso": "2026-05-20T16:22:39.192Z",
+        "seconds": 1779294159,
+        "nanoseconds": 192000000
+      },
+      "pieces": [
+        {
+          "id": "5rswe354g",
+          "name": "AQ-WC FILHO QUARTZO AZUL",
+          "status": "Orçamento Aprovado",
+          "value": 2631.03,
+          "items": []
+        },
+        {
+          "id": "e4qr9wo1l",
+          "name": "AR-WC FILHA - QUARTZO BRANCO",
+          "status": "Orçamento Aprovado",
+          "value": 4214.7,
+          "items": []
+        },
+        {
+          "id": "ziva0he6f",
+          "name": "AS-WC MASTER - LÂMINA ULTRA COMP",
+          "status": "Orçamento Aprovado",
+          "value": 8720.26,
+          "items": []
+        },
+        {
+          "id": "zjy9uvebr",
+          "name": "AU-WC HÓSPEDES - QUARTZO BRANCO",
+          "status": "Orçamento Aprovado",
+          "value": 3343.89,
+          "items": []
+        },
+        {
+          "id": "hadeg02ng",
+          "name": "AY-PAINEL DE TV CALACATTA",
+          "status": "Orçamento Aprovado",
+          "value": 9578.88,
+          "items": []
+        },
+        {
+          "id": "skb9utaow",
+          "name": "AZ-COZINHA CALACATA",
+          "status": "Orçamento Aprovado",
+          "value": 12771.88,
+          "items": []
+        },
+        {
+          "id": "xzcixepv8",
+          "name": "BA-ILHA COZINHA - CALACATTA",
+          "status": "Orçamento Aprovado",
+          "value": 19157.42,
+          "items": []
+        },
+        {
+          "id": "kz716h8gn",
+          "name": "BB-REVESTIMENTO COZINHA-CALACATTA",
+          "status": "Orçamento Aprovado",
+          "value": 11610.81,
+          "items": []
+        },
+        {
+          "id": "wlt8gk167",
+          "name": "BC-REVESTIMENTO GOURMET-NERO",
+          "status": "Orçamento Aprovado",
+          "value": 20782.44,
+          "items": []
+        },
+        {
+          "id": "ypyuzi14u",
+          "name": "BD-ÁREA GOURMET - PT SÃO GABRIEL",
+          "status": "Orçamento Aprovado",
+          "value": 14967.41,
+          "items": []
+        },
+        {
+          "id": "g2e1z2f1d",
+          "name": "BF-CHURRASQUEIRA NERO LAMINA",
+          "status": "Orçamento Aprovado",
+          "value": 13932.79,
+          "items": []
+        },
+        {
+          "id": "73h1af1x4",
+          "name": "BU-LÂMINA ULTRA COMP LIVING",
+          "status": "Orçamento Aprovado",
+          "value": 63857.27,
+          "items": []
+        },
+        {
+          "id": "1m6yj1nd7",
+          "name": "BV-PEDRA LAVANDERIA BRANCO SIENA",
+          "status": "Orçamento Aprovado",
+          "value": 9372.79,
+          "items": []
+        },
+        {
+          "id": "mv4quowb1",
+          "name": "BW-PEDRA LAVABO BRANCO PARANÁ",
+          "status": "Orçamento Aprovado",
+          "value": 8903.68,
+          "items": []
+        },
+        {
+          "id": "asbt8y9tc",
+          "name": "BY-PEDRA SAUNA QUARTZO BRANCO",
+          "status": "Orçamento Aprovado",
+          "value": 3715.46,
+          "items": []
+        },
+        {
+          "id": "ztkw22g2x",
+          "name": "BZ-PEDRA WC VANESSA QUARTZO BRANC",
+          "status": "Orçamento Aprovado",
+          "value": 3831.56,
+          "items": []
+        },
+        {
+          "id": "1zfyei18z",
+          "name": "CA-PEDRA PUB PRETO SÃO GABRIEL",
+          "status": "Orçamento Aprovado",
+          "value": 8590.23,
+          "items": []
+        },
+        {
+          "id": "9fv75pyiq",
+          "name": "CB-NICHO WC VANESSA QTZO BRANCO",
+          "status": "Orçamento Aprovado",
+          "value": 3468.69,
+          "items": []
+        },
+        {
+          "id": "2zlspqwcx",
+          "name": "CC-NICHO WC MASTER LÂMINA ULTRA",
+          "status": "Orçamento Aprovado",
+          "value": 8708.07,
+          "items": []
+        },
+        {
+          "id": "uwgsbydmw",
+          "name": "CD-NICHO WC FILHA QUARTZO BRANCO",
+          "status": "Orçamento Aprovado",
+          "value": 2196.77,
+          "items": []
+        },
+        {
+          "id": "33cgp2sll",
+          "name": "CE-NICHO WC FILHO QTZO AZUL",
+          "status": "Orçamento Aprovado",
+          "value": 3468.69,
+          "items": []
+        },
+        {
+          "id": "kviimojp0",
+          "name": "CF-NICHO WC HÓSPEDES SUP. QTZO",
+          "status": "Orçamento Aprovado",
+          "value": 3468.69,
+          "items": []
+        },
+        {
+          "id": "t5e333o7z",
+          "name": "CH-NICHO WC SAUNA QTZO BRANCO",
+          "status": "Orçamento Aprovado",
+          "value": 2950.28,
+          "items": []
+        }
+      ]
+    },
+    "legacyProjectMode": "orcamento_existente",
+    "manualQuoteStatus": "Entrega",
+    "manualStage": "ready"
+  },
+  {
+    "id": "sDWIU7p2isgURnkQsUkC",
+    "name": "BRUNO NEVES DOS SANTOS",
+    "email": "bruno-ssantos@live.com",
+    "cpf": "379.203.008-00",
+    "rg": "493522785",
+    "birthDate": "04/06/1989",
+    "city": "São Paulo",
+    "zipCode": "08031760",
+    "neighborhood": "Vila Curuçá",
+    "block": "",
+    "lot": "",
+    "condominiumId": "1sMGeff5ctb4agqnmMwt",
+    "phone": "11-996813027",
+    "addressType": "apartamento",
+    "condominiumName": "Treviso",
+    "googleDriveUrl": "https://drive.google.com/open?id=1bgfojnRRoUfJ-Lwxi2M3mXopQFZsqBHf&usp=drive_fs",
+    "apartmentNumber": "21",
+    "tower": "B",
+    "manualStage": "production",
+    "manualQuoteStatus": "Projeto Aprovado",
+    "address": "Rua Benjamin Capusso, 165 · Bairro Vila Curuçá · São Paulo · CEP 08031760 · Condomínio Treviso · Torre B · Apto 21",
+    "notes": "",
+    "streetAddress": "Rua Benjamin Capusso, 165",
+    "legacyManualQuote": {
+      "totalPrice": 10705.64,
+      "updatedAt": {
+        "__type": "timestamp",
+        "iso": "2026-05-20T16:20:50.882Z",
+        "seconds": 1779294050,
+        "nanoseconds": 882000000
+      },
+      "pieces": [
+        {
+          "id": "xfatvieek",
+          "name": "AI-GRANITO COZINHA BRANCO ITAUNAS",
+          "status": "Orçamento Aprovado",
+          "value": 4839.15,
+          "items": []
+        },
+        {
+          "id": "nxvri22wo",
+          "name": "AJ-GRANITO LAVANDERIA BRANCO ITAU",
+          "status": "Orçamento Aprovado",
+          "value": 1590.59,
+          "items": []
+        },
+        {
+          "id": "vjf292o2f",
+          "name": "AK-QUARTZO BRANCO - WC SOCIAL",
+          "status": "Orçamento Aprovado",
+          "value": 2521.57,
+          "items": []
+        },
+        {
+          "id": "ch1y7v8m6",
+          "name": "AL-PRETO SÃO GABRIEL - WC SUITE",
+          "status": "Orçamento Aprovado",
+          "value": 1754.33,
+          "items": []
+        }
+      ]
+    },
+    "legacyProjectMode": "orcamento_existente"
+  }
+]

@@ -1,5 +1,5 @@
 ﻿import React, {useEffect, useMemo, useState} from 'react';
-import {addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, Timestamp} from 'firebase/firestore';
+import {addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, Timestamp} from '../lib/firestore';
 import {useNavigate} from 'react-router-dom';
 import {AlertCircle, CheckCircle2, Clock, Database, FileText, FolderKanban, Package, Plus, StickyNote, Trash2, TrendingUp, Users} from 'lucide-react';
 import {db} from '../lib/firebase';
@@ -84,7 +84,7 @@ interface DashboardCalendarEvent {
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const {user, profile, isAdmin, hasPermission} = useAuth();
+  const {user, profile, appUid, isAdmin, hasPermission} = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [recentQuotes, setRecentQuotes] = useState<Quote[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -158,7 +158,7 @@ export const Dashboard: React.FC = () => {
 
   const addDashboardNote = async () => {
     const text = newNote.trim();
-    if (!text || !user?.uid) return;
+    if (!text || !appUid) return;
 
     setSavingNote(true);
     try {
@@ -166,8 +166,8 @@ export const Dashboard: React.FC = () => {
       await addDoc(collection(db, 'dashboardNotes'), {
         text,
         createdAt: Timestamp.now(),
-        userUid: user.uid,
-        userName: profile?.name || user.displayName || user.email || 'Usuário',
+        userUid: appUid,
+        userName: profile?.name || user.user_metadata?.name || user.email || 'Usuário',
         targetUid: targetUser?.uid || '',
         targetName: targetUser?.name || '',
       });
@@ -179,8 +179,8 @@ export const Dashboard: React.FC = () => {
   };
 
   const deleteDashboardNote = async (note: DashboardNote) => {
-    if (!note.id || !user?.uid) return;
-    if (!isAdmin && note.userUid !== user.uid) return;
+    if (!note.id || !appUid) return;
+    if (!isAdmin && note.userUid !== appUid) return;
     await deleteDoc(doc(db, 'dashboardNotes', note.id));
   };
 
@@ -199,7 +199,7 @@ export const Dashboard: React.FC = () => {
       .length;
     return quoteProjects + legacyProjects;
   }, [clients, latestQuoteByClient, quotes]);
-  const visibleNotes = notes.filter((note) => !note.targetUid || note.targetUid === user?.uid || note.userUid === user?.uid || isAdmin);
+  const visibleNotes = notes.filter((note) => !note.targetUid || note.targetUid === appUid || note.userUid === appUid || isAdmin);
 
   const stageCounts = useMemo(() => {
     const base: Record<ClientStage, number> = {pre: 0, approved: 0, production: 0, ready: 0, done: 0, none: 0};
@@ -493,7 +493,7 @@ export const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {visibleNotes.map((note, index) => {
             const createdAt = toDate(note.createdAt);
-            const canDelete = isAdmin || note.userUid === user?.uid;
+            const canDelete = isAdmin || note.userUid === appUid;
             const palette = [
               'bg-amber-50 border-amber-100',
               'bg-blue-50 border-blue-100',

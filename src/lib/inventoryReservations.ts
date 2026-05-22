@@ -1,4 +1,4 @@
-import {collection, deleteDoc, doc, getDocs, query, serverTimestamp, setDoc, where} from 'firebase/firestore';
+import {collection, deleteDoc, doc, getDocs, query, serverTimestamp, setDoc, where} from './firestore';
 import {db} from './firebase';
 import {Quote, QuoteStatus} from '../types';
 import {isQuoteApprovedOrBeyond, normalizeText} from './quoteStatus';

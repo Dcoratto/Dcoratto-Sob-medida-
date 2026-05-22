@@ -1,5 +1,5 @@
 ﻿import React, {useEffect, useMemo, useState} from 'react';
-import {collection, limit, onSnapshot, orderBy, query} from 'firebase/firestore';
+import {collection, limit, onSnapshot, orderBy, query} from '../lib/firestore';
 import {AlertCircle, BarChart3, Boxes, FileDown, Gauge, TrendingUp, Users} from 'lucide-react';
 import {Client, Employee, InventoryItem, InventoryPurchase, InventoryReservation, LegacyPaymentInstallment, Material, ProductionStep, Quote, SystemEvent} from '../types';
 import {db} from '../lib/firebase';

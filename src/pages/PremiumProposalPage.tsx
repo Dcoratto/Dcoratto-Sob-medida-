@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {collection, doc, getDoc, onSnapshot} from 'firebase/firestore';
+import {collection, doc, getDoc, onSnapshot} from '../lib/firestore';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
 import {ArrowLeft, Expand, FileText, Printer, Sparkles, X} from 'lucide-react';

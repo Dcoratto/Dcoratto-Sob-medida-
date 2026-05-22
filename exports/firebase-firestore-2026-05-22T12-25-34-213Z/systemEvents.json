@@ -1,0 +1,1644 @@
+[
+  {
+    "id": "5zjffAISTTJauAH04FqW",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "BRUNO PIRES DOS SANTOS",
+    "entityType": "client",
+    "entityId": "wsvf1T38vJrhMMmyHlLF",
+    "clientId": "wsvf1T38vJrhMMmyHlLF",
+    "clientName": "BRUNO PIRES DOS SANTOS",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:22:40.170Z",
+      "seconds": 1779294160,
+      "nanoseconds": 170000000
+    }
+  },
+  {
+    "id": "dZTtgkD5112rPQeFp6in",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "LION ADMINISTRADORA DE BENS LTDA",
+    "entityType": "client",
+    "entityId": "6L0OAqTfW04EuARfHjkd",
+    "clientId": "6L0OAqTfW04EuARfHjkd",
+    "clientName": "LION ADMINISTRADORA DE BENS LTDA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T17:03:22.796Z",
+      "seconds": 1779210202,
+      "nanoseconds": 796000000
+    }
+  },
+  {
+    "id": "NcWewKLJqreWDx5C0Foj",
+    "type": "client_created",
+    "title": "Cliente importado por contrato",
+    "description": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+    "entityType": "client",
+    "entityId": "64cCeHqubs3t2vdBaEk4",
+    "clientId": "64cCeHqubs3t2vdBaEk4",
+    "clientName": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "importedFrom": "pdf-contract",
+      "contractNumber": "100001266",
+      "contractDate": "27/08/2024",
+      "contractType": "Normal"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:46:46.218Z",
+      "seconds": 1779216406,
+      "nanoseconds": 218000000
+    }
+  },
+  {
+    "id": "23qU8wszBYip9YM38VCw",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ERICK IGNACIO RODRIGUES",
+    "entityType": "client",
+    "entityId": "qwSnpzidNlTx1mmZ2g6J",
+    "clientId": "qwSnpzidNlTx1mmZ2g6J",
+    "clientName": "ERICK IGNACIO RODRIGUES",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T20:14:00.815Z",
+      "seconds": 1779221640,
+      "nanoseconds": 815000000
+    }
+  },
+  {
+    "id": "Zem8rrWkDOsjnLoJVADl",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "BRUNO NEVES DOS SANTOS",
+    "entityType": "client",
+    "entityId": "sDWIU7p2isgURnkQsUkC",
+    "clientId": "sDWIU7p2isgURnkQsUkC",
+    "clientName": "BRUNO NEVES DOS SANTOS",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:32:36.658Z",
+      "seconds": 1779215556,
+      "nanoseconds": 658000000
+    }
+  },
+  {
+    "id": "hxHfjhVJC7CgnaWLxd80",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ANDRÉIA FLORENÇO MACHADO",
+    "entityType": "client",
+    "entityId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientName": "ANDRÉIA FLORENÇO MACHADO",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T16:56:41.758Z",
+      "seconds": 1779209801,
+      "nanoseconds": 758000000
+    }
+  },
+  {
+    "id": "cbdC9Bqq2rPsenUcbCxc",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ANDRÉIA FLORENÇO MACHADO",
+    "entityType": "client",
+    "entityId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientName": "ANDRÉIA FLORENÇO MACHADO",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T17:00:49.783Z",
+      "seconds": 1779210049,
+      "nanoseconds": 783000000
+    }
+  },
+  {
+    "id": "3SgctveQBQyXdcafg3vI",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "WILLIAM SILVA DIAS DO VALE",
+    "entityType": "client",
+    "entityId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientName": "WILLIAM SILVA DIAS DO VALE",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:10:44.733Z",
+      "seconds": 1779214244,
+      "nanoseconds": 733000000
+    }
+  },
+  {
+    "id": "C47TJJqvRcZ52gOltJEI",
+    "type": "client_created",
+    "title": "Cliente importado por contrato",
+    "description": "WILLIAM SILVA DIAS DO VALE",
+    "entityType": "client",
+    "entityId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientName": "WILLIAM SILVA DIAS DO VALE",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "importedFrom": "pdf-contract",
+      "contractNumber": "1",
+      "contractDate": "30/11/2025",
+      "contractType": "Normal"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:09:01.853Z",
+      "seconds": 1779214141,
+      "nanoseconds": 853000000
+    }
+  },
+  {
+    "id": "2mGfnVsRsQaM2VE7nBre",
+    "type": "quote_created",
+    "title": "Orcamento criado",
+    "description": "Aline Armond - Sem ambiente",
+    "entityType": "quote",
+    "entityId": "aF3kj7uXGGKgcODwF0Ry",
+    "quoteId": "aF3kj7uXGGKgcODwF0Ry",
+    "quoteStatus": "Orçamento",
+    "clientId": "C8SHDfkAL681sIsxlokq",
+    "clientName": "Aline Armond",
+    "materialId": "preto-absoluto",
+    "materialName": "Preto absoluto",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "totalArea": 3.9137999999999993,
+      "totalPrice": 959.7845,
+      "pieces": 1
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-18T17:54:43.383Z",
+      "seconds": 1779126883,
+      "nanoseconds": 383000000
+    }
+  },
+  {
+    "id": "ryPFlSqRwEN6TPqwDLxq",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ERICK IGNACIO RODRIGUES",
+    "entityType": "client",
+    "entityId": "qwSnpzidNlTx1mmZ2g6J",
+    "clientId": "qwSnpzidNlTx1mmZ2g6J",
+    "clientName": "ERICK IGNACIO RODRIGUES",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:05:55.606Z",
+      "seconds": 1779293155,
+      "nanoseconds": 606000000
+    }
+  },
+  {
+    "id": "pp3wYZB5xXu2OZ3iI723",
+    "type": "client_created",
+    "title": "Cliente importado por contrato",
+    "description": "AUGUSTO DA SILVA MARIA",
+    "entityType": "client",
+    "entityId": "3BJG2inpejc9SIY0UT9e",
+    "clientId": "3BJG2inpejc9SIY0UT9e",
+    "clientName": "AUGUSTO DA SILVA MARIA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "importedFrom": "pdf-contract",
+      "contractNumber": "100001669",
+      "contractDate": "26/02/2026",
+      "contractType": "Normal"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:41:09.540Z",
+      "seconds": 1779284469,
+      "nanoseconds": 540000000
+    }
+  },
+  {
+    "id": "t7jEal3emPgqpM4Lex1s",
+    "type": "client_created",
+    "title": "Cliente importado por contrato",
+    "description": "EDLENE CRISTINA DA SILVA CERRINI",
+    "entityType": "client",
+    "entityId": "ovlaChV0aMFEDfFgVDem",
+    "clientId": "ovlaChV0aMFEDfFgVDem",
+    "clientName": "EDLENE CRISTINA DA SILVA CERRINI",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "importedFrom": "pdf-contract",
+      "contractNumber": "100001647",
+      "contractDate": "28/01/2026",
+      "contractType": "Normal"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T17:10:48.268Z",
+      "seconds": 1779210648,
+      "nanoseconds": 268000000
+    }
+  },
+  {
+    "id": "QrqlFznLKOJlmhnHAMxU",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "BRUNO NEVES DOS SANTOS",
+    "entityType": "client",
+    "entityId": "sDWIU7p2isgURnkQsUkC",
+    "clientId": "sDWIU7p2isgURnkQsUkC",
+    "clientName": "BRUNO NEVES DOS SANTOS",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:20:51.683Z",
+      "seconds": 1779294051,
+      "nanoseconds": 683000000
+    }
+  },
+  {
+    "id": "oABB15XrGWzEiXHCPb0v",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "WILLIAM SILVA DIAS DO VALE",
+    "entityType": "client",
+    "entityId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientName": "WILLIAM SILVA DIAS DO VALE",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:10:32.523Z",
+      "seconds": 1779214232,
+      "nanoseconds": 523000000
+    }
+  },
+  {
+    "id": "BKhGRWrksXYNu5I73Vho",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ALINE ARMOND",
+    "entityType": "client",
+    "entityId": "C8SHDfkAL681sIsxlokq",
+    "clientId": "C8SHDfkAL681sIsxlokq",
+    "clientName": "ALINE ARMOND",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T17:09:43.837Z",
+      "seconds": 1779210583,
+      "nanoseconds": 837000000
+    }
+  },
+  {
+    "id": "Qv5ETl8Nw0ZnsBZ6FrzC",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "BRUNO NEVES DOS SANTOS",
+    "entityType": "client",
+    "entityId": "sDWIU7p2isgURnkQsUkC",
+    "clientId": "sDWIU7p2isgURnkQsUkC",
+    "clientName": "BRUNO NEVES DOS SANTOS",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:31:42.837Z",
+      "seconds": 1779215502,
+      "nanoseconds": 837000000
+    }
+  },
+  {
+    "id": "rNjgR5E7lWssHa9hwo13",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "EDLENE CRISTINA DA SILVA CERRINI",
+    "entityType": "client",
+    "entityId": "ovlaChV0aMFEDfFgVDem",
+    "clientId": "ovlaChV0aMFEDfFgVDem",
+    "clientName": "EDLENE CRISTINA DA SILVA CERRINI",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:05:40.016Z",
+      "seconds": 1779293140,
+      "nanoseconds": 16000000
+    }
+  },
+  {
+    "id": "Ya8G3z7gQlRS8jysOXXW",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "MARCOS MV",
+    "entityType": "client",
+    "entityId": "6L0OAqTfW04EuARfHjkd",
+    "clientId": "6L0OAqTfW04EuARfHjkd",
+    "clientName": "MARCOS MV",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T17:55:10.389Z",
+      "seconds": 1779299710,
+      "nanoseconds": 389000000
+    }
+  },
+  {
+    "id": "GNG7qMu1tuOfCp9xOdk7",
+    "type": "client_created",
+    "title": "Cliente criado",
+    "description": "RODOLFO SOUZA",
+    "entityType": "client",
+    "entityId": "1sIpUMT2Vm2jmKjCLAW4",
+    "clientId": "1sIpUMT2Vm2jmKjCLAW4",
+    "clientName": "RODOLFO SOUZA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T15:20:42.831Z",
+      "seconds": 1779290442,
+      "nanoseconds": 831000000
+    }
+  },
+  {
+    "id": "jw0FDJ4exaq94Fd2e3YD",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "LION ADMINISTRADORA DE BENS LTDA",
+    "entityType": "client",
+    "entityId": "6L0OAqTfW04EuARfHjkd",
+    "clientId": "6L0OAqTfW04EuARfHjkd",
+    "clientName": "LION ADMINISTRADORA DE BENS LTDA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T17:09:27.741Z",
+      "seconds": 1779210567,
+      "nanoseconds": 741000000
+    }
+  },
+  {
+    "id": "KlpFKuZRhpvANnIBlgf4",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "RODOLFO SOUZA",
+    "entityType": "client",
+    "entityId": "1sIpUMT2Vm2jmKjCLAW4",
+    "clientId": "1sIpUMT2Vm2jmKjCLAW4",
+    "clientName": "RODOLFO SOUZA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:06:19.576Z",
+      "seconds": 1779293179,
+      "nanoseconds": 576000000
+    }
+  },
+  {
+    "id": "dmUbUnoC8ShRVCF8kKbP",
+    "type": "inventory_updated",
+    "title": "Item de estoque atualizado",
+    "description": "Preto absoluto - 35644663",
+    "entityType": "inventory",
+    "entityId": "zC9AWgwHLGJTmWx9pWB7",
+    "materialId": "preto-absoluto",
+    "materialName": "Preto absoluto",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "area": 1000,
+      "cost": 2000,
+      "minimumSalePrice": 2500,
+      "status": "Disponível"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-18T17:45:59.114Z",
+      "seconds": 1779126359,
+      "nanoseconds": 114000000
+    }
+  },
+  {
+    "id": "kVWjujCiuouf0qp2tBxz",
+    "type": "quote_updated",
+    "title": "Orcamento atualizado",
+    "description": "Aline Armond - Sem ambiente",
+    "entityType": "quote",
+    "entityId": "aF3kj7uXGGKgcODwF0Ry",
+    "quoteId": "aF3kj7uXGGKgcODwF0Ry",
+    "quoteStatus": "Orçamento",
+    "clientId": "C8SHDfkAL681sIsxlokq",
+    "clientName": "Aline Armond",
+    "materialId": "preto-absoluto",
+    "materialName": "Preto absoluto",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "totalArea": 3.9137999999999993,
+      "totalPrice": 8777.599999999999,
+      "pieces": 1
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T12:27:32.322Z",
+      "seconds": 1779193652,
+      "nanoseconds": 322000000
+    }
+  },
+  {
+    "id": "VZFRVYeNf4CIplbAqBga",
+    "type": "inventory_created",
+    "title": "Item de estoque cadastrado",
+    "description": "Preto absoluto - 35644663",
+    "entityType": "inventory",
+    "entityId": "zC9AWgwHLGJTmWx9pWB7",
+    "materialId": "preto-absoluto",
+    "materialName": "Preto absoluto",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "area": 1000,
+      "cost": 2000,
+      "minimumSalePrice": 2500,
+      "status": "Disponível"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-18T17:45:16.812Z",
+      "seconds": 1779126316,
+      "nanoseconds": 812000000
+    }
+  },
+  {
+    "id": "Dq2xD6RhiTmDVhZCJxPj",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "WILLIAM SILVA DIAS DO VALE",
+    "entityType": "client",
+    "entityId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientName": "WILLIAM SILVA DIAS DO VALE",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:06:26.379Z",
+      "seconds": 1779293186,
+      "nanoseconds": 379000000
+    }
+  },
+  {
+    "id": "WvIt6AOs9hewQd6Mbi2D",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "BRUNO NEVES DOS SANTOS",
+    "entityType": "client",
+    "entityId": "sDWIU7p2isgURnkQsUkC",
+    "clientId": "sDWIU7p2isgURnkQsUkC",
+    "clientName": "BRUNO NEVES DOS SANTOS",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:05:15.419Z",
+      "seconds": 1779293115,
+      "nanoseconds": 419000000
+    }
+  },
+  {
+    "id": "rTP4II2bKwjRJUlFZzym",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "WILLIAM SILVA DIAS DO VALE",
+    "entityType": "client",
+    "entityId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientName": "WILLIAM SILVA DIAS DO VALE",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:10:25.905Z",
+      "seconds": 1779214225,
+      "nanoseconds": 905000000
+    }
+  },
+  {
+    "id": "91d8ZUBMby3GCQxZJ7ep",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "WILLIAM SILVA DIAS DO VALE",
+    "entityType": "client",
+    "entityId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientName": "WILLIAM SILVA DIAS DO VALE",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:17:46.109Z",
+      "seconds": 1779214666,
+      "nanoseconds": 109000000
+    }
+  },
+  {
+    "id": "AZ64I3ctwy2LrECqgiGg",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "WILLIAM SILVA DIAS DO VALE",
+    "entityType": "client",
+    "entityId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientName": "WILLIAM SILVA DIAS DO VALE",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:10:44.882Z",
+      "seconds": 1779214244,
+      "nanoseconds": 882000000
+    }
+  },
+  {
+    "id": "8ylqPrtHrCXMj7AskyZ1",
+    "type": "client_created",
+    "title": "Cliente criado",
+    "description": "Aline Armond",
+    "entityType": "client",
+    "entityId": "C8SHDfkAL681sIsxlokq",
+    "clientId": "C8SHDfkAL681sIsxlokq",
+    "clientName": "Aline Armond",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-18T17:54:30.979Z",
+      "seconds": 1779126870,
+      "nanoseconds": 979000000
+    }
+  },
+  {
+    "id": "UrsEwN427R6qyMRHfnxe",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ERICK IGNACIO RODRIGUES",
+    "entityType": "client",
+    "entityId": "qwSnpzidNlTx1mmZ2g6J",
+    "clientId": "qwSnpzidNlTx1mmZ2g6J",
+    "clientName": "ERICK IGNACIO RODRIGUES",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T20:18:21.239Z",
+      "seconds": 1779221901,
+      "nanoseconds": 239000000
+    }
+  },
+  {
+    "id": "t9plEWktj40pR5PxLGcg",
+    "type": "client_created",
+    "title": "Cliente importado por contrato",
+    "description": "BRUNO NEVES DOS SANTOS",
+    "entityType": "client",
+    "entityId": "sDWIU7p2isgURnkQsUkC",
+    "clientId": "sDWIU7p2isgURnkQsUkC",
+    "clientName": "BRUNO NEVES DOS SANTOS",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "importedFrom": "pdf-contract",
+      "contractNumber": "1",
+      "contractDate": "12/11/2025",
+      "contractType": "Normal"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:27:19.039Z",
+      "seconds": 1779215239,
+      "nanoseconds": 39000000
+    }
+  },
+  {
+    "id": "jHO6Jb6SSLJU9dlW1D7w",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ERICK IGNACIO RODRIGUES",
+    "entityType": "client",
+    "entityId": "qwSnpzidNlTx1mmZ2g6J",
+    "clientId": "qwSnpzidNlTx1mmZ2g6J",
+    "clientName": "ERICK IGNACIO RODRIGUES",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:31:15.963Z",
+      "seconds": 1779294675,
+      "nanoseconds": 963000000
+    }
+  },
+  {
+    "id": "pwrzYcThZg8lVMnjaBAE",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "EDLENE CRISTINA DA SILVA CERRINI",
+    "entityType": "client",
+    "entityId": "ovlaChV0aMFEDfFgVDem",
+    "clientId": "ovlaChV0aMFEDfFgVDem",
+    "clientName": "EDLENE CRISTINA DA SILVA CERRINI",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T17:12:23.113Z",
+      "seconds": 1779210743,
+      "nanoseconds": 113000000
+    }
+  },
+  {
+    "id": "bmRkrx6yCGS5iR32coRm",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "BRUNO PIRES DOS SANTOS",
+    "entityType": "client",
+    "entityId": "wsvf1T38vJrhMMmyHlLF",
+    "clientId": "wsvf1T38vJrhMMmyHlLF",
+    "clientName": "BRUNO PIRES DOS SANTOS",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T19:09:28.088Z",
+      "seconds": 1779217768,
+      "nanoseconds": 88000000
+    }
+  },
+  {
+    "id": "lKjHdMPiv2uySBlFHZ26",
+    "type": "client_created",
+    "title": "Cliente importado por contrato",
+    "description": "ERICK IGNACIO RODRIGUES",
+    "entityType": "client",
+    "entityId": "qwSnpzidNlTx1mmZ2g6J",
+    "clientId": "qwSnpzidNlTx1mmZ2g6J",
+    "clientName": "ERICK IGNACIO RODRIGUES",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "importedFrom": "pdf-contract",
+      "contractNumber": "100001476",
+      "contractDate": "30/04/2025",
+      "contractType": "Normal"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T19:53:45.413Z",
+      "seconds": 1779220425,
+      "nanoseconds": 413000000
+    }
+  },
+  {
+    "id": "Qyv29KUvfNPfe0N7RYKE",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "EDLENE CRISTINA DA SILVA CERRINI",
+    "entityType": "client",
+    "entityId": "ovlaChV0aMFEDfFgVDem",
+    "clientId": "ovlaChV0aMFEDfFgVDem",
+    "clientName": "EDLENE CRISTINA DA SILVA CERRINI",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T17:13:18.817Z",
+      "seconds": 1779210798,
+      "nanoseconds": 817000000
+    }
+  },
+  {
+    "id": "qtitAHxILKl428A0mtDL",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "MARCOS MV",
+    "entityType": "client",
+    "entityId": "6L0OAqTfW04EuARfHjkd",
+    "clientId": "6L0OAqTfW04EuARfHjkd",
+    "clientName": "MARCOS MV",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:06:14.998Z",
+      "seconds": 1779293174,
+      "nanoseconds": 998000000
+    }
+  },
+  {
+    "id": "QDAz2H7vgPKJjBJwCEFS",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "MARCOS MV",
+    "entityType": "client",
+    "entityId": "6L0OAqTfW04EuARfHjkd",
+    "clientId": "6L0OAqTfW04EuARfHjkd",
+    "clientName": "MARCOS MV",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T19:24:47.164Z",
+      "seconds": 1779218687,
+      "nanoseconds": 164000000
+    }
+  },
+  {
+    "id": "XdOj46gqNk5fIwrRjjG9",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "AUGUSTO DA SILVA MARIA",
+    "entityType": "client",
+    "entityId": "3BJG2inpejc9SIY0UT9e",
+    "clientId": "3BJG2inpejc9SIY0UT9e",
+    "clientName": "AUGUSTO DA SILVA MARIA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:05:07.158Z",
+      "seconds": 1779293107,
+      "nanoseconds": 158000000
+    }
+  },
+  {
+    "id": "A1AHiC8QDfEPCLp6ILWf",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+    "entityType": "client",
+    "entityId": "64cCeHqubs3t2vdBaEk4",
+    "clientId": "64cCeHqubs3t2vdBaEk4",
+    "clientName": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+    "userUid": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "userName": "fabioduarte232",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-21T12:50:41.646Z",
+      "seconds": 1779367841,
+      "nanoseconds": 646000000
+    }
+  },
+  {
+    "id": "W7gCDfDHrL5XD9EpZmNG",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+    "entityType": "client",
+    "entityId": "64cCeHqubs3t2vdBaEk4",
+    "clientId": "64cCeHqubs3t2vdBaEk4",
+    "clientName": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:31:59.699Z",
+      "seconds": 1779294719,
+      "nanoseconds": 699000000
+    }
+  },
+  {
+    "id": "FTY3sxaOCS5Zagyu2od1",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "AUGUSTO DA SILVA MARIA",
+    "entityType": "client",
+    "entityId": "3BJG2inpejc9SIY0UT9e",
+    "clientId": "3BJG2inpejc9SIY0UT9e",
+    "clientName": "AUGUSTO DA SILVA MARIA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-21T13:35:37.334Z",
+      "seconds": 1779370537,
+      "nanoseconds": 334000000
+    }
+  },
+  {
+    "id": "tqT2i7icCcatUOH4omCW",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "MARCOS MV",
+    "entityType": "client",
+    "entityId": "6L0OAqTfW04EuARfHjkd",
+    "clientId": "6L0OAqTfW04EuARfHjkd",
+    "clientName": "MARCOS MV",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T17:53:57.334Z",
+      "seconds": 1779299637,
+      "nanoseconds": 334000000
+    }
+  },
+  {
+    "id": "kFOT3XrSNABmjyug3T7r",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "WILLIAM SILVA DIAS DO VALE",
+    "entityType": "client",
+    "entityId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientName": "WILLIAM SILVA DIAS DO VALE",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:09:53.894Z",
+      "seconds": 1779214193,
+      "nanoseconds": 894000000
+    }
+  },
+  {
+    "id": "P6SOe0i8LGRMrkD3Q8Ue",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "AUGUSTO DA SILVA MARIA",
+    "entityType": "client",
+    "entityId": "3BJG2inpejc9SIY0UT9e",
+    "clientId": "3BJG2inpejc9SIY0UT9e",
+    "clientName": "AUGUSTO DA SILVA MARIA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T15:21:43.480Z",
+      "seconds": 1779290503,
+      "nanoseconds": 480000000
+    }
+  },
+  {
+    "id": "UcN4VPAS3vpTZqqO7Uqy",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "BRUNO NEVES DOS SANTOS",
+    "entityType": "client",
+    "entityId": "sDWIU7p2isgURnkQsUkC",
+    "clientId": "sDWIU7p2isgURnkQsUkC",
+    "clientName": "BRUNO NEVES DOS SANTOS",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:31:56.102Z",
+      "seconds": 1779215516,
+      "nanoseconds": 102000000
+    }
+  },
+  {
+    "id": "IjWik6tivQKTlHnRz2xn",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "WILLIAM SILVA DIAS DO VALE",
+    "entityType": "client",
+    "entityId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientName": "WILLIAM SILVA DIAS DO VALE",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T18:22:24.895Z",
+      "seconds": 1779301344,
+      "nanoseconds": 895000000
+    }
+  },
+  {
+    "id": "Y4xZBoxSTC3p2qpSbgkv",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "MARCOS MV",
+    "entityType": "client",
+    "entityId": "6L0OAqTfW04EuARfHjkd",
+    "clientId": "6L0OAqTfW04EuARfHjkd",
+    "clientName": "MARCOS MV",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T18:18:48.318Z",
+      "seconds": 1779301128,
+      "nanoseconds": 318000000
+    }
+  },
+  {
+    "id": "4hpq6VsNWr11raV8R3V2",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "LION ADMINISTRADORA DE BENS LTDA",
+    "entityType": "client",
+    "entityId": "6L0OAqTfW04EuARfHjkd",
+    "clientId": "6L0OAqTfW04EuARfHjkd",
+    "clientName": "LION ADMINISTRADORA DE BENS LTDA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T17:08:34.586Z",
+      "seconds": 1779210514,
+      "nanoseconds": 586000000
+    }
+  },
+  {
+    "id": "QD9HZoBwJh4jwQ5UTXcZ",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ANDRÉIA FLORENÇO MACHADO",
+    "entityType": "client",
+    "entityId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientName": "ANDRÉIA FLORENÇO MACHADO",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T17:08:56.172Z",
+      "seconds": 1779210536,
+      "nanoseconds": 172000000
+    }
+  },
+  {
+    "id": "G9IJAmNWGzXNI8TMNDZD",
+    "type": "inventory_created",
+    "title": "Item de estoque cadastrado",
+    "description": "Botanic Green - 5151",
+    "entityType": "inventory",
+    "entityId": "OBL37ZSIGcVp95b7kLyY",
+    "materialId": "quartzito-botanic-green",
+    "materialName": "Botanic Green",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "area": 8.5405,
+      "cost": 5155,
+      "minimumSalePrice": 9215,
+      "status": "Disponível"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-21T16:59:13.657Z",
+      "seconds": 1779382753,
+      "nanoseconds": 657000000
+    }
+  },
+  {
+    "id": "pgqxucuQfncYaWdN0Y7E",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ERICK IGNACIO RODRIGUES",
+    "entityType": "client",
+    "entityId": "qwSnpzidNlTx1mmZ2g6J",
+    "clientId": "qwSnpzidNlTx1mmZ2g6J",
+    "clientName": "ERICK IGNACIO RODRIGUES",
+    "userUid": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "userName": "fabioduarte232",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-21T12:52:35.762Z",
+      "seconds": 1779367955,
+      "nanoseconds": 762000000
+    }
+  },
+  {
+    "id": "tfTZaVfb00uILo5FKHub",
+    "type": "inventory_created",
+    "title": "Item de estoque cadastrado",
+    "description": "Botanic Green - 5151",
+    "entityType": "inventory",
+    "entityId": "MrHYTpDBfOapmfjk9faZ",
+    "materialId": "quartzito-botanic-green",
+    "materialName": "Botanic Green",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "area": 8.5405,
+      "cost": 5155,
+      "minimumSalePrice": 9215,
+      "status": "Disponível"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-21T16:59:13.851Z",
+      "seconds": 1779382753,
+      "nanoseconds": 851000000
+    }
+  },
+  {
+    "id": "pu5eVMUjew2jTl45MPHN",
+    "type": "client_created",
+    "title": "Cliente importado por contrato",
+    "description": "CARLOS CESAR ROMEIRO DA COSTA",
+    "entityType": "client",
+    "entityId": "gEWmiJYzWgWREB5AWXRa",
+    "clientId": "gEWmiJYzWgWREB5AWXRa",
+    "clientName": "CARLOS CESAR ROMEIRO DA COSTA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "importedFrom": "pdf-contract",
+      "contractNumber": "100001426",
+      "contractDate": "07/03/2025",
+      "contractType": "Normal"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T20:16:28.277Z",
+      "seconds": 1779221788,
+      "nanoseconds": 277000000
+    }
+  },
+  {
+    "id": "7TXdFqi8KvIfMzo7kDN2",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ANDRÉIA FLORENÇO MACHADO",
+    "entityType": "client",
+    "entityId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientName": "ANDRÉIA FLORENÇO MACHADO",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T17:09:38.859Z",
+      "seconds": 1779210578,
+      "nanoseconds": 859000000
+    }
+  },
+  {
+    "id": "CVXWHFT8S4UQRF4ReHlX",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "AUGUSTO DA SILVA MARIA",
+    "entityType": "client",
+    "entityId": "3BJG2inpejc9SIY0UT9e",
+    "clientId": "3BJG2inpejc9SIY0UT9e",
+    "clientName": "AUGUSTO DA SILVA MARIA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:19:09.424Z",
+      "seconds": 1779293949,
+      "nanoseconds": 424000000
+    }
+  },
+  {
+    "id": "KS1QBu0NQAOp1iECpxmr",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ANDRÉIA FLORENÇO MACHADO",
+    "entityType": "client",
+    "entityId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientName": "ANDRÉIA FLORENÇO MACHADO",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T15:15:38.038Z",
+      "seconds": 1779290138,
+      "nanoseconds": 38000000
+    }
+  },
+  {
+    "id": "ZTa6KZQXfyjnAwZwx9FH",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+    "entityType": "client",
+    "entityId": "64cCeHqubs3t2vdBaEk4",
+    "clientId": "64cCeHqubs3t2vdBaEk4",
+    "clientName": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T19:14:07.154Z",
+      "seconds": 1779218047,
+      "nanoseconds": 154000000
+    }
+  },
+  {
+    "id": "pYI9aG32c6s46nNOMURB",
+    "type": "client_created",
+    "title": "Cliente importado por contrato",
+    "description": "ANDRÉIA FLORENÇO MACHADO",
+    "entityType": "client",
+    "entityId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientName": "ANDRÉIA FLORENÇO MACHADO",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "importedFrom": "pdf-contract",
+      "contractNumber": "2",
+      "contractDate": "19/03/2026",
+      "contractType": "Normal"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T16:55:01.939Z",
+      "seconds": 1779209701,
+      "nanoseconds": 939000000
+    }
+  },
+  {
+    "id": "FEksQGfMOLVQJl603mlh",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ANDRÉIA FLORENÇO MACHADO",
+    "entityType": "client",
+    "entityId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientName": "ANDRÉIA FLORENÇO MACHADO",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:04:58.284Z",
+      "seconds": 1779293098,
+      "nanoseconds": 284000000
+    }
+  },
+  {
+    "id": "WfISPbWkcYZwiz4Wz4I5",
+    "type": "client_created",
+    "title": "Cliente importado por contrato",
+    "description": "BRUNO PIRES DOS SANTOS",
+    "entityType": "client",
+    "entityId": "wsvf1T38vJrhMMmyHlLF",
+    "clientId": "wsvf1T38vJrhMMmyHlLF",
+    "clientName": "BRUNO PIRES DOS SANTOS",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "importedFrom": "pdf-contract",
+      "contractNumber": "2",
+      "contractDate": "19/11/2024",
+      "contractType": "Normal"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:33:19.265Z",
+      "seconds": 1779215599,
+      "nanoseconds": 265000000
+    }
+  },
+  {
+    "id": "iXYwtvlORnpCydftDZbW",
+    "type": "inventory_updated",
+    "title": "Item de estoque atualizado",
+    "description": "Preto absoluto - 35644663",
+    "entityType": "inventory",
+    "entityId": "zC9AWgwHLGJTmWx9pWB7",
+    "materialId": "preto-absoluto",
+    "materialName": "Preto absoluto",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "area": 1000,
+      "cost": 20000,
+      "minimumSalePrice": 2500,
+      "status": "Disponível"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-18T17:48:56.265Z",
+      "seconds": 1779126536,
+      "nanoseconds": 265000000
+    }
+  },
+  {
+    "id": "8FZfsZsR1vA1mmwulx9v",
+    "type": "client_created",
+    "title": "Cliente criado",
+    "description": "GUSTAVO ROMÃO ",
+    "entityType": "client",
+    "entityId": "xBzVKRyqc2ItEubnYu5Q",
+    "clientId": "xBzVKRyqc2ItEubnYu5Q",
+    "clientName": "GUSTAVO ROMÃO ",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:56:59.129Z",
+      "seconds": 1779285419,
+      "nanoseconds": 129000000
+    }
+  },
+  {
+    "id": "KuQ69mcdXlxFebhAOG9t",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ANDRÉIA FLORENÇO MACHADO",
+    "entityType": "client",
+    "entityId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientName": "ANDRÉIA FLORENÇO MACHADO",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T16:59:19.107Z",
+      "seconds": 1779209959,
+      "nanoseconds": 107000000
+    }
+  },
+  {
+    "id": "W4eUh5L7tZEwNRctdJn1",
+    "type": "client_created",
+    "title": "Cliente importado por contrato",
+    "description": "LION ADMINISTRADORA DE BENS LTDA",
+    "entityType": "client",
+    "entityId": "6L0OAqTfW04EuARfHjkd",
+    "clientId": "6L0OAqTfW04EuARfHjkd",
+    "clientName": "LION ADMINISTRADORA DE BENS LTDA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "importedFrom": "pdf-contract",
+      "contractNumber": "100001670",
+      "contractDate": "27/02/2026",
+      "contractType": "Normal"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T16:59:47.729Z",
+      "seconds": 1779209987,
+      "nanoseconds": 729000000
+    }
+  },
+  {
+    "id": "0L3NjF1Mx2QOcUr00EbC",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "BRUNO PIRES DOS SANTOS",
+    "entityType": "client",
+    "entityId": "wsvf1T38vJrhMMmyHlLF",
+    "clientId": "wsvf1T38vJrhMMmyHlLF",
+    "clientName": "BRUNO PIRES DOS SANTOS",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:05:24.475Z",
+      "seconds": 1779293124,
+      "nanoseconds": 475000000
+    }
+  },
+  {
+    "id": "qYKALM52h9ZOqWXZwbQp",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "RODOLFO SOUZA",
+    "entityType": "client",
+    "entityId": "1sIpUMT2Vm2jmKjCLAW4",
+    "clientId": "1sIpUMT2Vm2jmKjCLAW4",
+    "clientName": "RODOLFO SOUZA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T15:23:14.151Z",
+      "seconds": 1779290594,
+      "nanoseconds": 151000000
+    }
+  },
+  {
+    "id": "uwzBeP16RtFyRkEJ94bX",
+    "type": "inventory_updated",
+    "title": "Item de estoque atualizado",
+    "description": "Preto absoluto - 35644663",
+    "entityType": "inventory",
+    "entityId": "zC9AWgwHLGJTmWx9pWB7",
+    "materialId": "preto-absoluto",
+    "materialName": "Preto absoluto",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "area": 1000,
+      "cost": 2000,
+      "minimumSalePrice": 25000,
+      "status": "Disponível"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-18T17:45:47.103Z",
+      "seconds": 1779126347,
+      "nanoseconds": 103000000
+    }
+  },
+  {
+    "id": "v2gu1FjWrXVpXFuUy9gJ",
+    "type": "inventory_created",
+    "title": "Item de estoque cadastrado",
+    "description": "Alba Oro - 23232",
+    "entityType": "inventory",
+    "entityId": "os9mbtB8jNKo90Xi2wLD",
+    "materialId": "alba-oro",
+    "materialName": "Alba Oro",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "area": 10.4006,
+      "cost": 2333,
+      "minimumSalePrice": 4444,
+      "status": "Disponível"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-21T17:18:43.831Z",
+      "seconds": 1779383923,
+      "nanoseconds": 831000000
+    }
+  },
+  {
+    "id": "Wth840VahVHYwuHSxUjF",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "CARLOS CESAR ROMEIRO DA COSTA",
+    "entityType": "client",
+    "entityId": "gEWmiJYzWgWREB5AWXRa",
+    "clientId": "gEWmiJYzWgWREB5AWXRa",
+    "clientName": "CARLOS CESAR ROMEIRO DA COSTA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:05:32.043Z",
+      "seconds": 1779293132,
+      "nanoseconds": 43000000
+    }
+  },
+  {
+    "id": "4jFPQywFqw7zJvhcnqzc",
+    "type": "inventory_updated",
+    "title": "Item de estoque atualizado",
+    "description": "Alba Oro - 23232",
+    "entityType": "inventory",
+    "entityId": "os9mbtB8jNKo90Xi2wLD",
+    "materialId": "alba-oro",
+    "materialName": "Alba Oro",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "area": 10.4006,
+      "cost": 2333,
+      "minimumSalePrice": 4444,
+      "status": "Disponível"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-21T17:19:23.690Z",
+      "seconds": 1779383963,
+      "nanoseconds": 690000000
+    }
+  },
+  {
+    "id": "7xPCQGuR4vzPqqaXI70D",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "EDLENE CRISTINA DA SILVA CERRINI",
+    "entityType": "client",
+    "entityId": "ovlaChV0aMFEDfFgVDem",
+    "clientId": "ovlaChV0aMFEDfFgVDem",
+    "clientName": "EDLENE CRISTINA DA SILVA CERRINI",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:28:39.865Z",
+      "seconds": 1779294519,
+      "nanoseconds": 865000000
+    }
+  },
+  {
+    "id": "v30JcMKJBg0x492M7mbN",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+    "entityType": "client",
+    "entityId": "64cCeHqubs3t2vdBaEk4",
+    "clientId": "64cCeHqubs3t2vdBaEk4",
+    "clientName": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+    "userUid": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "userName": "fabioduarte232",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-21T12:52:04.895Z",
+      "seconds": 1779367924,
+      "nanoseconds": 895000000
+    }
+  },
+  {
+    "id": "mGJqPf53RjNVJlALWzJd",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ALINE ARMOND",
+    "entityType": "client",
+    "entityId": "C8SHDfkAL681sIsxlokq",
+    "clientId": "C8SHDfkAL681sIsxlokq",
+    "clientName": "ALINE ARMOND",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T17:04:39.353Z",
+      "seconds": 1779210279,
+      "nanoseconds": 353000000
+    }
+  },
+  {
+    "id": "72iaOdD7u6XpatK6PI1A",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "WILLIAM SILVA DIAS DO VALE",
+    "entityType": "client",
+    "entityId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientName": "WILLIAM SILVA DIAS DO VALE",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:18:03.505Z",
+      "seconds": 1779214683,
+      "nanoseconds": 505000000
+    }
+  },
+  {
+    "id": "vP4AKk7FanudGY7zLBJl",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "CARLOS CESAR ROMEIRO DA COSTA",
+    "entityType": "client",
+    "entityId": "gEWmiJYzWgWREB5AWXRa",
+    "clientId": "gEWmiJYzWgWREB5AWXRa",
+    "clientName": "CARLOS CESAR ROMEIRO DA COSTA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:27:48.775Z",
+      "seconds": 1779294468,
+      "nanoseconds": 775000000
+    }
+  },
+  {
+    "id": "t5LaLMLJ2bewWgrZa5e7",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+    "entityType": "client",
+    "entityId": "64cCeHqubs3t2vdBaEk4",
+    "clientId": "64cCeHqubs3t2vdBaEk4",
+    "clientName": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T16:06:04.553Z",
+      "seconds": 1779293164,
+      "nanoseconds": 553000000
+    }
+  },
+  {
+    "id": "0dv32GLQANUONEDwRbnK",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "CARLOS CESAR ROMEIRO DA COSTA",
+    "entityType": "client",
+    "entityId": "gEWmiJYzWgWREB5AWXRa",
+    "clientId": "gEWmiJYzWgWREB5AWXRa",
+    "clientName": "CARLOS CESAR ROMEIRO DA COSTA",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T20:18:13.547Z",
+      "seconds": 1779221893,
+      "nanoseconds": 547000000
+    }
+  },
+  {
+    "id": "R1g2TTSBP1112z6ckT6J",
+    "type": "inventory_deleted",
+    "title": "Item de estoque excluído",
+    "description": "Preto absoluto - 35644663",
+    "entityType": "inventory",
+    "entityId": "zC9AWgwHLGJTmWx9pWB7",
+    "materialId": "preto-absoluto",
+    "materialName": "Preto absoluto",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "metadata": {
+      "area": 1000,
+      "cost": 20000
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T20:16:44.921Z",
+      "seconds": 1779221804,
+      "nanoseconds": 921000000
+    }
+  },
+  {
+    "id": "SsF16wlCEKYg6p3Ae6c6",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "BRUNO PIRES DOS SANTOS",
+    "entityType": "client",
+    "entityId": "wsvf1T38vJrhMMmyHlLF",
+    "clientId": "wsvf1T38vJrhMMmyHlLF",
+    "clientName": "BRUNO PIRES DOS SANTOS",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T19:07:22.976Z",
+      "seconds": 1779217642,
+      "nanoseconds": 976000000
+    }
+  },
+  {
+    "id": "hLAP7r3GyfSsWuKRcF0F",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "ANDRÉIA FLORENÇO MACHADO",
+    "entityType": "client",
+    "entityId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientId": "2fmLjYQJTXsn2TvQ8rpO",
+    "clientName": "ANDRÉIA FLORENÇO MACHADO",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T15:11:20.348Z",
+      "seconds": 1779289880,
+      "nanoseconds": 348000000
+    }
+  },
+  {
+    "id": "sI6gIkON9aO9Zvf2nxSv",
+    "type": "client_updated",
+    "title": "Cliente atualizado",
+    "description": "WILLIAM SILVA DIAS DO VALE",
+    "entityType": "client",
+    "entityId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientId": "5I7m5M9LDrBCv1iCNQ9G",
+    "clientName": "WILLIAM SILVA DIAS DO VALE",
+    "userUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userName": "Brian Takiya",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T18:10:44.535Z",
+      "seconds": 1779214244,
+      "nanoseconds": 535000000
+    }
+  }
+]

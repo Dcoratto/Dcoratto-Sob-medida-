@@ -1,5 +1,5 @@
 ﻿import React, {useEffect, useState} from 'react';
-import {collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, where} from 'firebase/firestore';
+import {collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, where} from '../lib/firestore';
 import {AlertTriangle, Edit2, Eye, PackageCheck, Search, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
 import {db} from '../lib/firebase';
@@ -36,7 +36,7 @@ const normalizeStatus = (value: unknown) =>
     .replace(/[\u0300-\u036f]/g, '');
 
 export const MaterialsPage: React.FC = () => {
-  const {user, hasPermission} = useAuth();
+  const {user, appUid, hasPermission} = useAuth();
   const navigate = useNavigate();
   const [materials, setMaterials] = useState<Material[]>([]);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -88,16 +88,16 @@ export const MaterialsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!user?.uid) {
+    if (!appUid) {
       setUserPrices([]);
       return;
     }
-    const q = query(collection(db, 'userMaterialPrices'), where('userId', '==', user.uid));
+    const q = query(collection(db, 'userMaterialPrices'), where('userId', '==', appUid));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setUserPrices(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as UserMaterialPrice)));
     });
     return unsubscribe;
-  }, [user?.uid]);
+  }, [appUid]);
 
   const activeStockItems = inventory.filter((item) => !['usada', 'descarte'].includes(normalizeStatus(item.status)));
   const activeReservations = reservations.filter((reservation) => !['recusado', 'cancelado', 'finalizado'].includes(normalizeStatus(reservation.quoteStatus)));
@@ -191,9 +191,9 @@ export const MaterialsPage: React.FC = () => {
       ? ((pricePerM2 / baseMinimumSale) - 1) * 100
       : margin;
 
-    if (user?.uid) {
-      await setDoc(doc(db, 'userMaterialPrices', `${user.uid}_${editingMaterial.materialVariantKey}`), {
-        userId: user.uid,
+    if (appUid) {
+      await setDoc(doc(db, 'userMaterialPrices', `${appUid}_${editingMaterial.materialVariantKey}`), {
+        userId: appUid,
         materialId: editingMaterial.baseMaterialId,
         materialVariantKey: editingMaterial.materialVariantKey,
         baseCostPerM2: baseCost,
@@ -501,4 +501,3 @@ export const MaterialsPage: React.FC = () => {
     </div>
   );
 };
-

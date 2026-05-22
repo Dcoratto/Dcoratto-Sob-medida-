@@ -1,5 +1,6 @@
-import {User} from 'firebase/auth';
 import {AccessRole, AccessUser, PermissionMap} from '../types';
+
+type AuthIdentity = {email?: string | null};
 
 export const MASTER_ADMIN_EMAIL = 'brian_takiya77@outlook.com';
 
@@ -141,11 +142,11 @@ export const mergePermissions = (user?: AccessUser | null): PermissionMap => {
   return base;
 };
 
-export const isMasterAdmin = (user?: Pick<User, 'email'> | Pick<AccessUser, 'email'> | null) =>
+export const isMasterAdmin = (user?: AuthIdentity | Pick<AccessUser, 'email'> | null) =>
   String(user?.email || '').toLowerCase() === MASTER_ADMIN_EMAIL;
 
 export const hasPermission = <M extends PermissionModule>(
-  user: AccessUser | User | null | undefined,
+  user: AccessUser | AuthIdentity | null | undefined,
   module: M,
   action: keyof PermissionMap[M],
 ) => {
@@ -157,7 +158,7 @@ export const hasPermission = <M extends PermissionModule>(
   return Boolean(DEFAULT_ROLE_PERMISSIONS[accessUser.role]?.[module]?.[action as any]);
 };
 
-export const canEvaluateEmployees = (user?: AccessUser | User | null) =>
+export const canEvaluateEmployees = (user?: AccessUser | AuthIdentity | null) =>
   isMasterAdmin(user as any)
   || (user as AccessUser | null | undefined)?.role === 'coordenador'
   || hasPermission(user, 'cliente', 'avaliarFuncionarios');

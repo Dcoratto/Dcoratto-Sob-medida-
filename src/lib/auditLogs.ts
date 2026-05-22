@@ -1,5 +1,5 @@
-import {addDoc, collection, serverTimestamp} from 'firebase/firestore';
-import {User} from 'firebase/auth';
+import {addDoc, collection, serverTimestamp} from './firestore';
+import {AuthUser} from './auth';
 import {db} from './firebase';
 import {AccessUser} from '../types';
 
@@ -11,7 +11,7 @@ export const logAuditEvent = async ({
   oldValue,
   newValue,
 }: {
-  user?: AccessUser | User | null;
+  user?: AccessUser | AuthUser | null;
   action: string;
   module: string;
   targetId: string;
@@ -20,9 +20,9 @@ export const logAuditEvent = async ({
 }) => {
   if (!user) return;
   await addDoc(collection(db, 'auditLogs'), {
-    userId: 'uid' in user ?user.uid : '',
+    userId: 'uid' in user ?user.uid : ('id' in user ? user.id : ''),
     userEmail: user.email || '',
-    userName: 'nome' in user ?user.nome : user.displayName || user.email || 'Usuário',
+    userName: 'nome' in user ?user.nome : user.user_metadata?.name || user.email || 'Usuário',
     action,
     module,
     targetId,

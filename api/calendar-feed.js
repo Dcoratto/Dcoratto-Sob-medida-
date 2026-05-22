@@ -1,52 +1,43 @@
-import {initializeApp, cert, getApps} from 'firebase-admin/app';
-import {getFirestore, Timestamp} from 'firebase-admin/firestore';
-import fs from 'fs';
+import dotenv from 'dotenv';
+import {createClient} from '@supabase/supabase-js';
 import path from 'path';
 import {fileURLToPath} from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const firebaseConfig = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../firebase-applet-config.json'), 'utf8'));
+
+dotenv.config({path: path.resolve(__dirname, '../.env.local'), override: false, quiet: true});
+dotenv.config({path: path.resolve(__dirname, '../.env'), override: false, quiet: true});
 
 const normalizeEnv = (value, fallback = '') => {
   const normalized = String(value ?? fallback).trim();
   return normalized.replace(/^"(.*)"$/s, '$1');
 };
 
-const FIREBASE_PROJECT_ID = normalizeEnv(process.env.FIREBASE_PROJECT_ID, firebaseConfig.projectId);
-const FIREBASE_CLIENT_EMAIL = normalizeEnv(process.env.FIREBASE_CLIENT_EMAIL);
-const FIREBASE_PRIVATE_KEY = normalizeEnv(process.env.FIREBASE_PRIVATE_KEY).replace(/\\n/g, '\n');
-const FIRESTORE_DATABASE_ID = normalizeEnv(process.env.FIRESTORE_DATABASE_ID, firebaseConfig.firestoreDatabaseId);
+const SUPABASE_URL = normalizeEnv(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
+const SUPABASE_ANON_KEY = normalizeEnv(process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY);
 
-const getMissingAdminEnvVars = () => {
-  const missing = [];
-  if (!FIREBASE_CLIENT_EMAIL) missing.push('FIREBASE_CLIENT_EMAIL');
-  if (!FIREBASE_PRIVATE_KEY) missing.push('FIREBASE_PRIVATE_KEY');
-  return missing;
-};
-
-const ensureAdminApp = () => {
-  if (getApps().length) return getApps()[0];
-  const missing = getMissingAdminEnvVars();
-  if (missing.length > 0) {
-    throw new Error(`FIREBASE_ADMIN_MISSING_ENV:${missing.join(',')}`);
+const getSupabaseClient = () => {
+  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+    throw new Error('SUPABASE_ENV_MISSING:SUPABASE_URL,SUPABASE_ANON_KEY');
   }
-  return initializeApp({
-    credential: cert({
-      projectId: FIREBASE_PROJECT_ID,
-      clientEmail: FIREBASE_CLIENT_EMAIL,
-      privateKey: FIREBASE_PRIVATE_KEY,
-    }),
+
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
   });
 };
-
-const db = () => getFirestore(ensureAdminApp(), FIRESTORE_DATABASE_ID);
 
 const toDate = (value) => {
   if (!value) return null;
   if (value instanceof Date) return value;
-  if (value instanceof Timestamp) return value.toDate();
   if (typeof value.toDate === 'function') return value.toDate();
+  if (typeof value === 'string' || typeof value === 'number') {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
   return null;
 };
 
@@ -133,35 +124,44 @@ export default async function handler(req, res) {
   }
 
   try {
-    const firestore = db();
-    const profileSnap = await firestore.doc(`profiles/${uid}`).get();
-    if (!profileSnap.exists || profileSnap.data()?.calendarFeedToken !== token) {
+    const supabase = getSupabaseClient();
+
+    const {data: profile, error: profileError} = await supabase
+      .from('profiles')
+      .select('id, calendar_feed_token')
+      .eq('id', String(uid))
+      .maybeSingle();
+
+    if (profileError) throw profileError;
+    if (!profile || profile.calendar_feed_token !== token) {
       res.status(403).send('Invalid calendar token.');
       return;
     }
 
-    const [quotesSnap, clientsSnap, manualEventsSnap] = await Promise.all([
-      firestore.collection('quotes').get(),
-      firestore.collection('clients').get(),
-      firestore.collection('calendarEvents').get(),
+    const [{data: quotes, error: quotesError}, {data: clients, error: clientsError}, {data: manualEvents, error: manualEventsError}] = await Promise.all([
+      supabase.from('quotes').select('*'),
+      supabase.from('clients').select('*'),
+      supabase.from('calendar_events').select('*'),
     ]);
 
-    const clients = clientsSnap.docs.map((doc) => ({id: doc.id, ...doc.data()}));
-    const clientMap = new Map(clients.map((client) => [client.id, client]));
+    if (quotesError) throw quotesError;
+    if (clientsError) throw clientsError;
+    if (manualEventsError) throw manualEventsError;
+
+    const clientMap = new Map((clients || []).map((client) => [client.id, client]));
     const events = [];
 
-    for (const docSnap of quotesSnap.docs) {
-      const quote = {id: docSnap.id, ...docSnap.data()};
-      const client = clientMap.get(quote.clientId);
-      const measurementDate = toDate(quote.measurementDate);
-      const deliveryDate = toDate(quote.deliveryDate);
+    for (const quote of quotes || []) {
+      const client = clientMap.get(quote.client_id);
+      const measurementDate = toDate(quote.measurement_date);
+      const deliveryDate = toDate(quote.delivery_date);
 
       if (measurementDate) {
         events.push({
           uid: `${quote.id}-medicao@dcoratto`,
-          title: `${eventLabel('medicao')} | ${quote.clientName || 'Cliente'}`,
+          title: `${eventLabel('medicao')} | ${quote.client_name || 'Cliente'}`,
           description: [
-            `Cliente: ${quote.clientName || 'Nao informado'}`,
+            `Cliente: ${quote.client_name || 'Nao informado'}`,
             client?.phone ? `Telefone: ${client.phone}` : '',
             client?.email ? `E-mail: ${client.email}` : '',
             clientFullAddress(client),
@@ -176,9 +176,9 @@ export default async function handler(req, res) {
       if (deliveryDate) {
         events.push({
           uid: `${quote.id}-entrega@dcoratto`,
-          title: `${eventLabel('entrega')} | ${quote.clientName || 'Cliente'}`,
+          title: `${eventLabel('entrega')} | ${quote.client_name || 'Cliente'}`,
           description: [
-            `Cliente: ${quote.clientName || 'Nao informado'}`,
+            `Cliente: ${quote.client_name || 'Nao informado'}`,
             client?.phone ? `Telefone: ${client.phone}` : '',
             client?.email ? `E-mail: ${client.email}` : '',
             clientFullAddress(client),
@@ -191,20 +191,19 @@ export default async function handler(req, res) {
       }
     }
 
-    for (const docSnap of manualEventsSnap.docs) {
-      const manualEvent = {id: docSnap.id, ...docSnap.data()};
-      const eventDate = parseDateKey(manualEvent.dateKey, manualEvent.eventTime) || toDate(manualEvent.date);
+    for (const manualEvent of manualEvents || []) {
+      const eventDate = parseDateKey(manualEvent.date_key, manualEvent.event_time) || toDate(manualEvent.date);
       if (!eventDate) continue;
-      const client = manualEvent.clientId ?clientMap.get(manualEvent.clientId) : null;
+      const client = manualEvent.client_id ? clientMap.get(manualEvent.client_id) : null;
       events.push({
         uid: `manual-${manualEvent.id}@dcoratto`,
-        title: [manualEvent.title || 'Evento', manualEvent.clientName].filter(Boolean).join(' | '),
+        title: [manualEvent.title || 'Evento', manualEvent.client_name].filter(Boolean).join(' | '),
         description: [
           manualEvent.description || '',
           client?.phone ? `Telefone: ${client.phone}` : '',
           client?.email ? `E-mail: ${client.email}` : '',
           clientFullAddress(client),
-          manualEvent.createdByName ? `Criado por: ${manualEvent.createdByName}` : '',
+          manualEvent.created_by_name ? `Criado por: ${manualEvent.created_by_name}` : '',
         ].filter(Boolean).join('\n'),
         location: clientFullAddress(client),
         start: eventDate,
@@ -231,8 +230,8 @@ export default async function handler(req, res) {
         `DTSTART;TZID=America/Sao_Paulo:${formatDateTimeLocal(event.start)}`,
         `DTEND;TZID=America/Sao_Paulo:${formatDateTimeLocal(addOneHour(event.start))}`,
         `SUMMARY:${escapeIcsText(event.title)}`,
-        event.description ?`DESCRIPTION:${escapeIcsText(event.description)}` : '',
-        event.location ?`LOCATION:${escapeIcsText(event.location)}` : '',
+        event.description ? `DESCRIPTION:${escapeIcsText(event.description)}` : '',
+        event.location ? `LOCATION:${escapeIcsText(event.location)}` : '',
         'END:VEVENT',
       ].filter(Boolean)),
       'END:VCALENDAR',
@@ -245,7 +244,7 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('Calendar feed error', error);
     const message = String(error?.message || '');
-    if (message.startsWith('FIREBASE_ADMIN_MISSING_ENV:')) {
+    if (message.startsWith('SUPABASE_ENV_MISSING:')) {
       const missing = message.split(':')[1] || '';
       res.status(500).send(`Calendar feed misconfigured. Missing env: ${missing}`);
       return;

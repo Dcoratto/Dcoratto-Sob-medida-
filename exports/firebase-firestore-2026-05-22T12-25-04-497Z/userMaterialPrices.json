@@ -1,0 +1,105 @@
+[
+  {
+    "id": "JPSHn4Zeq4RhmdQO313pIW4mVJH2_preto-absoluto|lamina ultracompacta|chapa||polido|laminatto",
+    "baseMinimumSalePerM2": 2.5,
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "finalPricePerM2": 2000,
+    "marginPercentage": 79900,
+    "pricePerM2": 2000,
+    "baseCostPerM2": 20,
+    "materialVariantKey": "preto-absoluto|lamina ultracompacta|chapa||polido|laminatto",
+    "materialId": "preto-absoluto",
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-18T18:06:28.292Z",
+      "seconds": 1779127588,
+      "nanoseconds": 292000000
+    }
+  },
+  {
+    "id": "oMgxor0aUPUPVrNNK1Q5E4hLjC63_pedra-01",
+    "marginPercentage": 200,
+    "pricePerM2": 35.54418141750196,
+    "baseCostPerM2": 11.848060472500652,
+    "materialId": "pedra-01",
+    "userId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-07T15:55:00.149Z",
+      "seconds": 1778169300,
+      "nanoseconds": 149000000
+    }
+  },
+  {
+    "id": "JPSHn4Zeq4RhmdQO313pIW4mVJH2_pedra-branco-siena",
+    "marginPercentage": 300,
+    "pricePerM2": 83.33333333333333,
+    "baseCostPerM2": 20.833333333333332,
+    "materialId": "pedra-branco-siena",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-09T15:45:03.700Z",
+      "seconds": 1778341503,
+      "nanoseconds": 700000000
+    }
+  },
+  {
+    "id": "JPSHn4Zeq4RhmdQO313pIW4mVJH2_pedra-4",
+    "marginPercentage": 200,
+    "pricePerM2": 11081.560283687944,
+    "baseCostPerM2": 3693.8534278959814,
+    "materialId": "pedra-4",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-06T20:44:00.051Z",
+      "seconds": 1778100240,
+      "nanoseconds": 51000000
+    }
+  },
+  {
+    "id": "JPSHn4Zeq4RhmdQO313pIW4mVJH2_marmore-gris-armani",
+    "marginPercentage": 200,
+    "pricePerM2": 750,
+    "baseCostPerM2": 250,
+    "materialId": "marmore-gris-armani",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-09T15:44:57.094Z",
+      "seconds": 1778341497,
+      "nanoseconds": 94000000
+    }
+  },
+  {
+    "id": "JPSHn4Zeq4RhmdQO313pIW4mVJH2_marmore-branco-parana",
+    "baseCostPerM2": 36.666666666666664,
+    "materialId": "marmore-branco-parana",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "finalPricePerM2": 900,
+    "marginPercentage": 2354.5454545454545,
+    "baseMinimumSalePerM2": 36.666666666666664,
+    "pricePerM2": 900,
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-13T14:32:21.291Z",
+      "seconds": 1778682741,
+      "nanoseconds": 291000000
+    }
+  },
+  {
+    "id": "JPSHn4Zeq4RhmdQO313pIW4mVJH2_pedra-01",
+    "marginPercentage": 100,
+    "pricePerM2": 23.696120945001304,
+    "baseCostPerM2": 11.848060472500652,
+    "materialId": "pedra-01",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-06T12:12:50.343Z",
+      "seconds": 1778069570,
+      "nanoseconds": 343000000
+    }
+  }
+]

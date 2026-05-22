@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {doc, setDoc, updateDoc} from 'firebase/firestore';
+import {doc, setDoc, updateDoc} from '../lib/firestore';
 import {db} from '../lib/firebase';
 import {useAuth} from '../contexts/AuthContext';
 import {Briefcase, Camera, Mail, Phone, Save, Upload, User} from 'lucide-react';
@@ -7,7 +7,7 @@ import {cn} from '../lib/utils';
 import {roleLabel} from '../lib/permissions';
 
 export const ProfilePage: React.FC = () => {
-  const {profile, accessUser, user} = useAuth();
+  const {profile, accessUser, user, appUid} = useAuth();
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [position, setPosition] = useState('');
@@ -42,13 +42,13 @@ export const ProfilePage: React.FC = () => {
 
   const handleSave = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!user) return;
+    if (!user || !appUid) return;
 
     const nextName = name.trim() || accessUser?.nome || profile?.name || user.email?.split('@')[0] || 'Usuário';
 
     setSaving(true);
     try {
-      await updateDoc(doc(db, 'profiles', user.uid), {
+      await updateDoc(doc(db, 'profiles', appUid), {
         name: nextName,
         phone,
         position,
@@ -56,8 +56,8 @@ export const ProfilePage: React.FC = () => {
         updatedAt: new Date(),
       });
 
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
+      await setDoc(doc(db, 'users', appUid), {
+        uid: appUid,
         nome: nextName,
         name: nextName,
         email: user.email || '',

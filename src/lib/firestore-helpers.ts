@@ -1,9 +1,9 @@
-import { doc, deleteDoc } from "firebase/firestore";
-import { db } from "./firebase";
+﻿import { doc, deleteDoc } from './firestore';
+import { db } from './firebase';
 
-export async function deleteFirestoreDoc(collectionName: string, id: string) {
+export async function deleteRecordDoc(collectionName: string, id: string) {
   if (!collectionName || !id) {
-    window.alert("Não foi possível excluir: registro inválido.");
+    window.alert('Não foi possível excluir: registro inválido.');
     return false;
   }
 
@@ -12,8 +12,10 @@ export async function deleteFirestoreDoc(collectionName: string, id: string) {
     await deleteDoc(ref);
     return true;
   } catch (error) {
-    console.error("Erro ao excluir documento:", error);
-    window.alert("Não foi possível excluir agora. Tente novamente em alguns instantes.");
+    console.error('Erro ao excluir registro:', error);
+    window.alert('Não foi possível excluir agora. Tente novamente em alguns instantes.');
     return false;
   }
 }
+
+export const deleteFirestoreDoc = deleteRecordDoc;

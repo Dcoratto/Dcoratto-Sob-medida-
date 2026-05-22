@@ -9,11 +9,16 @@
     "start": "node server.js",
     "preview": "vite preview --configLoader runner --host=0.0.0.0",
     "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "export:firebase": "node scripts/export-firebase-firestore.mjs",
+    "build:supabase-import": "node scripts/build-supabase-import.mjs",
+    "migrate:firebase-storage": "node scripts/migrate-firebase-storage-to-supabase.mjs",
+    "bootstrap:supabase-auth": "node scripts/bootstrap-supabase-auth.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
     "@hookform/resolvers": "^5.2.2",
+    "@supabase/supabase-js": "^2.106.1",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
     "clsx": "^2.1.1",

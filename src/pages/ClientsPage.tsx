@@ -1,5 +1,5 @@
 ﻿import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from 'firebase/firestore';
+import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from '../lib/firestore';
 import {Banknote, CheckCircle2, ClipboardList, Edit2, FileText, FileUp, Info, MapPin, Phone, Plus, Search, Trash2, User, Users, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
@@ -263,7 +263,7 @@ const summarizeLegacyPayments = (payments: LegacyPaymentInstallment[] = [], tota
 };
 
 export const ClientsPage: React.FC = () => {
-  const {user, profile, canEvaluateEmployees, hasPermission} = useAuth();
+  const {user, profile, appUid, canEvaluateEmployees, hasPermission} = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -368,7 +368,7 @@ export const ClientsPage: React.FC = () => {
 
   const selectedQuote = selectedClientQuotes.find((quote) => quote.id === selectedQuoteId) || selectedClientQuotes[0];
   const selectedLegacyQuote = selectedClient?.legacyManualQuote;
-  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
+  const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
   const sortedCondominiums = useMemo(
     () => [...condominiums].sort((a, b) => a.name.localeCompare(b.name, 'pt-BR', {sensitivity: 'base'})),
     [condominiums],
@@ -571,7 +571,7 @@ export const ClientsPage: React.FC = () => {
         entityId: editingClient.id,
         clientId: editingClient.id,
         clientName: name,
-        userUid: user?.uid || '',
+        userUid: appUid || '',
         userName: currentUserName,
       });
     } else {
@@ -584,7 +584,7 @@ export const ClientsPage: React.FC = () => {
         entityId: createdRef.id,
         clientId: createdRef.id,
         clientName: name,
-        userUid: user?.uid || '',
+        userUid: appUid || '',
         userName: currentUserName,
       });
     }
@@ -662,7 +662,7 @@ export const ClientsPage: React.FC = () => {
         entityId: createdRef.id,
         clientId: createdRef.id,
         clientName: parsed.clientName,
-        userUid: user?.uid || '',
+        userUid: appUid || '',
         userName: currentUserName,
         metadata: {
           importedFrom: 'pdf-contract',
@@ -673,9 +673,7 @@ export const ClientsPage: React.FC = () => {
       });
 
       await logAuditEvent({
-        userId: user?.uid || '',
-        userEmail: user?.email || '',
-        userName: currentUserName,
+        user: profile || user,
         action: 'import_contract_pdf',
         module: 'clientes',
         targetId: createdRef.id,
@@ -843,7 +841,7 @@ export const ClientsPage: React.FC = () => {
         entityId: id,
         clientId: id,
         clientName: deletedClient.name,
-        userUid: user?.uid || '',
+        userUid: appUid || '',
         userName: currentUserName,
       });
     }
@@ -863,7 +861,7 @@ export const ClientsPage: React.FC = () => {
           {
             status,
             changedAt: Timestamp.now(),
-            changedByUid: user?.uid || '',
+            changedByUid: appUid || '',
             changedByName: currentUserName,
             note: `Status alterado para ${status}`,
           },
@@ -886,7 +884,7 @@ export const ClientsPage: React.FC = () => {
         clientName: quote.clientName,
         materialId: quote.materialId,
         materialName: quote.materialName,
-        userUid: user?.uid || '',
+        userUid: appUid || '',
         userName: currentUserName,
       });
     } catch (error: any) {
@@ -931,7 +929,7 @@ export const ClientsPage: React.FC = () => {
         {
           status: quote.status,
           changedAt: Timestamp.now(),
-          changedByUid: user?.uid || '',
+          changedByUid: appUid || '',
           changedByName: currentUserName,
           note: value
             ? `Medição agendada para ${value.split('-').reverse().join('/')} e entrega calculada pelo prazo de ${quote.deliveryDays || 0} dia(s)`
@@ -958,7 +956,7 @@ export const ClientsPage: React.FC = () => {
         {
           status: quote.status,
           changedAt: Timestamp.now(),
-          changedByUid: user?.uid || '',
+          changedByUid: appUid || '',
           changedByName: currentUserName,
           note: `Prazo alterado para ${deliveryDays} dia(s)${delivery ?` e entrega recalculada para ${delivery.toLocaleDateString('pt-BR')}` : ''}`,
         },
@@ -1009,7 +1007,7 @@ export const ClientsPage: React.FC = () => {
       {
         status: quote.status,
         changedAt: Timestamp.now(),
-        changedByUid: user?.uid || '',
+        changedByUid: appUid || '',
         changedByName: currentUserName,
         responsibleEmployeeId: employee?.id || '',
         responsibleEmployeeName: employee?.name || '',
@@ -1038,7 +1036,7 @@ export const ClientsPage: React.FC = () => {
       clientName: quote.clientName,
       employeeId: employee?.id || '',
       employeeName: employee?.name || '',
-      userUid: user?.uid || '',
+      userUid: appUid || '',
       userName: currentUserName,
       metadata: {step},
     });
@@ -1059,7 +1057,7 @@ export const ClientsPage: React.FC = () => {
         {
           status: quote.status,
           changedAt: Timestamp.now(),
-          changedByUid: user?.uid || '',
+          changedByUid: appUid || '',
           changedByName: currentUserName,
           responsibleEmployeeId: assignment.employeeId,
           responsibleEmployeeName: assignment.employeeName,
@@ -1080,7 +1078,7 @@ export const ClientsPage: React.FC = () => {
       clientName: quote.clientName,
       employeeId: assignment.employeeId,
       employeeName: assignment.employeeName,
-      userUid: user?.uid || '',
+      userUid: appUid || '',
       userName: currentUserName,
       metadata: {step: assignment.step, finished: !finished},
     });
@@ -1099,7 +1097,7 @@ export const ClientsPage: React.FC = () => {
       rating,
       notes: notes || currentEvaluation?.notes || '',
       createdAt: Timestamp.now(),
-      evaluatedByUid: user?.uid || '',
+      evaluatedByUid: appUid || '',
       evaluatedByName: currentUserName,
     };
     const nextEvaluations = (quote.employeeEvaluations || [])
@@ -1113,7 +1111,7 @@ export const ClientsPage: React.FC = () => {
         {
           status: quote.status,
           changedAt: Timestamp.now(),
-          changedByUid: user?.uid || '',
+          changedByUid: appUid || '',
           changedByName: currentUserName,
           responsibleEmployeeId: assignment.employeeId,
           responsibleEmployeeName: assignment.employeeName,
@@ -1134,7 +1132,7 @@ export const ClientsPage: React.FC = () => {
       clientName: quote.clientName,
       employeeId: assignment.employeeId,
       employeeName: assignment.employeeName,
-      userUid: user?.uid || '',
+      userUid: appUid || '',
       userName: currentUserName,
       metadata: {step: assignment.step, rating, notes: notes || currentEvaluation?.notes || ''},
     });
@@ -1179,7 +1177,7 @@ export const ClientsPage: React.FC = () => {
         {
           status: quote.status,
           changedAt: Timestamp.now(),
-          changedByUid: user?.uid || '',
+          changedByUid: appUid || '',
           changedByName: currentUserName,
           note: `Dados de ${fixtureType === 'sink' ?'cuba' : fixtureType === 'faucet' ?'torneira' : 'cooktop'} atualizados`,
         },
@@ -1195,7 +1193,7 @@ export const ClientsPage: React.FC = () => {
       quoteStatus: quote.status,
       clientId: quote.clientId,
       clientName: quote.clientName,
-      userUid: user?.uid || '',
+      userUid: appUid || '',
       userName: currentUserName,
       metadata: {pieceId, fixtureType, field, value},
     });
@@ -1216,7 +1214,7 @@ export const ClientsPage: React.FC = () => {
           [fixtureType]: {
             ...currentFixture,
             received: true,
-            receivedByUid: user?.uid || '',
+            receivedByUid: appUid || '',
             receivedByName: currentUserName,
             receivedAt: Timestamp.now(),
           },
@@ -1241,7 +1239,7 @@ export const ClientsPage: React.FC = () => {
         {
           status: quote.status,
           changedAt: Timestamp.now(),
-          changedByUid: user?.uid || '',
+          changedByUid: appUid || '',
           changedByName: currentUserName,
           note: `${fixtureLabel.charAt(0).toUpperCase()}${fixtureLabel.slice(1)} recebida`,
         },
@@ -1257,7 +1255,7 @@ export const ClientsPage: React.FC = () => {
       quoteStatus: quote.status,
       clientId: quote.clientId,
       clientName: quote.clientName,
-      userUid: user?.uid || '',
+      userUid: appUid || '',
       userName: currentUserName,
       metadata: {pieceId, fixtureType, received: true},
     });

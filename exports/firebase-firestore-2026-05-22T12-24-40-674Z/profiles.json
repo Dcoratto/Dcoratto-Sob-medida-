@@ -1,0 +1,134 @@
+[
+  {
+    "id": "oQEE1LSKn3Rt4T9jUML4Ih4k2we2",
+    "uid": "oQEE1LSKn3Rt4T9jUML4Ih4k2we2",
+    "name": "Wellington Oliveira",
+    "email": "welfernandes08@hotmail.com",
+    "role": "user",
+    "blocked": false,
+    "phone": ""
+  },
+  {
+    "id": "ClKdFkNRd3VlAqX1BHEAV2YMEYs2",
+    "uid": "ClKdFkNRd3VlAqX1BHEAV2YMEYs2",
+    "name": "brian_takiya77",
+    "email": "brian_takiya77@outlook.com",
+    "phone": "",
+    "role": "admin",
+    "permissions": {
+      "canEditGlobalPrices": true,
+      "canEditLabor": true,
+      "canEditSavedQuotes": true,
+      "canEditPrices": false,
+      "canDeleteData": false,
+      "canManageSettings": false,
+      "canViewCosts": false
+    },
+    "blocked": false
+  },
+  {
+    "id": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "uid": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "name": "vinny.iprisd",
+    "email": "vinny.iprisd@gmail.com",
+    "role": "user",
+    "blocked": false,
+    "phone": "",
+    "calendarFeedToken": "0ea6ce8eb30149f592d0ca73ed4bb112"
+  },
+  {
+    "id": "E687XiV5FNhbdBQCVLeU5X9zRZl1",
+    "uid": "E687XiV5FNhbdBQCVLeU5X9zRZl1",
+    "name": "DOG",
+    "email": "dogrecords4m@gmail.com",
+    "role": "user",
+    "blocked": false,
+    "phone": ""
+  },
+  {
+    "id": "lr7O5vB69Zf5JuxgKkb5Q5ib1Am1",
+    "uid": "lr7O5vB69Zf5JuxgKkb5Q5ib1Am1",
+    "name": "Jéssica Rodrigues Leite Benedito",
+    "email": "jhessypresentes.s2@gmail.com",
+    "role": "user",
+    "blocked": false,
+    "phone": ""
+  },
+  {
+    "id": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "uid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "email": "brian_takiya77@outlook.com",
+    "blocked": false,
+    "role": "admin",
+    "photoUrl": "",
+    "phone": "11961745136",
+    "name": "Brian Takiya",
+    "position": "Vendedor",
+    "materialMarkups": [
+      {
+        "materialId": "BuFFSOy1I9h6B9XLXTMV",
+        "percentage": 100
+      }
+    ],
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:20:07.518Z",
+      "seconds": 1778617207,
+      "nanoseconds": 518000000
+    },
+    "calendarFeedToken": "0ca3e041a3814689adec5c41c4606995"
+  },
+  {
+    "id": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "uid": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "name": "fabioduarte232",
+    "email": "fabioduarte232@yahoo.com",
+    "role": "user",
+    "blocked": false,
+    "phone": "",
+    "calendarFeedToken": "36c655d0435e4e518474233a22476af7"
+  },
+  {
+    "id": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "uid": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "name": "brunocraftertb",
+    "email": "brunocraftertb@gmail.com",
+    "role": "user",
+    "blocked": false,
+    "phone": ""
+  },
+  {
+    "id": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "uid": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "email": "rafael.edf25@gmail.com",
+    "phone": "",
+    "photoUrl": "",
+    "name": "Rafael Lucena",
+    "position": "",
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-02T13:50:15.886Z",
+      "seconds": 1777729815,
+      "nanoseconds": 886000000
+    },
+    "permissions": {
+      "canManageSettings": false,
+      "canViewCosts": false,
+      "canEditPrices": false,
+      "canEditGlobalPrices": true,
+      "canDeleteData": false
+    },
+    "role": "user",
+    "blocked": false
+  },
+  {
+    "id": "zSxmWGUnKvc8XO4gyyoA630ypq22",
+    "uid": "zSxmWGUnKvc8XO4gyyoA630ypq22",
+    "name": "rhhirakawa",
+    "email": "rhhirakawa@gmail.com",
+    "role": "user",
+    "blocked": false,
+    "phone": "",
+    "calendarFeedToken": "713779bab60648a5958868c6f909499d"
+  }
+]

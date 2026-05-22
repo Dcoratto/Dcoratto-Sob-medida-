@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {collection, onSnapshot, orderBy, query} from 'firebase/firestore';
+import {collection, onSnapshot, orderBy, query} from '../lib/firestore';
 import {useNavigate} from 'react-router-dom';
 import {ClipboardCheck, Search} from 'lucide-react';
 import {db} from '../lib/firebase';

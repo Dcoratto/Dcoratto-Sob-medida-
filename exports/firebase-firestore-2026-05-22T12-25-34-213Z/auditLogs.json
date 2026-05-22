@@ -1,0 +1,2838 @@
+[
+  {
+    "id": "mjwAX17ReySL3sdZUU4x",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:10:38.766Z",
+      "seconds": 1779282638,
+      "nanoseconds": 766000000
+    }
+  },
+  {
+    "id": "6lDYEYYby7KXnIXvE7mO",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:16.599Z",
+      "seconds": 1779283756,
+      "nanoseconds": 599000000
+    }
+  },
+  {
+    "id": "uPfFLemP4czQAZ0DdPBK",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:54.385Z",
+      "seconds": 1779283794,
+      "nanoseconds": 385000000
+    }
+  },
+  {
+    "id": "hH0q4CAFgsoYDes9Txwz",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:40:24.088Z",
+      "seconds": 1778618424,
+      "nanoseconds": 88000000
+    }
+  },
+  {
+    "id": "BFjVtb0UalXNSK0qMwDg",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-13T16:33:54.816Z",
+      "seconds": 1778690034,
+      "nanoseconds": 816000000
+    }
+  },
+  {
+    "id": "T5O3DFF0ocayb8sSuEEn",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "lr7O5vB69Zf5JuxgKkb5Q5ib1Am1",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:32.398Z",
+      "seconds": 1779283832,
+      "nanoseconds": 398000000
+    }
+  },
+  {
+    "id": "YSYedXHdzaur4aJCRdMp",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:21.067Z",
+      "seconds": 1779283881,
+      "nanoseconds": 67000000
+    }
+  },
+  {
+    "id": "5t3FHbzUhH3aFb3gvtQ6",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:51.078Z",
+      "seconds": 1779283851,
+      "nanoseconds": 78000000
+    }
+  },
+  {
+    "id": "AUkraJoHAK2R6hlXvsCn",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oQEE1LSKn3Rt4T9jUML4Ih4k2we2",
+    "oldValue": "vendedor",
+    "newValue": "liberacao",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:47.875Z",
+      "seconds": 1779283907,
+      "nanoseconds": 875000000
+    }
+  },
+  {
+    "id": "kFWWnk7NnekedykWLTtu",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:41:46.310Z",
+      "seconds": 1778618506,
+      "nanoseconds": 310000000
+    }
+  },
+  {
+    "id": "x5M19rddwEs7jPLcBGCB",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "vendedor",
+    "newValue": "administrativo",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-15T12:11:58.994Z",
+      "seconds": 1778847118,
+      "nanoseconds": 994000000
+    }
+  },
+  {
+    "id": "MtG2JWNAIwDlO1dWaxh1",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:10:39.924Z",
+      "seconds": 1779282639,
+      "nanoseconds": 924000000
+    }
+  },
+  {
+    "id": "BYp0zNaDSmek5NR7ziRV",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:29.235Z",
+      "seconds": 1779283769,
+      "nanoseconds": 235000000
+    }
+  },
+  {
+    "id": "rq7Vo4ChOR9QaoBleAcV",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:39:52.938Z",
+      "seconds": 1778618392,
+      "nanoseconds": 938000000
+    }
+  },
+  {
+    "id": "BCj3Y0ryrlK3uQNcDh4w",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oQEE1LSKn3Rt4T9jUML4Ih4k2we2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:53.519Z",
+      "seconds": 1779283913,
+      "nanoseconds": 519000000
+    }
+  },
+  {
+    "id": "V5cVBSAtQdRuPZeaNf8d",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "zSxmWGUnKvc8XO4gyyoA630ypq22",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:02.270Z",
+      "seconds": 1779283862,
+      "nanoseconds": 270000000
+    }
+  },
+  {
+    "id": "x5ZqaUcNZ9qhYXuJmTQO",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "administrativo",
+    "newValue": "vendedor",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:42:57.017Z",
+      "seconds": 1778618577,
+      "nanoseconds": 17000000
+    }
+  },
+  {
+    "id": "NBsK406AvYcgnyGNlFHJ",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:24.595Z",
+      "seconds": 1779283764,
+      "nanoseconds": 595000000
+    }
+  },
+  {
+    "id": "HWNUkjVM5xh4K0bWhEg0",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:42:23.246Z",
+      "seconds": 1778618543,
+      "nanoseconds": 246000000
+    }
+  },
+  {
+    "id": "TOurZIepFNVDYaPSyISF",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:13.418Z",
+      "seconds": 1779283753,
+      "nanoseconds": 418000000
+    }
+  },
+  {
+    "id": "OHROEhPBbdKcL2X6vjrr",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:22.229Z",
+      "seconds": 1779283882,
+      "nanoseconds": 229000000
+    }
+  },
+  {
+    "id": "ItwgdhjrlYA8CqbLLKiE",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:41.869Z",
+      "seconds": 1779283781,
+      "nanoseconds": 869000000
+    }
+  },
+  {
+    "id": "U8Ah6NQFAZhtXiu8d0u6",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:00.374Z",
+      "seconds": 1779283800,
+      "nanoseconds": 374000000
+    }
+  },
+  {
+    "id": "NjNuRemjXZwmtIfAiTCn",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oQEE1LSKn3Rt4T9jUML4Ih4k2we2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:51.616Z",
+      "seconds": 1779283911,
+      "nanoseconds": 616000000
+    }
+  },
+  {
+    "id": "S2SFZkYYTg046epyJrj4",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:40:11.856Z",
+      "seconds": 1778618411,
+      "nanoseconds": 856000000
+    }
+  },
+  {
+    "id": "pWb7Cp3RKh4xUkCOguqq",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:43.305Z",
+      "seconds": 1779283783,
+      "nanoseconds": 305000000
+    }
+  },
+  {
+    "id": "wj4Y4bNer1lG5lGmLtA6",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "lr7O5vB69Zf5JuxgKkb5Q5ib1Am1",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:17.385Z",
+      "seconds": 1779283817,
+      "nanoseconds": 385000000
+    }
+  },
+  {
+    "id": "1kHdoWmPGPT8vn5iuur4",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "zSxmWGUnKvc8XO4gyyoA630ypq22",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:58.099Z",
+      "seconds": 1779283858,
+      "nanoseconds": 99000000
+    }
+  },
+  {
+    "id": "OzXBp3k6nHB8530zgWdJ",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "liberacao",
+    "newValue": "administrativo",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:43:08.999Z",
+      "seconds": 1778618588,
+      "nanoseconds": 999000000
+    }
+  },
+  {
+    "id": "1eRk4THWyBM62fOXqYVE",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "lr7O5vB69Zf5JuxgKkb5Q5ib1Am1",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:34.987Z",
+      "seconds": 1779283834,
+      "nanoseconds": 987000000
+    }
+  },
+  {
+    "id": "fJDehM0PMljVkg2AkoN5",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:49.834Z",
+      "seconds": 1779283789,
+      "nanoseconds": 834000000
+    }
+  },
+  {
+    "id": "bNxGIQkvRgx0ee7uclkp",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:04.456Z",
+      "seconds": 1779283804,
+      "nanoseconds": 456000000
+    }
+  },
+  {
+    "id": "JECltAN5oF4WF3LsBzPM",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:49.268Z",
+      "seconds": 1779283849,
+      "nanoseconds": 268000000
+    }
+  },
+  {
+    "id": "EpE3nGJAjwuNdMriE9Tm",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:22.758Z",
+      "seconds": 1779283882,
+      "nanoseconds": 758000000
+    }
+  },
+  {
+    "id": "XC1jIHPP5es1OG10nTUD",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:21.565Z",
+      "seconds": 1779283881,
+      "nanoseconds": 565000000
+    }
+  },
+  {
+    "id": "MTIbpBykQzuFKxinGDUK",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:10:38.419Z",
+      "seconds": 1779282638,
+      "nanoseconds": 419000000
+    }
+  },
+  {
+    "id": "zPrHJxeRQjTZPFsmJnfn",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:12.289Z",
+      "seconds": 1779283752,
+      "nanoseconds": 289000000
+    }
+  },
+  {
+    "id": "k4dIamelHto80n1XGK0X",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "lr7O5vB69Zf5JuxgKkb5Q5ib1Am1",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:36.060Z",
+      "seconds": 1779283836,
+      "nanoseconds": 60000000
+    }
+  },
+  {
+    "id": "rG5M0sFKmlkj2GVs5shV",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "lr7O5vB69Zf5JuxgKkb5Q5ib1Am1",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:28.768Z",
+      "seconds": 1779283828,
+      "nanoseconds": 768000000
+    }
+  },
+  {
+    "id": "h5IzYX5l8CJXJZeFSyV6",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:21.367Z",
+      "seconds": 1779283761,
+      "nanoseconds": 367000000
+    }
+  },
+  {
+    "id": "G1D6T9D14fiSWRxzgUwn",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "delete_user_access",
+    "module": "admin",
+    "targetId": "E687XiV5FNhbdBQCVLeU5X9zRZl1",
+    "oldValue": {
+      "uid": "E687XiV5FNhbdBQCVLeU5X9zRZl1",
+      "email": "dogrecords4m@gmail.com",
+      "createdAt": {
+        "__type": "timestamp",
+        "iso": "2026-05-13T18:14:00.296Z",
+        "seconds": 1778696040,
+        "nanoseconds": 296000000
+      },
+      "updatedAt": {
+        "__type": "timestamp",
+        "iso": "2026-05-13T18:14:00.296Z",
+        "seconds": 1778696040,
+        "nanoseconds": 296000000
+      },
+      "permissions": {
+        "admin": {
+          "excluirUsuarios": false,
+          "visualizarUsuarios": false,
+          "alterarPermissoes": false
+        },
+        "producao": {
+          "alterarEtapa": false,
+          "conferirMedidas": false,
+          "visualizar": true,
+          "finalizarProducao": false
+        },
+        "historico": {
+          "visualizar": true
+        },
+        "cliente": {
+          "visualizar": true,
+          "editarDados": true,
+          "alterarEtapa": true,
+          "anexarArquivos": true,
+          "avaliarFuncionarios": false
+        },
+        "materiais": {
+          "visualizar": true,
+          "editar": false
+        },
+        "relatorios": {
+          "visualizar": false,
+          "verFaturamento": false,
+          "verProdutividade": false,
+          "exportar": false
+        },
+        "medicao": {
+          "criar": true,
+          "visualizar": true,
+          "editar": true
+        },
+        "estoque": {
+          "editar": false,
+          "movimentar": false,
+          "excluir": false,
+          "visualizar": false,
+          "adicionar": false
+        },
+        "projeto": {
+          "criar": true,
+          "editar": true,
+          "visualizar": true,
+          "aprovar": false
+        },
+        "orcamento": {
+          "criar": true,
+          "editar": true,
+          "excluir": false,
+          "visualizar": true,
+          "aprovar": false
+        },
+        "liberacao": {
+          "visualizar": false,
+          "aprovar": false,
+          "reprovar": false
+        },
+        "dashboard": {
+          "visualizar": true
+        }
+      },
+      "blocked": false,
+      "role": "vendedor",
+      "name": "DOG",
+      "nome": "DOG"
+    },
+    "newValue": null,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-13T18:14:23.654Z",
+      "seconds": 1778696063,
+      "nanoseconds": 654000000
+    }
+  },
+  {
+    "id": "rvQXmjvPYVvvxwjOhTTt",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "zSxmWGUnKvc8XO4gyyoA630ypq22",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:01.057Z",
+      "seconds": 1779283861,
+      "nanoseconds": 57000000
+    }
+  },
+  {
+    "id": "QO88fFb1doGGkgYNHCca",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-13T16:33:56.108Z",
+      "seconds": 1778690036,
+      "nanoseconds": 108000000
+    }
+  },
+  {
+    "id": "s3TD2E06gmtYItB0B35Y",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:40:28.656Z",
+      "seconds": 1778618428,
+      "nanoseconds": 656000000
+    }
+  },
+  {
+    "id": "56WAKnDPOOxY76v3eCra",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "liberacao",
+    "newValue": "vendedor",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:39:38.690Z",
+      "seconds": 1778618378,
+      "nanoseconds": 690000000
+    }
+  },
+  {
+    "id": "SkRSVWPIVKaW4YImA34n",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:39:53.676Z",
+      "seconds": 1778618393,
+      "nanoseconds": 676000000
+    }
+  },
+  {
+    "id": "F4K9ohsVI3cQWjzz46Sg",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:59.134Z",
+      "seconds": 1779283799,
+      "nanoseconds": 134000000
+    }
+  },
+  {
+    "id": "GSa4J2W9R3Cer9TNkdTZ",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-13T16:33:49.288Z",
+      "seconds": 1778690029,
+      "nanoseconds": 288000000
+    }
+  },
+  {
+    "id": "ZGCKVDgGt9EkBmKREjL1",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:40:08.858Z",
+      "seconds": 1778618408,
+      "nanoseconds": 858000000
+    }
+  },
+  {
+    "id": "oU7M2DXXPcMpDGgiUVMg",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:13.317Z",
+      "seconds": 1779283813,
+      "nanoseconds": 317000000
+    }
+  },
+  {
+    "id": "E8vtE7NvO6XEDhhcDbLj",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:15.479Z",
+      "seconds": 1779283755,
+      "nanoseconds": 479000000
+    }
+  },
+  {
+    "id": "wWZvezMgTqptJhPy2HTo",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:03.577Z",
+      "seconds": 1779283803,
+      "nanoseconds": 577000000
+    }
+  },
+  {
+    "id": "YJVt8S4DcjIgWS8M35Q6",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:34.737Z",
+      "seconds": 1779283894,
+      "nanoseconds": 737000000
+    }
+  },
+  {
+    "id": "RLAh5xLD7n6XsXxUdKzZ",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:39:57.538Z",
+      "seconds": 1778618397,
+      "nanoseconds": 538000000
+    }
+  },
+  {
+    "id": "0HhNJvBya83gHecanCdp",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": "administrativo",
+    "newValue": "vendedor",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:26.378Z",
+      "seconds": 1779283886,
+      "nanoseconds": 378000000
+    }
+  },
+  {
+    "id": "x6ITgo1ZpKUOI2zfXcOE",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:47.058Z",
+      "seconds": 1779283847,
+      "nanoseconds": 58000000
+    }
+  },
+  {
+    "id": "lf3XxbscPQDf6khjTlx0",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:41:35.048Z",
+      "seconds": 1778618495,
+      "nanoseconds": 48000000
+    }
+  },
+  {
+    "id": "uhLXlF4uhRrW7RZFgGxq",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "coordenador",
+    "newValue": "vendedor",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:43:03.317Z",
+      "seconds": 1778618583,
+      "nanoseconds": 317000000
+    }
+  },
+  {
+    "id": "4R5zWO7cJhjJg9lArHYd",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": "vendedor",
+    "newValue": "administrativo",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-18T17:42:21.386Z",
+      "seconds": 1779126141,
+      "nanoseconds": 386000000
+    }
+  },
+  {
+    "id": "U6blXwGhMAp4xVCgwTQw",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:42:26.265Z",
+      "seconds": 1778618546,
+      "nanoseconds": 265000000
+    }
+  },
+  {
+    "id": "y0whHUiAEDG00m5mkKwL",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:30.272Z",
+      "seconds": 1779283770,
+      "nanoseconds": 272000000
+    }
+  },
+  {
+    "id": "5KerUtnF2rIuNKC6H94q",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:10:39.599Z",
+      "seconds": 1779282639,
+      "nanoseconds": 599000000
+    }
+  },
+  {
+    "id": "YlognVgLiTYH88Utmjcw",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:10:39.091Z",
+      "seconds": 1779282639,
+      "nanoseconds": 91000000
+    }
+  },
+  {
+    "id": "3voDtsgB2Cih99tnDuE1",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:50.389Z",
+      "seconds": 1779283850,
+      "nanoseconds": 389000000
+    }
+  },
+  {
+    "id": "73Ws38kqXBUnkh9XI6Dg",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:09.597Z",
+      "seconds": 1779283809,
+      "nanoseconds": 597000000
+    }
+  },
+  {
+    "id": "nakrkcfO4fqVdE1SHvsK",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "lr7O5vB69Zf5JuxgKkb5Q5ib1Am1",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:22.639Z",
+      "seconds": 1779283822,
+      "nanoseconds": 639000000
+    }
+  },
+  {
+    "id": "1QBmp7hRfh4a7PNg21g0",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": "vendedor",
+    "newValue": "administrativo",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-13T16:33:42.333Z",
+      "seconds": 1778690022,
+      "nanoseconds": 333000000
+    }
+  },
+  {
+    "id": "HSZ7fdnOSfz9A4yTWsh3",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "zSxmWGUnKvc8XO4gyyoA630ypq22",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:12.736Z",
+      "seconds": 1779283872,
+      "nanoseconds": 736000000
+    }
+  },
+  {
+    "id": "7SPXabzMHesOKOB0YPUe",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "lr7O5vB69Zf5JuxgKkb5Q5ib1Am1",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:30.817Z",
+      "seconds": 1779283830,
+      "nanoseconds": 817000000
+    }
+  },
+  {
+    "id": "ak4jl4R269337vhbRtyp",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:23:40.327Z",
+      "seconds": 1778617420,
+      "nanoseconds": 327000000
+    }
+  },
+  {
+    "id": "LrY56QLzA3WKw4c7l0Mi",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:39.586Z",
+      "seconds": 1779283839,
+      "nanoseconds": 586000000
+    }
+  },
+  {
+    "id": "0YLP3YdYJxxpijPhe226",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:46.757Z",
+      "seconds": 1779283846,
+      "nanoseconds": 757000000
+    }
+  },
+  {
+    "id": "Hb9X9Jwom8bACN39xx8J",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "vendedor",
+    "newValue": "coordenador",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:22:47.628Z",
+      "seconds": 1778617367,
+      "nanoseconds": 628000000
+    }
+  },
+  {
+    "id": "E4zrWki6iizOF6wdTQcf",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:10:37.690Z",
+      "seconds": 1779282637,
+      "nanoseconds": 690000000
+    }
+  },
+  {
+    "id": "VPGu9LN5rRdEO2Sc3y5z",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "lr7O5vB69Zf5JuxgKkb5Q5ib1Am1",
+    "oldValue": "vendedor",
+    "newValue": "administrativo",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-14T13:46:55.858Z",
+      "seconds": 1778766415,
+      "nanoseconds": 858000000
+    }
+  },
+  {
+    "id": "1FXPW3BgbnfnJ1TkNJ0l",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "zSxmWGUnKvc8XO4gyyoA630ypq22",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:54.506Z",
+      "seconds": 1779283854,
+      "nanoseconds": 506000000
+    }
+  },
+  {
+    "id": "oHMdfNaBgMPLQKnalt8Q",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:25.694Z",
+      "seconds": 1779283765,
+      "nanoseconds": 694000000
+    }
+  },
+  {
+    "id": "oO1Y1USfjQL0u7j254vi",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "vendedor",
+    "newValue": "coordenador",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:42:59.649Z",
+      "seconds": 1778618579,
+      "nanoseconds": 649000000
+    }
+  },
+  {
+    "id": "TytJX3wQ6yyJAhGZnaKp",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:49.546Z",
+      "seconds": 1779283849,
+      "nanoseconds": 546000000
+    }
+  },
+  {
+    "id": "Cqv9JA9YSF8Z3fjOsbFU",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:42.971Z",
+      "seconds": 1779283842,
+      "nanoseconds": 971000000
+    }
+  },
+  {
+    "id": "8arPbIoXSp9TtRb0rNPo",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:39:51.298Z",
+      "seconds": 1778618391,
+      "nanoseconds": 298000000
+    }
+  },
+  {
+    "id": "0nbfrJKcmRin3eZgQB2J",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:10:40.824Z",
+      "seconds": 1779282640,
+      "nanoseconds": 824000000
+    }
+  },
+  {
+    "id": "hlLHEgIEEGefy5LaplQ6",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:20:57.240Z",
+      "seconds": 1778617257,
+      "nanoseconds": 240000000
+    }
+  },
+  {
+    "id": "c1rkV5d4ewSOrHfH6oFI",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:39:55.544Z",
+      "seconds": 1778618395,
+      "nanoseconds": 544000000
+    }
+  },
+  {
+    "id": "Iav9jS5iFZdEHtLd3N2G",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:29.525Z",
+      "seconds": 1779283769,
+      "nanoseconds": 525000000
+    }
+  },
+  {
+    "id": "QpkjtF9ZFFQh6IUahCXW",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:41.821Z",
+      "seconds": 1779283901,
+      "nanoseconds": 821000000
+    }
+  },
+  {
+    "id": "fDT8mRVcqchfTDL4v9c3",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "vendedor",
+    "newValue": "coordenador",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:43:04.977Z",
+      "seconds": 1778618584,
+      "nanoseconds": 977000000
+    }
+  },
+  {
+    "id": "g9UDXiyxRUo0CPjMNlVn",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:18.107Z",
+      "seconds": 1779283758,
+      "nanoseconds": 107000000
+    }
+  },
+  {
+    "id": "beSJcZ2NHTgojZ0mUkPw",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:07.245Z",
+      "seconds": 1779283807,
+      "nanoseconds": 245000000
+    }
+  },
+  {
+    "id": "4XuzTYaUKHzHtsFxfDE9",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:46.299Z",
+      "seconds": 1779283846,
+      "nanoseconds": 299000000
+    }
+  },
+  {
+    "id": "bXIJEAeUxHy1fK0cg4lN",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:50.795Z",
+      "seconds": 1779283850,
+      "nanoseconds": 795000000
+    }
+  },
+  {
+    "id": "nn7qQj7moGuMiCljemVo",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:28.477Z",
+      "seconds": 1779283768,
+      "nanoseconds": 477000000
+    }
+  },
+  {
+    "id": "lfQXBr3Z0GbQfEnBgzSJ",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:54.826Z",
+      "seconds": 1779283794,
+      "nanoseconds": 826000000
+    }
+  },
+  {
+    "id": "UaVZbgh5RnHFp3FhN22G",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:41:21.747Z",
+      "seconds": 1778618481,
+      "nanoseconds": 747000000
+    }
+  },
+  {
+    "id": "rxgXf7i9YIRLlXVdHTRo",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:10:37.497Z",
+      "seconds": 1779282637,
+      "nanoseconds": 497000000
+    }
+  },
+  {
+    "id": "KbAR40LDWaLUyzIaNgEA",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:23:30.944Z",
+      "seconds": 1778617410,
+      "nanoseconds": 944000000
+    }
+  },
+  {
+    "id": "P5E805K6qXnRFLfmVMYv",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "coordenador",
+    "newValue": "liberacao",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:23:52.458Z",
+      "seconds": 1778617432,
+      "nanoseconds": 458000000
+    }
+  },
+  {
+    "id": "3Qm0wNfGUBp8ecFZkI3H",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:23:24.898Z",
+      "seconds": 1778617404,
+      "nanoseconds": 898000000
+    }
+  },
+  {
+    "id": "I0hDso2cre4odL1xvuDS",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:27.035Z",
+      "seconds": 1779283767,
+      "nanoseconds": 35000000
+    }
+  },
+  {
+    "id": "CLsbY3XIAX3q5S6iAyWc",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:08.415Z",
+      "seconds": 1779283808,
+      "nanoseconds": 415000000
+    }
+  },
+  {
+    "id": "UKYVS21AuBIyk1i6o3JY",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:42:13.049Z",
+      "seconds": 1778618533,
+      "nanoseconds": 49000000
+    }
+  },
+  {
+    "id": "nG2T9KcwXyEvxT2UG3oD",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:42:51.707Z",
+      "seconds": 1778618571,
+      "nanoseconds": 707000000
+    }
+  },
+  {
+    "id": "zSVDsSPesEnRfhIxzYJx",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "coordenador",
+    "newValue": "liberacao",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:43:07.088Z",
+      "seconds": 1778618587,
+      "nanoseconds": 88000000
+    }
+  },
+  {
+    "id": "fI9j9a7wKzrxJYzyNmTG",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": "administrativo",
+    "newValue": "vendedor",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-13T15:41:49.697Z",
+      "seconds": 1778686909,
+      "nanoseconds": 697000000
+    }
+  },
+  {
+    "id": "eLtrxYUoMRRu9WfB0hv5",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:12.027Z",
+      "seconds": 1779283812,
+      "nanoseconds": 27000000
+    }
+  },
+  {
+    "id": "QCF2pui5WeWHwSY2DgwP",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:48.038Z",
+      "seconds": 1779283848,
+      "nanoseconds": 38000000
+    }
+  },
+  {
+    "id": "F0CXV8fzgQwW5NlirR59",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:58.228Z",
+      "seconds": 1779283798,
+      "nanoseconds": 228000000
+    }
+  },
+  {
+    "id": "2XKFEDhhsEeyhsxiECMu",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:45.595Z",
+      "seconds": 1779283845,
+      "nanoseconds": 595000000
+    }
+  },
+  {
+    "id": "DQOxuUnNVJhsKsiZSN7b",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:12.670Z",
+      "seconds": 1779283752,
+      "nanoseconds": 670000000
+    }
+  },
+  {
+    "id": "l8gcD0ZfwL57EhokLlRr",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "zSxmWGUnKvc8XO4gyyoA630ypq22",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:11.766Z",
+      "seconds": 1779283871,
+      "nanoseconds": 766000000
+    }
+  },
+  {
+    "id": "hlEq0akLI7rhKN3K5Yq0",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:23:28.605Z",
+      "seconds": 1778617408,
+      "nanoseconds": 605000000
+    }
+  },
+  {
+    "id": "EGLOvHTRvvHPz9C3pApu",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:40:29.616Z",
+      "seconds": 1778618429,
+      "nanoseconds": 616000000
+    }
+  },
+  {
+    "id": "UzlqAuyM6NlngoemsWQl",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:41.818Z",
+      "seconds": 1779283841,
+      "nanoseconds": 818000000
+    }
+  },
+  {
+    "id": "bBTo3q9PU0g00qKGkmZA",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:28.134Z",
+      "seconds": 1779283768,
+      "nanoseconds": 134000000
+    }
+  },
+  {
+    "id": "MIhj9bMnsOry4b2tEJtr",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oQEE1LSKn3Rt4T9jUML4Ih4k2we2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:56.911Z",
+      "seconds": 1779283916,
+      "nanoseconds": 911000000
+    }
+  },
+  {
+    "id": "TP18srugZ5hMXevPa62W",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": "vendedor",
+    "newValue": "administrativo",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-13T15:41:44.958Z",
+      "seconds": 1778686904,
+      "nanoseconds": 958000000
+    }
+  },
+  {
+    "id": "4fxNgNoJHgLeAKfFB5Ql",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-13T16:34:06.742Z",
+      "seconds": 1778690046,
+      "nanoseconds": 742000000
+    }
+  },
+  {
+    "id": "m9uW7472bzmVjBiCjoFR",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:23.667Z",
+      "seconds": 1779283763,
+      "nanoseconds": 667000000
+    }
+  },
+  {
+    "id": "s4u7AAEDhPNNh8P6Zncj",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:01.685Z",
+      "seconds": 1779283801,
+      "nanoseconds": 685000000
+    }
+  },
+  {
+    "id": "1XL139sCuRTAQQKFTcMB",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "liberacao",
+    "newValue": "administrativo",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:41:54.787Z",
+      "seconds": 1778618514,
+      "nanoseconds": 787000000
+    }
+  },
+  {
+    "id": "MvAeyVyNvQYzOrQhjwif",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:33.388Z",
+      "seconds": 1779283893,
+      "nanoseconds": 388000000
+    }
+  },
+  {
+    "id": "GPRJ2OSRBoKV3MZuIM3v",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "lr7O5vB69Zf5JuxgKkb5Q5ib1Am1",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:28.187Z",
+      "seconds": 1779283828,
+      "nanoseconds": 187000000
+    }
+  },
+  {
+    "id": "N4yPucUrQj2fgVNVi4Qa",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:11.669Z",
+      "seconds": 1779283811,
+      "nanoseconds": 669000000
+    }
+  },
+  {
+    "id": "QDaC7qHkeX9O1V6Ec6Ju",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:42.165Z",
+      "seconds": 1779283842,
+      "nanoseconds": 165000000
+    }
+  },
+  {
+    "id": "e3epD12s5f3w0xIhKwc8",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oQEE1LSKn3Rt4T9jUML4Ih4k2we2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:50.581Z",
+      "seconds": 1779283910,
+      "nanoseconds": 581000000
+    }
+  },
+  {
+    "id": "S9KobyhmoEtCX5QShPtY",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "coordenador",
+    "newValue": "liberacao",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:41:30.057Z",
+      "seconds": 1778618490,
+      "nanoseconds": 57000000
+    }
+  },
+  {
+    "id": "Ilb7tLZFgfRlR20C4GFQ",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-13T16:34:02.820Z",
+      "seconds": 1778690042,
+      "nanoseconds": 820000000
+    }
+  },
+  {
+    "id": "qplWHRfR00dAXx7CUS2B",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:22.974Z",
+      "seconds": 1779283762,
+      "nanoseconds": 974000000
+    }
+  },
+  {
+    "id": "S0gJ3LLWEODxW3nBeSXt",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:45.355Z",
+      "seconds": 1779283785,
+      "nanoseconds": 355000000
+    }
+  },
+  {
+    "id": "FJPaPLsr8ikkoy3XI0BY",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oQEE1LSKn3Rt4T9jUML4Ih4k2we2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:32:04.342Z",
+      "seconds": 1779283924,
+      "nanoseconds": 342000000
+    }
+  },
+  {
+    "id": "UY2ZslZWeZH7QMryYQYF",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:01.345Z",
+      "seconds": 1779283801,
+      "nanoseconds": 345000000
+    }
+  },
+  {
+    "id": "n25FS58uV1CabGIcWnwX",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "vendedor",
+    "newValue": "coordenador",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:41:05.396Z",
+      "seconds": 1778618465,
+      "nanoseconds": 396000000
+    }
+  },
+  {
+    "id": "MIDgOHynOHX6XxHzST0N",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": "vendedor",
+    "newValue": "administrativo",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T20:45:34.463Z",
+      "seconds": 1779223534,
+      "nanoseconds": 463000000
+    }
+  },
+  {
+    "id": "rwnV3KmGPvnLUCVE5Zcw",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:40.216Z",
+      "seconds": 1779283840,
+      "nanoseconds": 216000000
+    }
+  },
+  {
+    "id": "PEWftoscEWdIel8EqOYs",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77@outlook.com",
+    "action": "update_employee_evaluation",
+    "module": "cliente",
+    "targetId": "4g8vkb1hKOJLZpGaFaPO",
+    "oldValue": null,
+    "newValue": {
+      "step": "medicao",
+      "employeeId": "I6TAqxvPPSKOVJKGqmj0",
+      "employeeName": "Hiroshi",
+      "rating": 5,
+      "notes": "",
+      "createdAt": {
+        "__type": "timestamp",
+        "iso": "2026-05-13T14:09:32.820Z",
+        "seconds": 1778681372,
+        "nanoseconds": 820000000
+      },
+      "evaluatedByUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+      "evaluatedByName": "Brian Takiya"
+    },
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-13T14:09:32.542Z",
+      "seconds": 1778681372,
+      "nanoseconds": 542000000
+    }
+  },
+  {
+    "id": "RsZZ6QftoDOfzvXJpsz3",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:25.346Z",
+      "seconds": 1779283765,
+      "nanoseconds": 346000000
+    }
+  },
+  {
+    "id": "u3MjZzGAKixNPmJElpml",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:10:41.240Z",
+      "seconds": 1779282641,
+      "nanoseconds": 240000000
+    }
+  },
+  {
+    "id": "tMeWFFpN4hXhWqRqPtYz",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": "administrativo",
+    "newValue": "vendedor",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:43:10.717Z",
+      "seconds": 1778618590,
+      "nanoseconds": 717000000
+    }
+  },
+  {
+    "id": "g1Fb4QMUrCk2yJ10SQEb",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:23:33.437Z",
+      "seconds": 1778617413,
+      "nanoseconds": 437000000
+    }
+  },
+  {
+    "id": "l70Y23oJn5OwR9L4Oa3W",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:13.767Z",
+      "seconds": 1779283753,
+      "nanoseconds": 767000000
+    }
+  },
+  {
+    "id": "yaM3siSbbKIDcejrMy2e",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oQEE1LSKn3Rt4T9jUML4Ih4k2we2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:32:02.796Z",
+      "seconds": 1779283922,
+      "nanoseconds": 796000000
+    }
+  },
+  {
+    "id": "qcn9MeNqVrl0nxRfC53e",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:39.246Z",
+      "seconds": 1779283839,
+      "nanoseconds": 246000000
+    }
+  },
+  {
+    "id": "A7sJiVutczvYVvR0mPtZ",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:40:27.514Z",
+      "seconds": 1778618427,
+      "nanoseconds": 514000000
+    }
+  },
+  {
+    "id": "yTCbXDNZ50eY9ESPa5k3",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:33.786Z",
+      "seconds": 1779283773,
+      "nanoseconds": 786000000
+    }
+  },
+  {
+    "id": "BlRkqINQPxLeKnDfqXdU",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:48.785Z",
+      "seconds": 1779283848,
+      "nanoseconds": 785000000
+    }
+  },
+  {
+    "id": "iI3xIt8fWHtTFMACElD5",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:20:56.149Z",
+      "seconds": 1778617256,
+      "nanoseconds": 149000000
+    }
+  },
+  {
+    "id": "P0z9hNwfmMKku3DYamNJ",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:23:45.985Z",
+      "seconds": 1778617425,
+      "nanoseconds": 985000000
+    }
+  },
+  {
+    "id": "AmRybkSXNiq3BBcwbLu1",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:29.500Z",
+      "seconds": 1779283889,
+      "nanoseconds": 500000000
+    }
+  },
+  {
+    "id": "Km8aEamsky1LkGOyBL6Y",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_role",
+    "module": "admin",
+    "targetId": "zSxmWGUnKvc8XO4gyyoA630ypq22",
+    "oldValue": "vendedor",
+    "newValue": "administrativo",
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-15T12:11:56.938Z",
+      "seconds": 1778847116,
+      "nanoseconds": 938000000
+    }
+  },
+  {
+    "id": "xUwJuaJQdDOC28dXyeUQ",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:42:38.157Z",
+      "seconds": 1778618558,
+      "nanoseconds": 157000000
+    }
+  },
+  {
+    "id": "Yws2bYQH2cyeRpfTvzdW",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:20.864Z",
+      "seconds": 1779283760,
+      "nanoseconds": 864000000
+    }
+  },
+  {
+    "id": "VeWRPgS8qCleyLmfWIYC",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oQEE1LSKn3Rt4T9jUML4Ih4k2we2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:54.507Z",
+      "seconds": 1779283914,
+      "nanoseconds": 507000000
+    }
+  },
+  {
+    "id": "rba8NntSOHNYfnYHFSOB",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:39.955Z",
+      "seconds": 1779283779,
+      "nanoseconds": 955000000
+    }
+  },
+  {
+    "id": "1q0d7UGoWwY8sgijslRH",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:30.876Z",
+      "seconds": 1779283890,
+      "nanoseconds": 876000000
+    }
+  },
+  {
+    "id": "nyFovlDmhPOIltARKMkI",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:47.725Z",
+      "seconds": 1779283847,
+      "nanoseconds": 725000000
+    }
+  },
+  {
+    "id": "cf0BIzhK5vwjqdjoDWDU",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:39:59.126Z",
+      "seconds": 1778618399,
+      "nanoseconds": 126000000
+    }
+  },
+  {
+    "id": "DryieWyZ3UJm9uH8iUUX",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:23:30.025Z",
+      "seconds": 1778617410,
+      "nanoseconds": 25000000
+    }
+  },
+  {
+    "id": "qG3iOoOWW4m7dDk7aDFP",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:11.850Z",
+      "seconds": 1779283751,
+      "nanoseconds": 850000000
+    }
+  },
+  {
+    "id": "69Y8uJWnZ7HbsHyoD0Ii",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:27.335Z",
+      "seconds": 1779283767,
+      "nanoseconds": 335000000
+    }
+  },
+  {
+    "id": "FPDI9gDErhBfGcDwoS62",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": true,
+    "newValue": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:44.596Z",
+      "seconds": 1779283784,
+      "nanoseconds": 596000000
+    }
+  },
+  {
+    "id": "BsccnumumPWuGxF7XrnS",
+    "userId": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "userEmail": "brian_takiya77@outlook.com",
+    "userName": "brian_takiya77",
+    "action": "change_user_permission",
+    "module": "admin",
+    "targetId": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "oldValue": false,
+    "newValue": true,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:09.238Z",
+      "seconds": 1779283809,
+      "nanoseconds": 238000000
+    }
+  }
+]

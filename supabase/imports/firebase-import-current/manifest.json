@@ -1,0 +1,146 @@
+[
+  {
+    "table": "settings",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-24-40-674Z\\settings.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\settings.sql",
+    "rowCount": 1,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "profiles",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-24-40-674Z\\profiles.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\profiles.sql",
+    "rowCount": 10,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "users",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-24-40-674Z\\users.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\users.sql",
+    "rowCount": 8,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "employees",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-24-40-674Z\\employees.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\employees.sql",
+    "rowCount": 0,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "condominiums",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-24-40-674Z\\condominiums.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\condominiums.sql",
+    "rowCount": 10,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "clients",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-20-912Z\\clients.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\clients.sql",
+    "rowCount": 13,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "materials",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-04-497Z\\materials.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\materials.sql",
+    "rowCount": 23,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "user_material_prices",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-04-497Z\\userMaterialPrices.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\user_material_prices.sql",
+    "rowCount": 7,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "fixture_catalog",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-04-497Z\\fixtureCatalog.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\fixture_catalog.sql",
+    "rowCount": 9,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "quotes",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-20-912Z\\quotes.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\quotes.sql",
+    "rowCount": 1,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "inventory",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\inventory.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\inventory.sql",
+    "rowCount": 3,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "inventory_reservations",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\inventoryReservations.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\inventory_reservations.sql",
+    "rowCount": 1,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "inventory_purchases",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\inventoryPurchases.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\inventory_purchases.sql",
+    "rowCount": 0,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "calendar_events",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\calendarEvents.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\calendar_events.sql",
+    "rowCount": 4,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "dashboard_notes",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\dashboardNotes.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\dashboard_notes.sql",
+    "rowCount": 0,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "system_events",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\systemEvents.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\system_events.sql",
+    "rowCount": 84,
+    "part": 1,
+    "totalParts": 1
+  },
+  {
+    "table": "audit_logs",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\auditLogs.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\audit_logs_part_001.sql",
+    "rowCount": 113,
+    "part": 1,
+    "totalParts": 2
+  },
+  {
+    "table": "audit_logs",
+    "sourceFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\exports\\firebase-firestore-2026-05-22T12-25-34-213Z\\auditLogs.json",
+    "outFile": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\supabase\\imports\\firebase-import-current\\audit_logs_part_002.sql",
+    "rowCount": 48,
+    "part": 2,
+    "totalParts": 2
+  }
+]

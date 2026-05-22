@@ -1,6 +1,5 @@
 ﻿import React, {useEffect, useMemo, useState} from 'react';
-import {addDoc, collection, deleteDoc, doc, onSnapshot, Timestamp, updateDoc} from 'firebase/firestore';
-import type {FirebaseError} from 'firebase/app';
+import {addDoc, collection, deleteDoc, doc, onSnapshot, Timestamp, updateDoc} from '../lib/firestore';
 import {AlertTriangle, CalendarPlus, ChevronLeft, ChevronRight, Copy, ExternalLink, MapPin, Phone, Plus, X} from 'lucide-react';
 import {db} from '../lib/firebase';
 import {Client, CondominiumRule, Quote} from '../types';
@@ -161,7 +160,7 @@ const createCalendarFeedToken = () => {
 };
 
 export const CalendarPage: React.FC = () => {
-  const {user, profile} = useAuth();
+  const {user, profile, appUid} = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [condominiums, setCondominiums] = useState<CondominiumRule[]>([]);
@@ -196,16 +195,17 @@ export const CalendarPage: React.FC = () => {
   }, [selectedEvent, showCreateModal, showSubscribeModal]);
 
   const getCreateEventErrorMessage = (error: unknown) => {
-    const firebaseError = error as FirebaseError | undefined;
-    switch (firebaseError?.code) {
+    const code = String((error as {code?: string} | undefined)?.code || '');
+    const message = String((error as {message?: string} | undefined)?.message || '');
+    switch (code) {
       case 'permission-denied':
-        return 'Sem permissão para salvar evento. Faça login novamente e confirme a publicação das regras do Firebase.';
+        return 'Sem permissão para salvar evento. Faça login novamente e confirme se o seu acesso está liberado.';
       case 'unauthenticated':
         return 'Sessão expirada. Entre novamente para salvar o evento.';
       case 'unavailable':
         return 'Sem conexão com o servidor no momento. Tente novamente em instantes.';
       default:
-        return firebaseError?.message ? `Não foi possível salvar o evento. ${firebaseError.message}` : 'Não foi possível salvar o evento. Tente novamente.';
+        return message ? `Não foi possível salvar o evento. ${message}` : 'Não foi possível salvar o evento. Tente novamente.';
     }
   };
 
@@ -380,9 +380,9 @@ export const CalendarPage: React.FC = () => {
   const selectedClient = selectedEvent?.clientId ? clients.find((item) => item.id === selectedEvent.clientId) : null;
   const selectedEventDaysLeft = selectedEvent ?daysLeftFromToday(selectedEvent.date) : null;
   const subscriptionHttpsUrl = useMemo(() => {
-    if (!user?.uid || !subscriptionToken || typeof window === 'undefined') return '';
-    return `${window.location.origin}/calendar/${encodeURIComponent(user.uid)}/${encodeURIComponent(subscriptionToken)}.ics`;
-  }, [subscriptionToken, user?.uid]);
+    if (!appUid || !subscriptionToken || typeof window === 'undefined') return '';
+    return `${window.location.origin}/calendar/${encodeURIComponent(appUid)}/${encodeURIComponent(subscriptionToken)}.ics`;
+  }, [appUid, subscriptionToken]);
   const subscriptionWebcalUrl = useMemo(() => {
     if (!subscriptionHttpsUrl) return '';
     return subscriptionHttpsUrl.replace(/^https?/, 'webcal');
@@ -421,7 +421,7 @@ export const CalendarPage: React.FC = () => {
   };
 
   const handleOpenSubscribeModal = async () => {
-    if (!user?.uid) {
+    if (!appUid) {
       setSubscribeError('Faça login novamente para gerar o link de assinatura.');
       setShowSubscribeModal(true);
       return;
@@ -434,7 +434,7 @@ export const CalendarPage: React.FC = () => {
       let token = subscriptionToken || profile?.calendarFeedToken || '';
       if (!token) {
         token = createCalendarFeedToken();
-        await updateDoc(doc(db, 'profiles', user.uid), {calendarFeedToken: token});
+        await updateDoc(doc(db, 'profiles', appUid), {calendarFeedToken: token});
       }
       setSubscriptionToken(token);
       setShowSubscribeModal(true);
@@ -515,8 +515,8 @@ export const CalendarPage: React.FC = () => {
         await addDoc(collection(db, 'calendarEvents'), {
           ...payload,
           createdAt: Timestamp.now(),
-          createdByUid: user?.uid || '',
-          createdByName: fixCorruptedText(profile?.name || user?.displayName || user?.email || 'Usuário'),
+          createdByUid: appUid || '',
+          createdByName: fixCorruptedText(profile?.name || user?.user_metadata?.name || user?.email || 'Usuário'),
         });
       }
       setShowCreateModal(false);

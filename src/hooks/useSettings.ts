@@ -1,5 +1,5 @@
 ﻿import {useEffect, useState} from 'react';
-import {doc, onSnapshot} from 'firebase/firestore';
+import {doc, onSnapshot} from '../lib/firestore';
 import {db} from '../lib/firebase';
 import {repairText} from '../lib/utils';
 import {Settings, SupplierContact} from '../types';

@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, where } from 'firebase/firestore';
+import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, where } from '../lib/firestore';
 import { db } from '../lib/firebase';
 import { useSettings } from '../hooks/useSettings';
 import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory, UserMaterialPrice } from '../types';
@@ -16,7 +16,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
 import {applyQuoteInventoryByStatusTransition} from '../lib/inventoryReservations';
 import {logSystemEvent} from '../lib/systemEvents';
-import {normalizeQuoteStatus, QUOTE_STATUSES} from '../lib/quoteStatus';
+import {normalizeQuoteStatus, QUOTE_STATUSES, quoteStatusColor} from '../lib/quoteStatus';
 import {formatMaterialSpecs} from '../lib/materialSpecs';
 import {buildMaterialVariantKey} from '../lib/materialVariants';
 
@@ -36,7 +36,7 @@ const ensurePieceWorkflowStatus = (piece: QuotePiece, fallbackStatus?: QuoteStat
 export const QuoteEditor: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, appUid } = useAuth();
   const { settings, loading: settingsLoading } = useSettings();
   
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -55,7 +55,7 @@ export const QuoteEditor: React.FC = () => {
   const [pieceMaterialSearch, setPieceMaterialSearch] = useState<Record<string, string>>({});
   const [pieceMaterialPickerOpen, setPieceMaterialPickerOpen] = useState<Record<string, boolean>>({});
   const [environment, setEnvironment] = useState('');
-  const [responsible, setResponsible] = useState(user?.displayName || '');
+  const [responsible, setResponsible] = useState(user?.user_metadata?.name || '');
   const [materialId, setMaterialId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
   const [deliveryDays, setDeliveryDays] = useState(15);
@@ -150,7 +150,7 @@ export const QuoteEditor: React.FC = () => {
   };
   const selectedClient = clients.find(c => c.id === clientId);
   const { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithUserPrice(piece.materialId || materialId));
-  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
+  const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
   
   const selectedPaymentAdjustment = settings.paymentMethods.find(m => m.name === paymentMethod)?.adjustment || 0;
   const totalPrice = calculateTotal(pieces, cutouts, selectedPaymentAdjustment);
@@ -227,8 +227,8 @@ export const QuoteEditor: React.FC = () => {
       setMaterials(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Material)));
     });
 
-    const unsubUserPrices = user?.uid
-      ?onSnapshot(query(collection(db, 'userMaterialPrices'), where('userId', '==', user.uid)), (snap) => {
+    const unsubUserPrices = appUid
+      ?onSnapshot(query(collection(db, 'userMaterialPrices'), where('userId', '==', appUid)), (snap) => {
         setUserMaterialPrices(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserMaterialPrice)));
       })
       : undefined;
@@ -250,7 +250,7 @@ export const QuoteEditor: React.FC = () => {
         const docRef = doc(db, 'quotes', id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          const data = docSnap.data() as Quote;
+          const data = docSnap.data() as unknown as Quote;
           setClientId(data.clientId);
           setClientSearch(data.clientName || '');
           setEnvironment(data.environment);
@@ -302,7 +302,7 @@ export const QuoteEditor: React.FC = () => {
       unsubReservations();
       unsubFixtureCatalog();
     };
-  }, [id, user?.uid]);
+  }, [appUid, id]);
 
   useEffect(() => {
     if (!id && !responsible && currentUserName !== 'Usuário') {
@@ -589,7 +589,7 @@ export const QuoteEditor: React.FC = () => {
       address: selectedClient?.address || '',
       environment,
       responsible,
-      responsibleUserUid: user?.uid || '',
+      responsibleUserUid: appUid || '',
       responsibleUserName: currentUserName,
       materialId: primaryMaterialId,
       materialName: primaryMaterial?.name || '',
@@ -606,13 +606,13 @@ export const QuoteEditor: React.FC = () => {
       statusHistory: [...statusHistory, {
         status,
         changedAt: Timestamp.now(),
-        changedByUid: user?.uid || '',
+        changedByUid: appUid || '',
         changedByName: currentUserName,
         responsibleEmployeeId: firstAssigned?.employeeId || '',
         responsibleEmployeeName: firstAssigned?.employeeName || '',
       }],
       ...(id ?{} : {createdAt: Timestamp.now()}),
-      createdBy: user?.uid || '',
+      createdBy: appUid || '',
     };
 
     try {
@@ -631,7 +631,7 @@ export const QuoteEditor: React.FC = () => {
           clientName: selectedClient?.name || '',
           materialId: primaryMaterialId,
           materialName: primaryMaterial?.name || '',
-          userUid: user?.uid || '',
+          userUid: appUid || '',
           userName: currentUserName,
           metadata: {totalArea, totalPrice, pieces: pieces.length},
         });
@@ -650,7 +650,7 @@ export const QuoteEditor: React.FC = () => {
           clientName: selectedClient?.name || '',
           materialId: primaryMaterialId,
           materialName: primaryMaterial?.name || '',
-          userUid: user?.uid || '',
+          userUid: appUid || '',
           userName: currentUserName,
           metadata: {totalArea, totalPrice, pieces: pieces.length},
         });
@@ -1647,6 +1647,3 @@ export const QuoteEditor: React.FC = () => {
 };
 
 const X = ({ className }: any) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
-
-
-

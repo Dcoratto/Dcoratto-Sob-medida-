@@ -1,18 +1,9 @@
 ﻿import React, { useState, useEffect } from 'react';
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signInWithPopup,
-  signInWithRedirect,
-  getRedirectResult,
-  GoogleAuthProvider,
-  sendPasswordResetEmail
-} from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { auth } from '../lib/firebase';
+import { auth } from '../lib/auth';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from '../components/layout/Logo';
-import { Mail, Lock, User as UserIcon, ArrowRight, KeyRound } from 'lucide-react';
+import { Mail, Lock, User as UserIcon, ArrowRight, KeyRound, Link as LinkIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const Login: React.FC = () => {
@@ -26,51 +17,20 @@ export const Login: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const isMobileDevice = () => {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia('(max-width: 768px)').matches || /Android|iPhone|iPad|iPod/i.test(window.navigator.userAgent);
-  };
-
   useEffect(() => {
     if (!authLoading && user) {
       navigate('/');
     }
   }, [user, authLoading, navigate]);
 
-  useEffect(() => {
-    let active = true;
-
-    const resolveRedirectResult = async () => {
-      try {
-        await getRedirectResult(auth);
-      } catch (err: any) {
-        if (!active) return;
-        setError(translateError(err?.code));
-      }
-    };
-
-    resolveRedirectResult();
-
-    return () => {
-      active = false;
-    };
-  }, []);
-
-  const translateError = (code: string) => {
-    switch (code) {
-      case 'auth/user-not-found': return 'Usuario nao encontrado. Se e seu primeiro acesso, use a aba "Cadastre-se".';
-      case 'auth/wrong-password': return 'Senha incorreta.';
-      case 'auth/email-already-in-use': return 'Este e-mail ja esta em uso.';
-      case 'auth/weak-password': return 'A senha deve ter pelo menos 6 caracteres.';
-      case 'auth/invalid-email': return 'E-mail invalido.';
-      case 'auth/operation-not-allowed': return 'O login por e-mail e senha nao esta ativado no Firebase. Ative em Authentication > Sign-in Method.';
-      case 'auth/popup-blocked': return 'O navegador bloqueou a janela do Google. Tente novamente ou continue pelo redirecionamento.';
-      case 'auth/popup-closed-by-user': return 'A janela do Google foi fechada antes da conclusao do login.';
-      case 'auth/cancelled-popup-request': return 'O pedido de login com Google foi cancelado. Tente novamente.';
-      case 'auth/unauthorized-domain': return 'Este dominio ainda nao esta autorizado no Firebase para login com Google. Adicione este endereco em Authentication > Settings > Authorized domains.';
-      case 'auth/account-exists-with-different-credential': return 'Ja existe uma conta com este e-mail usando outro metodo de login.';
-      default: return 'Ocorreu um erro. Tente novamente.';
-    }
+  const translateError = (message: string) => {
+    const text = String(message || '').toLowerCase();
+    if (text.includes('invalid login credentials')) return 'E-mail ou senha incorretos.';
+    if (text.includes('email not confirmed')) return 'Confirme o link enviado para seu e-mail antes de entrar.';
+    if (text.includes('user already registered')) return 'Este e-mail já está cadastrado. Use entrar ou link por e-mail.';
+    if (text.includes('password should be at least')) return 'A senha deve ter pelo menos 6 caracteres.';
+    if (text.includes('invalid email')) return 'E-mail inválido.';
+    return 'Ocorreu um erro. Tente novamente.';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -81,12 +41,15 @@ export const Login: React.FC = () => {
 
     try {
       if (isLogin) {
-        await signInWithEmailAndPassword(auth, email, password);
+        const {error: signInError} = await auth.signInWithPassword(email, password);
+        if (signInError) throw signInError;
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const {error: signUpError} = await auth.signUp(email, password, name.trim());
+        if (signUpError) throw signUpError;
+        setSuccess('Conta criada. Se o Supabase pedir confirmação, verifique seu e-mail antes de entrar.');
       }
     } catch (err: any) {
-      setError(translateError(err.code));
+      setError(translateError(err?.message || err?.code || ''));
     } finally {
       setLoading(false);
     }
@@ -99,31 +62,32 @@ export const Login: React.FC = () => {
     }
     setLoading(true);
     try {
-      await sendPasswordResetEmail(auth, email);
-      setSuccess('E-mail de recuperacao enviado com sucesso!');
+      const {error: resetError} = await auth.resetPasswordForEmail(email);
+      if (resetError) throw resetError;
+      setSuccess('E-mail de recuperação enviado com sucesso.');
       setError('');
     } catch (err: any) {
-      setError(translateError(err.code));
+      setError(translateError(err?.message || err?.code || ''));
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
+  const handleEmailLink = async () => {
+    if (!email) {
+      setError('Digite seu e-mail para receber o link de acesso.');
+      return;
+    }
+
+    setLoading(true);
     setError('');
     setSuccess('');
-    setLoading(true);
-
     try {
-      if (isMobileDevice()) {
-        await signInWithRedirect(auth, provider);
-        return;
-      }
-      await signInWithPopup(auth, provider);
+      const {error: otpError} = await auth.signInWithOtp(email);
+      if (otpError) throw otpError;
+      setSuccess('Link de acesso enviado. Abra o e-mail e toque no link para entrar.');
     } catch (err: any) {
-      setError(translateError(err?.code));
+      setError(translateError(err?.message || err?.code || ''));
     } finally {
       setLoading(false);
     }
@@ -143,8 +107,8 @@ export const Login: React.FC = () => {
           </h1>
           <p className="text-slate-500 text-sm mt-2 text-center">
             {isLogin
-              ? 'Acesse o sistema de gestao da DCoratto Sob Medida'
-              : 'Comece a gerenciar seus orcamentos agora mesmo'}
+              ? 'Entre com senha ou receba um link por e-mail para acessar'
+              : 'Crie um novo acesso usando o Supabase'}
           </p>
         </div>
 
@@ -186,7 +150,7 @@ export const Login: React.FC = () => {
             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input
               type="password"
-              placeholder="Senha"
+              placeholder={isLogin ? 'Senha' : 'Crie uma senha'}
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -195,7 +159,7 @@ export const Login: React.FC = () => {
           </div>
 
           {isLogin && (
-            <div className="flex justify-end px-2">
+            <div className="flex flex-wrap justify-end gap-3 px-2">
               <button
                 type="button"
                 onClick={handleForgotPassword}
@@ -231,36 +195,41 @@ export const Login: React.FC = () => {
           </button>
         </form>
 
-        <div className="mt-8">
-          <div className="relative flex items-center justify-center mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-100"></div>
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-white p-2 text-brand-primary shadow-sm">
+              <LinkIcon className="w-4 h-4" />
             </div>
-            <span className="relative px-4 bg-white text-xs font-medium text-slate-400 uppercase tracking-widest">
-              ou continue com
-            </span>
+            <div className="flex-1">
+              <div className="text-sm font-bold text-slate-900">Primeiro acesso no Supabase?</div>
+              <p className="mt-1 text-xs text-slate-500">
+                Use seu e-mail e toque em receber link. O sistema vai conectar sua conta nova ao cadastro antigo automaticamente.
+              </p>
+              <button
+                type="button"
+                onClick={handleEmailLink}
+                disabled={loading}
+                className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+              >
+                <Mail className="w-4 h-4" />
+                Receber link por e-mail
+              </button>
+            </div>
           </div>
-
-          <button
-            onClick={handleGoogleLogin}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-white border border-slate-200 rounded-2xl hover:bg-slate-50 transition-all font-medium text-slate-700 shadow-sm active:scale-[0.98] disabled:opacity-60"
-          >
-            <img src="https://www.google.com/favicon.ico" className="w-5 h-5" alt="Google" />
-            {loading ? 'Abrindo Google...' : 'Google'}
-          </button>
         </div>
 
         <p className="mt-8 text-center text-sm text-slate-500">
-          {isLogin ? 'Nao tem uma conta?' : 'Ja possui uma conta?'}
+          {isLogin ? 'Não tem uma conta?' : 'Já possui uma conta?'}
           <button
             onClick={() => setIsLogin(!isLogin)}
             className="ml-1 font-semibold text-brand-primary hover:underline"
           >
-            {isLogin ? 'Cadastre-se' : 'Faca login'}
+            {isLogin ? 'Cadastre-se' : 'Faça login'}
           </button>
         </p>
       </motion.div>
     </div>
   );
 };
+
+

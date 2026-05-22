@@ -16,7 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import {useAuth} from '../../contexts/AuthContext';
-import {auth} from '../../lib/firebase';
+import {auth} from '../../lib/auth';
 import {cn} from '../../lib/utils';
 import {Logo} from './Logo';
 import {roleLabel} from '../../lib/permissions';
@@ -92,7 +92,7 @@ export const Sidebar: React.FC = () => {
         <button
           onClick={() => {
             closeMobileMenu();
-            auth.signOut();
+            void auth.signOut();
           }}
           className="group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 transition-all hover:bg-red-50 hover:text-red-600"
         >

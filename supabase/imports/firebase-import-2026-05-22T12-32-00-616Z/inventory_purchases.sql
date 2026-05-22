@@ -1,0 +1,1 @@
+-- inventory_purchases: sem registros para importar.

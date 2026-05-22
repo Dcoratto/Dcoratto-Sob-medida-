@@ -1,0 +1,23 @@
+[
+  {
+    "id": "aF3kj7uXGGKgcODwF0Ry_preto-absoluto|lamina ultracompacta|chapa||polido|laminatto",
+    "area": 2.591999999999999,
+    "clientName": "Aline Armond",
+    "texture": "Polido",
+    "materialType": "Chapa",
+    "materialVariantKey": "preto-absoluto|lamina ultracompacta|chapa||polido|laminatto",
+    "materialId": "preto-absoluto",
+    "quoteId": "aF3kj7uXGGKgcODwF0Ry",
+    "quoteStatus": "Orçamento",
+    "materialName": "preto-absoluto",
+    "provider": "Laminatto",
+    "materialLine": "Lamina Ultracompacta",
+    "thicknessLabel": "",
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T12:27:32.114Z",
+      "seconds": 1779193652,
+      "nanoseconds": 114000000
+    }
+  }
+]

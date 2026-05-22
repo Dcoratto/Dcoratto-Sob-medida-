@@ -1,9 +1,8 @@
 ﻿import React, {useEffect, useState} from 'react';
-import {EmailAuthProvider, reauthenticateWithCredential} from 'firebase/auth';
-import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from 'firebase/firestore';
-import {deleteObject, getDownloadURL, ref as storageRef, uploadBytes} from 'firebase/storage';
+import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from '../lib/firestore';
+import {deleteObject, ref as storageRef} from '../lib/storage';
 import {AlertTriangle, BriefcaseBusiness, CheckCircle2, ChevronDown, Mail, Pencil, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
-import {auth, db, storage} from '../lib/firebase';
+import {db, storage} from '../lib/firebase';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {useAuth} from '../contexts/AuthContext';
 import {AccessRole, AccessUser, Employee, EmployeeRole, FixtureCatalogItem, FixtureCategory, Material, PermissionMap} from '../types';
@@ -11,7 +10,7 @@ import {cn} from '../lib/utils';
 import { SettingsPage } from './SettingsPage';
 import {ACCESS_ROLES, ACTION_LABELS, getDefaultPermissions, hasPermission, isMasterAdmin, mergePermissions, MODULE_LABELS, roleLabel} from '../lib/permissions';
 import {logAuditEvent} from '../lib/auditLogs';
-import {optimizeImageFile} from '../lib/imageUtils';
+import {optimizeImageFile, readFileAsDataUrl} from '../lib/imageUtils';
 import {useSettings} from '../hooks/useSettings';
 
 const employeeRoles: EmployeeRole[] = ['Vendedor', 'Medidor', 'Cortador', 'Acabador', 'Instalador', 'Entregador', 'Administrativo'];
@@ -74,21 +73,11 @@ const optimizeCatalogImage = async (file: File) => {
   });
 };
 
-const MANUAL_UPLOAD_TIMEOUT_MS = 20000;
-
-const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, timeoutMessage: string) =>
-  Promise.race<T>([
-    promise,
-    new Promise<T>((_, reject) => {
-      window.setTimeout(() => reject(new Error(timeoutMessage)), timeoutMs);
-    }),
-  ]);
-
 const getCatalogSaveErrorMessage = (error: any, itemName: string) => {
   const message = String(error?.message || '');
   const code = String(error?.code || '');
   if (code.includes('permission-denied') || message.includes('Missing or insufficient permissions')) {
-    return `Sem permissão para salvar ${itemName}. Publique as regras atualizadas do Firestore e faça login novamente.`;
+    return `Sem permissão para salvar ${itemName}. Entre novamente e confirme se o acesso ao sistema foi liberado corretamente.`;
   }
   return message || `Não foi possível cadastrar ${itemName}.`;
 };
@@ -122,7 +111,6 @@ export const AdminPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [savingEmployee, setSavingEmployee] = useState(false);
   const [employeeError, setEmployeeError] = useState('');
-  const [resetPassword, setResetPassword] = useState('');
   const [resetConfirmation, setResetConfirmation] = useState('');
   const [resettingData, setResettingData] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
@@ -234,7 +222,7 @@ export const AdminPage: React.FC = () => {
       updatedAt: serverTimestamp(),
       updatedByUid: authUser?.uid || '',
       updatedByEmail: authUser?.email || '',
-      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuário',
+      updatedByName: accessUser?.nome || authUser?.user_metadata?.name || authUser?.email || 'Usuário',
     });
     await logAuditEvent({user: accessUser || authUser, action: 'toggle_user_block', module: 'admin', targetId: target.uid, oldValue: target.blocked, newValue: !target.blocked});
   };
@@ -248,7 +236,7 @@ export const AdminPage: React.FC = () => {
       updatedAt: serverTimestamp(),
       updatedByUid: authUser?.uid || '',
       updatedByEmail: authUser?.email || '',
-      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuário',
+      updatedByName: accessUser?.nome || authUser?.user_metadata?.name || authUser?.email || 'Usuário',
     });
     await logAuditEvent({user: accessUser || authUser, action: 'change_user_role', module: 'admin', targetId: target.uid, oldValue: target.role, newValue: newRole});
   };
@@ -268,7 +256,7 @@ export const AdminPage: React.FC = () => {
       updatedAt: serverTimestamp(),
       updatedByUid: authUser?.uid || '',
       updatedByEmail: authUser?.email || '',
-      updatedByName: accessUser?.nome || authUser?.displayName || authUser?.email || 'Usuário',
+      updatedByName: accessUser?.nome || authUser?.user_metadata?.name || authUser?.email || 'Usuário',
     });
     await logAuditEvent({user: accessUser || authUser, action: 'change_user_permission', module: 'admin', targetId: target.uid, oldValue: target.permissions?.[module]?.[action as never], newValue: checked});
   };
@@ -473,18 +461,7 @@ export const AdminPage: React.FC = () => {
         if (fixtureManualFile.type.startsWith('image/')) {
           manualUrl = await optimizeCatalogImage(fixtureManualFile);
         } else {
-          const extension = fixtureManualFile.name.split('.').pop() || 'pdf';
-          const manualRef = storageRef(storage, `fixture-manuals/${editingFixture?.id || slugify(fixtureForm.name) || Date.now()}-${Date.now()}.${extension}`);
-          await withTimeout(
-            uploadBytes(manualRef, fixtureManualFile),
-            MANUAL_UPLOAD_TIMEOUT_MS,
-            'O envio do manual demorou demais. Tente novamente com um arquivo menor.',
-          );
-          manualUrl = await withTimeout(
-            getDownloadURL(manualRef),
-            MANUAL_UPLOAD_TIMEOUT_MS,
-            'Não foi possível finalizar o link do manual.',
-          );
+          manualUrl = await readFileAsDataUrl(fixtureManualFile);
         }
         manualFileName = fixtureManualFile.name;
       }
@@ -585,14 +562,8 @@ export const AdminPage: React.FC = () => {
       return;
     }
 
-    const currentUser = auth.currentUser;
-    if (!currentUser?.email) {
+    if (!authUser?.email) {
       setResetError('Não foi possível confirmar sua conta. Entre novamente e tente de novo.');
-      return;
-    }
-
-    if (!resetPassword) {
-      setResetError('Digite a senha da sua conta para confirmar.');
       return;
     }
 
@@ -606,20 +577,16 @@ export const AdminPage: React.FC = () => {
 
     setResettingData(true);
     try {
-      const credential = EmailAuthProvider.credential(currentUser.email, resetPassword);
-      await reauthenticateWithCredential(currentUser, credential);
-
       let totalDeleted = 0;
       for (const collectionName of resetCollections) {
         totalDeleted += await deleteCollectionData(collectionName);
       }
 
-      setResetPassword('');
       setResetConfirmation('');
       setResetMessage(`${totalDeleted} registros foram excluídos. Usuários, permissões e configurações foram mantidos.`);
     } catch (error) {
       console.error('Erro ao resetar dados:', error);
-      setResetError('Não foi possível limpar os dados. Confira a senha e tente novamente.');
+      setResetError('Não foi possível limpar os dados. Tente novamente em instantes.');
     } finally {
       setResettingData(false);
     }
@@ -948,17 +915,7 @@ export const AdminPage: React.FC = () => {
             </div>
 
             <form onSubmit={resetOperationalData} className="w-full max-w-xl space-y-3 rounded-3xl border border-red-100 bg-white p-4 shadow-sm">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <input
-                  type="password"
-                  value={resetPassword}
-                  onChange={(event) => {
-                    setResetError('');
-                    setResetPassword(event.target.value);
-                  }}
-                  placeholder="Senha da conta"
-                  className="rounded-2xl border border-red-100 bg-red-50/40 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-red-200"
-                />
+              <div className="grid grid-cols-1 gap-3">
                 <input
                   value={resetConfirmation}
                   onChange={(event) => {

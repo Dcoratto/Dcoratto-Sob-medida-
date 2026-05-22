@@ -1,0 +1,32 @@
+insert into public.quotes (id, client_id, client_name, phone, address, environment, responsible, responsible_user_uid, responsible_user_name, material_id, material_name, payment_method, delivery_days, validity_date, measurement_date, delivery_date, commercial_notes, status, total_area, total_price, pieces, cutouts, team_counts, employee_assignments, employee_evaluations, status_history, created_at, created_by, updated_at)
+values
+  ('aF3kj7uXGGKgcODwF0Ry', 'C8SHDfkAL681sIsxlokq', 'Aline Armond', '11999889941', 'Teste · Bairro Teste · Mogi das Cruzes · CEP 08.773-130', '', 'Brian Takiya', 'JPSHn4Zeq4RhmdQO313pIW4mVJH2', 'Brian Takiya', 'preto-absoluto', 'Preto absoluto', '', 15, '2026-06-03T12:27:30.757Z'::timestamptz, null, null, '', 'Orçamento', 3.9137999999999993, 8777.599999999999, '[{"id":"gzgy7syz6","name":"Peca 1","materialId":"preto-absoluto","unit":"cm","width":0,"length":0,"area":0,"sides":[{"type":"frontao","side":"side:1","sideLabel":"Lado B (0.60 m)","length":60,"height":10,"quantity":1,"area":0.06,"areaTotal":0.06,"value":0},{"type":"frontao","side":"side:0","sideLabel":"Lado A (3.00 m)","length":300,"height":10,"quantity":1,"area":0.30000000000000004,"areaTotal":0.30000000000000004,"value":0},{"type":"virada","side":"side:3","sideLabel":"Lado D (0.60 m)","length":60,"height":6,"quantity":1,"area":0.036,"areaTotal":0.036,"value":0},{"type":"saia","side":"side:3","sideLabel":"Lado D (0.60 m)","length":60,"height":6,"quantity":1,"area":0.036,"areaTotal":0.036,"value":0},{"type":"virada","side":"side:2","sideLabel":"Lado C (3.00 m)","length":300,"height":6,"quantity":1,"area":0.18,"areaTotal":0.18,"value":0},{"type":"saia","side":"side:2","sideLabel":"Lado C (3.00 m)","length":300,"height":6,"quantity":1,"area":0.18,"areaTotal":0.18,"value":0}],"notes":"","sculptedSink":{"active":true,"drainType":"Ralo oculto","quantity":1,"width":40,"depth":40,"height":40,"unit":"cm","calculatedArea":0,"calculatedValue":0},"stair":{"active":false,"unit":"cm","stepCount":0,"stepWidth":0,"treadDepth":0,"riserHeight":0,"landingCount":0,"landingWidth":0,"landingDepth":0,"leftBaseboard":false,"rightBaseboard":false,"baseboardHeight":10},"drawingJson":null,"manualArea":1.7999999999999994,"previewUrl":null,"largestSide":300,"cutouts":[{"id":"25bc3b11-d937-4f68-9a2c-c49aa6203099","type":"cooktop","x":4.387161804666995,"y":1.1204380334869914,"width":0.5,"height":0.4,"rotation":0},{"id":"85f68119-b532-42da-a658-5100efa70c52","type":"cuba","x":2.9448919721518303,"y":1.1601335334644731,"width":0.5,"height":0.4,"rotation":0},{"id":"c1f596cb-0797-4c33-aeb0-1a25915a2c6e","type":"torneira","x":2.931660138826003,"y":0.882265033622102,"width":0.5,"height":0.5,"rotation":0}],"selectedFixtureIds":{},"purchasedFixtures":{},"wetAreaRecess":{"type":"americano","width":100,"depth":0.6,"unit":"cm","active":true},"materialVariantKey":"preto-absoluto|lamina ultracompacta|chapa||polido|laminatto","materialLine":"Lamina Ultracompacta","materialType":"Chapa","thicknessLabel":"","texture":"Polido","provider":"Laminatto","proposalImageUrl":null}]'::jsonb, '{"cooktop":1,"sinkUnder":1,"sinkOver":0,"faucetHole":1,"trashBinCutout":0,"popUpTowerCutout":0,"wetAreaAmericanRecess":0,"wetAreaItalianRecess":0}'::jsonb, null, '[]'::jsonb, null, '[{"status":"Orçamento","changedByName":"Brian Takiya","changedAt":{"__type":"timestamp","iso":"2026-05-18T17:54:40.506Z","seconds":1779126880,"nanoseconds":506000000},"responsibleEmployeeId":"","changedByUid":"JPSHn4Zeq4RhmdQO313pIW4mVJH2","responsibleEmployeeName":""},{"status":"Orçamento","changedAt":{"__type":"timestamp","iso":"2026-05-19T12:27:30.757Z","seconds":1779193650,"nanoseconds":757000000},"changedByUid":"JPSHn4Zeq4RhmdQO313pIW4mVJH2","changedByName":"Brian Takiya","responsibleEmployeeId":"","responsibleEmployeeName":""}]'::jsonb, '2026-05-18T17:54:40.506Z'::timestamptz, 'JPSHn4Zeq4RhmdQO313pIW4mVJH2', timezone('utc', now()))
+on conflict (id) do update set
+  client_id = excluded.client_id,
+  client_name = excluded.client_name,
+  phone = excluded.phone,
+  address = excluded.address,
+  environment = excluded.environment,
+  responsible = excluded.responsible,
+  responsible_user_uid = excluded.responsible_user_uid,
+  responsible_user_name = excluded.responsible_user_name,
+  material_id = excluded.material_id,
+  material_name = excluded.material_name,
+  payment_method = excluded.payment_method,
+  delivery_days = excluded.delivery_days,
+  validity_date = excluded.validity_date,
+  measurement_date = excluded.measurement_date,
+  delivery_date = excluded.delivery_date,
+  commercial_notes = excluded.commercial_notes,
+  status = excluded.status,
+  total_area = excluded.total_area,
+  total_price = excluded.total_price,
+  pieces = excluded.pieces,
+  cutouts = excluded.cutouts,
+  team_counts = excluded.team_counts,
+  employee_assignments = excluded.employee_assignments,
+  employee_evaluations = excluded.employee_evaluations,
+  status_history = excluded.status_history,
+  created_at = excluded.created_at,
+  created_by = excluded.created_by,
+  updated_at = excluded.updated_at;

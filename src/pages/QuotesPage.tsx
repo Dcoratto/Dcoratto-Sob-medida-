@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {addDoc, arrayUnion, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from 'firebase/firestore';
+import {addDoc, arrayUnion, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from '../lib/firestore';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
@@ -14,14 +14,14 @@ import {logSystemEvent} from '../lib/systemEvents';
 import {QUOTE_STATUSES, normalizeQuoteStatus, normalizeText, quoteStatusColor} from '../lib/quoteStatus';
 
 export const QuotesPage: React.FC = () => {
-  const {user, profile, hasPermission} = useAuth();
+  const {user, profile, appUid, hasPermission} = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
   const scope = new URLSearchParams(location.search).get('scope') || 'all';
-  const currentUserName = profile?.name || user?.displayName || user?.email || 'Usuário';
+  const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
 
   useEffect(() => {
     const q = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
@@ -69,7 +69,7 @@ export const QuotesPage: React.FC = () => {
         statusHistory: arrayUnion({
           status,
           changedAt: Timestamp.now(),
-          changedByUid: user?.uid || '',
+          changedByUid: appUid || '',
           changedByName: currentUserName,
           note: `Status alterado para ${status}`,
         }),
@@ -91,7 +91,7 @@ export const QuotesPage: React.FC = () => {
         clientName: quote.clientName,
         materialId: quote.materialId,
         materialName: quote.materialName,
-        userUid: user?.uid || '',
+        userUid: appUid || '',
         userName: currentUserName,
       });
     } catch (error: any) {
@@ -125,7 +125,7 @@ export const QuotesPage: React.FC = () => {
       clientName: duplicatedQuote.clientName,
       materialId: quote.materialId,
       materialName: quote.materialName,
-      userUid: user?.uid || '',
+      userUid: appUid || '',
       userName: currentUserName,
     });
   };
@@ -156,7 +156,7 @@ export const QuotesPage: React.FC = () => {
         clientName: deletedQuote.clientName,
         materialId: deletedQuote.materialId,
         materialName: deletedQuote.materialName,
-        userUid: user?.uid || '',
+        userUid: appUid || '',
         userName: currentUserName,
       });
     }

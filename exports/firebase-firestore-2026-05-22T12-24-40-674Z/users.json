@@ -1,0 +1,709 @@
+[
+  {
+    "id": "oQEE1LSKn3Rt4T9jUML4Ih4k2we2",
+    "uid": "oQEE1LSKn3Rt4T9jUML4Ih4k2we2",
+    "nome": "Wellington Oliveira",
+    "name": "Wellington Oliveira",
+    "email": "welfernandes08@hotmail.com",
+    "blocked": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T12:54:15.889Z",
+      "seconds": 1779281655,
+      "nanoseconds": 889000000
+    },
+    "role": "liberacao",
+    "updatedByEmail": "brian_takiya77@outlook.com",
+    "updatedByName": "brian_takiya77",
+    "updatedByUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "permissions": {
+      "dashboard": {
+        "visualizar": true
+      },
+      "orcamento": {
+        "visualizar": true,
+        "criar": false,
+        "editar": false,
+        "excluir": false,
+        "aprovar": false
+      },
+      "historico": {
+        "visualizar": true
+      },
+      "materiais": {
+        "visualizar": true,
+        "editar": false
+      },
+      "estoque": {
+        "visualizar": true,
+        "adicionar": false,
+        "editar": false,
+        "excluir": false,
+        "movimentar": false
+      },
+      "relatorios": {
+        "visualizar": true,
+        "exportar": false,
+        "verFaturamento": false,
+        "verProdutividade": false
+      },
+      "admin": {
+        "visualizarUsuarios": false,
+        "alterarPermissoes": false,
+        "excluirUsuarios": false
+      },
+      "cliente": {
+        "visualizar": true,
+        "editarDados": false,
+        "alterarEtapa": false,
+        "anexarArquivos": false,
+        "avaliarFuncionarios": false
+      },
+      "medicao": {
+        "visualizar": true,
+        "criar": false,
+        "editar": false
+      },
+      "projeto": {
+        "visualizar": true,
+        "criar": false,
+        "editar": false,
+        "aprovar": true
+      },
+      "producao": {
+        "visualizar": true,
+        "alterarEtapa": true,
+        "conferirMedidas": true,
+        "finalizarProducao": true
+      },
+      "liberacao": {
+        "visualizar": true,
+        "aprovar": true,
+        "reprovar": true
+      }
+    },
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:32:04.133Z",
+      "seconds": 1779283924,
+      "nanoseconds": 133000000
+    }
+  },
+  {
+    "id": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "uid": "a7HNZZyjLtZ9vwK2quKJzaCKaf73",
+    "nome": "vinny.iprisd",
+    "name": "vinny.iprisd",
+    "email": "vinny.iprisd@gmail.com",
+    "blocked": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-13T15:40:57.116Z",
+      "seconds": 1778686857,
+      "nanoseconds": 116000000
+    },
+    "updatedByEmail": "brian_takiya77@outlook.com",
+    "updatedByName": "brian_takiya77",
+    "updatedByUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "role": "vendedor",
+    "permissions": {
+      "dashboard": {
+        "visualizar": true
+      },
+      "orcamento": {
+        "visualizar": true,
+        "criar": true,
+        "editar": true,
+        "excluir": true,
+        "aprovar": true
+      },
+      "historico": {
+        "visualizar": true
+      },
+      "materiais": {
+        "visualizar": true,
+        "editar": false
+      },
+      "estoque": {
+        "visualizar": true,
+        "adicionar": false,
+        "editar": false,
+        "excluir": false,
+        "movimentar": false
+      },
+      "relatorios": {
+        "visualizar": true,
+        "exportar": false,
+        "verFaturamento": false,
+        "verProdutividade": false
+      },
+      "admin": {
+        "visualizarUsuarios": false,
+        "alterarPermissoes": false,
+        "excluirUsuarios": false
+      },
+      "cliente": {
+        "visualizar": true,
+        "editarDados": true,
+        "alterarEtapa": true,
+        "anexarArquivos": true,
+        "avaliarFuncionarios": false
+      },
+      "medicao": {
+        "visualizar": true,
+        "criar": true,
+        "editar": true
+      },
+      "projeto": {
+        "visualizar": true,
+        "criar": true,
+        "editar": true,
+        "aprovar": false
+      },
+      "producao": {
+        "visualizar": true,
+        "alterarEtapa": false,
+        "conferirMedidas": false,
+        "finalizarProducao": false
+      },
+      "liberacao": {
+        "visualizar": true,
+        "aprovar": false,
+        "reprovar": false
+      }
+    },
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:41.618Z",
+      "seconds": 1779283901,
+      "nanoseconds": 618000000
+    }
+  },
+  {
+    "id": "lr7O5vB69Zf5JuxgKkb5Q5ib1Am1",
+    "uid": "lr7O5vB69Zf5JuxgKkb5Q5ib1Am1",
+    "nome": "Jéssica Rodrigues Leite Benedito",
+    "name": "Jéssica Rodrigues Leite Benedito",
+    "email": "jhessypresentes.s2@gmail.com",
+    "blocked": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-14T13:46:35.266Z",
+      "seconds": 1778766395,
+      "nanoseconds": 266000000
+    },
+    "role": "administrativo",
+    "updatedByEmail": "brian_takiya77@outlook.com",
+    "updatedByName": "brian_takiya77",
+    "updatedByUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "permissions": {
+      "dashboard": {
+        "visualizar": true
+      },
+      "orcamento": {
+        "visualizar": true,
+        "criar": false,
+        "editar": false,
+        "excluir": false,
+        "aprovar": false
+      },
+      "historico": {
+        "visualizar": true
+      },
+      "materiais": {
+        "visualizar": true,
+        "editar": true
+      },
+      "estoque": {
+        "visualizar": true,
+        "adicionar": true,
+        "editar": true,
+        "excluir": true,
+        "movimentar": true
+      },
+      "relatorios": {
+        "visualizar": true,
+        "exportar": true,
+        "verFaturamento": true,
+        "verProdutividade": true
+      },
+      "admin": {
+        "visualizarUsuarios": false,
+        "alterarPermissoes": false,
+        "excluirUsuarios": false
+      },
+      "cliente": {
+        "visualizar": true,
+        "editarDados": true,
+        "alterarEtapa": false,
+        "anexarArquivos": true,
+        "avaliarFuncionarios": false
+      },
+      "medicao": {
+        "visualizar": true,
+        "criar": false,
+        "editar": false
+      },
+      "projeto": {
+        "visualizar": true,
+        "criar": false,
+        "editar": false,
+        "aprovar": false
+      },
+      "producao": {
+        "visualizar": true,
+        "alterarEtapa": false,
+        "conferirMedidas": false,
+        "finalizarProducao": false
+      },
+      "liberacao": {
+        "visualizar": true,
+        "aprovar": false,
+        "reprovar": false
+      }
+    },
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:35.849Z",
+      "seconds": 1779283835,
+      "nanoseconds": 849000000
+    }
+  },
+  {
+    "id": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "uid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "nome": "brian_takiya77",
+    "name": "brian_takiya77",
+    "email": "brian_takiya77@outlook.com",
+    "role": "administrativo",
+    "permissions": {
+      "orcamento": {
+        "visualizar": false,
+        "criar": false,
+        "editar": false,
+        "excluir": false,
+        "aprovar": false
+      },
+      "estoque": {
+        "visualizar": true,
+        "adicionar": true,
+        "editar": true,
+        "excluir": true,
+        "movimentar": true
+      },
+      "relatorios": {
+        "visualizar": true,
+        "exportar": true,
+        "verFaturamento": true,
+        "verProdutividade": false
+      },
+      "admin": {
+        "visualizarUsuarios": false,
+        "alterarPermissoes": false,
+        "excluirUsuarios": false
+      },
+      "cliente": {
+        "visualizar": true,
+        "editarDados": true,
+        "alterarEtapa": false,
+        "anexarArquivos": true,
+        "avaliarFuncionarios": false
+      },
+      "medicao": {
+        "visualizar": true,
+        "criar": false,
+        "editar": false
+      },
+      "projeto": {
+        "visualizar": true,
+        "criar": false,
+        "editar": false,
+        "aprovar": false
+      },
+      "producao": {
+        "visualizar": false,
+        "alterarEtapa": false,
+        "conferirMedidas": false,
+        "finalizarProducao": false
+      },
+      "liberacao": {
+        "visualizar": false,
+        "aprovar": false,
+        "reprovar": false
+      }
+    },
+    "blocked": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:08:33.918Z",
+      "seconds": 1778616513,
+      "nanoseconds": 918000000
+    },
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:08:33.918Z",
+      "seconds": 1778616513,
+      "nanoseconds": 918000000
+    }
+  },
+  {
+    "id": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "uid": "VlN44VojjDaGp2AVF398Gc3btiD3",
+    "nome": "fabioduarte232",
+    "name": "fabioduarte232",
+    "email": "fabioduarte232@yahoo.com",
+    "blocked": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-19T20:43:02.089Z",
+      "seconds": 1779223382,
+      "nanoseconds": 89000000
+    },
+    "role": "administrativo",
+    "updatedByEmail": "brian_takiya77@outlook.com",
+    "updatedByName": "brian_takiya77",
+    "updatedByUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "permissions": {
+      "dashboard": {
+        "visualizar": true
+      },
+      "orcamento": {
+        "visualizar": true,
+        "criar": false,
+        "editar": false,
+        "excluir": false,
+        "aprovar": false
+      },
+      "historico": {
+        "visualizar": true
+      },
+      "materiais": {
+        "visualizar": true,
+        "editar": false
+      },
+      "estoque": {
+        "visualizar": true,
+        "adicionar": false,
+        "editar": false,
+        "excluir": false,
+        "movimentar": false
+      },
+      "relatorios": {
+        "visualizar": true,
+        "exportar": true,
+        "verFaturamento": true,
+        "verProdutividade": true
+      },
+      "admin": {
+        "visualizarUsuarios": false,
+        "alterarPermissoes": false,
+        "excluirUsuarios": false
+      },
+      "cliente": {
+        "visualizar": true,
+        "editarDados": true,
+        "alterarEtapa": true,
+        "anexarArquivos": true,
+        "avaliarFuncionarios": true
+      },
+      "medicao": {
+        "visualizar": true,
+        "criar": true,
+        "editar": true
+      },
+      "projeto": {
+        "visualizar": true,
+        "criar": false,
+        "editar": false,
+        "aprovar": true
+      },
+      "producao": {
+        "visualizar": true,
+        "alterarEtapa": true,
+        "conferirMedidas": true,
+        "finalizarProducao": true
+      },
+      "liberacao": {
+        "visualizar": true,
+        "aprovar": true,
+        "reprovar": true
+      }
+    },
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:13.118Z",
+      "seconds": 1779283813,
+      "nanoseconds": 118000000
+    }
+  },
+  {
+    "id": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "uid": "teaHQJYhs6YKcqKbuAj7Jli96sI2",
+    "nome": "brunocraftertb",
+    "name": "brunocraftertb",
+    "email": "brunocraftertb@gmail.com",
+    "blocked": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-18T17:41:28.187Z",
+      "seconds": 1779126088,
+      "nanoseconds": 187000000
+    },
+    "role": "administrativo",
+    "updatedByEmail": "brian_takiya77@outlook.com",
+    "updatedByName": "brian_takiya77",
+    "updatedByUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "permissions": {
+      "dashboard": {
+        "visualizar": true
+      },
+      "orcamento": {
+        "visualizar": true,
+        "criar": true,
+        "editar": true,
+        "excluir": true,
+        "aprovar": true
+      },
+      "historico": {
+        "visualizar": true
+      },
+      "materiais": {
+        "visualizar": true,
+        "editar": true
+      },
+      "estoque": {
+        "visualizar": true,
+        "adicionar": true,
+        "editar": true,
+        "excluir": true,
+        "movimentar": true
+      },
+      "relatorios": {
+        "visualizar": true,
+        "exportar": true,
+        "verFaturamento": true,
+        "verProdutividade": false
+      },
+      "admin": {
+        "visualizarUsuarios": true,
+        "alterarPermissoes": false,
+        "excluirUsuarios": false
+      },
+      "cliente": {
+        "visualizar": true,
+        "editarDados": true,
+        "alterarEtapa": true,
+        "anexarArquivos": true,
+        "avaliarFuncionarios": true
+      },
+      "medicao": {
+        "visualizar": true,
+        "criar": true,
+        "editar": true
+      },
+      "projeto": {
+        "visualizar": true,
+        "criar": true,
+        "editar": true,
+        "aprovar": true
+      },
+      "producao": {
+        "visualizar": true,
+        "alterarEtapa": true,
+        "conferirMedidas": true,
+        "finalizarProducao": true
+      },
+      "liberacao": {
+        "visualizar": true,
+        "aprovar": true,
+        "reprovar": true
+      }
+    },
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:29:30.063Z",
+      "seconds": 1779283770,
+      "nanoseconds": 63000000
+    }
+  },
+  {
+    "id": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "uid": "oMgxor0aUPUPVrNNK1Q5E4hLjC63",
+    "nome": "rafael.edf25",
+    "name": "rafael.edf25",
+    "email": "rafael.edf25@gmail.com",
+    "blocked": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-12T20:20:21.714Z",
+      "seconds": 1778617221,
+      "nanoseconds": 714000000
+    },
+    "updatedByEmail": "brian_takiya77@outlook.com",
+    "updatedByName": "brian_takiya77",
+    "updatedByUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "role": "administrativo",
+    "permissions": {
+      "dashboard": {
+        "visualizar": true
+      },
+      "orcamento": {
+        "visualizar": true,
+        "criar": true,
+        "editar": true,
+        "excluir": true,
+        "aprovar": true
+      },
+      "historico": {
+        "visualizar": true
+      },
+      "materiais": {
+        "visualizar": true,
+        "editar": true
+      },
+      "estoque": {
+        "visualizar": true,
+        "adicionar": true,
+        "editar": true,
+        "excluir": true,
+        "movimentar": true
+      },
+      "relatorios": {
+        "visualizar": true,
+        "exportar": true,
+        "verFaturamento": true,
+        "verProdutividade": true
+      },
+      "admin": {
+        "visualizarUsuarios": true,
+        "alterarPermissoes": true,
+        "excluirUsuarios": true
+      },
+      "cliente": {
+        "visualizar": true,
+        "editarDados": true,
+        "alterarEtapa": true,
+        "anexarArquivos": true,
+        "avaliarFuncionarios": true
+      },
+      "medicao": {
+        "visualizar": true,
+        "criar": true,
+        "editar": true
+      },
+      "projeto": {
+        "visualizar": true,
+        "criar": true,
+        "editar": true,
+        "aprovar": true
+      },
+      "producao": {
+        "visualizar": true,
+        "alterarEtapa": true,
+        "conferirMedidas": true,
+        "finalizarProducao": true
+      },
+      "liberacao": {
+        "visualizar": true,
+        "aprovar": true,
+        "reprovar": true
+      }
+    },
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:30:50.869Z",
+      "seconds": 1779283850,
+      "nanoseconds": 869000000
+    }
+  },
+  {
+    "id": "zSxmWGUnKvc8XO4gyyoA630ypq22",
+    "uid": "zSxmWGUnKvc8XO4gyyoA630ypq22",
+    "nome": "rhhirakawa",
+    "name": "rhhirakawa",
+    "email": "rhhirakawa@gmail.com",
+    "blocked": false,
+    "createdAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-13T15:44:29.920Z",
+      "seconds": 1778687069,
+      "nanoseconds": 920000000
+    },
+    "role": "administrativo",
+    "updatedByEmail": "brian_takiya77@outlook.com",
+    "updatedByName": "brian_takiya77",
+    "updatedByUid": "JPSHn4Zeq4RhmdQO313pIW4mVJH2",
+    "permissions": {
+      "dashboard": {
+        "visualizar": true
+      },
+      "orcamento": {
+        "visualizar": true,
+        "criar": false,
+        "editar": false,
+        "excluir": false,
+        "aprovar": false
+      },
+      "historico": {
+        "visualizar": true
+      },
+      "materiais": {
+        "visualizar": true,
+        "editar": true
+      },
+      "estoque": {
+        "visualizar": true,
+        "adicionar": true,
+        "editar": true,
+        "excluir": true,
+        "movimentar": true
+      },
+      "relatorios": {
+        "visualizar": true,
+        "exportar": true,
+        "verFaturamento": true,
+        "verProdutividade": true
+      },
+      "admin": {
+        "visualizarUsuarios": false,
+        "alterarPermissoes": false,
+        "excluirUsuarios": false
+      },
+      "cliente": {
+        "visualizar": true,
+        "editarDados": true,
+        "alterarEtapa": false,
+        "anexarArquivos": true,
+        "avaliarFuncionarios": false
+      },
+      "medicao": {
+        "visualizar": true,
+        "criar": false,
+        "editar": false
+      },
+      "projeto": {
+        "visualizar": true,
+        "criar": false,
+        "editar": false,
+        "aprovar": false
+      },
+      "producao": {
+        "visualizar": true,
+        "alterarEtapa": false,
+        "conferirMedidas": false,
+        "finalizarProducao": false
+      },
+      "liberacao": {
+        "visualizar": true,
+        "aprovar": false,
+        "reprovar": false
+      }
+    },
+    "updatedAt": {
+      "__type": "timestamp",
+      "iso": "2026-05-20T13:31:12.528Z",
+      "seconds": 1779283872,
+      "nanoseconds": 528000000
+    }
+  }
+]

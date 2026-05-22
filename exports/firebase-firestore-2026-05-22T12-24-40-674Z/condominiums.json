@@ -1,0 +1,182 @@
+[
+  {
+    "id": "QINoeIcx40lbFcdoHfFE",
+    "city": "Mogi Das Cruzes",
+    "addressMode": "lot",
+    "allowedWeekdays": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "workStartHour": "08:00",
+    "workEndHour": "17:00",
+    "blockNationalHolidays": true,
+    "blockCityHolidays": true,
+    "notes": "",
+    "name": "Aruã Ecopark Lagos"
+  },
+  {
+    "id": "loBkEedr4HsiFG7aQbih",
+    "name": "Aruã",
+    "city": "Mogi Das Cruzes",
+    "addressMode": "lot",
+    "allowedWeekdays": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "workStartHour": "08:00",
+    "workEndHour": "17:00",
+    "blockNationalHolidays": true,
+    "blockCityHolidays": true,
+    "notes": ""
+  },
+  {
+    "id": "q50vj4T1sLvH4bolhvms",
+    "city": "Mogi Das Cruzes",
+    "addressMode": "lot",
+    "allowedWeekdays": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "workStartHour": "08:00",
+    "workEndHour": "17:00",
+    "blockNationalHolidays": true,
+    "blockCityHolidays": true,
+    "notes": "",
+    "name": "Aruã Brisas II"
+  },
+  {
+    "id": "b3K2Xqo2kemKp7VHwFsU",
+    "name": "Condomínio Real Park II",
+    "city": "Mogi Das Cruzes",
+    "addressMode": "lot",
+    "allowedWeekdays": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "workStartHour": "08:00",
+    "workEndHour": "17:00",
+    "blockNationalHolidays": true,
+    "blockCityHolidays": true,
+    "notes": ""
+  },
+  {
+    "id": "FRCi7OrqxPs5ErNVi6Gw",
+    "name": "Parque Firenze",
+    "city": "São Paulo",
+    "addressMode": "street",
+    "allowedWeekdays": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "workStartHour": "08:00",
+    "workEndHour": "17:00",
+    "blockNationalHolidays": true,
+    "blockCityHolidays": true,
+    "notes": ""
+  },
+  {
+    "id": "1sMGeff5ctb4agqnmMwt",
+    "name": "Treviso",
+    "city": "São Paulo",
+    "addressMode": "street",
+    "allowedWeekdays": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "workStartHour": "08:00",
+    "workEndHour": "17:00",
+    "blockNationalHolidays": true,
+    "blockCityHolidays": true,
+    "notes": ""
+  },
+  {
+    "id": "aJB6QPCWmiCMGlSMkn7W",
+    "name": "Linea Home Resort",
+    "city": "São Paulo",
+    "addressMode": "street",
+    "allowedWeekdays": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "workStartHour": "08:00",
+    "workEndHour": "17:00",
+    "blockNationalHolidays": true,
+    "blockCityHolidays": true,
+    "notes": ""
+  },
+  {
+    "id": "h8UiN8Un5ip3VgoUMTEl",
+    "name": "Aruã Ecopark Lagos II",
+    "city": "Mogi das Cruzes",
+    "addressMode": "lot",
+    "allowedWeekdays": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "workStartHour": "08:00",
+    "workEndHour": "17:00",
+    "blockNationalHolidays": true,
+    "blockCityHolidays": true,
+    "notes": ""
+  },
+  {
+    "id": "Yu5GaSapNZ2Ti5xwkXJc",
+    "name": "Monterrey Ville",
+    "city": "Mogi Das Cruzes",
+    "addressMode": "lot",
+    "allowedWeekdays": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "workStartHour": "08:00",
+    "workEndHour": "17:00",
+    "blockNationalHolidays": true,
+    "blockCityHolidays": true,
+    "notes": ""
+  },
+  {
+    "id": "lVQdhuAHfipDlWyWPVt9",
+    "name": "Residencial Terra do sol",
+    "city": "Suzano",
+    "addressMode": "street",
+    "allowedWeekdays": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "workStartHour": "08:00",
+    "workEndHour": "17:00",
+    "blockNationalHolidays": true,
+    "blockCityHolidays": true,
+    "notes": ""
+  }
+]

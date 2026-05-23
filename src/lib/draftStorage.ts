@@ -27,7 +27,7 @@ export const loadDraftMeta = <T>(key: string): {data: T | null; savedAt: string 
 
     return {data: parsed as T, savedAt: null};
   } catch (error) {
-    console.warn(`Nao foi possivel ler o rascunho ${key}:`, error);
+    console.warn(`Não foi possível ler o rascunho ${key}:`, error);
     return {data: null, savedAt: null};
   }
 };
@@ -46,7 +46,7 @@ export const saveDraft = (key: string, value: unknown) => {
     }));
     return savedAt;
   } catch (error) {
-    console.warn(`Nao foi possivel salvar o rascunho ${key}:`, error);
+    console.warn(`Não foi possível salvar o rascunho ${key}:`, error);
     return null;
   }
 };
@@ -57,6 +57,6 @@ export const clearDraft = (key: string) => {
   try {
     window.localStorage.removeItem(key);
   } catch (error) {
-    console.warn(`Nao foi possivel limpar o rascunho ${key}:`, error);
+    console.warn(`Não foi possível limpar o rascunho ${key}:`, error);
   }
 };

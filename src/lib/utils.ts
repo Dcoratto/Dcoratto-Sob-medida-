@@ -88,7 +88,7 @@ const MOJIBAKE_REPLACEMENTS: Array<[RegExp, string]> = [
   [/Ã±/g, 'ñ'],
   [/Â²/g, '²'],
   [/Â°/g, '°'],
-  [/Â·/g, '·'],
+  [/·/g, '·'],
   [/Âº/g, 'º'],
   [/Âª/g, 'ª'],
   [/Â/g, ''],

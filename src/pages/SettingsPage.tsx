@@ -215,7 +215,7 @@ export const SettingsPage: React.FC = () => {
       return true;
     } catch (err) {
       console.error(err);
-      setSupplierFeedback('Nao foi possivel salvar o fornecedor.');
+      setSupplierFeedback('Não foi possível salvar o fornecedor.');
       return false;
     } finally {
       setSupplierSaving(false);
@@ -243,7 +243,7 @@ export const SettingsPage: React.FC = () => {
       setTimeout(() => setSupplierFeedback(''), 3000);
     } catch (err) {
       console.error(err);
-      setSupplierFeedback('Nao foi possivel remover o fornecedor.');
+      setSupplierFeedback('Não foi possível remover o fornecedor.');
     } finally {
       setSupplierSaving(false);
     }
@@ -280,7 +280,7 @@ export const SettingsPage: React.FC = () => {
       return true;
     } catch (err) {
       console.error(err);
-      setMaterialCatalogFeedback('Nao foi possivel salvar o catalogo de chapas.');
+      setMaterialCatalogFeedback('Não foi possível salvar o catálogo de chapas.');
       return false;
     } finally {
       setMaterialCatalogSaving(false);
@@ -291,12 +291,12 @@ export const SettingsPage: React.FC = () => {
     const normalized = value.trim();
     if (!normalized) return false;
     const nextSettings = updateMaterialCatalogList(field, (current) => current.includes(normalized) ? current : [...current, normalized]);
-    return persistMaterialCatalogSettings(nextSettings, 'Catalogo de chapas atualizado com sucesso.');
+    return persistMaterialCatalogSettings(nextSettings, 'Catálogo de chapas atualizado com sucesso.');
   };
 
   const removeMaterialCatalogValue = async (field: MaterialCatalogListField, value: string) => {
     const nextSettings = updateMaterialCatalogList(field, (current) => current.filter((item) => item !== value));
-    return persistMaterialCatalogSettings(nextSettings, 'Catalogo de chapas atualizado com sucesso.');
+    return persistMaterialCatalogSettings(nextSettings, 'Catálogo de chapas atualizado com sucesso.');
   };
 
   const resetCondoForm = () => {
@@ -343,7 +343,7 @@ export const SettingsPage: React.FC = () => {
   };
 
   const removeCondominium = async (id: string) => {
-    const confirmed = window.confirm('Excluir este condominio?');
+    const confirmed = window.confirm('Excluir este condomínio?');
     if (!confirmed) return;
     await deleteDoc(doc(db, 'condominiums', id));
     if (editingCondominium?.id === id) resetCondoForm();
@@ -389,8 +389,8 @@ export const SettingsPage: React.FC = () => {
     <div className="w-full space-y-6 pb-4">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Configuracoes</h1>
-          <p className="text-slate-500 mt-1">Gerencie os dados da empresa e valores padrao do sistema.</p>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Configurações</h1>
+          <p className="text-slate-500 mt-1">Gerencie os dados da empresa e valores padrão do sistema.</p>
         </div>
         <button
           onClick={handleSave}
@@ -405,7 +405,7 @@ export const SettingsPage: React.FC = () => {
           ) : (
             <>
               <Save className="w-5 h-5" />
-              {success ?'Salvo!' : 'Salvar Alteracoes'}
+              {success ?'Salvo!' : 'Salvar Alterações'}
             </>
           )}
         </button>
@@ -452,7 +452,7 @@ export const SettingsPage: React.FC = () => {
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-slate-500 font-medium">Endereco</label>
+              <label className="text-slate-500 font-medium">Endereço</label>
               <textarea
                 value={settings.address}
                 onChange={(e) => setSettings({ ...settings, address: e.target.value })}
@@ -462,7 +462,7 @@ export const SettingsPage: React.FC = () => {
           </div>
         </section>
 
-        {/* Padroes Financeiros e Medidas */}
+        {/* Padrões Financeiros e Medidas */}
         <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-2">
           <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
             <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
@@ -733,8 +733,8 @@ export const SettingsPage: React.FC = () => {
                 <Building className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="font-display font-bold text-lg text-slate-800">Catalogo de chapas</h2>
-                <p className="text-sm text-slate-400">Essas opcoes aparecem na compra e na adicao de chapas no estoque.</p>
+                <h2 className="font-display font-bold text-lg text-slate-800">Catálogo de chapas</h2>
+                <p className="text-sm text-slate-400">Essas opções aparecem na compra e na adicao de chapas no estoque.</p>
               </div>
             </div>
           </div>
@@ -756,7 +756,7 @@ export const SettingsPage: React.FC = () => {
               ['materialLines', 'Linha do material', 'Ex: Premium'],
               ['materialTypes', 'Tipo do material', 'Ex: Chapa'],
               ['naturalThicknesses', 'Espessuras naturais', 'Ex: 2cm'],
-              ['slabThicknesses', 'Espessuras de laminas', 'Ex: 12mm'],
+              ['slabThicknesses', 'Espessuras de lâminas', 'Ex: 12mm'],
               ['textures', 'Texturas', 'Ex: Escovado'],
             ].map(([field, label, placeholder]) => (
               <MaterialCatalogField
@@ -786,7 +786,7 @@ export const SettingsPage: React.FC = () => {
               <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
                 <Building className="w-5 h-5" />
               </div>
-              <h2 className="font-display font-bold text-lg text-slate-800">Condominios e regras</h2>
+              <h2 className="font-display font-bold text-lg text-slate-800">Condomínios e regras</h2>
             </div>
           </div>
 
@@ -801,7 +801,7 @@ export const SettingsPage: React.FC = () => {
               </div>
             )}
             <div className="space-y-1.5">
-              <label className="text-slate-500 font-medium text-sm">Nome do condominio</label>
+              <label className="text-slate-500 font-medium text-sm">Nome do condomínio</label>
               <input value={condoName} onChange={(e) => setCondoName(e.target.value)} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
             <div className="space-y-1.5">
@@ -809,7 +809,7 @@ export const SettingsPage: React.FC = () => {
               <input value={condoCity} onChange={(e) => setCondoCity(e.target.value)} required placeholder="Ex: Aruja" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
             <div className="md:col-span-2 space-y-1.5">
-              <label className="text-slate-500 font-medium text-sm">Tipo de endereco do condominio</label>
+              <label className="text-slate-500 font-medium text-sm">Tipo de endereço do condomínio</label>
               <select
                 value={condoAddressMode || 'street'}
                 onChange={(e) => setCondoAddressMode(e.target.value as CondominiumRule['addressMode'])}
@@ -818,10 +818,10 @@ export const SettingsPage: React.FC = () => {
                 <option value="street">Rua e número</option>
                 <option value="lot">Quadra e lote</option>
               </select>
-              <p className="text-xs text-slate-400">Essa escolha define quais campos aparecem ao vincular o condominio no cadastro do cliente.</p>
+              <p className="text-xs text-slate-400">Essa escolha define quais campos aparecem ao vincular o condomínio no cadastro do cliente.</p>
             </div>
             <div className="space-y-1.5">
-              <label className="text-slate-500 font-medium text-sm">Inicio do trabalho</label>
+              <label className="text-slate-500 font-medium text-sm">Início do trabalho</label>
               <input type="time" value={workStartHour} onChange={(e) => setWorkStartHour(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
             </div>
             <div className="space-y-1.5">
@@ -852,16 +852,16 @@ export const SettingsPage: React.FC = () => {
               Bloquear feriados da cidade
             </label>
             <div className="md:col-span-2 space-y-1.5">
-              <label className="text-slate-500 font-medium text-sm">Observacoes</label>
+              <label className="text-slate-500 font-medium text-sm">Observações</label>
               <textarea value={condoNotes} onChange={(e) => setCondoNotes(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 min-h-[80px]" />
             </div>
             <div className="md:col-span-2 flex items-center gap-3">
               <button type="submit" className="bg-brand-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold">
-                {editingCondominium ?'Atualizar condominio' : 'Cadastrar condominio'}
+                {editingCondominium ?'Atualizar condomínio' : 'Cadastrar condomínio'}
               </button>
               {editingCondominium && (
                 <button type="button" onClick={resetCondoForm} className="px-5 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-sm font-bold">
-                  Cancelar edicao
+                  Cancelar edição
                 </button>
               )}
             </div>
@@ -907,7 +907,7 @@ export const SettingsPage: React.FC = () => {
               </div>
             ))}
             {condominiums.length === 0 && (
-              <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">Nenhum condominio cadastrado.</div>
+              <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">Nenhum condomínio cadastrado.</div>
             )}
           </div>
         </section>
@@ -968,7 +968,7 @@ const MaterialCatalogField: React.FC<{
           </button>
         ))}
         {values.length === 0 && (
-          <div className="text-sm font-semibold text-slate-400">Nenhuma opcao cadastrada.</div>
+          <div className="text-sm font-semibold text-slate-400">Nenhuma opção cadastrada.</div>
         )}
       </div>
     </div>

@@ -1126,7 +1126,7 @@ export const AdminPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ?(
-                <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Carregando usuarios...</td></tr>
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Carregando usuários...</td></tr>
               ) : (
                 users.map((user) => {
                   const userIsMaster = isMasterAdmin(user);
@@ -1211,7 +1211,7 @@ export const AdminPage: React.FC = () => {
                         <button
                           type="button"
                           aria-label="Excluir"
-                          title={userIsMaster ?'O super admin nao pode ser excluido' : 'Excluir'}
+                          title={userIsMaster ?'O super admin não pode ser excluído' : 'Excluir'}
                           disabled={!canEditThisUser}
                           onClick={() => deleteUserProfile(user)}
                           className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all disabled:cursor-not-allowed disabled:opacity-40"

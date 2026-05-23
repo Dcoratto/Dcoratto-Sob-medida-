@@ -1,4 +1,4 @@
-﻿import {formatMaterialSpecsWithProvider} from './materialSpecs';
+import {formatMaterialSpecsWithProvider} from './materialSpecs';
 import {formatCurrency, formatNumber} from './utils';
 import type {InventoryPurchase, Settings} from '../types';
 
@@ -7,6 +7,8 @@ type PurchaseOrderGroup = {
   supplier: string;
   purchases: InventoryPurchase[];
 };
+
+const AREA_UNIT = 'm²';
 
 const sanitizePdfText = (value: string) =>
   String(value || '')
@@ -48,17 +50,17 @@ export const generatePurchaseOrderPdf = async (group: PurchaseOrderGroup, settin
   doc.text('Fornecedor', 14, 38);
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
-  doc.text(sanitizePdfText(group.supplier || 'Nao informado'), 14, 44);
+  doc.text(sanitizePdfText(group.supplier || 'Não informado'), 14, 44);
   doc.text(`Data: ${new Date().toLocaleDateString('pt-BR')}`, 140, 44);
 
   autoTable(doc, {
     startY: 54,
     head: [[
       'Material',
-      'Especificacoes',
+      'Especificações',
       'Lote',
-      'Dimensoes',
-      'Area',
+      'Dimensões',
+      'Área',
       'Compra',
     ]],
     body: group.purchases.map((purchase) => [
@@ -66,7 +68,7 @@ export const generatePurchaseOrderPdf = async (group: PurchaseOrderGroup, settin
       sanitizePdfText(formatMaterialSpecsWithProvider(purchase)),
       sanitizePdfText(purchase.code || '-'),
       `${purchase.length} x ${purchase.width} cm`,
-      `${formatNumber(purchase.area || 0)} M²`,
+      `${formatNumber(purchase.area || 0)} m²`,
       sanitizePdfText(formatCurrency(purchase.cost || 0)),
     ]),
     theme: 'grid',
@@ -94,7 +96,7 @@ export const generatePurchaseOrderPdf = async (group: PurchaseOrderGroup, settin
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.text(`Total de chapas: ${group.purchases.length}`, 14, finalY + 12);
-  doc.text(`Area total: ${formatNumber(totalArea)} M²`, 14, finalY + 18);
+  doc.text(`Área total: ${formatNumber(totalArea)} m²`, 14, finalY + 18);
   doc.text(sanitizePdfText(`Compra total: ${formatCurrency(totalCost)}`), 14, finalY + 24);
 
   doc.setFont('helvetica', 'normal');

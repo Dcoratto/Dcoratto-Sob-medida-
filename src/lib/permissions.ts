@@ -101,10 +101,10 @@ export const MODULE_LABELS: Record<PermissionModule, string> = {
   relatorios: 'Relatórios',
   admin: 'Admin',
   cliente: 'Cliente',
-  medicao: 'Medicao',
+  medicao: 'Medição',
   projeto: 'Projeto',
-  producao: 'Producao',
-  liberacao: 'Liberacao',
+  producao: 'Produção',
+  liberacao: 'Liberação',
 };
 
 export const ACTION_LABELS: Record<string, string> = {
@@ -119,7 +119,7 @@ export const ACTION_LABELS: Record<string, string> = {
   verFaturamento: 'Ver faturamento',
   verProdutividade: 'Ver produtividade',
   visualizarUsuarios: 'Ver usuários',
-  alterarPermissoes: 'Alterar permissoes',
+  alterarPermissoes: 'Alterar permissões',
   excluirUsuarios: 'Excluir usuários',
   editarDados: 'Editar dados',
   alterarEtapa: 'Alterar etapa',
@@ -127,7 +127,7 @@ export const ACTION_LABELS: Record<string, string> = {
   avaliarFuncionarios: 'Avaliar funcionários',
   verValores: 'Ver valores',
   conferirMedidas: 'Conferir medidas',
-  finalizarProducao: 'Finalizar producao',
+  finalizarProducao: 'Finalizar produção',
   reprovar: 'Reprovar',
 };
 
@@ -165,7 +165,7 @@ export const canEvaluateEmployees = (user?: AccessUser | AuthIdentity | null) =>
 
 export const roleLabel = (role?: AccessRole) => {
   if (role === 'coordenador') return 'Coordenador';
-  if (role === 'liberacao') return 'Liberacao';
+  if (role === 'liberacao') return 'Liberação';
   if (role === 'administrativo') return 'Administrativo';
   return 'Vendedor';
 };

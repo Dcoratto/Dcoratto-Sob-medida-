@@ -415,7 +415,7 @@ export const ReportsPage: React.FC = () => {
           <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Resumo do estoque</h2>
           <div className="space-y-3">
             <MoneyLine label="Custo em estoque" value={canViewRevenue ? inventoryCost : hiddenRevenueLabel} className="text-slate-900" />
-            <InfoLine label="?rea total" value={`${inventoryArea.toFixed(2)} m²`} />
+            <InfoLine label="Área total" value={`${inventoryArea.toFixed(2)} m²`} />
             <InfoLine label="Reservado em orçamentos" value={`${reservedArea.toFixed(2)} m²`} />
             <InfoLine label="Vendido/finalizado" value={`${soldArea.toFixed(2)} m²`} />
             <InfoLine label="Compra pendente" value={`${purchasePendingArea.toFixed(2)} m²`} />
@@ -508,7 +508,7 @@ export const ReportsPage: React.FC = () => {
             <MoneyLine label="A receber" value={canViewRevenue ? pendingReceivable : hiddenRevenueLabel} className="text-amber-700" />
             <MoneyLine label="Em aberto" value={canViewRevenue ? openValue : hiddenRevenueLabel} className="text-amber-700" />
             <MoneyLine label="Recusados" value={canViewRevenue ? refusedValue : hiddenRevenueLabel} className="text-red-600" />
-            <MoneyLine label="Ticket m²dio" value={canViewRevenue ? ((filteredQuotes.length + filteredLegacySales.length) ?((filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) + filteredLegacySales.reduce((sum, sale) => sum + sale.totalPrice, 0)) / (filteredQuotes.length + filteredLegacySales.length)) : 0) : hiddenRevenueLabel} className="text-slate-900" />
+            <MoneyLine label="Ticket médio" value={canViewRevenue ? ((filteredQuotes.length + filteredLegacySales.length) ?((filteredQuotes.reduce((sum, quote) => sum + (quote.totalPrice || 0), 0) + filteredLegacySales.reduce((sum, sale) => sum + sale.totalPrice, 0)) / (filteredQuotes.length + filteredLegacySales.length)) : 0) : hiddenRevenueLabel} className="text-slate-900" />
           </div>
         </div>
       </section>

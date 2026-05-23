@@ -36,11 +36,9 @@ export default defineConfig(({mode}) => {
 
             if (id.includes('react') || id.includes('scheduler')) return 'react-vendor';
             if (id.includes('react-router')) return 'router-vendor';
-            if (id.includes('firebase/auth')) return 'firebase-auth-vendor';
-            if (id.includes('firebase/storage')) return 'firebase-storage-vendor';
-            if (id.includes('firebase/firestore')) return 'firebase-firestore-vendor';
-            if (id.includes('firebase/app')) return 'firebase-core-vendor';
-            if (id.includes('firebase')) return 'firebase-vendor';
+            if (id.includes('@supabase/supabase-js')) return 'supabase-vendor';
+            if (id.includes('@google/genai')) return 'ai-vendor';
+            if (id.includes('zod') || id.includes('react-hook-form') || id.includes('@hookform')) return 'forms-vendor';
             if (id.includes('html2canvas')) return 'html2canvas-vendor';
             if (id.includes('dompurify')) return 'dompurify-vendor';
             if (id.includes('jspdf-autotable')) return 'jspdf-table-vendor';

@@ -3,7 +3,7 @@ import {collection, onSnapshot, orderBy, query} from '../lib/firestore';
 import {useNavigate} from 'react-router-dom';
 import {ClipboardCheck, Search} from 'lucide-react';
 import {db} from '../lib/firestore';
-import {Client, Quote} from '../types';
+import {Client, Employee, ProductionStep, Quote} from '../types';
 import {cn, formatCurrency} from '../lib/utils';
 import {getClientDisplayStatus, quoteStatusColor, shouldAppearInProjects} from '../lib/quoteStatus';
 
@@ -21,12 +21,22 @@ type ProjectRow = {
   totalPrice: number;
   status: string;
   legacy: boolean;
+  employeeAssignments?: Quote['employeeAssignments'];
 };
+
+const productionColumns: Array<{key: ProductionStep; label: string; statuses: string[]}> = [
+  {key: 'medicao', label: 'Medição', statuses: ['Medição']},
+  {key: 'corte', label: 'Corte', statuses: ['Projeto', 'Projeto Aprovado', 'Corte']},
+  {key: 'acabamento', label: 'Acabamento', statuses: ['Acabamento', 'Montagem']},
+  {key: 'instalacao', label: 'Instalação', statuses: ['Produção Finalizada', 'Conferência Final', 'Entrega']},
+  {key: 'entrega', label: 'Entrega', statuses: ['Finalizado']},
+];
 
 export const ProjectsPage: React.FC = () => {
   const navigate = useNavigate();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -38,10 +48,14 @@ export const ProjectsPage: React.FC = () => {
     const unsubClients = onSnapshot(collection(db, 'clients'), (snapshot) => {
       setClients(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Client)));
     });
+    const unsubEmployees = onSnapshot(collection(db, 'employees'), (snapshot) => {
+      setEmployees(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Employee)));
+    });
 
     return () => {
       unsubQuotes();
       unsubClients();
+      unsubEmployees();
     };
   }, []);
 
@@ -67,6 +81,7 @@ export const ProjectsPage: React.FC = () => {
         totalPrice: quote.totalPrice || 0,
         status: quote.status,
         legacy: false,
+        employeeAssignments: quote.employeeAssignments || [],
       }));
 
     const legacyRows: ProjectRow[] = clients
@@ -85,6 +100,13 @@ export const ProjectsPage: React.FC = () => {
     return [...quoteRows, ...legacyRows]
       .filter((item) => normalize(`${item.clientName} ${item.environment} ${item.status}`).includes(normalize(search)));
   }, [clients, latestQuoteByClient, quotes, search]);
+
+  const kanbanColumns = useMemo(() => productionColumns.map((column) => ({
+    ...column,
+    items: projects.filter((project) => !project.legacy && column.statuses.includes(project.status)),
+  })), [projects]);
+
+  const employeeNameById = useMemo(() => new Map(employees.map((employee) => [employee.id, employee.name])), [employees]);
 
   return (
     <div className="space-y-6">
@@ -159,6 +181,57 @@ export const ProjectsPage: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <section className="rounded-[32px] border border-slate-100 bg-white p-6 shadow-sm">
+        <div className="mb-5">
+          <h2 className="font-display text-xl font-bold text-slate-900">Painel de produção</h2>
+          <p className="text-sm text-slate-400">Kanban por etapa para acompanhar rapidamente quem está em cada fase.</p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+          {kanbanColumns.map((column) => (
+            <div key={column.key} className="rounded-[28px] border border-slate-100 bg-slate-50/70 p-4">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{column.label}</div>
+                  <div className="text-2xl font-display font-bold text-slate-900">{column.items.length}</div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {column.items.map((project) => {
+                  const assigned = (project.employeeAssignments || [])
+                    .filter((item) => item.step === column.key)
+                    .map((item) => item.employeeName || employeeNameById.get(item.employeeId) || 'Equipe')
+                    .filter(Boolean);
+
+                  return (
+                    <button
+                      key={`${column.key}-${project.id}`}
+                      type="button"
+                      onClick={() => navigate(`/quotes/edit/${project.id}`)}
+                      className="w-full rounded-2xl border border-slate-100 bg-white p-4 text-left transition-all hover:shadow-sm"
+                    >
+                      <div className="font-bold text-slate-900">{project.clientName}</div>
+                      <div className="mt-1 text-sm text-slate-500">{project.environment}</div>
+                      <div className="mt-2 text-xs font-bold uppercase tracking-widest text-slate-400">{project.status}</div>
+                      <div className="mt-2 text-xs text-slate-500">
+                        {assigned.length ? `Responsável: ${assigned.join(', ')}` : 'Sem responsável definido'}
+                      </div>
+                      <div className="mt-2 text-xs font-semibold text-brand-primary">{project.totalArea.toFixed(2)} m²</div>
+                    </button>
+                  );
+                })}
+                {column.items.length === 0 && (
+                  <div className="rounded-2xl bg-white px-4 py-5 text-sm font-semibold text-slate-400">
+                    Nenhum projeto nesta etapa.
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
         </div>
       </section>
     </div>

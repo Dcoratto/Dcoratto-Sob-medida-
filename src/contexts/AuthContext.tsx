@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useEffect, useState} from 'react';
+import React, {createContext, useContext, useEffect, useRef, useState} from 'react';
 import {doc, getDoc, onSnapshot, setDoc, updateDoc} from '../lib/firestore';
 import {auth, AuthUser} from '../lib/auth';
 import {db} from '../lib/firestore';
@@ -34,6 +34,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [accessUser, setAccessUser] = useState<AccessUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const currentUserIdRef = useRef('');
 
   useEffect(() => {
     let unsubscribeProfile: (() => void) | undefined;
@@ -47,7 +48,10 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       unsubscribeAccessUser = undefined;
     };
 
-    const syncUser = async (authUser: AuthUser | null) => {
+    const syncUser = async (authUser: AuthUser | null, options?: {preserveView?: boolean}) => {
+      const nextUserId = authUser?.id || '';
+      const sameUser = nextUserId && nextUserId === currentUserIdRef.current;
+      currentUserIdRef.current = nextUserId;
       setUser(authUser);
       cleanupSubscriptions();
 
@@ -58,7 +62,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         return;
       }
 
-      if (active) setLoading(true);
+      if (active && !options?.preserveView && !sameUser) setLoading(true);
 
       const email = authUser.email || '';
       const displayName = authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuário';
@@ -162,8 +166,9 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
         if (active) setLoading(false);
       });
 
-    const {data: authSubscription} = auth.onAuthStateChange((_event, _session, currentUser) => {
-      void syncUser(currentUser);
+    const {data: authSubscription} = auth.onAuthStateChange((event, _session, currentUser) => {
+      const preserveView = event === 'TOKEN_REFRESHED' || (event === 'SIGNED_IN' && currentUser?.id === currentUserIdRef.current);
+      void syncUser(currentUser, {preserveView});
     });
 
     return () => {

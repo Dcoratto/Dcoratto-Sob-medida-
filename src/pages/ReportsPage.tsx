@@ -189,6 +189,14 @@ export const ReportsPage: React.FC = () => {
 
   const legacyReceived = filteredLegacySales.reduce((sum, sale) => sum + summarizeLegacyPayments(sale.payments, sale.totalPrice).paid, 0);
   const legacyPending = filteredLegacySales.reduce((sum, sale) => sum + summarizeLegacyPayments(sale.payments, sale.totalPrice).pending, 0);
+  const overdueLegacyPayments = filteredLegacySales
+    .flatMap((sale) => sale.payments.map((payment) => ({client: sale.client.name, payment})))
+    .filter(({payment}) => payment.status !== 'Pago' && payment.dueDate)
+    .filter(({payment}) => {
+      const dueDate = payment.dueDate ? new Date(`${payment.dueDate}T12:00:00`) : null;
+      return dueDate ? dueDate.getTime() < Date.now() : false;
+    });
+  const overdueLegacyAmount = overdueLegacyPayments.reduce((sum, entry) => sum + Number(entry.payment.amount || 0), 0);
 
   const totalSold = filteredQuotes
     .filter((quote) => isClosedSale(quote.status))
@@ -198,6 +206,7 @@ export const ReportsPage: React.FC = () => {
   const openValue = filteredQuotes
     .filter((quote) => ['Orçamento', 'Orçamento Aprovado', 'Medição', 'Projeto'].includes(statusLabel(quote.status)))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
+  const projectedReceivable = openValue + pendingReceivable;
   const refusedValue = filteredQuotes
     .filter((quote) => ['recusado', 'cancelado'].includes(normalize(quote.status)))
     .reduce((sum, quote) => sum + (quote.totalPrice || 0), 0);
@@ -357,6 +366,13 @@ export const ReportsPage: React.FC = () => {
         <ReportCard icon={Boxes} label="Itens em estoque" value={String(inventory.length)} tone="amber" />
       </div>
 
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+        <MoneyCard label="Saldo projetado" value={canViewRevenue ? projectedReceivable : hiddenRevenueLabel} tone="brand" helper="Em aberto + legado pendente" />
+        <MoneyCard label="Legado pendente" value={canViewRevenue ? legacyPending : hiddenRevenueLabel} tone="amber" helper="Parcelas abertas dos clientes antigos" />
+        <MoneyCard label="Vencido" value={canViewRevenue ? overdueLegacyAmount : hiddenRevenueLabel} tone="red" helper={`${overdueLegacyPayments.length} parcela(s) vencida(s)`} />
+        <MoneyCard label="Recebido legado" value={canViewRevenue ? legacyReceived : hiddenRevenueLabel} tone="green" helper="Pagamentos já marcados como pagos" />
+      </section>
+
       <section className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         <div className="xl:col-span-2 bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
           <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Orçamentos detalhados</h2>
@@ -445,6 +461,26 @@ export const ReportsPage: React.FC = () => {
             ))}
             {filteredPurchases.length === 0 && lossItems.length === 0 && <EmptyText>Nenhuma compra ou perda no período.</EmptyText>}
           </div>
+        </div>
+      </section>
+
+      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm p-6">
+        <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Parcelas vencidas de clientes antigos</h2>
+        <div className="space-y-3">
+          {overdueLegacyPayments.slice(0, 20).map(({client, payment}, index) => (
+            <div key={`${client}-${payment.label}-${index}`} className="rounded-2xl bg-red-50 p-4">
+              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <div className="font-bold text-red-900">{client}</div>
+                  <div className="text-sm text-red-700">{payment.label || 'Parcela'} · vencimento {payment.dueDate || '-'}</div>
+                </div>
+                <div className="font-mono font-bold text-red-800">
+                  {canViewRevenue ? formatCurrency(Number(payment.amount || 0)) : hiddenRevenueLabel}
+                </div>
+              </div>
+            </div>
+          ))}
+          {overdueLegacyPayments.length === 0 && <EmptyText>Nenhuma parcela vencida encontrada no período.</EmptyText>}
         </div>
       </section>
 
@@ -651,6 +687,33 @@ const ReportCard = ({icon: Icon, label, value, tone}: {icon: any; label: string;
       </div>
       <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{label}</div>
       <div className="mt-1 font-display text-2xl font-bold text-slate-900">{value}</div>
+    </div>
+  );
+};
+
+const MoneyCard = ({
+  label,
+  value,
+  tone,
+  helper,
+}: {
+  label: string;
+  value: number | string;
+  tone: 'brand' | 'green' | 'amber' | 'red';
+  helper: string;
+}) => {
+  const tones = {
+    brand: 'border-brand-primary/10 bg-brand-primary/5 text-brand-primary',
+    green: 'border-green-100 bg-green-50 text-green-700',
+    amber: 'border-amber-100 bg-amber-50 text-amber-700',
+    red: 'border-red-100 bg-red-50 text-red-700',
+  };
+
+  return (
+    <div className={cn('rounded-[28px] border p-5 shadow-sm', tones[tone])}>
+      <div className="text-xs font-bold uppercase tracking-widest opacity-70">{label}</div>
+      <div className="mt-2 font-display text-2xl font-bold">{typeof value === 'number' ? formatCurrency(value) : value}</div>
+      <div className="mt-2 text-xs font-semibold opacity-75">{helper}</div>
     </div>
   );
 };

@@ -4,7 +4,7 @@ import {AlertTriangle, CheckCircle2, Edit2, Eye, FileText, Filter, ImagePlus, Lo
 import {useNavigate} from 'react-router-dom';
 import {db} from '../lib/firestore';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
-import {InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote} from '../types';
+import {InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote, SystemEvent} from '../types';
 import {cn, formatCurrency, formatNumber} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
@@ -12,6 +12,10 @@ import {useSettings} from '../hooks/useSettings';
 import {formatMaterialSpecs, formatMaterialSpecsWithProvider} from '../lib/materialSpecs';
 import {generatePurchaseOrderPdf} from '../lib/purchaseOrderPdfGenerator';
 import {optimizeImageFile} from '../lib/imageUtils';
+import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
+import {DraftNotice} from '../components/DraftNotice';
+import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
+import {validateInventoryItemPayload, validatePurchaseSlabs} from '../lib/businessRules';
 
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
@@ -77,6 +81,13 @@ const isActiveReservation = (reservation: InventoryReservation) => {
   return !['recusado', 'cancelado', 'finalizado'].includes(status);
 };
 
+const toDate = (value: any): Date | null => {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value?.toDate === 'function') return value.toDate();
+  return null;
+};
+
 export const InventoryPage: React.FC = () => {
   const {user, profile, appUid, hasPermission} = useAuth();
   const {settings} = useSettings();
@@ -87,10 +98,15 @@ export const InventoryPage: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [quotesLoaded, setQuotesLoaded] = useState(false);
   const [purchases, setPurchases] = useState<InventoryPurchase[]>([]);
+  const [systemEvents, setSystemEvents] = useState<SystemEvent[]>([]);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  const [inventoryDraftRecovered, setInventoryDraftRecovered] = useState(false);
+  const [purchaseDraftRecovered, setPurchaseDraftRecovered] = useState(false);
+  const [inventoryDraftSavedAt, setInventoryDraftSavedAt] = useState<string | null>(null);
+  const [purchaseDraftSavedAt, setPurchaseDraftSavedAt] = useState<string | null>(null);
   const [showLossModal, setShowLossModal] = useState(false);
   const [reservationMaterialId, setReservationMaterialId] = useState<string | null>(null);
   const [selectedRackId, setSelectedRackId] = useState(patioRacks[0]);
@@ -144,6 +160,10 @@ export const InventoryPage: React.FC = () => {
   const [lossInventoryId, setLossInventoryId] = useState('');
   const [lossReason, setLossReason] = useState('Quebra');
   const [lossNotes, setLossNotes] = useState('');
+  const inventoryDraftLoadedRef = useRef(false);
+  const purchaseDraftLoadedRef = useRef(false);
+  const inventoryDraftKey = `inventory-form-draft:${appUid || 'anonymous'}`;
+  const purchaseDraftKey = `inventory-purchase-draft:${appUid || 'anonymous'}`;
 
   useEffect(() => {
     const qItems = query(collection(db, 'inventory'), orderBy('code', 'asc'));
@@ -170,14 +190,138 @@ export const InventoryPage: React.FC = () => {
     const unsubscribePurchases = onSnapshot(qPurchases, (snapshot) => {
       setPurchases(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryPurchase)));
     }, (error) => handleReadError(error, 'histórico de compras'));
+    const unsubscribeEvents = onSnapshot(query(collection(db, 'systemEvents'), orderBy('createdAt', 'desc')), (snapshot) => {
+      setSystemEvents(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as SystemEvent)));
+    }, (error) => handleReadError(error, 'histórico operacional'));
 
     return () => {
       unsubscribeItems();
       unsubscribeMaterials();
       unsubscribeReservations();
       unsubscribePurchases();
+      unsubscribeEvents();
     };
   }, []);
+
+  useEffect(() => {
+    if (!showModal || editingItem || inventoryDraftLoadedRef.current) return;
+
+    const {data: draft, savedAt} = loadDraftMeta<Record<string, string>>(inventoryDraftKey);
+    if (draft) {
+      setInventoryDraftRecovered(true);
+      setInventoryDraftSavedAt(savedAt);
+      setSelectedMaterialId(draft.selectedMaterialId || '');
+      setMaterialName(draft.materialName || '');
+      setCode(draft.code || '');
+      setProvider(draft.provider || '');
+      setRackId(draft.rackId || '');
+      setCategory(draft.category || '');
+      setMaterialLine(draft.materialLine || '');
+      setMaterialType(draft.materialType || 'Chapa');
+      setThicknessLabel(draft.thicknessLabel || '');
+      setTexture(draft.texture || '');
+      setLength(draft.length || '');
+      setWidth(draft.width || '');
+      setThickness(draft.thickness || '');
+      setCost(draft.cost || '');
+      setMinimumSalePrice(draft.minimumSalePrice || '');
+      setStatus((draft.status as InventoryItem['status']) || 'Disponível');
+      setNotes(draft.notes || '');
+      setPhotoPreview(draft.photoPreview || '');
+    } else {
+      setInventoryDraftRecovered(false);
+      setInventoryDraftSavedAt(null);
+    }
+
+    inventoryDraftLoadedRef.current = true;
+  }, [editingItem, inventoryDraftKey, showModal]);
+
+  useEffect(() => {
+    if (!showModal || editingItem || !inventoryDraftLoadedRef.current) return;
+
+    const savedAt = saveDraft(inventoryDraftKey, {
+      selectedMaterialId,
+      materialName,
+      code,
+      provider,
+      rackId,
+      category,
+      materialLine,
+      materialType,
+      thicknessLabel,
+      texture,
+      length,
+      width,
+      thickness,
+      cost,
+      minimumSalePrice,
+      status,
+      notes,
+      photoPreview,
+    });
+    if (savedAt) setInventoryDraftSavedAt(savedAt);
+  }, [category, code, cost, editingItem, inventoryDraftKey, length, materialLine, materialName, materialType, minimumSalePrice, notes, photoPreview, provider, rackId, selectedMaterialId, showModal, status, texture, thickness, thicknessLabel, width]);
+
+  useEffect(() => {
+    if (!showPurchaseModal || purchaseDraftLoadedRef.current) return;
+
+    const {data: draft, savedAt} = loadDraftMeta<Record<string, unknown>>(purchaseDraftKey);
+    if (draft) {
+      setPurchaseDraftRecovered(true);
+      setPurchaseDraftSavedAt(savedAt);
+      setPurchaseMaterialId(String(draft.purchaseMaterialId || ''));
+      setPurchaseMaterialName(String(draft.purchaseMaterialName || ''));
+      setPurchaseCode(String(draft.purchaseCode || ''));
+      setPurchaseProvider(String(draft.purchaseProvider || ''));
+      setPurchaseCategory(String(draft.purchaseCategory || ''));
+      setPurchaseMaterialLine(String(draft.purchaseMaterialLine || ''));
+      setPurchaseMaterialType(String(draft.purchaseMaterialType || 'Chapa'));
+      setPurchaseThicknessLabel(String(draft.purchaseThicknessLabel || ''));
+      setPurchaseTexture(String(draft.purchaseTexture || ''));
+      setPurchaseQuantity(String(draft.purchaseQuantity || '1'));
+      setPurchaseMeasureMode((draft.purchaseMeasureMode as PurchaseMeasureMode) || 'same');
+      setPurchaseLength(String(draft.purchaseLength || ''));
+      setPurchaseWidth(String(draft.purchaseWidth || ''));
+      setPurchaseThickness(String(draft.purchaseThickness || ''));
+      setPurchaseCost(String(draft.purchaseCost || ''));
+      setPurchaseMinimumSalePrice(String(draft.purchaseMinimumSalePrice || ''));
+      setPurchaseSlabs(Array.isArray(draft.purchaseSlabs) && draft.purchaseSlabs.length ? draft.purchaseSlabs as PurchaseSlabForm[] : [emptyPurchaseSlab()]);
+      setPurchaseNotes(String(draft.purchaseNotes || ''));
+      setPurchaseExpectedDeliveryDate(String(draft.purchaseExpectedDeliveryDate || ''));
+    } else {
+      setPurchaseDraftRecovered(false);
+      setPurchaseDraftSavedAt(null);
+    }
+
+    purchaseDraftLoadedRef.current = true;
+  }, [purchaseDraftKey, showPurchaseModal]);
+
+  useEffect(() => {
+    if (!showPurchaseModal || !purchaseDraftLoadedRef.current) return;
+
+    const savedAt = saveDraft(purchaseDraftKey, {
+      purchaseMaterialId,
+      purchaseMaterialName,
+      purchaseCode,
+      purchaseProvider,
+      purchaseCategory,
+      purchaseMaterialLine,
+      purchaseMaterialType,
+      purchaseThicknessLabel,
+      purchaseTexture,
+      purchaseQuantity,
+      purchaseMeasureMode,
+      purchaseLength,
+      purchaseWidth,
+      purchaseThickness,
+      purchaseCost,
+      purchaseMinimumSalePrice,
+      purchaseSlabs,
+      purchaseNotes,
+      purchaseExpectedDeliveryDate,
+    });
+    if (savedAt) setPurchaseDraftSavedAt(savedAt);
+  }, [purchaseCategory, purchaseCode, purchaseCost, purchaseDraftKey, purchaseExpectedDeliveryDate, purchaseLength, purchaseMaterialId, purchaseMaterialLine, purchaseMaterialName, purchaseMaterialType, purchaseMeasureMode, purchaseMinimumSalePrice, purchaseNotes, purchaseProvider, purchaseQuantity, purchaseSlabs, purchaseTexture, purchaseThickness, purchaseThicknessLabel, purchaseWidth, showPurchaseModal]);
 
   const ensureQuotesLoaded = async () => {
     if (quotesLoaded) return;
@@ -193,6 +337,9 @@ export const InventoryPage: React.FC = () => {
   };
 
   const resetForm = () => {
+    inventoryDraftLoadedRef.current = false;
+    setInventoryDraftRecovered(false);
+    setInventoryDraftSavedAt(null);
     setSelectedMaterialId('');
     setMaterialName('');
     setCode('');
@@ -232,6 +379,9 @@ export const InventoryPage: React.FC = () => {
   const purchaseCalendarEventRef = (groupId: string) => doc(db, 'calendarEvents', `purchase-${groupId}`);
 
   const resetPurchaseForm = () => {
+    purchaseDraftLoadedRef.current = false;
+    setPurchaseDraftRecovered(false);
+    setPurchaseDraftSavedAt(null);
     setPurchaseMaterialId('');
     setPurchaseMaterialName('');
     setPurchaseCode('');
@@ -251,6 +401,18 @@ export const InventoryPage: React.FC = () => {
     setPurchaseSlabs([emptyPurchaseSlab()]);
     setPurchaseNotes('');
     setPurchaseExpectedDeliveryDate('');
+  };
+
+  const clearInventoryDraftState = () => {
+    clearDraft(inventoryDraftKey);
+    resetForm();
+    inventoryDraftLoadedRef.current = true;
+  };
+
+  const clearPurchaseDraftState = () => {
+    clearDraft(purchaseDraftKey);
+    resetPurchaseForm();
+    purchaseDraftLoadedRef.current = true;
   };
 
   const resetLossForm = () => {
@@ -356,6 +518,18 @@ export const InventoryPage: React.FC = () => {
       notes,
       photoUrl,
     };
+    const validationError = validateInventoryItemPayload({
+      selectedMaterialId,
+      code,
+      length: Number(length),
+      width: Number(width),
+      cost: totalCost,
+      minimumSalePrice: minimumSale,
+    }, items, editingItem?.id);
+    if (validationError) {
+      alert(validationError);
+      return;
+    }
     const savedItem = {id: inventoryRef.id, ...data} as InventoryItem;
     const syncSavedItem = () => {
       setItems((current) => {
@@ -375,6 +549,7 @@ export const InventoryPage: React.FC = () => {
       if (editingItem) {
         await updateDoc(inventoryRef, data);
         syncSavedItem();
+        clearDraft(inventoryDraftKey);
         setShowModal(false);
         resetForm();
         void logSystemEvent({
@@ -392,6 +567,7 @@ export const InventoryPage: React.FC = () => {
       } else {
         await setDoc(inventoryRef, data);
         syncSavedItem();
+        clearDraft(inventoryDraftKey);
         setShowModal(false);
         resetForm();
         void logSystemEvent({
@@ -514,8 +690,9 @@ export const InventoryPage: React.FC = () => {
         code: slab.code.trim() || (purchaseCode.trim() ?`${purchaseCode.trim()}-${index + 1}` : ''),
       }));
 
-    if (slabs.some((slab) => !Number(slab.length) || !Number(slab.width) || !Number(slab.cost) || !Number(slab.minimumSalePrice || slab.cost))) {
-      alert('Preencha comprimento, largura, valor de compra e valor mínimo de venda de todas as chapas.');
+    const slabValidationError = validatePurchaseSlabs(slabs);
+    if (slabValidationError) {
+      alert(slabValidationError);
       return;
     }
 
@@ -580,6 +757,7 @@ export const InventoryPage: React.FC = () => {
       userName: currentUserName,
       metadata: {area: totalArea, cost: totalCost, minimumSalePrice: totalMinimumSale, quantity, status: 'Pedido'},
     });
+    clearDraft(purchaseDraftKey);
     setShowPurchaseModal(false);
     resetPurchaseForm();
   };
@@ -765,12 +943,22 @@ export const InventoryPage: React.FC = () => {
   const selectedRackItems = selectedPatioPanel === UNASSIGNED_PANEL_ID
     ? unassignedPatioItems
     : (rackItemsMap.get(selectedPatioPanel) || []);
+  const selectedTimelineItem = items.find((item) => item.id === focusedInventoryId) || selectedRackItems[0] || null;
   const rackAreaMap = useMemo(() => patioRacks.reduce((map, rack) => {
     map.set(rack, rackArea(rack));
     return map;
   }, new Map<string, number>()), [activePatioItems]);
   const maxRackArea = Math.max(0, ...Array.from(rackAreaMap.values()));
   const selectedRackArea = selectedPatioPanel === UNASSIGNED_PANEL_ID ? 0 : (rackAreaMap.get(selectedPatioPanel) || 0);
+  const selectedTimelineEvents = useMemo(() => {
+    if (!selectedTimelineItem) return [];
+    return systemEvents
+      .filter((event) =>
+        event.entityId === selectedTimelineItem.id ||
+        (event.materialId && event.materialId === selectedTimelineItem.materialId),
+      )
+      .slice(0, 8);
+  }, [selectedTimelineItem, systemEvents]);
   const rackOccupancyPercent = (rack: string) => {
     const area = rackAreaMap.get(rack) || 0;
     if (!maxRackArea) return 0;
@@ -1427,6 +1615,39 @@ export const InventoryPage: React.FC = () => {
                 ))
               )}
             </div>
+
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Linha do tempo</div>
+              <div className="mt-1 font-semibold text-slate-800">
+                {selectedTimelineItem ? `${selectedTimelineItem.materialName} · ${selectedTimelineItem.code || 'Sem lote'}` : 'Selecione uma chapa'}
+              </div>
+              <div className="mt-3 space-y-2">
+                {!selectedTimelineItem ? (
+                  <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">
+                    Destaque uma chapa para acompanhar aqui as alterações de estoque, reserva, compra e perda.
+                  </div>
+                ) : selectedTimelineEvents.length === 0 ? (
+                  <div className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold text-slate-400">
+                    Ainda não há movimentações registradas para esta chapa.
+                  </div>
+                ) : (
+                  selectedTimelineEvents.map((event) => {
+                    const createdAt = toDate(event.createdAt);
+                    return (
+                      <div key={event.id} className="rounded-2xl bg-slate-50 p-3">
+                        <div className="text-sm font-bold text-slate-900">{event.title}</div>
+                        <div className="mt-1 text-xs text-slate-500">{event.description || event.quoteStatus || 'Movimentação registrada'}</div>
+                        <div className="mt-2 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-400">
+                          <span>{createdAt ? createdAt.toLocaleDateString('pt-BR') : 'Sem data'}</span>
+                          {event.userName && <span>{event.userName}</span>}
+                          {event.quoteStatus && <span>{event.quoteStatus}</span>}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1795,6 +2016,13 @@ export const InventoryPage: React.FC = () => {
             </div>
 
             <form onSubmit={handlePurchaseSubmit} className="space-y-6">
+              {purchaseDraftRecovered && (
+                <DraftNotice
+                  message="O último rascunho desta compra foi restaurado. Você pode revisar ou limpar antes de continuar."
+                  savedAt={purchaseDraftSavedAt}
+                  onClear={clearPurchaseDraftState}
+                />
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Pedra cadastrada (Admin)</label>
@@ -1984,6 +2212,7 @@ export const InventoryPage: React.FC = () => {
               <button type="submit" className="w-full bg-amber-600 text-white py-4 rounded-2xl font-bold shadow-lg shadow-amber-600/20 hover:bg-amber-700 transition-all active:scale-95">
                 Registrar {purchaseQuantityNumber} chapa(s)
               </button>
+              <DraftAutosaveStatus savedAt={purchaseDraftSavedAt} className="text-center" />
             </form>
           </div>
         </div>
@@ -1996,12 +2225,19 @@ export const InventoryPage: React.FC = () => {
               <h2 className="text-2xl font-display font-bold text-slate-900">
                 {editingItem ?'Editar Pedra' : 'Nova Pedra no Estoque'}
               </h2>
-              <button type="button" onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
+              <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {!editingItem && inventoryDraftRecovered && (
+                <DraftNotice
+                  message="O último preenchimento desta pedra foi recuperado para você continuar sem perder dados."
+                  savedAt={inventoryDraftSavedAt}
+                  onClear={clearInventoryDraftState}
+                />
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Pedra cadastrada (Admin)</label>
@@ -2147,6 +2383,9 @@ export const InventoryPage: React.FC = () => {
               <button type="submit" className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
                 {editingItem ?'Salvar Alterações' : 'Adicionar ao Estoque'}
               </button>
+              {!editingItem && (
+                <DraftAutosaveStatus savedAt={inventoryDraftSavedAt} className="text-center" />
+              )}
             </form>
           </div>
         </div>
@@ -2154,8 +2393,4 @@ export const InventoryPage: React.FC = () => {
     </div>
   );
 };
-
-
-
-
 

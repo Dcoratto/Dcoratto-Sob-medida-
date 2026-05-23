@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot } from '../lib/firestore';
 import { db } from '../lib/firestore';
@@ -19,6 +19,10 @@ import {logSystemEvent} from '../lib/systemEvents';
 import {normalizeQuoteStatus, QUOTE_STATUSES, quoteStatusColor} from '../lib/quoteStatus';
 import {formatMaterialSpecs} from '../lib/materialSpecs';
 import {buildMaterialVariantKey} from '../lib/materialVariants';
+import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
+import {DraftNotice} from '../components/DraftNotice';
+import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
+import {validateQuoteBeforeSave} from '../lib/businessRules';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 
@@ -46,6 +50,8 @@ export const QuoteEditor: React.FC = () => {
   const [condominiums, setCondominiums] = useState<CondominiumRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [quoteDraftRecovered, setQuoteDraftRecovered] = useState(false);
+  const [quoteDraftSavedAt, setQuoteDraftSavedAt] = useState<string | null>(null);
 
   // Form State
   const [clientId, setClientId] = useState('');
@@ -70,6 +76,8 @@ export const QuoteEditor: React.FC = () => {
   const [employeeAssignments, setEmployeeAssignments] = useState<EmployeeAssignment[]>([]);
   const [statusHistory, setStatusHistory] = useState<QuoteStatusHistory[]>([]);
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
+  const quoteDraftHydratedRef = useRef(false);
+  const quoteDraftKey = `quote-editor-draft:${appUid || 'anonymous'}:${id || 'new'}`;
 
   const materialVariantOptions = useMemo(() => {
     const grouped = new Map<string, Material & {variantKey: string; availableArea: number; stockArea: number;}>();
@@ -261,6 +269,28 @@ export const QuoteEditor: React.FC = () => {
       setFixtureCatalog(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as FixtureCatalogItem)));
     });
 
+    const applyDraft = (draft: Record<string, unknown> | null) => {
+      if (!draft) return;
+      setClientId(String(draft.clientId || ''));
+      setClientSearch(String(draft.clientSearch || ''));
+      setEnvironment(String(draft.environment || ''));
+      setResponsible(String(draft.responsible || ''));
+      setMaterialId(String(draft.materialId || ''));
+      setPaymentMethod(String(draft.paymentMethod || ''));
+      setDeliveryDays(Number(draft.deliveryDays) || 15);
+      setMeasurementDate(String(draft.measurementDate || ''));
+      setDeliveryDate(String(draft.deliveryDate || ''));
+      setValidityDays(Number(draft.validityDays) || 15);
+      setCommercialNotes(String(draft.commercialNotes || ''));
+      setStatus((draft.status as QuoteStatus) || QUOTE_STATUSES[0]);
+      setOriginalStatus((draft.originalStatus as QuoteStatus) || (draft.status as QuoteStatus) || QUOTE_STATUSES[0]);
+      setPieces(Array.isArray(draft.pieces) ? draft.pieces as QuotePiece[] : []);
+      setCutouts((draft.cutouts as QuoteCutoutState) || { cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
+      setEmployeeAssignments(Array.isArray(draft.employeeAssignments) ? draft.employeeAssignments as EmployeeAssignment[] : []);
+      setStatusHistory(Array.isArray(draft.statusHistory) ? draft.statusHistory as QuoteStatusHistory[] : []);
+      setPieceMaterialSearch((draft.pieceMaterialSearch as Record<string, string>) || {});
+    };
+
     // If editing, fetch initial quote
     const fetchQuote = async () => {
       if (id) {
@@ -305,6 +335,11 @@ export const QuoteEditor: React.FC = () => {
           });
         }
       }
+      const {data: draft, savedAt} = loadDraftMeta(quoteDraftKey);
+      setQuoteDraftRecovered(Boolean(draft));
+      setQuoteDraftSavedAt(savedAt);
+      applyDraft(draft);
+      quoteDraftHydratedRef.current = true;
       setLoading(false);
     };
 
@@ -318,13 +353,45 @@ export const QuoteEditor: React.FC = () => {
       unsubReservations();
       unsubFixtureCatalog();
     };
-  }, [id]);
+  }, [id, quoteDraftKey]);
 
   useEffect(() => {
     if (!id && !responsible && currentUserName !== 'Usuário') {
       setResponsible(currentUserName);
     }
   }, [currentUserName, id, responsible]);
+
+  useEffect(() => {
+    if (loading || !quoteDraftHydratedRef.current) return;
+
+    const savedAt = saveDraft(quoteDraftKey, {
+      clientId,
+      clientSearch,
+      environment,
+      responsible,
+      materialId,
+      paymentMethod,
+      deliveryDays,
+      measurementDate,
+      deliveryDate,
+      validityDays,
+      commercialNotes,
+      status,
+      originalStatus,
+      pieces,
+      cutouts,
+      employeeAssignments,
+      statusHistory,
+      pieceMaterialSearch,
+    });
+    if (savedAt) setQuoteDraftSavedAt(savedAt);
+  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, environment, loading, materialId, measurementDate, originalStatus, paymentMethod, pieceMaterialSearch, pieces, quoteDraftKey, responsible, status, statusHistory, validityDays]);
+
+  const clearQuoteDraftState = () => {
+    clearDraft(quoteDraftKey);
+    setQuoteDraftRecovered(false);
+    setQuoteDraftSavedAt(null);
+  };
 
   useEffect(() => {
     if (clientId && !clientSearch) {
@@ -584,12 +651,13 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!clientId) {
-      alert('Por favor, selecione um cliente.');
-      return;
-    }
-    if (pieces.some((piece) => !piece.materialId)) {
-      alert('Por favor, selecione o material de todas as peças.');
+    const validationError = validateQuoteBeforeSave({
+      clientId,
+      pieces,
+      selectedClient,
+    });
+    if (validationError) {
+      alert(validationError);
       return;
     }
     setSaving(true);
@@ -636,6 +704,9 @@ export const QuoteEditor: React.FC = () => {
       if (id) {
         await setDoc(doc(db, 'quotes', id), quoteData, { merge: true });
         await applyQuoteInventoryByStatusTransition(id, originalStatus, status, quoteData);
+        clearDraft(quoteDraftKey);
+        setQuoteDraftRecovered(false);
+        setQuoteDraftSavedAt(null);
         await logSystemEvent({
           type: 'quote_updated',
           title: 'Orçamento atualizado',
@@ -655,6 +726,9 @@ export const QuoteEditor: React.FC = () => {
       } else {
         const createdRef = await addDoc(collection(db, 'quotes'), quoteData);
         await applyQuoteInventoryByStatusTransition(createdRef.id, 'Orçamento', status, quoteData);
+        clearDraft(quoteDraftKey);
+        setQuoteDraftRecovered(false);
+        setQuoteDraftSavedAt(null);
         await logSystemEvent({
           type: 'quote_created',
           title: 'Orçamento criado',
@@ -707,6 +781,15 @@ export const QuoteEditor: React.FC = () => {
           {saving ?'Salvando...' : 'Salvar Orçamento'}
         </button>
       </header>
+
+      {quoteDraftRecovered && (
+        <DraftNotice
+          message="Este orçamento voltou com o rascunho salvo automaticamente. Você pode seguir de onde parou."
+          savedAt={quoteDraftSavedAt}
+          onClear={clearQuoteDraftState}
+        />
+      )}
+      <DraftAutosaveStatus savedAt={quoteDraftSavedAt} />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-8">
         {/* Left Column: Basic Info */}
@@ -1665,4 +1748,3 @@ export const QuoteEditor: React.FC = () => {
 };
 
 const X = ({ className }: any) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
-

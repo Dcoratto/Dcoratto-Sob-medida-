@@ -7,6 +7,9 @@ import { Save, Plus, Trash2, Building, Phone, Mail, MapPin, Calculator, CreditCa
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
 import { CondominiumRule, SupplierContact } from '../types';
+import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
+import {DraftNotice} from '../components/DraftNotice';
+import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 
 export const SettingsPage: React.FC = () => {
   const { settings: currentSettings, loading } = useSettings();
@@ -31,6 +34,10 @@ export const SettingsPage: React.FC = () => {
   const [blockNationalHolidays, setBlockNationalHolidays] = useState(true);
   const [blockCityHolidays, setBlockCityHolidays] = useState(true);
   const [condoNotes, setCondoNotes] = useState('');
+  const [condoDraftRecovered, setCondoDraftRecovered] = useState(false);
+  const [condoDraftSavedAt, setCondoDraftSavedAt] = useState<string | null>(null);
+  const condoDraftLoadedRef = React.useRef(false);
+  const condoDraftKey = `settings-condo-draft`;
   type MaterialCatalogListField = Exclude<keyof typeof settings.materialCatalog, 'suppliers'>;
   const createSupplierId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -47,6 +54,54 @@ export const SettingsPage: React.FC = () => {
     });
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (editingCondominium || condoDraftLoadedRef.current) return;
+    const {data: draft, savedAt} = loadDraftMeta<{
+      condoName: string;
+      condoCity: string;
+      condoAddressMode: CondominiumRule['addressMode'];
+      workStartHour: string;
+      workEndHour: string;
+      allowedWeekdays: number[];
+      blockNationalHolidays: boolean;
+      blockCityHolidays: boolean;
+      condoNotes: string;
+    }>(condoDraftKey);
+    if (draft) {
+      setCondoName(draft.condoName || '');
+      setCondoCity(draft.condoCity || '');
+      setCondoAddressMode(draft.condoAddressMode || 'street');
+      setWorkStartHour(draft.workStartHour || '08:00');
+      setWorkEndHour(draft.workEndHour || '17:00');
+      setAllowedWeekdays(Array.isArray(draft.allowedWeekdays) ? draft.allowedWeekdays : [0, 1, 2, 3, 4]);
+      setBlockNationalHolidays(typeof draft.blockNationalHolidays === 'boolean' ? draft.blockNationalHolidays : true);
+      setBlockCityHolidays(typeof draft.blockCityHolidays === 'boolean' ? draft.blockCityHolidays : true);
+      setCondoNotes(draft.condoNotes || '');
+      setCondoDraftRecovered(true);
+      setCondoDraftSavedAt(savedAt);
+    } else {
+      setCondoDraftRecovered(false);
+      setCondoDraftSavedAt(null);
+    }
+    condoDraftLoadedRef.current = true;
+  }, [condoDraftKey, editingCondominium]);
+
+  useEffect(() => {
+    if (!condoDraftLoadedRef.current || editingCondominium) return;
+    const savedAt = saveDraft(condoDraftKey, {
+      condoName,
+      condoCity,
+      condoAddressMode,
+      workStartHour,
+      workEndHour,
+      allowedWeekdays,
+      blockNationalHolidays,
+      blockCityHolidays,
+      condoNotes,
+    });
+    if (savedAt) setCondoDraftSavedAt(savedAt);
+  }, [allowedWeekdays, blockCityHolidays, blockNationalHolidays, condoAddressMode, condoCity, condoDraftKey, condoName, condoNotes, editingCondominium, workEndHour, workStartHour]);
 
   const buildPersistedSettings = (sourceSettings = settings) => {
     const sanitizedPaymentMethods = sourceSettings.paymentMethods
@@ -245,6 +300,9 @@ export const SettingsPage: React.FC = () => {
   };
 
   const resetCondoForm = () => {
+    condoDraftLoadedRef.current = true;
+    setCondoDraftRecovered(false);
+    setCondoDraftSavedAt(null);
     setEditingCondominium(null);
     setCondoName('');
     setCondoCity('');
@@ -255,6 +313,7 @@ export const SettingsPage: React.FC = () => {
     setBlockNationalHolidays(true);
     setBlockCityHolidays(true);
     setCondoNotes('');
+    clearDraft(condoDraftKey);
   };
 
   const saveCondominium = async (e: React.FormEvent) => {
@@ -732,6 +791,15 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           <form onSubmit={saveCondominium} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {!editingCondominium && condoDraftRecovered && (
+              <div className="md:col-span-2">
+                <DraftNotice
+                  message="As últimas regras preenchidas para condomínio foram recuperadas para você continuar daqui."
+                  savedAt={condoDraftSavedAt}
+                  onClear={resetCondoForm}
+                />
+              </div>
+            )}
             <div className="space-y-1.5">
               <label className="text-slate-500 font-medium text-sm">Nome do condominio</label>
               <input value={condoName} onChange={(e) => setCondoName(e.target.value)} required className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20" />
@@ -797,6 +865,11 @@ export const SettingsPage: React.FC = () => {
                 </button>
               )}
             </div>
+            {!editingCondominium && (
+              <div className="md:col-span-2">
+                <DraftAutosaveStatus savedAt={condoDraftSavedAt} />
+              </div>
+            )}
           </form>
 
           <div className="space-y-2 pt-4 border-t border-slate-50">

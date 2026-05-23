@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useMemo, useState} from 'react';
+﻿import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc} from '../lib/firestore';
 import {AlertTriangle, Edit2, Eye, PackageCheck, Search, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
@@ -7,6 +7,11 @@ import {InventoryItem, InventoryReservation, Material, Quote} from '../types';
 import {cn, formatCurrency, formatNumber} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {formatMaterialSpecsWithProvider} from '../lib/materialSpecs';
+import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
+import {DraftNotice} from '../components/DraftNotice';
+import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
+import {validateMaterialSalePrice} from '../lib/businessRules';
+import {logSystemEvent} from '../lib/systemEvents';
 
 type MaterialStockRow = Material & {
   baseMaterialId: string;
@@ -46,6 +51,10 @@ export const MaterialsPage: React.FC = () => {
   const [active, setActive] = useState(true);
   const [loading, setLoading] = useState(true);
   const [savingPrice, setSavingPrice] = useState(false);
+  const [materialPriceDraftRecovered, setMaterialPriceDraftRecovered] = useState(false);
+  const [materialPriceDraftSavedAt, setMaterialPriceDraftSavedAt] = useState<string | null>(null);
+  const materialPriceDraftLoadedRef = useRef(false);
+  const materialPriceDraftKey = `materials-price-draft:${editingMaterial?.baseMaterialId || 'new'}`;
 
   useEffect(() => {
     const q = query(collection(db, 'materials'), orderBy('name', 'asc'));
@@ -56,6 +65,27 @@ export const MaterialsPage: React.FC = () => {
 
     return unsubscribe;
   }, []);
+
+  useEffect(() => {
+    if (!showModal || !editingMaterial || materialPriceDraftLoadedRef.current) return;
+    const {data: draft, savedAt} = loadDraftMeta<{salePricePerM2?: string; active?: boolean}>(materialPriceDraftKey);
+    if (draft) {
+      setSalePricePerM2(draft.salePricePerM2 || String(editingMaterial.pricePerM2 || 0));
+      setActive(typeof draft.active === 'boolean' ? draft.active : editingMaterial.active);
+      setMaterialPriceDraftRecovered(true);
+      setMaterialPriceDraftSavedAt(savedAt);
+    } else {
+      setMaterialPriceDraftRecovered(false);
+      setMaterialPriceDraftSavedAt(null);
+    }
+    materialPriceDraftLoadedRef.current = true;
+  }, [editingMaterial, materialPriceDraftKey, showModal]);
+
+  useEffect(() => {
+    if (!showModal || !editingMaterial || !materialPriceDraftLoadedRef.current) return;
+    const savedAt = saveDraft(materialPriceDraftKey, {salePricePerM2, active});
+    if (savedAt) setMaterialPriceDraftSavedAt(savedAt);
+  }, [active, editingMaterial, materialPriceDraftKey, salePricePerM2, showModal]);
 
   useEffect(() => {
     const q = query(collection(db, 'inventory'), orderBy('materialName', 'asc'));
@@ -146,6 +176,7 @@ export const MaterialsPage: React.FC = () => {
 
   const handleEdit = (material: MaterialStockRow) => {
     if (!hasPermission('materiais', 'editar')) return;
+    materialPriceDraftLoadedRef.current = false;
     setEditingMaterial(material);
     setSalePricePerM2(String(material.pricePerM2 || 0));
     setActive(material.active);
@@ -165,6 +196,11 @@ export const MaterialsPage: React.FC = () => {
       const baseCost = editingMaterial.baseCostPerM2 ?? 0;
       const baseMinimumSale = editingMaterial.baseMinimumSalePerM2 ?? baseCost;
       const pricePerM2 = Math.max(0, Number(salePricePerM2) || 0);
+      const validationError = validateMaterialSalePrice(baseMinimumSale, pricePerM2);
+      if (validationError) {
+        alert(validationError);
+        return;
+      }
       const marginPercentage = baseMinimumSale > 0
         ? ((pricePerM2 / baseMinimumSale) - 1) * 100
         : 0;
@@ -185,8 +221,27 @@ export const MaterialsPage: React.FC = () => {
         pricePerM2,
         updatedAt: serverTimestamp(),
       }, {merge: true});
+      await logSystemEvent({
+        type: 'inventory_updated',
+        title: 'Preço final de material atualizado',
+        description: `${editingMaterial.name} · ${formatCurrency(pricePerM2)}/m²`,
+        entityType: 'inventory',
+        entityId: editingMaterial.baseMaterialId,
+        materialId: editingMaterial.baseMaterialId,
+        materialName: editingMaterial.name,
+        metadata: {
+          minimumSalePerM2: baseMinimumSale,
+          pricePerM2,
+          marginPercentage,
+          active,
+        },
+      });
 
       setShowModal(false);
+      clearDraft(materialPriceDraftKey);
+      setMaterialPriceDraftRecovered(false);
+      setMaterialPriceDraftSavedAt(null);
+      materialPriceDraftLoadedRef.current = false;
       setEditingMaterial(null);
       setSalePricePerM2('');
     } catch (error) {
@@ -195,6 +250,16 @@ export const MaterialsPage: React.FC = () => {
     } finally {
       setSavingPrice(false);
     }
+  };
+
+  const clearMaterialPriceDraftState = () => {
+    if (!editingMaterial) return;
+    clearDraft(materialPriceDraftKey);
+    materialPriceDraftLoadedRef.current = true;
+    setMaterialPriceDraftRecovered(false);
+    setMaterialPriceDraftSavedAt(null);
+    setSalePricePerM2(String(editingMaterial.pricePerM2 || 0));
+    setActive(editingMaterial.active);
   };
 
   const handleStatusChange = async (material: Material, nextActive: boolean) => {
@@ -362,12 +427,19 @@ export const MaterialsPage: React.FC = () => {
                 <h2 className="text-2xl font-display font-bold text-slate-900">Preço de venda</h2>
                 <p className="text-sm text-slate-500 mt-1">{editingMaterial.name}</p>
               </div>
-              <button type="button" onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
+              <button type="button" onClick={() => { materialPriceDraftLoadedRef.current = false; setShowModal(false); setEditingMaterial(null); setMaterialPriceDraftRecovered(false); }} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {materialPriceDraftRecovered && (
+                <DraftNotice
+                  message="Recuperamos o último valor digitado para esta pedra. Revise e siga em frente quando quiser."
+                  savedAt={materialPriceDraftSavedAt}
+                  onClear={clearMaterialPriceDraftState}
+                />
+              )}
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Mínimo de venda por m²</label>
@@ -409,6 +481,7 @@ export const MaterialsPage: React.FC = () => {
               <button type="submit" disabled={savingPrice} className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95 disabled:opacity-60">
                 {savingPrice ? 'Salvando...' : 'Salvar preço'}
               </button>
+              <DraftAutosaveStatus savedAt={materialPriceDraftSavedAt} className="text-center" />
             </form>
           </div>
         </div>

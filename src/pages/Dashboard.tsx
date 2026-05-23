@@ -7,6 +7,7 @@ import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material
 import {cn, formatCurrency} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {getClientDisplayStatus, normalizeQuoteStatus, quoteStatusColor, shouldAppearInProjects} from '../lib/quoteStatus';
+import {buildOperationalAlerts, buildQuickSearchResults} from '../lib/businessRules';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -88,6 +89,7 @@ export const Dashboard: React.FC = () => {
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [recentQuotes, setRecentQuotes] = useState<Quote[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [materialsCount, setMaterialsCount] = useState(0);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [reservations, setReservations] = useState<InventoryReservation[]>([]);
@@ -96,6 +98,7 @@ export const Dashboard: React.FC = () => {
   const [notes, setNotes] = useState<DashboardNote[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
   const [newNote, setNewNote] = useState('');
+  const [quickSearch, setQuickSearch] = useState('');
   const [noteTargetUid, setNoteTargetUid] = useState('');
   const [savingNote, setSavingNote] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -119,6 +122,7 @@ export const Dashboard: React.FC = () => {
 
     const unsubMaterials = onSnapshot(collection(db, 'materials'), (snap) => {
       const materials = snap.docs.map((item) => ({id: item.id, ...item.data()} as Material));
+      setMaterials(materials);
       setMaterialsCount(materials.length);
     });
 
@@ -288,7 +292,27 @@ export const Dashboard: React.FC = () => {
     {label: 'Itens em Estoque', value: inventory.length, icon: Database, color: 'text-amber-600', bg: 'bg-amber-50', path: '/inventory'},
   ];
 
+  const operationalAlerts = useMemo(() => buildOperationalAlerts({
+    materials,
+    inventory,
+    purchases,
+    reservations,
+  }), [inventory, materials, purchases, reservations]);
+  const quickSearchResults = useMemo(() => buildQuickSearchResults({
+    term: quickSearch,
+    clients,
+    quotes,
+    inventory,
+    materials,
+  }), [clients, inventory, materials, quickSearch, quotes]);
+
   const openQuotes = quotes.filter((quote) => statusGroups.pre.statuses.includes(normalizeStatus(quote.status)));
+  const quickActions = [
+    {label: 'Novo cliente', detail: 'Abrir cadastro manual', path: '/clients', tone: 'bg-blue-50 text-blue-700'},
+    {label: 'Novo orçamento', detail: 'Criar orçamento agora', path: '/quotes/new', tone: 'bg-brand-primary/10 text-brand-primary'},
+    {label: 'Entrada no estoque', detail: 'Lançar chapa recebida', path: '/inventory', tone: 'bg-amber-50 text-amber-700'},
+    {label: 'Pátio de chapas', detail: 'Localizar e mover material', path: '/inventory', tone: 'bg-emerald-50 text-emerald-700'},
+  ];
   const closedQuotes = quotes.filter((quote) => isClosedSale(quote.status));
   const legacyManualSales = clients
     .filter((client) => client.legacyProjectMode === 'orcamento_existente' && (client.legacyManualQuote?.totalPrice || 0) > 0)
@@ -351,7 +375,46 @@ export const Dashboard: React.FC = () => {
       <header>
         <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Painel de Controle</h1>
         <p className="text-slate-500 mt-1">Veja um resumo das atividades da D'Coratto.</p>
+        <div className="mt-4 max-w-2xl">
+          <input
+            value={quickSearch}
+            onChange={(event) => setQuickSearch(event.target.value)}
+            placeholder="Busca rápida por cliente, orçamento, lote, pedra ou fornecedor..."
+            className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
+          />
+        </div>
       </header>
+
+      {quickSearch.trim() && (
+        <section className="rounded-[32px] border border-slate-100 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-lg font-bold text-slate-900">Busca rápida</h2>
+              <p className="text-sm text-slate-400">Resultados diretos para abrir o ponto certo do sistema.</p>
+            </div>
+            <button type="button" onClick={() => setQuickSearch('')} className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-700">
+              Limpar
+            </button>
+          </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {quickSearchResults.map((result) => (
+              <button
+                key={result.id}
+                type="button"
+                onClick={() => navigate(result.path)}
+                className="rounded-2xl border border-slate-100 bg-slate-50 p-4 text-left transition-all hover:bg-white hover:shadow-sm"
+              >
+                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{result.type}</div>
+                <div className="mt-1 font-bold text-slate-900">{result.label}</div>
+                <div className="mt-1 text-sm text-slate-500">{result.subtitle}</div>
+              </button>
+            ))}
+            {quickSearchResults.length === 0 && (
+              <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum resultado encontrado para essa busca.</div>
+            )}
+          </div>
+        </section>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {stats.map((stat) => (
@@ -715,6 +778,65 @@ export const Dashboard: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <section className="rounded-[32px] border border-slate-100 bg-white p-6 shadow-sm">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="font-display text-lg font-bold text-slate-800">Alertas operacionais</h2>
+            <p className="text-sm text-slate-400">Pontos que precisam de atenção para manter comercial, estoque e produção integrados.</p>
+          </div>
+          <button type="button" onClick={() => navigate('/reports')} className="text-xs font-bold uppercase tracking-widest text-brand-primary hover:underline">
+            Ver relatórios
+          </button>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {operationalAlerts.map((alert) => (
+            <button
+              key={alert.id}
+              type="button"
+              onClick={() => navigate(alert.path)}
+              className={cn(
+                'rounded-2xl border p-4 text-left transition-all hover:shadow-sm',
+                alert.level === 'high' ? 'border-red-100 bg-red-50' : alert.level === 'medium' ? 'border-amber-100 bg-amber-50' : 'border-slate-100 bg-slate-50',
+              )}
+            >
+              <div className={cn(
+                'text-[10px] font-bold uppercase tracking-widest',
+                alert.level === 'high' ? 'text-red-600' : alert.level === 'medium' ? 'text-amber-700' : 'text-slate-500',
+              )}>
+                {alert.level === 'high' ? 'Prioridade alta' : alert.level === 'medium' ? 'Atenção' : 'Informativo'}
+              </div>
+              <div className="mt-1 font-bold text-slate-900">{alert.title}</div>
+              <div className="mt-1 text-sm text-slate-600">{alert.detail}</div>
+            </button>
+          ))}
+          {operationalAlerts.length === 0 && (
+            <div className="rounded-2xl bg-green-50 p-5 text-sm font-semibold text-green-700">Nenhum alerta operacional crítico no momento.</div>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-[32px] border border-slate-100 bg-white p-6 shadow-sm">
+        <div className="mb-5">
+          <h2 className="font-display text-lg font-bold text-slate-800">Ações rápidas</h2>
+          <p className="text-sm text-slate-400">Atalhos para as tarefas mais frequentes da operação.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {quickActions.map((action) => (
+            <button
+              key={action.label}
+              type="button"
+              onClick={() => navigate(action.path)}
+              className="rounded-[28px] border border-slate-100 bg-slate-50 p-5 text-left transition-all hover:bg-white hover:shadow-sm"
+            >
+              <div className={cn('inline-flex rounded-2xl px-3 py-2 text-xs font-bold uppercase tracking-widest', action.tone)}>
+                {action.label}
+              </div>
+              <div className="mt-3 text-sm font-semibold text-slate-600">{action.detail}</div>
+            </button>
+          ))}
+        </div>
+      </section>
 
       {selectedDeadlineEvent && (
         <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">

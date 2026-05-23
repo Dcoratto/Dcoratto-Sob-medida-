@@ -13,6 +13,10 @@ import {QUOTE_STATUSES, normalizeQuoteStatus, quoteStatusColor, quoteStatusDotCo
 import {getHolidayInfo} from '../lib/holidays';
 import {formatMaterialSpecs} from '../lib/materialSpecs';
 import {parseClientContractPdf, parseLegacyQuotePdf} from '../lib/contractParser';
+import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
+import {DraftNotice} from '../components/DraftNotice';
+import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
+import {validateClientPayload} from '../lib/businessRules';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -244,6 +248,8 @@ export const ClientsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ClientStage | 'all'>('all');
   const [showModal, setShowModal] = useState(false);
+  const [clientDraftRecovered, setClientDraftRecovered] = useState(false);
+  const [clientDraftSavedAt, setClientDraftSavedAt] = useState<string | null>(null);
   const [detailModal, setDetailModal] = useState<'client' | 'quote' | 'values' | 'team' | null>(null);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [selectedQuoteId, setSelectedQuoteId] = useState('');
@@ -277,6 +283,8 @@ export const ClientsPage: React.FC = () => {
   const [legacyTotalPrice, setLegacyTotalPrice] = useState(formatCurrency(0));
   const [legacyPieces, setLegacyPieces] = useState<LegacyClientPiece[]>([]);
   const [legacyPayments, setLegacyPayments] = useState<LegacyPaymentInstallment[]>([]);
+  const clientDraftLoadedRef = useRef(false);
+  const clientDraftKey = `client-form-draft:${appUid || 'anonymous'}`;
 
   useEffect(() => {
     const qClients = query(collection(db, 'clients'), orderBy('name', 'asc'));
@@ -335,6 +343,98 @@ export const ClientsPage: React.FC = () => {
       .filter((quote) => quote.clientId === selectedClient.id)
       .sort((a, b) => quoteTime(b) - quoteTime(a));
   }, [quotes, selectedClient]);
+
+  useEffect(() => {
+    if (!showModal || editingClient || clientDraftLoadedRef.current) return;
+
+    const {data: draft, savedAt} = loadDraftMeta<{
+      name: string;
+      phone: string;
+      email: string;
+      googleDriveUrl: string;
+      cpf: string;
+      rg: string;
+      birthDate: string;
+      address: string;
+      city: string;
+      zipCode: string;
+      neighborhood: string;
+      addressType: Client['addressType'];
+      condominiumId: string;
+      block: string;
+      lot: string;
+      tower: string;
+      apartmentNumber: string;
+      notes: string;
+      legacyProjectMode: Client['legacyProjectMode'];
+      legacyTotalPrice: string;
+      legacyPieces: LegacyClientPiece[];
+      legacyPayments: LegacyPaymentInstallment[];
+    }>(clientDraftKey);
+
+    if (!draft) {
+      setClientDraftRecovered(false);
+      setClientDraftSavedAt(null);
+      clientDraftLoadedRef.current = true;
+      return;
+    }
+
+    setName(draft.name || '');
+    setPhone(draft.phone || '');
+    setEmail(draft.email || '');
+    setGoogleDriveUrl(draft.googleDriveUrl || '');
+    setCpf(draft.cpf || '');
+    setRg(draft.rg || '');
+    setBirthDate(draft.birthDate || '');
+    setAddress(draft.address || '');
+    setCity(draft.city || '');
+    setZipCode(draft.zipCode || '');
+    setNeighborhood(draft.neighborhood || '');
+    setAddressType(draft.addressType || 'casa');
+    setCondominiumId(draft.condominiumId || '');
+    setBlock(draft.block || '');
+    setLot(draft.lot || '');
+    setTower(draft.tower || '');
+    setApartmentNumber(draft.apartmentNumber || '');
+    setNotes(draft.notes || '');
+    setLegacyProjectMode(draft.legacyProjectMode || 'sem_projeto');
+    setLegacyTotalPrice(draft.legacyTotalPrice || formatCurrency(0));
+    setLegacyPieces(draft.legacyPieces || []);
+    setLegacyPayments(draft.legacyPayments || []);
+    setClientDraftRecovered(true);
+    setClientDraftSavedAt(savedAt);
+    clientDraftLoadedRef.current = true;
+  }, [clientDraftKey, editingClient, showModal]);
+
+  useEffect(() => {
+    if (!showModal || editingClient || !clientDraftLoadedRef.current) return;
+
+    const savedAt = saveDraft(clientDraftKey, {
+      name,
+      phone,
+      email,
+      googleDriveUrl,
+      cpf,
+      rg,
+      birthDate,
+      address,
+      city,
+      zipCode,
+      neighborhood,
+      addressType,
+      condominiumId,
+      block,
+      lot,
+      tower,
+      apartmentNumber,
+      notes,
+      legacyProjectMode,
+      legacyTotalPrice,
+      legacyPieces,
+      legacyPayments,
+    });
+    if (savedAt) setClientDraftSavedAt(savedAt);
+  }, [address, addressType, apartmentNumber, birthDate, block, city, clientDraftKey, condominiumId, cpf, editingClient, email, googleDriveUrl, legacyPayments, legacyPieces, legacyProjectMode, legacyTotalPrice, lot, name, neighborhood, notes, phone, rg, showModal, tower, zipCode]);
 
   const selectedQuote = selectedClientQuotes.find((quote) => quote.id === selectedQuoteId) || selectedClientQuotes[0];
   const selectedLegacyQuote = selectedClient?.legacyManualQuote;
@@ -431,6 +531,9 @@ export const ClientsPage: React.FC = () => {
   const hiddenClientValueLabel = 'Valor oculto';
 
   const resetForm = () => {
+    clientDraftLoadedRef.current = false;
+    setClientDraftRecovered(false);
+    setClientDraftSavedAt(null);
     setName('');
     setPhone('');
     setEmail('');
@@ -454,6 +557,12 @@ export const ClientsPage: React.FC = () => {
     setLegacyPieces([]);
     setLegacyPayments([]);
     setEditingClient(null);
+  };
+
+  const clearClientDraftState = () => {
+    clearDraft(clientDraftKey);
+    resetForm();
+    clientDraftLoadedRef.current = true;
   };
 
   const openClientDetail = (client: Client, view: 'client' | 'quote' | 'values' | 'team') => {
@@ -532,6 +641,20 @@ export const ClientsPage: React.FC = () => {
           },
     };
 
+    const validationError = validateClientPayload({
+      name,
+      phone,
+      city,
+      addressType,
+      condominiumId: normalizedCondominiumId,
+      block,
+      lot,
+    });
+    if (validationError) {
+      window.alert(validationError);
+      return;
+    }
+
     try {
       if (editingClient) {
         await updateDoc(doc(db, 'clients', editingClient.id), data);
@@ -561,6 +684,7 @@ export const ClientsPage: React.FC = () => {
         });
       }
 
+      clearDraft(clientDraftKey);
       setShowModal(false);
       resetForm();
     } catch (error) {
@@ -2094,12 +2218,15 @@ export const ClientsPage: React.FC = () => {
           <div className="bg-white w-full max-w-4xl max-h-[92vh] overflow-y-auto rounded-[32px] shadow-2xl p-6 md:p-8 space-y-6 animate-in fade-in zoom-in duration-300">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-display font-bold text-slate-900">{editingClient ?'Editar Cliente' : 'Novo Cliente'}</h2>
-              <button type="button" onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
+              <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="p-2 hover:bg-slate-100 rounded-full transition-all text-slate-400">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {!editingClient && clientDraftRecovered && (
+                <DraftNotice onClear={clearClientDraftState} savedAt={clientDraftSavedAt} />
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <FormField label="Nome Completo" value={name} onChange={setName} required />
                 <FormField label="Telefone" value={phone} onChange={setPhone} required />
@@ -2390,6 +2517,9 @@ export const ClientsPage: React.FC = () => {
               <button type="submit" className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
                 {editingClient ?'Salvar Alterações' : 'Cadastrar Cliente'}
               </button>
+              {!editingClient && (
+                <DraftAutosaveStatus savedAt={clientDraftSavedAt} className="text-center" />
+              )}
             </form>
           </div>
         </div>

@@ -20,6 +20,7 @@ import {auth} from '../../lib/auth';
 import {cn} from '../../lib/utils';
 import {Logo} from './Logo';
 import {roleLabel} from '../../lib/permissions';
+import {preloadRoute} from '../../lib/pageLoaders';
 
 type MenuItem = {icon: React.ComponentType<{className?: string}>; label: string; path: string};
 
@@ -57,6 +58,8 @@ export const Sidebar: React.FC = () => {
             key={item.path}
             to={item.path}
             onClick={mobile ?closeMobileMenu : undefined}
+            onMouseEnter={() => void preloadRoute(item.path)}
+            onFocus={() => void preloadRoute(item.path)}
             className={({isActive}) => cn(
               'group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200',
               isActive ?'bg-brand-primary text-white shadow-lg shadow-brand-primary/20' : 'text-slate-600 hover:bg-slate-50 hover:text-brand-primary',
@@ -161,6 +164,8 @@ export const Sidebar: React.FC = () => {
             <NavLink
               key={`mobile-${item.path}`}
               to={item.path}
+              onMouseEnter={() => void preloadRoute(item.path)}
+              onFocus={() => void preloadRoute(item.path)}
               className={({isActive}) => cn(
                 'flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2.5 text-[10px] font-bold transition-all',
                 isActive ?'bg-brand-primary text-white shadow-lg shadow-brand-primary/20' : 'text-slate-500 hover:bg-slate-50 hover:text-brand-primary',

@@ -8,22 +8,35 @@ import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom';
 import {AuthProvider, useAuth} from './contexts/AuthContext';
 import {Shell} from './components/layout/Shell';
 import {PermissionModule} from './lib/permissions';
+import {
+  loadAdminPage,
+  loadCalendarPage,
+  loadClientsPage,
+  loadDashboardPage,
+  loadInventoryPage,
+  loadLoginPage,
+  loadMaterialsPage,
+  loadPremiumProposalPage,
+  loadProfilePage,
+  loadProjectsPage,
+  loadQuoteEditorPage,
+  loadQuotesPage,
+  loadReportsPage,
+} from './lib/pageLoaders';
 
-const Login = lazy(() => import('./pages/Login').then((module) => ({default: module.Login})));
-const Dashboard = lazy(() => import('./pages/Dashboard').then((module) => ({default: module.Dashboard})));
-const QuotesPage = lazy(() => import('./pages/QuotesPage').then((module) => ({default: module.QuotesPage})));
-const QuoteEditor = lazy(() => import('./pages/QuoteEditor').then((module) => ({default: module.QuoteEditor})));
-const ClientsPage = lazy(() => import('./pages/ClientsPage').then((module) => ({default: module.ClientsPage})));
-const InventoryPage = lazy(() => import('./pages/InventoryPage').then((module) => ({default: module.InventoryPage})));
-const MaterialsPage = lazy(() => import('./pages/MaterialsPage').then((module) => ({default: module.MaterialsPage})));
-const AdminPage = lazy(() => import('./pages/AdminPage').then((module) => ({default: module.AdminPage})));
-const ProfilePage = lazy(() => import('./pages/ProfilePage').then((module) => ({default: module.ProfilePage})));
-const ReportsPage = lazy(() => import('./pages/ReportsPage').then((module) => ({default: module.ReportsPage})));
-const PremiumProposalPage = lazy(() =>
-  import('./pages/PremiumProposalPage').then((module) => ({default: module.PremiumProposalPage})),
-);
-const ProjectsPage = lazy(() => import('./pages/ProjectsPage').then((module) => ({default: module.ProjectsPage})));
-const CalendarPage = lazy(() => import('./pages/CalendarPage').then((module) => ({default: module.CalendarPage})));
+const Login = lazy(() => loadLoginPage().then((module) => ({default: module.Login})));
+const Dashboard = lazy(() => loadDashboardPage().then((module) => ({default: module.Dashboard})));
+const QuotesPage = lazy(() => loadQuotesPage().then((module) => ({default: module.QuotesPage})));
+const QuoteEditor = lazy(() => loadQuoteEditorPage().then((module) => ({default: module.QuoteEditor})));
+const ClientsPage = lazy(() => loadClientsPage().then((module) => ({default: module.ClientsPage})));
+const InventoryPage = lazy(() => loadInventoryPage().then((module) => ({default: module.InventoryPage})));
+const MaterialsPage = lazy(() => loadMaterialsPage().then((module) => ({default: module.MaterialsPage})));
+const AdminPage = lazy(() => loadAdminPage().then((module) => ({default: module.AdminPage})));
+const ProfilePage = lazy(() => loadProfilePage().then((module) => ({default: module.ProfilePage})));
+const ReportsPage = lazy(() => loadReportsPage().then((module) => ({default: module.ReportsPage})));
+const PremiumProposalPage = lazy(() => loadPremiumProposalPage().then((module) => ({default: module.PremiumProposalPage})));
+const ProjectsPage = lazy(() => loadProjectsPage().then((module) => ({default: module.ProjectsPage})));
+const CalendarPage = lazy(() => loadCalendarPage().then((module) => ({default: module.CalendarPage})));
 
 const NoPermission = () => (
   <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">

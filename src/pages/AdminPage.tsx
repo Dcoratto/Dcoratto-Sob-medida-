@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from '../lib/firestore';
 import {deleteObject, ref as storageRef} from '../lib/storage';
 import {AlertTriangle, BriefcaseBusiness, CheckCircle2, ChevronDown, Mail, Pencil, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
@@ -6,13 +6,16 @@ import {db} from '../lib/firestore';
 import {storage} from '../lib/storage';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {useAuth} from '../contexts/AuthContext';
-import {AccessRole, AccessUser, Employee, EmployeeRole, FixtureCatalogItem, FixtureCategory, Material, PermissionMap} from '../types';
+import {AccessRole, AccessUser, Employee, EmployeeRole, FixtureCatalogItem, FixtureCategory, InventoryItem, Material, PermissionMap, Quote} from '../types';
 import {cn} from '../lib/utils';
 import { SettingsPage } from './SettingsPage';
 import {ACCESS_ROLES, ACTION_LABELS, getDefaultPermissions, hasPermission, isMasterAdmin, mergePermissions, MODULE_LABELS, roleLabel} from '../lib/permissions';
 import {logAuditEvent} from '../lib/auditLogs';
 import {optimizeImageFile, readFileAsDataUrl} from '../lib/imageUtils';
 import {useSettings} from '../hooks/useSettings';
+import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
+import {DraftNotice} from '../components/DraftNotice';
+import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 
 const employeeRoles: EmployeeRole[] = ['Vendedor', 'Medidor', 'Cortador', 'Acabador', 'Instalador', 'Entregador', 'Administrativo'];
 const slugify = (value: string) =>
@@ -108,6 +111,8 @@ export const AdminPage: React.FC = () => {
   const [users, setUsers] = useState<AccessUser[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingEmployee, setSavingEmployee] = useState(false);
   const [employeeError, setEmployeeError] = useState('');
@@ -166,6 +171,18 @@ export const AdminPage: React.FC = () => {
     manualFileName: '',
     notes: '',
   });
+  const [employeeDraftRecovered, setEmployeeDraftRecovered] = useState(false);
+  const [materialDraftRecovered, setMaterialDraftRecovered] = useState(false);
+  const [fixtureDraftRecovered, setFixtureDraftRecovered] = useState(false);
+  const [employeeDraftSavedAt, setEmployeeDraftSavedAt] = useState<string | null>(null);
+  const [materialDraftSavedAt, setMaterialDraftSavedAt] = useState<string | null>(null);
+  const [fixtureDraftSavedAt, setFixtureDraftSavedAt] = useState<string | null>(null);
+  const employeeDraftLoadedRef = useRef(false);
+  const materialDraftLoadedRef = useRef(false);
+  const fixtureDraftLoadedRef = useRef(false);
+  const employeeDraftKey = `admin-employee-draft:${accessUser?.uid || 'anonymous'}`;
+  const materialDraftKey = `admin-material-draft:${accessUser?.uid || 'anonymous'}`;
+  const fixtureDraftKey = `admin-fixture-draft:${accessUser?.uid || 'anonymous'}`;
 
   useEffect(() => {
     const q = query(collection(db, 'users'), orderBy('email', 'asc'));
@@ -182,11 +199,84 @@ export const AdminPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    if (editingMaterial || materialDraftLoadedRef.current) return;
+    const {data: draft, savedAt} = loadDraftMeta<typeof materialForm>(materialDraftKey);
+    if (draft) {
+      setMaterialForm({...materialForm, ...draft});
+      setMaterialDraftRecovered(true);
+      setMaterialDraftSavedAt(savedAt);
+    } else {
+      setMaterialDraftRecovered(false);
+      setMaterialDraftSavedAt(null);
+    }
+    materialDraftLoadedRef.current = true;
+  }, [editingMaterial, materialDraftKey]);
+
+  useEffect(() => {
+    if (!materialDraftLoadedRef.current || editingMaterial) return;
+    const savedAt = saveDraft(materialDraftKey, materialForm);
+    if (savedAt) setMaterialDraftSavedAt(savedAt);
+  }, [editingMaterial, materialDraftKey, materialForm]);
+
+  useEffect(() => {
+    if (editingFixture || fixtureDraftLoadedRef.current) return;
+    const {data: draft, savedAt} = loadDraftMeta<typeof fixtureForm>(fixtureDraftKey);
+    if (draft) {
+      setFixtureForm({...fixtureForm, ...draft});
+      setFixtureDraftRecovered(true);
+      setFixtureDraftSavedAt(savedAt);
+    } else {
+      setFixtureDraftRecovered(false);
+      setFixtureDraftSavedAt(null);
+    }
+    fixtureDraftLoadedRef.current = true;
+  }, [editingFixture, fixtureDraftKey]);
+
+  useEffect(() => {
+    if (!fixtureDraftLoadedRef.current || editingFixture) return;
+    const savedAt = saveDraft(fixtureDraftKey, fixtureForm);
+    if (savedAt) setFixtureDraftSavedAt(savedAt);
+  }, [editingFixture, fixtureDraftKey, fixtureForm]);
+
+  useEffect(() => {
+    if (employeeDraftLoadedRef.current) return;
+    const {data: draft, savedAt} = loadDraftMeta<typeof employeeForm>(employeeDraftKey);
+    if (draft) {
+      setEmployeeForm({...employeeForm, ...draft});
+      setEmployeeDraftRecovered(true);
+      setEmployeeDraftSavedAt(savedAt);
+    } else {
+      setEmployeeDraftRecovered(false);
+      setEmployeeDraftSavedAt(null);
+    }
+    employeeDraftLoadedRef.current = true;
+  }, [employeeDraftKey]);
+
+  useEffect(() => {
+    if (!employeeDraftLoadedRef.current) return;
+    const savedAt = saveDraft(employeeDraftKey, employeeForm);
+    if (savedAt) setEmployeeDraftSavedAt(savedAt);
+  }, [employeeDraftKey, employeeForm]);
+
+  useEffect(() => {
     const q = query(collection(db, 'materials'), orderBy('name', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material)));
     });
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    const unsubscribeInventory = onSnapshot(collection(db, 'inventory'), (snapshot) => {
+      setInventoryItems(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem)));
+    });
+    const unsubscribeQuotes = onSnapshot(collection(db, 'quotes'), (snapshot) => {
+      setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
+    });
+    return () => {
+      unsubscribeInventory();
+      unsubscribeQuotes();
+    };
   }, []);
 
   useEffect(() => {
@@ -289,6 +379,10 @@ export const AdminPage: React.FC = () => {
         active: true,
         createdAt: Timestamp.now(),
       });
+      clearDraft(employeeDraftKey);
+      setEmployeeDraftRecovered(false);
+      setEmployeeDraftSavedAt(null);
+      employeeDraftLoadedRef.current = true;
       setEmployeeForm({name: '', role: 'Medidor', phone: ''});
     } catch (error) {
       console.error('Erro ao adicionar funcionário:', error);
@@ -311,6 +405,9 @@ export const AdminPage: React.FC = () => {
   };
 
   const resetMaterialForm = () => {
+    materialDraftLoadedRef.current = true;
+    setMaterialDraftRecovered(false);
+    setMaterialDraftSavedAt(null);
     setEditingMaterial(null);
     setMaterialForm({
       name: '',
@@ -323,6 +420,7 @@ export const AdminPage: React.FC = () => {
     });
     setMaterialImageFile(null);
     setMaterialError('');
+    clearDraft(materialDraftKey);
   };
 
   const startEditingMaterial = (material: Material) => {
@@ -341,6 +439,9 @@ export const AdminPage: React.FC = () => {
   };
 
   const resetFixtureForm = (category: FixtureCategory = fixtureForm.category) => {
+    fixtureDraftLoadedRef.current = true;
+    setFixtureDraftRecovered(false);
+    setFixtureDraftSavedAt(null);
     setEditingFixture(null);
     setFixtureForm({
       name: '',
@@ -359,6 +460,16 @@ export const AdminPage: React.FC = () => {
     setFixtureImageFile(null);
     setFixtureManualFile(null);
     setFixtureError('');
+    clearDraft(fixtureDraftKey);
+  };
+
+  const clearEmployeeDraftState = () => {
+    clearDraft(employeeDraftKey);
+    employeeDraftLoadedRef.current = true;
+    setEmployeeDraftRecovered(false);
+    setEmployeeDraftSavedAt(null);
+    setEmployeeError('');
+    setEmployeeForm({name: '', role: 'Medidor', phone: ''});
   };
 
   const startEditingFixture = (item: FixtureCatalogItem) => {
@@ -435,6 +546,14 @@ export const AdminPage: React.FC = () => {
   };
 
   const deleteMaterialCatalogItem = async (material: Material) => {
+    const materialInInventory = inventoryItems.some((item) => item.materialId === material.id);
+    const materialInQuotes = quotes.some((quote) =>
+      quote.materialId === material.id || (quote.pieces || []).some((piece) => piece.materialId === material.id),
+    );
+    if (materialInInventory || materialInQuotes) {
+      window.alert('Esta pedra já está em uso no estoque ou em orçamentos. Em vez de excluir, deixe-a inativa para preservar os dados salvos.');
+      return;
+    }
     const confirmed = window.confirm(`Tem certeza que deseja excluir a pedra "${material.name}"?`);
     if (!confirmed) return;
     const ok = await deleteFirestoreDoc('materials', material.id);
@@ -500,6 +619,25 @@ export const AdminPage: React.FC = () => {
 
   const toggleFixtureCatalogItem = async (item: FixtureCatalogItem) => {
     await updateDoc(doc(db, 'fixtureCatalog', item.id), {active: !item.active});
+  };
+
+  const deleteFixtureCatalogItem = async (item: FixtureCatalogItem) => {
+    const fixtureInQuotes = quotes.some((quote) =>
+      (quote.pieces || []).some((piece) =>
+        Object.values(piece.selectedFixtureIds || {}).includes(item.id),
+      ),
+    );
+    if (fixtureInQuotes) {
+      window.alert('Esta peça já está vinculada a orçamentos. Em vez de excluir, deixe-a inativa para manter o histórico do sistema.');
+      return;
+    }
+    const confirmed = window.confirm(`Tem certeza que deseja excluir a peça "${item.name}"?`);
+    if (!confirmed) return;
+    const ok = await deleteFirestoreDoc('fixtureCatalog', item.id);
+    if (!ok) return;
+    if (editingFixture?.id === item.id) {
+      resetFixtureForm(item.category);
+    }
   };
 
   const materialCatalog = settings.materialCatalog;
@@ -609,6 +747,13 @@ export const AdminPage: React.FC = () => {
         </div>
 
         <div className="space-y-2">
+        {employeeDraftRecovered && (
+          <DraftNotice
+            message="Recuperamos o último preenchimento do cadastro de funcionário para você continuar sem retrabalho."
+            savedAt={employeeDraftSavedAt}
+            onClear={clearEmployeeDraftState}
+          />
+        )}
         <form onSubmit={addEmployee} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px_180px_auto] gap-3">
           <input
             value={employeeForm.name}
@@ -639,6 +784,7 @@ export const AdminPage: React.FC = () => {
             {savingEmployee ?'Adicionando...' : 'Adicionar'}
           </button>
         </form>
+        <DraftAutosaveStatus savedAt={employeeDraftSavedAt} />
         {employeeError && (
           <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
             {employeeError}
@@ -683,6 +829,14 @@ export const AdminPage: React.FC = () => {
           <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500">
             Editando pedra: {editingMaterial.name}
           </div>
+        )}
+
+        {!editingMaterial && materialDraftRecovered && (
+          <DraftNotice
+            message="O último rascunho do cadastro de pedra foi restaurado e está pronto para revisão."
+            savedAt={materialDraftSavedAt}
+            onClear={resetMaterialForm}
+          />
         )}
 
         <form onSubmit={addMaterialCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -731,6 +885,7 @@ export const AdminPage: React.FC = () => {
             </button>
           )}
         </form>
+        {!editingMaterial && <DraftAutosaveStatus savedAt={materialDraftSavedAt} />}
 
         {materialError && (
           <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -783,6 +938,14 @@ export const AdminPage: React.FC = () => {
           </div>
         )}
 
+        {!editingFixture && fixtureDraftRecovered && (
+          <DraftNotice
+            message="Seu último rascunho de peça foi recuperado para continuar exatamente de onde você parou."
+            savedAt={fixtureDraftSavedAt}
+            onClear={() => resetFixtureForm()}
+          />
+        )}
+
         <form onSubmit={addFixtureCatalogItem} className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
           <input value={fixtureForm.name} onChange={(e) => setFixtureForm((f) => ({...f, name: e.target.value}))} placeholder="Nome da peça" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3" />
           <select value={fixtureForm.category} onChange={(e) => setFixtureForm((f) => ({...f, category: e.target.value as FixtureCategory}))} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
@@ -833,6 +996,7 @@ export const AdminPage: React.FC = () => {
             </button>
           )}
         </form>
+        {!editingFixture && <DraftAutosaveStatus savedAt={fixtureDraftSavedAt} />}
 
         {fixtureError && (
           <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
@@ -871,6 +1035,9 @@ export const AdminPage: React.FC = () => {
                 <div className="flex shrink-0 items-center gap-2">
                   <button type="button" onClick={() => startEditingFixture(item)} className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/10 hover:text-brand-primary" title="Editar peça" aria-label="Editar peça">
                     <Pencil className="h-4 w-4" />
+                  </button>
+                  <button type="button" onClick={() => deleteFixtureCatalogItem(item)} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600" title="Excluir peça" aria-label="Excluir peça">
+                    <Trash2 className="h-4 w-4" />
                   </button>
                   <button type="button" onClick={() => toggleFixtureCatalogItem(item)} className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', item.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}>
                     {item.active ?'Ativo' : 'Inativo'}

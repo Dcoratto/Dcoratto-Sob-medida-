@@ -9,6 +9,7 @@ import {useSettings} from '../hooks/useSettings';
 import {convertImageUrlToWebp} from '../lib/imageUtils';
 import {Material, Quote, QuotePiece} from '../types';
 import {formatCurrency, formatNumber} from '../lib/utils';
+import {getPieceMajorMinorSides} from '../lib/pieceDimensions';
 
 const toDate = (value: any) => {
   if (!value) return new Date();
@@ -22,6 +23,11 @@ const pieceArea = (piece: QuotePiece) => Number(piece.totalArea || piece.manualA
 const pieceImage = (piece: QuotePiece) => piece.proposalImageUrl?.trim() || piece.previewUrl || '';
 const materialImage = (material?: Material | null) => material?.imageUrl?.trim() || '';
 const sectionIdForPiece = (index: number) => `ambiente-${index + 1}`;
+const pieceDimensionsText = (piece: QuotePiece) => {
+  const dimensions = getPieceMajorMinorSides(piece);
+  if (!dimensions.major) return 'Medidas não informadas';
+  return `${formatNumber(dimensions.major, 0)} x ${formatNumber(dimensions.minor, 0)} cm`;
+};
 
 const sideLabel = (type: string) => ({
   frontao: 'Frontão',
@@ -362,7 +368,7 @@ export const PremiumProposalPage: React.FC = () => {
                     <div>
                       <div className="text-sm font-semibold text-white/78 print:text-slate-800">{piece.name}</div>
                       <div className="mt-1 text-[11px] font-mono text-white/40 print:text-slate-500">
-                        Valor da peça: {formatCurrency(piecePrices[index] || 0)}
+                        Medidas: {pieceDimensionsText(piece)} · Valor da peça: {formatCurrency(piecePrices[index] || 0)}
                       </div>
                     </div>
                   </div>
@@ -538,7 +544,7 @@ const PieceSection = ({
     {label: 'Rebaixo italiano', count: quoteCutouts?.wetAreaItalianRecess || 0},
   ].filter((item) => item.count > 0);
   const rows = [
-    {description: 'Pedra principal', measure: `${piece.length || 0} x ${piece.width || 0} cm`, area: `${formatNumber(pieceArea(piece), 4)} m²`, material: materialName, subtotal: 'Incluído'},
+    {description: 'Pedra principal', measure: pieceDimensionsText(piece), area: `${formatNumber(pieceArea(piece), 4)} m²`, material: materialName, subtotal: 'Incluído'},
     ...(piece.sculptedSink?.active ?[{
       description: `Pia esculpida ${piece.sculptedSink.type}`,
       measure: `${piece.sculptedSink.width || 0} x ${piece.sculptedSink.depth || 0} ${piece.sculptedSink.unit}`,
@@ -575,7 +581,7 @@ const PieceSection = ({
       <Eyebrow>Ambiente {String(index + 1).padStart(2, '0')}</Eyebrow>
       <h2 className="mb-2 mt-3 font-display text-3xl font-bold md:text-4xl">{piece.name}</h2>
       <p className="mb-8 text-xs text-white/35 print:text-slate-500">
-        Material: {materialName} · Área: {formatNumber(pieceArea(piece), 4)} m² · Valor da peça: {formatCurrency(piecePrice)}
+        Material: {materialName} · Medidas: {pieceDimensionsText(piece)} · Área: {formatNumber(pieceArea(piece), 4)} m² · Valor da peça: {formatCurrency(piecePrice)}
       </p>
       <div className={`grid gap-8 lg:grid-cols-12 ${reverse ?'lg:[&>*:first-child]:order-2' : ''}`}>
         <div className="lg:col-span-5">

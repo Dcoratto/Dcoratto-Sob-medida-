@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
 import {Quote, Settings} from '../types';
+import {getPieceMajorMinorSides} from './pieceDimensions';
 
 const money = (value = 0) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(value);
 
@@ -14,6 +15,11 @@ const toDate = (value: any) => {
 };
 
 const safeText = (value?: string) => value?.trim() || '-';
+const formatPieceDimensions = (piece: Quote['pieces'][number]) => {
+  const dimensions = getPieceMajorMinorSides(piece);
+  if (!dimensions.major) return '-';
+  return `${dimensions.major.toFixed(0)} x ${dimensions.minor.toFixed(0)} cm`;
+};
 const sideTypeLabel = (type?: string) => {
   if (type === 'frontao') return 'Frontao';
   if (type === 'saia') return 'Saia';
@@ -135,7 +141,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
       return [
         String(index + 1).padStart(2, '0'),
         piece.sculptedSink?.active ?`${piece.name}\nPia esculpida: ${piece.sculptedSink.type}` : piece.name,
-        `${piece.length || 0} x ${piece.width || 0} cm`,
+        formatPieceDimensions(piece),
         `${(piece.totalArea || piece.manualArea || piece.area || 0).toFixed(4)} m²`,
         additions,
         piece.notes || '-',

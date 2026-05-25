@@ -351,6 +351,7 @@ export interface QuotePiece {
   manualArea?: number;
   totalArea?: number;
   largestSide?: number;
+  smallestSide?: number;
   sides: PieceSide[];
   notes: string;
   drawingJson?: string;

@@ -23,6 +23,7 @@ import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {validateQuoteBeforeSave} from '../lib/businessRules';
+import {getPieceMajorMinorSides} from '../lib/pieceDimensions';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 
@@ -988,6 +989,7 @@ export const QuoteEditor: React.FC = () => {
               const stairDetails = calculateStairArea(piece);
               const pieceMaterial = materialWithUserPrice(piece.materialId, piece.materialVariantKey);
               const stock = piece.materialId ?materialStock(piece.materialId, piece.materialVariantKey) : {available: 0};
+              const pieceDimensions = getPieceMajorMinorSides(piece);
               const hasMaterial = Boolean(piece.materialId);
               const hasEnoughStock = hasMaterial && stock.available >= pieceArea;
               const lotInfo = hasMaterial ?materialLotInfo(piece.materialId, pieceArea, piece.materialVariantKey) : null;
@@ -1064,6 +1066,13 @@ export const QuoteEditor: React.FC = () => {
                     </div>
 
                     <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="md:col-span-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Medidas do desenho</div>
+                        <div className="mt-2 flex flex-wrap gap-4 text-sm font-semibold text-slate-700">
+                          <span>Largura: <span className="font-mono text-slate-900">{pieceDimensions.major > 0 ? `${formatNumber(pieceDimensions.major, 0)} cm` : '-'}</span></span>
+                          <span>Profundidade: <span className="font-mono text-slate-900">{pieceDimensions.minor > 0 ? `${formatNumber(pieceDimensions.minor, 0)} cm` : '-'}</span></span>
+                        </div>
+                      </div>
                       <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status da peça</label>
                         <select
@@ -1714,19 +1723,25 @@ export const QuoteEditor: React.FC = () => {
                 saveButtonId={`save-drawing-${showDrawing}`}
                 fixtureCatalog={fixtureCatalog}
                 settings={settings}
-                onSave={({ json, area, previewUrl, sides, largestSide, cutouts: drawingCutouts }) => {
-                  const currentPiece = pieces.find((piece) => piece.id === showDrawing);
-                  const fixturePatch = fixturePatchFromDrawingCutouts(drawingCutouts);
-                  applyCutoutDiff(currentPiece?.cutouts, drawingCutouts);
-                  updatePiece(showDrawing, { 
-                    drawingJson: json, 
-                    manualArea: area, 
-                    previewUrl, 
-                    sides, 
-                    largestSide, 
-                    cutouts: drawingCutouts,
-                    selectedFixtureIds: {
-                      ...currentPiece?.selectedFixtureIds,
+                onSave={({ json, area, previewUrl, sides, largestSide, smallestSide, cutouts: drawingCutouts }) => {
+                    const currentPiece = pieces.find((piece) => piece.id === showDrawing);
+                    const fixturePatch = fixturePatchFromDrawingCutouts(drawingCutouts);
+                    applyCutoutDiff(currentPiece?.cutouts, drawingCutouts);
+                    const dimensionCandidates = [Number(largestSide || 0), Number(smallestSide || 0)].filter((value) => value > 0);
+                    const major = dimensionCandidates.length ? Math.max(...dimensionCandidates) : 0;
+                    const minor = dimensionCandidates.length ? Math.min(...dimensionCandidates) : 0;
+                    updatePiece(showDrawing, { 
+                      drawingJson: json, 
+                      manualArea: area, 
+                      previewUrl, 
+                      sides, 
+                      largestSide, 
+                      smallestSide,
+                      length: major || currentPiece?.length || 0,
+                      width: minor || currentPiece?.width || major || 0,
+                      cutouts: drawingCutouts,
+                      selectedFixtureIds: {
+                        ...currentPiece?.selectedFixtureIds,
                       ...fixturePatch.selectedFixtureIds,
                     },
                     purchasedFixtures: {

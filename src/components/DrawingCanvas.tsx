@@ -46,6 +46,7 @@ interface SavedDrawing {
   cutouts: DrawingCutout[];
   area: number;
   majorSide: number;
+  minorSide: number;
   previewImage?: string;
 }
 
@@ -65,6 +66,7 @@ interface DrawingCanvasProps {
     previewUrl: string;
     sides: PieceSide[];
     largestSide: number;
+    smallestSide: number;
     cutouts: DrawingCutout[];
   }) => void;
   onCancel?: () => void;
@@ -282,6 +284,10 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
   const area = useMemo(() => closed ?polygonArea(drawPoints) : 0, [closed, drawPoints]);
   const majorSideM = useMemo(() => Math.max(0, ...technicalSides.map((side) => side.lengthM)), [technicalSides]);
+  const minorSideM = useMemo(() => {
+    if (!technicalSides.length) return 0;
+    return technicalSides.reduce((smallest, side) => Math.min(smallest, side.lengthM), technicalSides[0].lengthM);
+  }, [technicalSides]);
   const additionalArea = useMemo(() => complementos.reduce((total, item) => total + (item.areaTotal || item.area || 0), 0), [complementos]);
   const fixtureCategoryByCutoutType: Record<CutoutType, FixtureCatalogItem['category']> = {
     cooktop: 'cooktop',
@@ -937,6 +943,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       cutouts,
       area,
       majorSide: majorSideM,
+      minorSide: minorSideM,
       previewImage: previewUrl,
     };
     setLastPiece(payload);
@@ -946,6 +953,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       previewUrl,
       sides: complementos,
       largestSide: majorSideM * 100,
+      smallestSide: minorSideM * 100,
       cutouts,
     });
   };
@@ -1650,13 +1658,17 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <div className="flex flex-col justify-between border-l border-slate-100 bg-slate-50 p-5">
           <div className="space-y-3">
             <div className="rounded-2xl bg-white p-4">
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Maior lado</div>
-              <div className="font-mono text-xl font-bold text-slate-900">{majorSideM.toFixed(2)} m</div>
-            </div>
-            <div className="rounded-2xl bg-white p-4">
-              <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Persistência</div>
-              <p className="mt-1 text-xs text-slate-500">O desenho salva pontos, lados, complementos, recortes, área, maior lado e preview PNG.</p>
-            </div>
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Maior lado</div>
+                <div className="font-mono text-xl font-bold text-slate-900">{majorSideM.toFixed(2)} m</div>
+              </div>
+              <div className="rounded-2xl bg-white p-4">
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Menor lado</div>
+                <div className="font-mono text-xl font-bold text-slate-900">{minorSideM.toFixed(2)} m</div>
+              </div>
+              <div className="rounded-2xl bg-white p-4">
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Persistência</div>
+                <p className="mt-1 text-xs text-slate-500">O desenho salva pontos, lados, complementos, recortes, área, maior lado, menor lado e preview PNG.</p>
+              </div>
           </div>
           <div className="space-y-2">
             <button type="button" onClick={saveDrawing} disabled={!closed || drawPoints.length < 3} className="w-full rounded-2xl bg-brand-primary py-4 font-bold text-white shadow-lg shadow-brand-primary/20 disabled:opacity-50">

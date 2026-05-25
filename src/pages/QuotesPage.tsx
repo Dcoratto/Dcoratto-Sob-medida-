@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+﻿import React, {useEffect, useState} from 'react';
 import {addDoc, arrayUnion, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from '../lib/firestore';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {format} from 'date-fns';
@@ -21,7 +21,11 @@ export const QuotesPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const scope = new URLSearchParams(location.search).get('scope') || 'all';
-  const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
+  const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'UsuÃ¡rio';
+  const openPremiumProposal = (quoteId: string) => {
+    const proposalUrl = window.location.origin + '/quotes/proposal/' + quoteId;
+    window.open(proposalUrl, '_blank', 'noopener,noreferrer');
+  };
 
   useEffect(() => {
     const q = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
@@ -52,11 +56,11 @@ export const QuotesPage: React.FC = () => {
 
   const handleStatusChange = async (quote: Quote, status: QuoteStatus) => {
     if (!hasPermission('orcamento', 'editar')) {
-      alert('Você não tem permissão para alterar orçamentos. Fale com o administrador.');
+      alert('VocÃª nÃ£o tem permissÃ£o para alterar orÃ§amentos. Fale com o administrador.');
       return;
     }
     if (isApprovedOrBeyond(status) && !hasPermission('orcamento', 'aprovar')) {
-      alert('Você não tem permissão para aprovar orçamentos. Fale com o administrador.');
+      alert('VocÃª nÃ£o tem permissÃ£o para aprovar orÃ§amentos. Fale com o administrador.');
       return;
     }
     try {
@@ -81,7 +85,7 @@ export const QuotesPage: React.FC = () => {
 
       await logSystemEvent({
         type: 'quote_status_changed',
-        title: 'Status do orçamento alterado',
+        title: 'Status do orÃ§amento alterado',
         description: `${quote.clientName}: ${quote.status} -> ${status}`,
         entityType: 'quote',
         entityId: quote.id,
@@ -95,27 +99,27 @@ export const QuotesPage: React.FC = () => {
         userName: currentUserName,
       });
     } catch (error: any) {
-      alert(error?.message || 'Não foi possível alterar o status do orçamento.');
+      alert(error?.message || 'NÃ£o foi possÃ­vel alterar o status do orÃ§amento.');
     }
   };
 
   const handleDuplicate = async (quote: Quote) => {
     if (!hasPermission('orcamento', 'criar')) {
-      alert('Você não tem permissão para criar orçamentos. Fale com o administrador.');
+      alert('VocÃª nÃ£o tem permissÃ£o para criar orÃ§amentos. Fale com o administrador.');
       return;
     }
     const {id, ...data} = quote;
     const duplicatedQuote = {
       ...data,
       createdAt: Timestamp.now(),
-      status: 'Orçamento',
-      clientName: `${data.clientName} (Cópia)`,
+      status: 'OrÃ§amento',
+      clientName: `${data.clientName} (CÃ³pia)`,
     } as Omit<Quote, 'id'>;
     const createdRef = await addDoc(collection(db, 'quotes'), duplicatedQuote);
     await syncQuoteReservation(createdRef.id, duplicatedQuote);
     await logSystemEvent({
       type: 'quote_duplicated',
-      title: 'Orçamento duplicado',
+      title: 'OrÃ§amento duplicado',
       description: `${quote.clientName} foi duplicado`,
       entityType: 'quote',
       entityId: createdRef.id,
@@ -132,10 +136,10 @@ export const QuotesPage: React.FC = () => {
 
   const handleDelete = async (id: string) => {
     if (!hasPermission('orcamento', 'excluir')) {
-      alert('Você não tem permissão para excluir orçamentos. Fale com o administrador.');
+      alert('VocÃª nÃ£o tem permissÃ£o para excluir orÃ§amentos. Fale com o administrador.');
       return;
     }
-    const confirmed = window.confirm('Tem certeza que deseja excluir este orçamento?');
+    const confirmed = window.confirm('Tem certeza que deseja excluir este orÃ§amento?');
     if (!confirmed) return;
 
     await releaseQuoteReservation(id);
@@ -146,7 +150,7 @@ export const QuotesPage: React.FC = () => {
     if (deletedQuote) {
       await logSystemEvent({
         type: 'quote_deleted',
-        title: 'Orçamento excluído',
+        title: 'OrÃ§amento excluÃ­do',
         description: deletedQuote.clientName,
         entityType: 'quote',
         entityId: id,
@@ -167,8 +171,8 @@ export const QuotesPage: React.FC = () => {
     <div className="space-y-6">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Orçamentos</h1>
-          <p className="text-slate-500 mt-1">Crie e gerencie orçamentos e pedidos.</p>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">OrÃ§amentos</h1>
+          <p className="text-slate-500 mt-1">Crie e gerencie orÃ§amentos e pedidos.</p>
         </div>
         {hasPermission('orcamento', 'criar') && (
           <button
@@ -177,7 +181,7 @@ export const QuotesPage: React.FC = () => {
             className="flex items-center gap-2 bg-brand-primary text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95"
           >
             <Plus className="w-5 h-5" />
-            Novo Orçamento
+            Novo OrÃ§amento
           </button>
         )}
       </header>
@@ -185,7 +189,7 @@ export const QuotesPage: React.FC = () => {
       <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
         {scope === 'open' && (
           <div className="mx-4 mt-4 mb-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-center justify-between gap-3">
-            <div className="text-xs font-bold uppercase tracking-widest text-amber-800">Filtro ativo: Orçamentos em aberto</div>
+            <div className="text-xs font-bold uppercase tracking-widest text-amber-800">Filtro ativo: OrÃ§amentos em aberto</div>
             <button
               type="button"
               onClick={() => navigate('/quotes')}
@@ -212,18 +216,18 @@ export const QuotesPage: React.FC = () => {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-50">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Orçamento / Cliente</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">OrÃ§amento / Cliente</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Data</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Total</th>
                 <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">Ações</th>
+                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest text-right">AÃ§Ãµes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {loading ?(
-                <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Carregando orçamentos...</td></tr>
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Carregando orÃ§amentos...</td></tr>
               ) : filteredQuotes.length === 0 ?(
-                <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Nenhum orçamento encontrado.</td></tr>
+                <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Nenhum orÃ§amento encontrado.</td></tr>
               ) : (
                 filteredQuotes.map((quote) => (
                   <tr key={quote.id} className="hover:bg-slate-50/50 transition-colors group">
@@ -257,7 +261,7 @@ export const QuotesPage: React.FC = () => {
                         <button
                           type="button"
                           title="Abrir proposta premium"
-                          onClick={() => window.open(`/#/quotes/proposal/${quote.id}`, '_blank', 'noopener,noreferrer')}
+                          onClick={() => openPremiumProposal(quote.id)}
                           className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/5 hover:text-brand-primary"
                         >
                           <FileText className="w-4 h-4" />

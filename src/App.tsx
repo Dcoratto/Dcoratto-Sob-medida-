@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, {Suspense, lazy} from 'react';
-import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom';
+import React, {Suspense, lazy, useEffect} from 'react';
+import {BrowserRouter, Navigate, Route, Routes, useNavigate} from 'react-router-dom';
 import {AuthProvider, useAuth} from './contexts/AuthContext';
 import {Shell} from './components/layout/Shell';
 import {PermissionModule} from './lib/permissions';
@@ -82,10 +82,28 @@ const RouteLoadingFallback = () => (
   </div>
 );
 
+const LegacyHashRedirect = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const rawHash = window.location.hash || '';
+    const legacyPath = rawHash.startsWith('#/') ? rawHash.slice(1) : '';
+    if (!legacyPath.startsWith('/quotes/proposal/')) return;
+
+    window.history.replaceState({}, document.title, legacyPath);
+    navigate(legacyPath, {replace: true});
+  }, [navigate]);
+
+  return null;
+};
+
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
+        <LegacyHashRedirect />
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
             <Route path="/login" element={<Login />} />

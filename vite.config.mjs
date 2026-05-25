@@ -7,7 +7,7 @@ export default defineConfig(({mode}) => {
   const env = loadEnv(mode, '.', '');
   return {
     root: path.resolve(process.cwd(), '.'),
-    base: './',
+    base: '/',
     cacheDir: path.resolve(process.cwd(), '.vite-cache'),
     plugins: [react(), tailwindcss()],
     define: {

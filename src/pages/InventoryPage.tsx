@@ -1414,88 +1414,48 @@ export const InventoryPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-          <div className="rounded-[28px] border border-slate-100 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95),_rgba(248,250,252,0.9)_55%,_rgba(241,245,249,0.9))] p-5">
+        <div className="space-y-5">
+          <div className="rounded-[28px] border border-slate-100 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95),_rgba(248,250,252,0.9)_55%,_rgba(241,245,249,0.9))] p-4">
             <div className="rounded-[24px] border border-slate-200/80 bg-white/70 p-4 shadow-inner shadow-slate-100/80">
-              <div className="space-y-4">
-                {patioRackRows.map((row, rowIndex) => (
-                  <div
-                    key={`row-${rowIndex}`}
-                    className={cn(
-                      'grid gap-4',
-                      row.length === 1 ? 'grid-cols-1 justify-items-center' : 'grid-cols-1 md:grid-cols-2',
-                    )}
-                  >
-                    {row.map((rack) => {
-                      const rackItems = rackItemsMap.get(rack) || [];
-                      const isSelected = selectedPatioPanel === rack;
-                      const hasFocusedItem = rackItems.some((item) => item.id === focusedInventoryId);
-                      const area = rackAreaMap.get(rack) || 0;
-                      const occupancy = rackOccupancyPercent(rack);
-                      const counts = statusCountForRack(rack);
-                      const hasReserved = counts.reserved > 0;
-                      const hasScraps = counts.scraps > 0;
+              <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
+                {patioRacks.map((rack) => {
+                  const rackItems = rackItemsMap.get(rack) || [];
+                  const isSelected = selectedPatioPanel === rack;
+                  const hasFocusedItem = rackItems.some((item) => item.id === focusedInventoryId);
+                  const occupancy = rackOccupancyPercent(rack);
 
-                      return (
-                        <button
-                          key={rack}
-                          type="button"
-                          onClick={() => {
-                            setSelectedRackId(rack);
-                            setSelectedPatioPanel(rack);
-                            setFocusedInventoryId('');
-                          }}
-                          className={cn(
-                            'group relative w-full max-w-[480px] rounded-[30px] border bg-white/95 px-5 py-4 text-left transition-all',
-                            isSelected ? 'border-brand-primary shadow-[0_18px_50px_-28px_rgba(155,112,69,0.65)]' : 'border-slate-200 hover:border-brand-primary/35 hover:bg-white',
-                            hasFocusedItem && 'ring-2 ring-brand-primary ring-offset-2 ring-offset-slate-50',
-                          )}
-                        >
-                          <div className="relative overflow-hidden rounded-[24px] border border-slate-100 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] px-4 py-4">
-                            <div className="pointer-events-none absolute inset-y-4 left-4 w-6 rounded-full border border-slate-300 bg-slate-100/80" />
-                            <div className="pointer-events-none absolute inset-y-4 right-4 w-6 rounded-full border border-slate-300 bg-slate-100/80" />
-                            <div className="pointer-events-none absolute left-[calc(1rem+1.5rem)] right-[calc(1rem+1.5rem)] top-1/2 h-2 -translate-y-1/2 rounded-full bg-slate-200" />
-                            <div className="pointer-events-none absolute left-[calc(1rem+1.5rem)] right-[calc(1rem+1.5rem)] top-1/2 h-2 -translate-y-1/2 rounded-full bg-brand-primary/15" style={{width: `${Math.max(14, occupancy)}%`}} />
-
-                            <div className="relative z-10 flex items-start justify-between gap-3">
-                              <div>
-                                <div className="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Cavalete</div>
-                                <div className="mt-1 font-display text-2xl font-bold text-slate-900">{rack.replace('Cavalete ', '')}</div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">Ocupação</div>
-                                <div className="mt-1 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{occupancy}%</div>
-                              </div>
-                            </div>
-
-                            <div className="relative z-10 mt-14 grid grid-cols-2 gap-2 text-xs font-semibold">
-                              <div className="rounded-xl bg-slate-50 px-3 py-2 text-slate-700">{rackItems.length} chapa(s)</div>
-                              <div className="rounded-xl bg-slate-50 px-3 py-2 text-slate-700">{formatNumber(area)} m²</div>
-                            </div>
-
-                            <div className="relative z-10 mt-3 flex flex-wrap gap-2">
-                              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-700">
-                                {counts.available} disponível
-                              </span>
-                              <span className={cn(
-                                'rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest',
-                                hasReserved ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500',
-                              )}>
-                                {counts.reserved} reservada
-                              </span>
-                              <span className={cn(
-                                'rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest',
-                                hasScraps ? 'bg-blue-50 text-blue-700' : 'bg-slate-100 text-slate-500',
-                              )}>
-                                {counts.scraps} retalho
-                              </span>
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))}
+                  return (
+                    <button
+                      key={rack}
+                      type="button"
+                      title={rack}
+                      aria-label={rack}
+                      onClick={() => {
+                        setSelectedRackId(rack);
+                        setSelectedPatioPanel(rack);
+                        setFocusedInventoryId('');
+                      }}
+                      className={cn(
+                        'group relative h-[84px] w-[120px] shrink-0 rounded-[24px] border bg-white/95 p-3 transition-all',
+                        isSelected ? 'border-brand-primary shadow-[0_18px_50px_-28px_rgba(155,112,69,0.65)]' : 'border-slate-200 hover:border-brand-primary/35 hover:bg-white',
+                        hasFocusedItem && 'ring-2 ring-brand-primary ring-offset-2 ring-offset-slate-50',
+                      )}
+                    >
+                      <div className="relative h-full overflow-hidden rounded-[18px] border border-slate-100 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]">
+                        <div className="pointer-events-none absolute inset-y-2 left-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
+                        <div className="pointer-events-none absolute inset-y-2 right-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
+                        <div className="pointer-events-none absolute left-[26px] right-[26px] top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slate-200" />
+                        <div
+                          className="pointer-events-none absolute left-[26px] top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-brand-primary/18 transition-all"
+                          style={{width: `calc((100% - 52px) * ${Math.max(0.12, occupancy / 100)})`}}
+                        />
+                        <div className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400 transition-colors group-hover:text-brand-primary/80">
+                          {rack.replace('Cavalete ', '')}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

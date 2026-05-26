@@ -67,7 +67,6 @@ export const PremiumProposalPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('materiais');
   const [lightbox, setLightbox] = useState<LightboxState>(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
 
   useEffect(() => {
     const unsubscribeMaterials = onSnapshot(collection(db, 'materials'), (snapshot) => {
@@ -145,11 +144,6 @@ export const PremiumProposalPage: React.FC = () => {
     return foundIndex >= 0 ?foundIndex : 0;
   }, [activeSection, navItems]);
 
-  const readingProgress = useMemo(() => {
-    if (!navItems.length) return 0;
-    return ((activeSectionIndex + 1) / navItems.length) * 100;
-  }, [activeSectionIndex, navItems.length]);
-
   const piecePrices = useMemo(() => {
     const pieces = quote?.pieces || [];
     if (!pieces.length) return [];
@@ -197,25 +191,6 @@ export const PremiumProposalPage: React.FC = () => {
     return () => observer.disconnect();
   }, [navItems]);
 
-  useEffect(() => {
-    const updateProgress = () => {
-      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-      if (maxScroll <= 0) {
-        setScrollProgress(0);
-        return;
-      }
-      setScrollProgress((window.scrollY / maxScroll) * 100);
-    };
-
-    updateProgress();
-    window.addEventListener('scroll', updateProgress, {passive: true});
-    window.addEventListener('resize', updateProgress);
-    return () => {
-      window.removeEventListener('scroll', updateProgress);
-      window.removeEventListener('resize', updateProgress);
-    };
-  }, []);
-
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (!element) return;
@@ -252,32 +227,20 @@ export const PremiumProposalPage: React.FC = () => {
 
   return (
     <main className="premium-proposal min-h-screen overflow-hidden bg-[#050505] text-white print:bg-white print:text-slate-950">
-      <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-1 bg-white/5 print:hidden">
-        <div
-          className="h-full bg-gradient-to-r from-[#D4A853] via-[#f0cf88] to-[#D4A853] shadow-[0_0_24px_rgba(212,168,83,0.45)] transition-[width] duration-300 ease-out"
-          style={{width: `${scrollProgress}%`}}
-        />
-      </div>
       <div className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/45 backdrop-blur-2xl print:hidden">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 md:flex-nowrap md:px-6">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 md:px-6">
           <button type="button" onClick={() => navigate('/quotes')} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/70 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#D4A853]/35 hover:bg-white/8 hover:text-[#D4A853] active:scale-[0.98]">
             <ArrowLeft className="h-4 w-4" />
             Orçamentos
           </button>
-          <div className="order-3 flex w-full items-center justify-between gap-3 rounded-full border border-white/8 bg-white/[0.035] px-3 py-2 md:order-2 md:flex-1">
-            <div className="hidden min-w-[132px] md:block">
-              <div className="text-[9px] font-bold uppercase tracking-[0.28em] text-white/35">Leitura</div>
-              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/8">
-                <div className="h-full rounded-full bg-gradient-to-r from-[#D4A853] to-[#f0cf88] transition-all duration-300" style={{width: `${readingProgress}%`}} />
-              </div>
-            </div>
-            <div className="order-3 flex w-full max-w-full items-center gap-2 overflow-x-auto pb-1 md:order-2 md:flex-1 md:justify-center md:pb-0">
+          <div className="order-3 flex w-full flex-col gap-2 rounded-[28px] border border-white/8 bg-white/[0.035] px-3 py-3 md:order-2 md:flex-1 md:px-4">
+            <div className="flex flex-wrap items-center justify-center gap-1.5 md:gap-2">
             {navItems.map((item) => (
               <button
                 key={item.sectionId}
                 type="button"
                 onClick={() => scrollToSection(item.sectionId)}
-                className={`whitespace-nowrap rounded-full border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.22em] transition-all duration-300 active:scale-[0.98] ${
+                className={`min-w-0 max-w-full rounded-full border px-2.5 py-2 text-[9px] font-bold uppercase tracking-[0.16em] transition-all duration-300 active:scale-[0.98] sm:px-3 sm:text-[10px] md:text-[11px] ${
                   activeSection === item.sectionId
                     ? 'border-[#D4A853]/50 bg-[#D4A853]/15 text-[#D4A853] shadow-[0_10px_30px_rgba(212,168,83,0.14)]'
                     : 'border-white/10 bg-white/[0.03] text-white/45 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.05] hover:text-[#D4A853]'
@@ -287,7 +250,7 @@ export const PremiumProposalPage: React.FC = () => {
               </button>
             ))}
             </div>
-            <div className="hidden min-w-[120px] text-right md:block">
+            <div className="text-center">
               <div className="text-[9px] font-bold uppercase tracking-[0.28em] text-white/35">Etapa atual</div>
               <div className="mt-1 text-xs font-semibold text-white/72">{navItems[activeSectionIndex]?.label || 'Início'}</div>
             </div>

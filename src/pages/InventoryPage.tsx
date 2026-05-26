@@ -21,12 +21,9 @@ const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'U
 
 const patioRacks = Array.from({length: 9}, (_, index) => `Cavalete ${index + 1}`);
 const patioRackRows = [
-  ['Cavalete 1'],
-  ['Cavalete 2', 'Cavalete 3'],
-  ['Cavalete 4', 'Cavalete 5'],
-  ['Cavalete 6', 'Cavalete 7'],
-  ['Cavalete 8'],
-  ['Cavalete 9'],
+  ['Cavalete 2', 'Cavalete 3', 'Cavalete 4'],
+  ['Cavalete 1', 'Cavalete 5', 'Cavalete 6'],
+  ['Cavalete 7', 'Cavalete 8', 'Cavalete 9'],
 ] as const;
 const UNASSIGNED_PANEL_ID = '__unassigned__';
 
@@ -1417,13 +1414,15 @@ export const InventoryPage: React.FC = () => {
         <div className="space-y-5">
           <div className="rounded-[28px] border border-slate-100 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95),_rgba(248,250,252,0.9)_55%,_rgba(241,245,249,0.9))] p-4">
             <div className="rounded-[24px] border border-slate-200/80 bg-white/70 p-4 shadow-inner shadow-slate-100/80">
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {patioRackRows.map((row, rowIndex) => (
                   <div
                     key={`row-${rowIndex}`}
                     className={cn(
-                      'flex gap-3 md:gap-4',
-                      row.length === 1 ? 'justify-center' : 'justify-center',
+                      'flex items-center gap-3 md:gap-4',
+                      rowIndex === 0 && 'justify-center',
+                      rowIndex === 1 && 'justify-between md:px-16',
+                      rowIndex === 2 && 'justify-center',
                     )}
                   >
                     {row.map((rack) => {
@@ -1444,12 +1443,12 @@ export const InventoryPage: React.FC = () => {
                             setFocusedInventoryId('');
                           }}
                           className={cn(
-                            'group relative h-[84px] w-[120px] shrink-0 rounded-[24px] border bg-white/95 p-3 transition-all',
+                            'group relative h-[78px] w-[110px] shrink-0 rounded-[22px] border bg-white/95 p-3 transition-all md:h-[82px] md:w-[116px]',
                             isSelected ? 'border-brand-primary shadow-[0_18px_50px_-28px_rgba(155,112,69,0.65)]' : 'border-slate-200 hover:border-brand-primary/35 hover:bg-white',
                             hasFocusedItem && 'ring-2 ring-brand-primary ring-offset-2 ring-offset-slate-50',
                           )}
                         >
-                          <div className="relative h-full overflow-hidden rounded-[18px] border border-slate-100 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]">
+                          <div className="relative h-full overflow-hidden rounded-[16px] border border-slate-100 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]">
                             <div className="pointer-events-none absolute inset-y-2 left-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
                             <div className="pointer-events-none absolute inset-y-2 right-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
                             <div className="pointer-events-none absolute left-[26px] right-[26px] top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slate-200" />

@@ -1,4 +1,4 @@
-import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote} from '../types';
+﻿import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote} from '../types';
 
 const normalize = (value: unknown) =>
   String(value || '')
@@ -80,16 +80,73 @@ export const validateQuoteBeforeSave = ({
   clientId,
   pieces,
   selectedClient,
+  totalArea,
+  totalPrice,
+  calculatePieceArea,
 }: {
   clientId?: string;
   pieces: Quote['pieces'];
   selectedClient?: Client | null;
+  totalArea: number;
+  totalPrice: number;
+  calculatePieceArea: (piece: Quote['pieces'][number]) => {totalArea: number};
 }) => {
+  const MAX_QUOTE_TOTAL_AREA = 9999999999.9999;
+  const MAX_QUOTE_TOTAL_PRICE = 999999999999.99;
+  const MAX_DIMENSION_CM = 5000;
+  const MAX_DIMENSION_M = 50;
+  const MAX_PIECE_AREA = 5000;
+
   if (!clientId) return 'Por favor, selecione um cliente.';
   if (!selectedClient) return 'O cliente selecionado não foi encontrado. Atualize a tela e tente novamente.';
   if (!pieces.length) return 'Adicione pelo menos uma peça ao orçamento.';
   if (pieces.some((piece) => !piece.materialId)) return 'Selecione o material de todas as peças.';
   if (pieces.some((piece) => !piece.name?.trim())) return 'Preencha o nome de todas as peças.';
+
+  for (const piece of pieces) {
+    if (piece.stair?.active) {
+      const unitLimit = piece.stair.unit === 'cm' ? MAX_DIMENSION_CM : MAX_DIMENSION_M;
+      const values = [
+        {label: 'largura do degrau', value: Number(piece.stair.stepWidth || 0)},
+        {label: 'profundidade do piso', value: Number(piece.stair.treadDepth || 0)},
+        {label: 'altura do espelho', value: Number(piece.stair.riserHeight || 0)},
+        {label: 'largura do patamar', value: Number(piece.stair.landingWidth || 0)},
+        {label: 'profundidade do patamar', value: Number(piece.stair.landingDepth || 0)},
+      ];
+      const invalidStairDimension = values.find(({value}) => !Number.isFinite(value) || value < 0 || value > unitLimit);
+      if (invalidStairDimension) {
+        return `A peça "${piece.name}" tem ${invalidStairDimension.label} fora do limite esperado. Revise as medidas da escada.`;
+      }
+    } else {
+      const unitLimit = piece.unit === 'cm' ? MAX_DIMENSION_CM : MAX_DIMENSION_M;
+      const width = Number(piece.width || 0);
+      const length = Number(piece.length || 0);
+      if (!Number.isFinite(width) || width <= 0 || width > unitLimit) {
+        return `A peça "${piece.name}" está com uma largura fora do limite esperado. Revise a medida antes de salvar.`;
+      }
+      if (!Number.isFinite(length) || length <= 0 || length > unitLimit) {
+        return `A peça "${piece.name}" está com um comprimento fora do limite esperado. Revise a medida antes de salvar.`;
+      }
+    }
+
+    if (piece.manualArea && (!Number.isFinite(piece.manualArea) || piece.manualArea <= 0 || piece.manualArea > MAX_PIECE_AREA)) {
+      return `A peça "${piece.name}" está com uma área de desenho fora do limite esperado. Reabra o desenho e salve novamente.`;
+    }
+
+    const pieceTotals = calculatePieceArea(piece);
+    if (!Number.isFinite(pieceTotals.totalArea) || pieceTotals.totalArea <= 0 || pieceTotals.totalArea > MAX_PIECE_AREA) {
+      return `A peça "${piece.name}" ficou com uma área total inválida. Revise medidas, desenho e adicionais antes de salvar.`;
+    }
+  }
+
+  if (!Number.isFinite(totalArea) || totalArea <= 0 || totalArea > MAX_QUOTE_TOTAL_AREA) {
+    return 'A área total do orçamento ficou inválida. Revise as medidas das peças antes de salvar.';
+  }
+
+  if (!Number.isFinite(totalPrice) || totalPrice <= 0 || totalPrice > MAX_QUOTE_TOTAL_PRICE) {
+    return 'O valor total do orçamento ficou inválido. Revise medidas e preços das peças antes de salvar.';
+  }
+
   return null;
 };
 
@@ -259,5 +316,5 @@ export const buildQuickSearchResults = ({
     });
   });
 
-  return results.slice(0, 12);
+  return results;
 };

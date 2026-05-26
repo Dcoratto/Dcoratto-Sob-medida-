@@ -1,4 +1,4 @@
-﻿import {parseCurrencyInput, repairTextDeep} from './utils';
+import {parseCurrencyInput, repairTextDeep} from './utils';
 import {supabase} from './supabase';
 
 type TableName = string;
@@ -621,7 +621,7 @@ export const setDoc = async (reference: DocumentReference, data: object, options
 export const updateDoc = async (reference: DocumentReference, data: object) => {
   const current = await getDoc(reference);
   if (!current.exists()) {
-    throw new Error(`Documento ${reference.table}/${reference.id} nÃ£o encontrado.`);
+    throw new Error(`Documento ${reference.table}/${reference.id} não encontrado.`);
   }
 
   const currentData = current.data() || {};
@@ -667,4 +667,5 @@ export const writeBatch = (_db: typeof db) => {
 
 export const getTableName = (collectionName: string) => getTableConfig(collectionName).table;
 export const getCollectionName = (tableName: string) => getCollectionNameFromTable(tableName);
+
 

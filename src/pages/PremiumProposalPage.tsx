@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {collection, doc, getDoc, onSnapshot} from '../lib/firestore';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';

@@ -1,4 +1,4 @@
-﻿import type {jsPDF} from 'jspdf';
+import type {jsPDF} from 'jspdf';
 import {Employee, InventoryItem, InventoryPurchase, InventoryReservation, Material, ProductionStep, Quote, SystemEvent} from '../types';
 
 type PdfColor = [number, number, number];
@@ -421,3 +421,4 @@ export const generateReportPDF = async (data: ReportPdfData) => {
   addFooter(doc, primary);
   doc.save(`Relatorio_DCoratto_${data.periodLabel.replace(/\s+/g, '_')}.pdf`);
 };
+

@@ -1,4 +1,4 @@
-﻿import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote} from '../types';
+import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote} from '../types';
 
 const normalize = (value: unknown) =>
   String(value || '')

@@ -12,9 +12,9 @@ const AREA_UNIT = 'm²';
 
 const sanitizePdfText = (value: string) =>
   String(value || '')
-    .replace(/[Â²]/g, '2')
+    .replace(/[²]/g, '2')
     .replace(/[\u0300-\u036f]/g, '')
-    .replace(/Ãƒâ€šÃ‚Â²/g, '2')
+    .replace(/²/g, '2')
     .replace(/[^\x20-\x7E\n]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -106,4 +106,5 @@ export const generatePurchaseOrderPdf = async (group: PurchaseOrderGroup, settin
 
   doc.save(`Pedido_${safeFilePart(group.supplier || group.groupId)}.pdf`);
 };
+
 

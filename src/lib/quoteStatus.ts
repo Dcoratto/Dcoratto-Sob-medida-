@@ -1,4 +1,4 @@
-﻿import {Client, Quote, QuoteStatus} from '../types';
+import {Client, Quote, QuoteStatus} from '../types';
 
 export const QUOTE_STATUSES: QuoteStatus[] = [
   'Orçamento',

@@ -1,4 +1,4 @@
-﻿import React, {useEffect, useMemo, useRef, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc} from '../lib/firestore';
 import {AlertTriangle, Edit2, Eye, PackageCheck, Search, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';

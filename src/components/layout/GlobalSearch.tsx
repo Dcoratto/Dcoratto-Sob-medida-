@@ -5,6 +5,7 @@ import {collection, onSnapshot, query} from '../../lib/firestore';
 import {db} from '../../lib/firestore';
 import {Client, InventoryItem, Material, Quote} from '../../types';
 import {buildQuickSearchResults} from '../../lib/businessRules';
+import {LABELS} from '../../constants/labels';
 
 export const GlobalSearch: React.FC = () => {
   const navigate = useNavigate();
@@ -100,7 +101,7 @@ export const GlobalSearch: React.FC = () => {
             setTerm(event.target.value);
             setOpen(true);
           }}
-          placeholder="Busca global por cliente, orçamento, lote, pedra ou fornecedor..."
+          placeholder={LABELS.search.globalPlaceholder}
           className="w-full rounded-2xl border border-slate-200 bg-white px-11 py-3 pr-24 text-sm font-medium text-slate-700 shadow-sm outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
         />
         <div className="pointer-events-none absolute right-12 top-1/2 hidden -translate-y-1/2 rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-slate-400 md:block">
@@ -120,8 +121,8 @@ export const GlobalSearch: React.FC = () => {
       {open && debouncedTerm && (
         <div className="absolute z-30 mt-2 w-full rounded-[28px] border border-slate-100 bg-white p-3 shadow-2xl shadow-slate-200/50">
           <div className="mb-2 flex items-center justify-between gap-3 px-2">
-            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Resultados rápidos</div>
-            <div className="text-[10px] font-semibold text-slate-400">até 8 itens</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{LABELS.search.quickResults}</div>
+            <div className="text-[10px] font-semibold text-slate-400">atÃ© 8 itens</div>
           </div>
           <div className="grid max-h-[360px] grid-cols-1 gap-2 overflow-y-auto">
             {results.map((result) => (
@@ -141,7 +142,7 @@ export const GlobalSearch: React.FC = () => {
             ))}
             {results.length === 0 && (
               <div className="rounded-2xl bg-slate-50 px-4 py-5 text-sm font-semibold text-slate-400">
-                Nenhum resultado encontrado para essa busca.
+                {LABELS.search.noResults}
               </div>
             )}
           </div>
@@ -150,3 +151,4 @@ export const GlobalSearch: React.FC = () => {
     </div>
   );
 };
+

@@ -10,6 +10,7 @@
     "preview": "vite preview --configLoader runner --host=0.0.0.0",
     "clean": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\"",
     "lint": "tsc --noEmit",
+    "check:encoding": "node scripts/check-encoding.mjs",
     "build:supabase-import": "node scripts/build-supabase-import.mjs",
     "bootstrap:supabase-auth": "node scripts/bootstrap-supabase-auth.mjs",
     "reset:supabase-users": "node scripts/reset-supabase-users.mjs"

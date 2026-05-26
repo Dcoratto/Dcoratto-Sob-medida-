@@ -826,7 +826,7 @@ export const ClientsPage: React.FC = () => {
       } else if (code === 'GEMINI_TEMPORARIAMENTE_INDISPONIVEL') {
         window.alert('A leitura por IA está temporariamente indisponível. Tente novamente em alguns instantes.');
       } else {
-        window.alert('Não consegui importar esse orçamento existente. Verifique se o PDF tem a tabela com "DESCRIÇÃO AMBIENTE/PRODUTO", "VALOR" e a linha "GRANITOS E MARMORES".');
+        window.alert('Não consegui importar esse orçamento existente. Verifique se o PDF tem a tabela com "DESCRIÇÃƒO AMBIENTE/PRODUTO", "VALOR" e a linha "GRANITOS E MARMORES".');
       }
     } finally {
       setImportingLegacyQuotePdf(false);
@@ -1869,7 +1869,7 @@ export const ClientsPage: React.FC = () => {
                                 ))}
                               </div>
                             ) : (
-                              <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum material vinculado às peças deste orçamento.</div>
+                      <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum material vinculado às peças deste orçamento.</div>
                             )}
                           </section>
 
@@ -2706,4 +2706,5 @@ const FixtureInput = ({label, value, type = 'text', onBlur}: {label: string; val
     </label>
   );
 };
+
 

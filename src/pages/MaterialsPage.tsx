@@ -10,7 +10,6 @@ import {formatMaterialSpecsWithProvider} from '../lib/materialSpecs';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
-import {validateMaterialSalePrice} from '../lib/businessRules';
 import {logSystemEvent} from '../lib/systemEvents';
 import {getInventoryItemArea} from '../lib/inventoryMetrics';
 
@@ -19,6 +18,7 @@ type MaterialStockRow = Material & {
   stockArea: number;
   stockCost: number;
   stockMinimumSale: number;
+  stockMinimumSaleValue: number;
   manualReservedArea: number;
   quoteReservedArea: number;
   soldArea: number;
@@ -29,7 +29,7 @@ type MaterialStockRow = Material & {
 
 const AREA_UNIT = 'm²';
 const LABEL_AVAILABLE = 'Disponível';
-const LABEL_MINIMUM_SALE = 'Mínimo venda/m²';
+const LABEL_MINIMUM_SALE = 'Mínimo venda';
 
 const normalizeStatus = (value: unknown) =>
   String(value || '')
@@ -133,6 +133,11 @@ export const MaterialsPage: React.FC = () => {
       const stockArea = stockItems.reduce((acc, item) => acc + getInventoryItemArea(item), 0);
       const stockCost = stockItems.reduce((acc, item) => acc + (item.cost || 0), 0);
       const stockMinimumSale = stockItems.reduce((acc, item) => acc + (item.minimumSalePrice ?? item.cost ?? 0), 0);
+      const stockMinimumSaleValue = stockItems.reduce((lowest, item) => {
+        const value = Number(item.minimumSalePrice ?? item.cost ?? 0);
+        if (!(value > 0)) return lowest;
+        return lowest > 0 ? Math.min(lowest, value) : value;
+      }, 0);
       const manualReservedArea = stockItems
         .filter((item) => normalizeStatus(item.status) === 'reservada')
         .reduce((acc, item) => acc + getInventoryItemArea(item), 0);
@@ -163,6 +168,7 @@ export const MaterialsPage: React.FC = () => {
         stockArea,
         stockCost,
         stockMinimumSale,
+        stockMinimumSaleValue,
         manualReservedArea,
         quoteReservedArea,
         soldArea,
@@ -197,25 +203,15 @@ export const MaterialsPage: React.FC = () => {
       const baseCost = editingMaterial.baseCostPerM2 ?? 0;
       const baseMinimumSale = editingMaterial.baseMinimumSalePerM2 ?? baseCost;
       const pricePerM2 = Math.max(0, Number(salePricePerM2) || 0);
-      const validationError = validateMaterialSalePrice(baseMinimumSale, pricePerM2);
-      if (validationError) {
-        alert(validationError);
-        return;
-      }
-      const marginPercentage = baseMinimumSale > 0
+      const rawMarginPercentage = baseMinimumSale > 0
         ? ((pricePerM2 / baseMinimumSale) - 1) * 100
+        : 0;
+      const marginPercentage = Number.isFinite(rawMarginPercentage)
+        ? Math.min(Math.max(rawMarginPercentage, -999999.99), 999999.99)
         : 0;
 
       const payload = {
-        name: editingMaterial.name,
         active,
-        provider: editingMaterial.provider || '',
-        category: editingMaterial.category || '',
-        materialLine: editingMaterial.materialLine || '',
-        materialType: editingMaterial.materialType || '',
-        thicknessLabel: editingMaterial.thicknessLabel || '',
-        texture: editingMaterial.texture || '',
-        imageUrl: editingMaterial.imageUrl || '',
         baseCostPerM2: baseCost,
         baseMinimumSalePerM2: baseMinimumSale,
         marginPercentage,
@@ -242,6 +238,7 @@ export const MaterialsPage: React.FC = () => {
         materialName: editingMaterial.name,
         metadata: {
           minimumSalePerM2: baseMinimumSale,
+          minimumSaleValue: editingMaterial.stockMinimumSaleValue,
           pricePerM2,
           marginPercentage,
           active,
@@ -403,7 +400,7 @@ export const MaterialsPage: React.FC = () => {
                       </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-sm text-slate-600">
-                      {formatCurrency(material.baseMinimumSalePerM2 ?? 0)}
+                      {formatCurrency(material.stockMinimumSaleValue || material.stockMinimumSale || 0)}
                     </td>
                     <td className="px-6 py-4 font-mono font-bold text-brand-primary">{formatCurrency(material.pricePerM2 || 0)}</td>
                     <td className="px-6 py-4">
@@ -460,7 +457,7 @@ export const MaterialsPage: React.FC = () => {
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Mínimo de venda por m²</label>
                   <div className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-mono text-slate-600">
-                    {formatCurrency(editingMaterial.baseMinimumSalePerM2 ?? 0)}
+                    {formatCurrency(editingMaterial.stockMinimumSaleValue || editingMaterial.stockMinimumSale || 0)}
                   </div>
                 </div>
                 <div className="space-y-1.5">
@@ -480,7 +477,7 @@ export const MaterialsPage: React.FC = () => {
                 <div className="text-2xl font-display font-bold text-brand-primary mt-1">
                   {formatCurrency(Number(salePricePerM2) || 0)}
                 </div>
-                <p className="mt-1 text-xs text-slate-500">O valor mínimo vem do estoque. Aqui você define somente o preço final de venda desta pedra.</p>
+                <p className="mt-1 text-xs text-slate-500">O valor mínimo vem do estoque. Aqui você define somente o preço final de venda por m² desta pedra.</p>
               </div>
 
               <div className="flex items-center gap-2 pt-2">

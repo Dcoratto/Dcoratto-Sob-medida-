@@ -1417,45 +1417,55 @@ export const InventoryPage: React.FC = () => {
         <div className="space-y-5">
           <div className="rounded-[28px] border border-slate-100 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95),_rgba(248,250,252,0.9)_55%,_rgba(241,245,249,0.9))] p-4">
             <div className="rounded-[24px] border border-slate-200/80 bg-white/70 p-4 shadow-inner shadow-slate-100/80">
-              <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4">
-                {patioRacks.map((rack) => {
-                  const rackItems = rackItemsMap.get(rack) || [];
-                  const isSelected = selectedPatioPanel === rack;
-                  const hasFocusedItem = rackItems.some((item) => item.id === focusedInventoryId);
-                  const occupancy = rackOccupancyPercent(rack);
+              <div className="space-y-3">
+                {patioRackRows.map((row, rowIndex) => (
+                  <div
+                    key={`row-${rowIndex}`}
+                    className={cn(
+                      'flex gap-3 md:gap-4',
+                      row.length === 1 ? 'justify-center' : 'justify-center',
+                    )}
+                  >
+                    {row.map((rack) => {
+                      const rackItems = rackItemsMap.get(rack) || [];
+                      const isSelected = selectedPatioPanel === rack;
+                      const hasFocusedItem = rackItems.some((item) => item.id === focusedInventoryId);
+                      const occupancy = rackOccupancyPercent(rack);
 
-                  return (
-                    <button
-                      key={rack}
-                      type="button"
-                      title={rack}
-                      aria-label={rack}
-                      onClick={() => {
-                        setSelectedRackId(rack);
-                        setSelectedPatioPanel(rack);
-                        setFocusedInventoryId('');
-                      }}
-                      className={cn(
-                        'group relative h-[84px] w-[120px] shrink-0 rounded-[24px] border bg-white/95 p-3 transition-all',
-                        isSelected ? 'border-brand-primary shadow-[0_18px_50px_-28px_rgba(155,112,69,0.65)]' : 'border-slate-200 hover:border-brand-primary/35 hover:bg-white',
-                        hasFocusedItem && 'ring-2 ring-brand-primary ring-offset-2 ring-offset-slate-50',
-                      )}
-                    >
-                      <div className="relative h-full overflow-hidden rounded-[18px] border border-slate-100 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]">
-                        <div className="pointer-events-none absolute inset-y-2 left-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
-                        <div className="pointer-events-none absolute inset-y-2 right-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
-                        <div className="pointer-events-none absolute left-[26px] right-[26px] top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slate-200" />
-                        <div
-                          className="pointer-events-none absolute left-[26px] top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-brand-primary/18 transition-all"
-                          style={{width: `calc((100% - 52px) * ${Math.max(0.12, occupancy / 100)})`}}
-                        />
-                        <div className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400 transition-colors group-hover:text-brand-primary/80">
-                          {rack.replace('Cavalete ', '')}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
+                      return (
+                        <button
+                          key={rack}
+                          type="button"
+                          title={rack}
+                          aria-label={rack}
+                          onClick={() => {
+                            setSelectedRackId(rack);
+                            setSelectedPatioPanel(rack);
+                            setFocusedInventoryId('');
+                          }}
+                          className={cn(
+                            'group relative h-[84px] w-[120px] shrink-0 rounded-[24px] border bg-white/95 p-3 transition-all',
+                            isSelected ? 'border-brand-primary shadow-[0_18px_50px_-28px_rgba(155,112,69,0.65)]' : 'border-slate-200 hover:border-brand-primary/35 hover:bg-white',
+                            hasFocusedItem && 'ring-2 ring-brand-primary ring-offset-2 ring-offset-slate-50',
+                          )}
+                        >
+                          <div className="relative h-full overflow-hidden rounded-[18px] border border-slate-100 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]">
+                            <div className="pointer-events-none absolute inset-y-2 left-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
+                            <div className="pointer-events-none absolute inset-y-2 right-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
+                            <div className="pointer-events-none absolute left-[26px] right-[26px] top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slate-200" />
+                            <div
+                              className="pointer-events-none absolute left-[26px] top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-brand-primary/18 transition-all"
+                              style={{width: `calc((100% - 52px) * ${Math.max(0.12, occupancy / 100)})`}}
+                            />
+                            <div className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400 transition-colors group-hover:text-brand-primary/80">
+                              {rack.replace('Cavalete ', '')}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             </div>
           </div>

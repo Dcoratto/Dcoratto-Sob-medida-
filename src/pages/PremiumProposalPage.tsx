@@ -67,6 +67,7 @@ export const PremiumProposalPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [activeSection, setActiveSection] = useState('materiais');
   const [lightbox, setLightbox] = useState<LightboxState>(null);
+  const [scrollProgress, setScrollProgress] = useState(0);
 
   useEffect(() => {
     const unsubscribeMaterials = onSnapshot(collection(db, 'materials'), (snapshot) => {
@@ -139,6 +140,16 @@ export const PremiumProposalPage: React.FC = () => {
     [materialCards.length, quote?.pieces],
   );
 
+  const activeSectionIndex = useMemo(() => {
+    const foundIndex = navItems.findIndex((item) => item.sectionId === activeSection);
+    return foundIndex >= 0 ?foundIndex : 0;
+  }, [activeSection, navItems]);
+
+  const readingProgress = useMemo(() => {
+    if (!navItems.length) return 0;
+    return ((activeSectionIndex + 1) / navItems.length) * 100;
+  }, [activeSectionIndex, navItems.length]);
+
   const piecePrices = useMemo(() => {
     const pieces = quote?.pieces || [];
     if (!pieces.length) return [];
@@ -186,6 +197,25 @@ export const PremiumProposalPage: React.FC = () => {
     return () => observer.disconnect();
   }, [navItems]);
 
+  useEffect(() => {
+    const updateProgress = () => {
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      if (maxScroll <= 0) {
+        setScrollProgress(0);
+        return;
+      }
+      setScrollProgress((window.scrollY / maxScroll) * 100);
+    };
+
+    updateProgress();
+    window.addEventListener('scroll', updateProgress, {passive: true});
+    window.addEventListener('resize', updateProgress);
+    return () => {
+      window.removeEventListener('scroll', updateProgress);
+      window.removeEventListener('resize', updateProgress);
+    };
+  }, []);
+
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (!element) return;
@@ -194,11 +224,7 @@ export const PremiumProposalPage: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#050505] text-white">
-        <div className="h-10 w-10 animate-spin rounded-full border-2 border-[#D4A853]/20 border-t-[#D4A853]" />
-      </div>
-    );
+    return <PremiumProposalLoadingState />;
   }
 
   if (!quote) {
@@ -225,30 +251,48 @@ export const PremiumProposalPage: React.FC = () => {
   );
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#050505] text-white print:bg-white print:text-slate-950">
-      <div className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/45 backdrop-blur-xl print:hidden">
+    <main className="premium-proposal min-h-screen overflow-hidden bg-[#050505] text-white print:bg-white print:text-slate-950">
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-[60] h-1 bg-white/5 print:hidden">
+        <div
+          className="h-full bg-gradient-to-r from-[#D4A853] via-[#f0cf88] to-[#D4A853] shadow-[0_0_24px_rgba(212,168,83,0.45)] transition-[width] duration-300 ease-out"
+          style={{width: `${scrollProgress}%`}}
+        />
+      </div>
+      <div className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-black/45 backdrop-blur-2xl print:hidden">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3 px-4 py-3 md:flex-nowrap md:px-6">
-          <button type="button" onClick={() => navigate('/quotes')} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/70 transition hover:text-[#D4A853]">
+          <button type="button" onClick={() => navigate('/quotes')} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white/70 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#D4A853]/35 hover:bg-white/8 hover:text-[#D4A853] active:scale-[0.98]">
             <ArrowLeft className="h-4 w-4" />
             Orçamentos
           </button>
-          <div className="order-3 flex w-full max-w-full items-center gap-2 overflow-x-auto pb-1 md:order-2 md:flex-1 md:justify-center md:pb-0">
+          <div className="order-3 flex w-full items-center justify-between gap-3 rounded-full border border-white/8 bg-white/[0.035] px-3 py-2 md:order-2 md:flex-1">
+            <div className="hidden min-w-[132px] md:block">
+              <div className="text-[9px] font-bold uppercase tracking-[0.28em] text-white/35">Leitura</div>
+              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-white/8">
+                <div className="h-full rounded-full bg-gradient-to-r from-[#D4A853] to-[#f0cf88] transition-all duration-300" style={{width: `${readingProgress}%`}} />
+              </div>
+            </div>
+            <div className="order-3 flex w-full max-w-full items-center gap-2 overflow-x-auto pb-1 md:order-2 md:flex-1 md:justify-center md:pb-0">
             {navItems.map((item) => (
               <button
                 key={item.sectionId}
                 type="button"
                 onClick={() => scrollToSection(item.sectionId)}
-                className={`whitespace-nowrap rounded-full border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.22em] transition ${
+                className={`whitespace-nowrap rounded-full border px-3 py-2 text-[11px] font-bold uppercase tracking-[0.22em] transition-all duration-300 active:scale-[0.98] ${
                   activeSection === item.sectionId
-                    ? 'border-[#D4A853]/50 bg-[#D4A853]/15 text-[#D4A853]'
-                    : 'border-white/10 bg-white/[0.03] text-white/45 hover:text-[#D4A853]'
+                    ? 'border-[#D4A853]/50 bg-[#D4A853]/15 text-[#D4A853] shadow-[0_10px_30px_rgba(212,168,83,0.14)]'
+                    : 'border-white/10 bg-white/[0.03] text-white/45 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.05] hover:text-[#D4A853]'
                 }`}
               >
                 {item.label}
               </button>
             ))}
+            </div>
+            <div className="hidden min-w-[120px] text-right md:block">
+              <div className="text-[9px] font-bold uppercase tracking-[0.28em] text-white/35">Etapa atual</div>
+              <div className="mt-1 text-xs font-semibold text-white/72">{navItems[activeSectionIndex]?.label || 'Início'}</div>
+            </div>
           </div>
-          <button type="button" onClick={() => window.print()} className="order-2 inline-flex items-center gap-2 rounded-full bg-[#D4A853] px-4 py-2 text-xs font-bold uppercase tracking-widest text-black shadow-lg shadow-[#D4A853]/20 md:order-3">
+          <button type="button" onClick={() => window.print()} className="order-2 inline-flex items-center gap-2 rounded-full bg-[#D4A853] px-4 py-2 text-xs font-bold uppercase tracking-widest text-black shadow-lg shadow-[#D4A853]/20 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(212,168,83,0.28)] active:scale-[0.98] md:order-3">
             <Printer className="h-4 w-4" />
             Imprimir
           </button>
@@ -267,7 +311,7 @@ export const PremiumProposalPage: React.FC = () => {
       <section id="manifesto" className="relative px-6 py-28 print:py-12">
         <SectionNumber value="00" />
         <div className="mx-auto grid max-w-5xl gap-10 md:grid-cols-[1.05fr_0.95fr] md:items-center">
-          <div>
+          <div className="premium-reveal">
             <Eyebrow>Manifesto de design</Eyebrow>
             <h2 className="mt-4 font-display text-4xl font-bold leading-tight md:text-5xl">
               Sonhos únicos merecem uma apresentação <span className="italic text-[#D4A853]">memorável</span>
@@ -276,7 +320,7 @@ export const PremiumProposalPage: React.FC = () => {
               Esta proposta reúne as informações técnicas e comerciais do projeto com leitura clara, visual sofisticado e foco na percepção de valor do acabamento sob medida.
             </p>
           </div>
-          <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 print:border-slate-200 print:bg-white">
+          <div className="premium-panel premium-reveal rounded-3xl border border-white/10 bg-white/[0.035] p-6 print:border-slate-200 print:bg-white" style={{animationDelay: '100ms'}}>
             <InfoRow label="Cliente" value={safe(quote.clientName)} />
             <InfoRow label="Telefone" value={safe(quote.phone)} />
             <InfoRow label="Endereço" value={safe(quote.address)} />
@@ -294,7 +338,7 @@ export const PremiumProposalPage: React.FC = () => {
           <SectionHeading eyebrow="Seleção de materiais" title="Materiais selecionados" />
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {materialCards.map((material, index) => (
-              <div key={`${material.name}-${index}`} className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] print:border-slate-200 print:bg-white">
+              <div key={`${material.name}-${index}`} className="premium-panel premium-reveal group overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] print:border-slate-200 print:bg-white" style={{animationDelay: `${index * 80}ms`}}>
                 <div className="aspect-[4/3] bg-[#15110c]">
                   {material.image ?(
                     <ProposalImage
@@ -338,7 +382,7 @@ export const PremiumProposalPage: React.FC = () => {
 
       <section id="ambientes" className="px-6 py-20 print:py-12">
         <div className="mx-auto max-w-6xl">
-          <div className="space-y-28">
+          <div className="space-y-24 md:space-y-28">
             {(quote.pieces || []).map((piece, index) => (
             <PieceSection
               key={piece.id}
@@ -360,9 +404,9 @@ export const PremiumProposalPage: React.FC = () => {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(212,168,83,0.16),transparent_24%),linear-gradient(to_bottom,transparent,rgba(212,168,83,0.04),transparent)] print:hidden" />
         <div className="relative mx-auto max-w-4xl">
           <SectionHeading eyebrow="Consolidação" title="Resumo do investimento" />
-          <div className="overflow-hidden rounded-3xl border border-[#D4A853]/20 bg-black/35 backdrop-blur print:border-slate-200 print:bg-white">
+          <div className="premium-panel premium-reveal overflow-hidden rounded-3xl border border-[#D4A853]/20 bg-black/35 backdrop-blur print:border-slate-200 print:bg-white">
               {(quote.pieces || []).map((piece, index) => (
-                <div key={piece.id} className="flex items-center justify-between gap-4 border-b border-white/[0.04] px-6 py-4 print:border-slate-100">
+                <div key={piece.id} className="flex items-center justify-between gap-4 border-b border-white/[0.04] px-6 py-4 transition-colors duration-300 hover:bg-white/[0.025] print:border-slate-100">
                   <div className="flex items-center gap-4">
                     <span className="font-mono text-xs text-[#D4A853]/45">{String(index + 1).padStart(2, '0')}</span>
                     <div>
@@ -412,7 +456,7 @@ export const PremiumProposalPage: React.FC = () => {
             />
           </div>
 
-          <div className="mt-10 rounded-3xl border border-white/10 bg-white/[0.035] p-8 print:border-slate-200 print:bg-white">
+          <div className="premium-panel premium-reveal mt-10 rounded-3xl border border-white/10 bg-white/[0.035] p-8 print:border-slate-200 print:bg-white" style={{animationDelay: '80ms'}}>
             <h3 className="mb-6 font-display text-xl font-bold">Observações importantes</h3>
             <div className="space-y-4 text-sm leading-relaxed text-white/52 print:text-slate-600">
               <p><span className="mr-2 text-[#D4A853]">01.</span>Valores incluem material e mão de obra conforme discriminado em cada ambiente.</p>
@@ -479,34 +523,39 @@ const Hero = ({
         <ProposalImage
           src={settings.logoUrl || '/logo.png'}
           alt={settings.companyName || "D'Coratto Sob Medida"}
-          className="mb-8 h-16 max-w-[220px]"
+          className="mb-8 h-16 max-w-[220px] premium-reveal"
           imageClassName="h-full w-full object-contain opacity-90"
           onOpen={onOpenImage}
           removeWhiteBackground
         />
       ) : (
-        <div className="mb-8 text-sm font-bold uppercase tracking-[0.4em] text-white/35">{settings.companyName || "D'Coratto Sob Medida"}</div>
+        <div className="premium-reveal mb-8 text-sm font-bold uppercase tracking-[0.4em] text-white/35">{settings.companyName || "D'Coratto Sob Medida"}</div>
       )}
-      <div className="mb-5 inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.42em] text-[#D4A853]">
+      <div className="premium-reveal mb-5 inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.42em] text-[#D4A853]" style={{animationDelay: '80ms'}}>
         <Sparkles className="h-4 w-4" />
         Proposta exclusiva · Marmoraria
       </div>
-      <h1 className="max-w-5xl text-balance font-display text-5xl font-bold leading-none md:text-7xl">
+      <h1 className="premium-reveal max-w-5xl text-balance font-display text-5xl font-bold leading-[0.94] md:text-7xl" style={{animationDelay: '140ms'}}>
         {safe(quote.clientName)}
       </h1>
-      <div className="my-8 h-px w-28 bg-gradient-to-r from-transparent via-[#D4A853] to-transparent" />
-      <p className="max-w-2xl text-lg leading-relaxed text-white/62">
+      <div className="premium-reveal my-8 h-px w-28 bg-gradient-to-r from-transparent via-[#D4A853] to-transparent" style={{animationDelay: '200ms'}} />
+      <p className="premium-reveal max-w-2xl text-lg leading-relaxed text-white/62" style={{animationDelay: '240ms'}}>
         Uma apresentação premium do seu projeto com estética contemporânea, acabamento sofisticado e experiência visual pensada para traduzir exclusividade, conforto e valor percebido.
       </p>
-      <div className="mt-12 grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="premium-reveal mt-12 grid w-full max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3" style={{animationDelay: '300ms'}}>
         <MetricCard label="Investimento total" value={formatCurrency(quote.totalPrice || 0)} highlight />
         <MetricCard label="Ambientes" value={String(totalPieces)} />
         <MetricCard label="Pedido" value={quoteNumber} />
       </div>
-      <div className="mt-6 grid w-full max-w-3xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
+      <div className="premium-reveal mt-6 grid w-full max-w-3xl grid-cols-1 gap-3 text-left sm:grid-cols-3" style={{animationDelay: '360ms'}}>
         <MiniMetric label="Área principal" value={formatArea(quote.totalArea || 0)} />
         <MiniMetric label="Adicionais" value={formatArea(totalAdditionsArea)} />
         <MiniMetric label="Prazo" value={`${quote.deliveryDays || 0} dias úteis`} />
+      </div>
+      <div className="premium-reveal mt-10 hidden items-center gap-3 text-[11px] font-bold uppercase tracking-[0.28em] text-white/35 md:inline-flex" style={{animationDelay: '420ms'}}>
+        <span className="h-px w-10 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+        role para explorar a proposta
+        <span className="h-px w-10 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
       </div>
     </div>
   </section>
@@ -576,16 +625,16 @@ const PieceSection = ({
   ];
 
   return (
-    <article id={sectionIdForPiece(index)} className="relative scroll-mt-24">
+    <article id={sectionIdForPiece(index)} className="premium-reveal relative scroll-mt-24" style={{animationDelay: `${Math.min(index, 4) * 90}ms`}}>
       <SectionNumber value={String(index + 1).padStart(2, '0')} />
       <Eyebrow>Ambiente {String(index + 1).padStart(2, '0')}</Eyebrow>
       <h2 className="mb-2 mt-3 font-display text-3xl font-bold md:text-4xl">{piece.name}</h2>
       <p className="mb-8 text-xs text-white/35 print:text-slate-500">
         Material: {materialName} · Medidas: {pieceDimensionsText(piece)} · Área: {formatArea(pieceArea(piece))} · Valor da peça: {formatCurrency(piecePrice)}
       </p>
-      <div className={`grid gap-8 lg:grid-cols-12 ${reverse ?'lg:[&>*:first-child]:order-2' : ''}`}>
+      <div className={`grid gap-8 lg:grid-cols-12 lg:items-start ${reverse ?'lg:[&>*:first-child]:order-2' : ''}`}>
         <div className="lg:col-span-5">
-          <div className="overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] print:border-slate-200 print:bg-white">
+          <div className="premium-panel group overflow-hidden rounded-xl border border-white/10 bg-white/[0.035] print:border-slate-200 print:bg-white">
             <div className="aspect-[4/3] bg-[#15110c]">
               {pieceImage(piece) || materialImageUrl ?(
                 <ProposalImage
@@ -605,7 +654,7 @@ const PieceSection = ({
           <FixtureSummary piece={piece} />
         </div>
         <div className="lg:col-span-7">
-          <div className="overflow-hidden rounded-xl border border-white/10 bg-black/35 print:border-slate-200 print:bg-white">
+          <div className="premium-panel overflow-hidden rounded-xl border border-white/10 bg-black/35 print:border-slate-200 print:bg-white">
             <div className="grid grid-cols-12 gap-2 border-b border-white/5 bg-white/[0.025] px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-white/30 print:border-slate-100 print:text-slate-400">
               <span className="col-span-4">Descrição</span>
               <span className="col-span-2 text-center">Medidas</span>
@@ -642,11 +691,11 @@ const FixtureSummary = ({piece}: {piece: QuotePiece}) => {
   if (!fixtures.length) return null;
 
   return (
-    <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.035] p-4 print:border-slate-200 print:bg-white">
+    <div className="premium-panel mt-4 rounded-xl border border-white/10 bg-white/[0.035] p-4 print:border-slate-200 print:bg-white">
       <div className="mb-3 text-[10px] font-bold uppercase tracking-widest text-[#D4A853]">Itens comprados pelo cliente</div>
       <div className="space-y-3">
         {fixtures.map(([key, fixture]) => (
-          <div key={key} className="rounded-lg bg-black/20 p-3 text-xs print:bg-slate-50">
+          <div key={key} className="rounded-lg border border-white/6 bg-black/20 p-3 text-xs transition-colors duration-300 hover:bg-white/[0.045] print:bg-slate-50">
             <div className="font-bold text-white/85 print:text-slate-800">{fixtureLabels[key as keyof typeof fixtureLabels]}</div>
             <div className="mt-1 text-white/45 print:text-slate-500">
               {[fixture.brand, fixture.model].filter(Boolean).join(' · ') || 'Modelo não informado'}
@@ -667,7 +716,7 @@ const FixtureSummary = ({piece}: {piece: QuotePiece}) => {
 };
 
 const TableRow = ({description, measure, area, material, subtotal}: {key?: React.Key; description: string; measure: string; area: string; material: string; subtotal: string}) => (
-  <div className="grid grid-cols-12 gap-2 border-b border-white/[0.035] px-4 py-3 text-xs transition hover:bg-white/[0.025] print:border-slate-100">
+  <div className="grid grid-cols-12 gap-2 border-b border-white/[0.035] px-4 py-3 text-xs transition-all duration-300 hover:bg-white/[0.025] print:border-slate-100">
     <span className="col-span-4 font-semibold text-white/82 print:text-slate-800">{description}</span>
     <span className="col-span-2 text-center font-mono text-white/50 print:text-slate-500">{measure}</span>
     <span className="col-span-2 text-center font-mono text-white/50 print:text-slate-500">{area}</span>
@@ -677,7 +726,7 @@ const TableRow = ({description, measure, area, material, subtotal}: {key?: React
 );
 
 const PaymentCard = ({title, subtitle, lines, badge, highlight = false}: {title: string; subtitle: string; lines: string[]; badge?: string; highlight?: boolean}) => (
-  <div className={`rounded-3xl border p-6 ${highlight ?'border-[#D4A853]/35 bg-[#D4A853]/[0.07]' : 'border-white/10 bg-white/[0.035]'} print:border-slate-200 print:bg-white`}>
+  <div className={`premium-panel rounded-3xl border p-6 ${highlight ?'border-[#D4A853]/35 bg-[#D4A853]/[0.07]' : 'border-white/10 bg-white/[0.035]'} print:border-slate-200 print:bg-white`}>
     <div className="flex items-start justify-between gap-3">
       <div>
         <h3 className="font-display text-2xl font-bold">{title}</h3>
@@ -687,21 +736,21 @@ const PaymentCard = ({title, subtitle, lines, badge, highlight = false}: {title:
     </div>
     <div className="mt-8 space-y-3 text-sm text-white/72 print:text-slate-700">
       {lines.map((line) => (
-        <div key={line} className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3 print:border-slate-100 print:bg-slate-50">{line}</div>
+        <div key={line} className="rounded-2xl border border-white/8 bg-black/15 px-4 py-3 transition-all duration-300 hover:border-white/14 hover:bg-black/20 print:border-slate-100 print:bg-slate-50">{line}</div>
       ))}
     </div>
   </div>
 );
 
 const MetricCard = ({label, value, highlight = false}: {label: string; value: string; highlight?: boolean}) => (
-  <div className={`rounded-xl border p-6 backdrop-blur ${highlight ?'border-[#D4A853]/45 bg-[#D4A853]/[0.05]' : 'border-white/10 bg-white/[0.035]'}`}>
+  <div className={`premium-panel rounded-xl border p-6 backdrop-blur ${highlight ?'border-[#D4A853]/45 bg-[#D4A853]/[0.05]' : 'border-white/10 bg-white/[0.035]'}`}>
     <div className="mb-3 text-xs font-bold uppercase tracking-[0.28em] text-white/38">{label}</div>
     <div className={`font-mono text-2xl font-bold ${highlight ?'text-[#D4A853]' : 'text-white'}`}>{value}</div>
   </div>
 );
 
 const MiniMetric = ({label, value}: {label: string; value: string}) => (
-  <div className="rounded-xl border border-white/10 bg-black/20 px-5 py-4 backdrop-blur">
+  <div className="premium-panel rounded-xl border border-white/10 bg-black/20 px-5 py-4 backdrop-blur">
     <div className="text-[10px] font-bold uppercase tracking-[0.28em] text-white/30">{label}</div>
     <div className="mt-2 font-mono text-sm font-bold text-white/78">{value}</div>
   </div>
@@ -731,7 +780,7 @@ const InfoRow = ({label, value, last = false}: {label: string; value: string; la
 );
 
 const SummaryItem = ({label, value}: {label: string; value: string}) => (
-  <div className="rounded-xl border border-white/10 bg-black/10 p-4 print:border-slate-100 print:bg-slate-50">
+  <div className="premium-panel rounded-xl border border-white/10 bg-black/10 p-4 print:border-slate-100 print:bg-slate-50">
     <div className="text-[10px] font-bold uppercase tracking-[0.28em] text-white/32 print:text-slate-400">{label}</div>
     <div className="mt-2 font-mono text-lg font-bold text-white print:text-slate-950">{value}</div>
   </div>
@@ -775,7 +824,7 @@ const ProposalImage = ({
   return (
     <button
       type="button"
-      className={`group relative overflow-hidden ${className}`}
+      className={`group relative overflow-hidden transition-transform duration-500 hover:scale-[1.01] active:scale-[0.995] ${className}`}
       onClick={() => onOpen({src: optimizedSrc || src, alt})}
       title={`Abrir imagem de ${alt}`}
     >
@@ -787,5 +836,24 @@ const ProposalImage = ({
     </button>
   );
 };
+
+const PremiumProposalLoadingState = () => (
+  <div className="min-h-screen overflow-hidden bg-[#050505] px-6 py-24 text-white">
+    <div className="mx-auto max-w-6xl animate-pulse">
+      <div className="mx-auto h-14 w-56 rounded-full bg-white/8" />
+      <div className="mx-auto mt-8 h-20 max-w-4xl rounded-[32px] bg-white/6" />
+      <div className="mx-auto mt-5 h-6 max-w-2xl rounded-full bg-white/5" />
+      <div className="mx-auto mt-14 grid max-w-3xl gap-4 sm:grid-cols-3">
+        {Array.from({length: 3}).map((_, index) => (
+          <div key={index} className="h-28 rounded-2xl border border-white/8 bg-white/[0.035]" />
+        ))}
+      </div>
+      <div className="mt-20 grid gap-6 lg:grid-cols-2">
+        <div className="h-[420px] rounded-[32px] border border-white/8 bg-white/[0.03]" />
+        <div className="h-[420px] rounded-[32px] border border-white/8 bg-white/[0.03]" />
+      </div>
+    </div>
+  </div>
+);
 
 

@@ -24,6 +24,7 @@ import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {validateQuoteBeforeSave} from '../lib/businessRules';
 import {getPieceMajorMinorSides} from '../lib/pieceDimensions';
+import {getInventoryItemArea} from '../lib/inventoryMetrics';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 
@@ -144,7 +145,7 @@ export const QuoteEditor: React.FC = () => {
       !['usada', 'descarte'].includes(normalizeStockStatus(item.status)) &&
       (!materialVariantKey || buildMaterialVariantKey(item) === materialVariantKey),
     );
-    const stockArea = stockItems.reduce((sum, item) => sum + (item.area || 0), 0);
+    const stockArea = stockItems.reduce((sum, item) => sum + getInventoryItemArea(item), 0);
     const minimumSaleTotal = stockItems.reduce((sum, item) => sum + (item.minimumSalePrice ?? item.cost ?? 0), 0);
     return stockArea > 0 ? minimumSaleTotal / stockArea : 0;
   };
@@ -190,10 +191,10 @@ export const QuoteEditor: React.FC = () => {
     const stockItems = inventory.filter((item) => item.materialId === materialIdToCheck && (!variantKey || buildMaterialVariantKey(item) === variantKey));
     const physicalTotal = stockItems
       .filter((item) => !['usada', 'descarte'].includes(normalizeStockStatus(item.status)))
-      .reduce((sum, item) => sum + (item.area || 0), 0);
+      .reduce((sum, item) => sum + getInventoryItemArea(item), 0);
     const manualReserved = stockItems
       .filter((item) => normalizeStockStatus(item.status) === 'reservada')
-      .reduce((sum, item) => sum + (item.area || 0), 0);
+      .reduce((sum, item) => sum + getInventoryItemArea(item), 0);
     const quoteReserved = reservations
       .filter((reservation) =>
         reservation.materialId === materialIdToCheck &&
@@ -211,7 +212,7 @@ export const QuoteEditor: React.FC = () => {
         !['usada', 'descarte', 'reservada'].includes(normalizeStockStatus(item.status)) &&
         (!variantKey || buildMaterialVariantKey(item) === variantKey),
       )
-      .map((item) => ({...item, availableArea: item.area || 0}))
+      .map((item) => ({...item, availableArea: getInventoryItemArea(item)}))
       .sort((a, b) => b.availableArea - a.availableArea);
     const singleLot = lots.find((item) => item.availableArea >= requiredArea);
     return {

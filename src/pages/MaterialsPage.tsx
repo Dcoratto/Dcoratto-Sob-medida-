@@ -12,6 +12,7 @@ import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {validateMaterialSalePrice} from '../lib/businessRules';
 import {logSystemEvent} from '../lib/systemEvents';
+import {getInventoryItemArea} from '../lib/inventoryMetrics';
 
 type MaterialStockRow = Material & {
   baseMaterialId: string;
@@ -129,12 +130,12 @@ export const MaterialsPage: React.FC = () => {
     return Array.from(stockByMaterialId.entries()).map(([materialId, stockItems]) => {
       const first = stockItems[0];
       const baseMaterial = materialsById.get(materialId);
-      const stockArea = stockItems.reduce((acc, item) => acc + (item.area || 0), 0);
+      const stockArea = stockItems.reduce((acc, item) => acc + getInventoryItemArea(item), 0);
       const stockCost = stockItems.reduce((acc, item) => acc + (item.cost || 0), 0);
       const stockMinimumSale = stockItems.reduce((acc, item) => acc + (item.minimumSalePrice ?? item.cost ?? 0), 0);
       const manualReservedArea = stockItems
         .filter((item) => normalizeStatus(item.status) === 'reservada')
-        .reduce((acc, item) => acc + (item.area || 0), 0);
+        .reduce((acc, item) => acc + getInventoryItemArea(item), 0);
       const quoteReservedArea = activeReservations
         .filter((reservation) => reservation.materialId === materialId)
         .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
@@ -205,7 +206,7 @@ export const MaterialsPage: React.FC = () => {
         ? ((pricePerM2 / baseMinimumSale) - 1) * 100
         : 0;
 
-      await setDoc(doc(db, 'materials', editingMaterial.baseMaterialId), {
+      const payload = {
         name: editingMaterial.name,
         active,
         provider: editingMaterial.provider || '',
@@ -220,7 +221,17 @@ export const MaterialsPage: React.FC = () => {
         marginPercentage,
         pricePerM2,
         updatedAt: serverTimestamp(),
-      }, {merge: true});
+      };
+      const materialRef = doc(db, 'materials', editingMaterial.baseMaterialId);
+      const existingMaterial = materialsById.get(editingMaterial.baseMaterialId);
+      if (existingMaterial) {
+        await updateDoc(materialRef, payload);
+      } else {
+        await setDoc(materialRef, {
+          ...payload,
+          createdAt: serverTimestamp(),
+        });
+      }
       await logSystemEvent({
         type: 'inventory_updated',
         title: 'Preço final de material atualizado',
@@ -246,7 +257,12 @@ export const MaterialsPage: React.FC = () => {
       setSalePricePerM2('');
     } catch (error) {
       console.error('Erro ao salvar preço do material:', error);
-      alert('Não foi possível salvar o preço desta pedra.');
+      const errorMessage = [
+        (error as {message?: string})?.message,
+        (error as {details?: string})?.details,
+        (error as {hint?: string})?.hint,
+      ].filter(Boolean).join(' · ');
+      alert(errorMessage ? `Não foi possível salvar o preço desta pedra. ${errorMessage}` : 'Não foi possível salvar o preço desta pedra.');
     } finally {
       setSavingPrice(false);
     }

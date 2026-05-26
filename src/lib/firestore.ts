@@ -1,4 +1,4 @@
-import {repairTextDeep} from './utils';
+import {parseCurrencyInput, repairTextDeep} from './utils';
 import {supabase} from './supabase';
 
 type TableName = string;
@@ -243,7 +243,10 @@ const normalizeTopLevelValueFromDb = (table: string, field: string, value: unkno
   if (transformedValue == null) return transformedValue;
 
   if (config.numericFields?.includes(field) && transformedValue !== '') {
-    const numericValue = Number(transformedValue);
+    const numericValue =
+      typeof transformedValue === 'number'
+        ? transformedValue
+        : parseCurrencyInput(String(transformedValue));
     return Number.isNaN(numericValue) ? transformedValue : numericValue;
   }
 
@@ -274,7 +277,11 @@ const mapDataToDb = (table: string, data: Record<string, unknown>) => {
   for (const [field, value] of Object.entries(data)) {
     if (field === 'id' || typeof value === 'undefined' || config.ignoredFields?.includes(field)) continue;
     const key = camelToSnake(field);
-    mapped[key] = normalizeTopLevelValueForDb(table, field, value);
+    const normalizedValue = normalizeTopLevelValueForDb(table, field, value);
+    mapped[key] =
+      config.numericFields?.includes(field) && normalizedValue !== ''
+        ? parseCurrencyInput(String(normalizedValue))
+        : normalizedValue;
   }
   return mapped;
 };

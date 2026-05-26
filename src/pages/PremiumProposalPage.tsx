@@ -8,7 +8,7 @@ import {db} from '../lib/firestore';
 import {useSettings} from '../hooks/useSettings';
 import {convertImageUrlToWebp} from '../lib/imageUtils';
 import {Material, Quote, QuotePiece} from '../types';
-import {formatCurrency, formatNumber} from '../lib/utils';
+import {formatArea, formatCentimeters, formatCurrency, formatMeasure} from '../lib/utils';
 import {getPieceMajorMinorSides} from '../lib/pieceDimensions';
 
 const toDate = (value: any) => {
@@ -26,7 +26,7 @@ const sectionIdForPiece = (index: number) => `ambiente-${index + 1}`;
 const pieceDimensionsText = (piece: QuotePiece) => {
   const dimensions = getPieceMajorMinorSides(piece);
   if (!dimensions.major) return 'Medidas não informadas';
-  return `${formatNumber(dimensions.major, 0)} x ${formatNumber(dimensions.minor, 0)} cm`;
+  return `${formatCentimeters(dimensions.major)} x ${formatCentimeters(dimensions.minor)}`;
 };
 
 const sideLabel = (type: string) => ({
@@ -317,7 +317,7 @@ export const PremiumProposalPage: React.FC = () => {
                   <div className="mt-4 grid grid-cols-2 gap-3 border-t border-white/5 pt-4 print:border-slate-100">
                     <div>
                       <div className="text-[10px] font-bold uppercase tracking-widest text-white/28 print:text-slate-400">Área</div>
-                      <div className="mt-1 font-mono text-sm font-bold text-[#D4A853]">{formatNumber(material.area, 4)} m²</div>
+                      <div className="mt-1 font-mono text-sm font-bold text-[#D4A853]">{formatArea(material.area)}</div>
                     </div>
                     <div>
                       <div className="text-[10px] font-bold uppercase tracking-widest text-white/28 print:text-slate-400">Uso</div>
@@ -373,13 +373,13 @@ export const PremiumProposalPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-mono text-sm font-semibold text-white/70 print:text-slate-600">{formatNumber(pieceArea(piece), 4)} m²</div>
+                    <div className="font-mono text-sm font-semibold text-white/70 print:text-slate-600">{formatArea(pieceArea(piece))}</div>
                     <div className="mt-1 font-mono text-sm font-bold text-[#D4A853]">{formatCurrency(piecePrices[index] || 0)}</div>
                   </div>
                 </div>
               ))}
             <div className="grid gap-4 border-t border-[#D4A853]/20 bg-[#D4A853]/[0.05] p-6 md:grid-cols-3">
-              <SummaryItem label="Área total" value={`${formatNumber(quote.totalArea || 0, 4)} m²`} />
+              <SummaryItem label="Área total" value={formatArea(quote.totalArea || 0)} />
               <SummaryItem label="Recortes" value={`${cutoutCount(quote)} un`} />
               <SummaryItem label="Pagamento" value={safe(quote.paymentMethod)} />
               <SummaryItem label="Prazo" value={`${quote.deliveryDays || 0} dias úteis`} />
@@ -504,8 +504,8 @@ const Hero = ({
         <MetricCard label="Pedido" value={quoteNumber} />
       </div>
       <div className="mt-6 grid w-full max-w-3xl grid-cols-1 gap-3 text-left sm:grid-cols-3">
-        <MiniMetric label="Área principal" value={`${formatNumber(quote.totalArea || 0, 4)} m²`} />
-        <MiniMetric label="Adicionais" value={`${formatNumber(totalAdditionsArea, 4)} m²`} />
+        <MiniMetric label="Área principal" value={formatArea(quote.totalArea || 0)} />
+        <MiniMetric label="Adicionais" value={formatArea(totalAdditionsArea)} />
         <MiniMetric label="Prazo" value={`${quote.deliveryDays || 0} dias úteis`} />
       </div>
     </div>
@@ -544,24 +544,24 @@ const PieceSection = ({
     {label: 'Rebaixo italiano', count: quoteCutouts?.wetAreaItalianRecess || 0},
   ].filter((item) => item.count > 0);
   const rows = [
-    {description: 'Pedra principal', measure: pieceDimensionsText(piece), area: `${formatNumber(pieceArea(piece), 4)} m²`, material: materialName, subtotal: 'Incluído'},
+    {description: 'Pedra principal', measure: pieceDimensionsText(piece), area: formatArea(pieceArea(piece)), material: materialName, subtotal: 'Incluído'},
     ...(piece.sculptedSink?.active ?[{
       description: `Pia esculpida ${piece.sculptedSink.type}`,
-      measure: `${piece.sculptedSink.width || 0} x ${piece.sculptedSink.depth || 0} ${piece.sculptedSink.unit}`,
-      area: `${formatNumber(piece.sculptedSink.calculatedArea || 0, 4)} m²`,
+      measure: `${formatMeasure(piece.sculptedSink.width || 0)} x ${formatMeasure(piece.sculptedSink.depth || 0)} ${piece.sculptedSink.unit}`,
+      area: formatArea(piece.sculptedSink.calculatedArea || 0),
       material: `${piece.sculptedSink.quantity || 1} un`,
       subtotal: 'Incluído',
     }] : []),
     ...additions.map((side) => ({
       description: sideLabel(side.type),
       measure: side.sideLabel || side.side,
-      area: `${formatNumber(side.areaTotal || side.area || 0, 4)} m²`,
-      material: `${side.height || 0} cm · qtd ${side.quantity || 1}`,
+      area: formatArea(side.areaTotal || side.area || 0),
+      material: `${formatCentimeters(side.height || 0)} · qtd ${side.quantity || 1}`,
       subtotal: 'Incluído',
     })),
     ...(piece.cutouts || []).map((cutout) => ({
       description: `Recorte ${cutout.type}`,
-      measure: `${cutout.width || 0} x ${cutout.height || 0}`,
+      measure: `${formatMeasure(cutout.width || 0)} x ${formatMeasure(cutout.height || 0)}`,
       area: '-',
       material: 'No desenho',
       subtotal: 'Projeto',
@@ -581,7 +581,7 @@ const PieceSection = ({
       <Eyebrow>Ambiente {String(index + 1).padStart(2, '0')}</Eyebrow>
       <h2 className="mb-2 mt-3 font-display text-3xl font-bold md:text-4xl">{piece.name}</h2>
       <p className="mb-8 text-xs text-white/35 print:text-slate-500">
-        Material: {materialName} · Medidas: {pieceDimensionsText(piece)} · Área: {formatNumber(pieceArea(piece), 4)} m² · Valor da peça: {formatCurrency(piecePrice)}
+        Material: {materialName} · Medidas: {pieceDimensionsText(piece)} · Área: {formatArea(pieceArea(piece))} · Valor da peça: {formatCurrency(piecePrice)}
       </p>
       <div className={`grid gap-8 lg:grid-cols-12 ${reverse ?'lg:[&>*:first-child]:order-2' : ''}`}>
         <div className="lg:col-span-5">
@@ -619,7 +619,7 @@ const PieceSection = ({
                 <div className="text-sm font-semibold text-[#D4A853]">Total {piece.name}</div>
                 <div className="mt-1 font-mono text-sm font-bold text-[#D4A853]">{formatCurrency(piecePrice)}</div>
               </div>
-              <span className="font-mono text-sm font-bold text-[#D4A853]">{formatNumber(pieceArea(piece), 4)} m²</span>
+              <span className="font-mono text-sm font-bold text-[#D4A853]">{formatArea(pieceArea(piece))}</span>
             </div>
           </div>
         </div>
@@ -653,10 +653,10 @@ const FixtureSummary = ({piece}: {piece: QuotePiece}) => {
             </div>
             <div className="mt-1 font-mono text-white/40 print:text-slate-500">
               {[
-                fixture.width ?`L ${fixture.width}` : '',
-                fixture.depth ?`P ${fixture.depth}` : '',
-                fixture.height ?`A ${fixture.height}` : '',
-                fixture.diameter ?`Ø ${fixture.diameter}` : '',
+                fixture.width ?`L ${formatMeasure(fixture.width)}` : '',
+                fixture.depth ?`P ${formatMeasure(fixture.depth)}` : '',
+                fixture.height ?`A ${formatMeasure(fixture.height)}` : '',
+                fixture.diameter ?`Ø ${formatMeasure(fixture.diameter)}` : '',
               ].filter(Boolean).join(' · ') || 'Medidas pendentes'}
             </div>
           </div>

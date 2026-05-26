@@ -5,7 +5,7 @@ import {useNavigate} from 'react-router-dom';
 import {db} from '../lib/firestore';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote, SystemEvent} from '../types';
-import {cn, formatCurrency, formatNumber} from '../lib/utils';
+import {cn, formatArea, formatCentimeters, formatCurrency, formatNumber} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
 import {useSettings} from '../hooks/useSettings';
@@ -1126,7 +1126,7 @@ export const InventoryPage: React.FC = () => {
       '',
       'Itens do pedido:',
       ...group.purchases.map((purchase, index) => (
-        `${index + 1}. ${purchase.code || `Chapa ${purchase.purchaseIndex || index + 1}`} - ${purchase.length} x ${purchase.width} cm - ${purchase.thicknessLabel || 'Sem espessura'} - ${formatNumber(purchase.area)} m²`
+        `${index + 1}. ${purchase.code || `Chapa ${purchase.purchaseIndex || index + 1}`} - ${formatCentimeters(purchase.length)} x ${formatCentimeters(purchase.width)} - ${purchase.thicknessLabel || 'Sem espessura'} - ${formatArea(purchase.area)}`
       )),
     ];
 
@@ -1334,7 +1334,7 @@ export const InventoryPage: React.FC = () => {
                             <div>
                               <div className="text-sm font-semibold text-slate-900">{purchase.code || `Chapa ${purchase.purchaseIndex || 1}`}</div>
                               <div className="mt-1 text-xs text-slate-400">
-                                {purchase.length} x {purchase.width} cm · {purchase.thicknessLabel || 'Sem espessura'} · {formatNumber(purchase.area)} m²
+                                {formatCentimeters(purchase.length)} x {formatCentimeters(purchase.width)} · {purchase.thicknessLabel || 'Sem espessura'} · {formatArea(purchase.area)}
                               </div>
                             </div>
                             {hasPermission('estoque', 'movimentar') && (
@@ -1572,7 +1572,7 @@ export const InventoryPage: React.FC = () => {
                         </div>
 
                         <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-500">
-                          <div>{item.length} x {item.width} cm</div>
+                          <div>{formatCentimeters(item.length)} x {formatCentimeters(item.width)}</div>
                           <div className="text-right">{formatNumber(item.area)} m²</div>
                           <div>{formatCurrency(item.cost)}</div>
                           <div className="text-right">Mín. {formatCurrency(item.minimumSalePrice ?? item.cost)}</div>
@@ -1718,7 +1718,7 @@ export const InventoryPage: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-slate-600">
-                      {item.length} x {item.width}
+                      {formatCentimeters(item.length)} x {formatCentimeters(item.width)}
                       <div className="text-xs text-slate-400">{item.thicknessLabel || (item.thickness ? `${item.thickness}` : 'Sem espessura')}</div>
                     </td>
                     <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(item.area)} m²</td>
@@ -1936,7 +1936,7 @@ export const InventoryPage: React.FC = () => {
                     <option value="">Selecionar peça</option>
                     {(selectedLossQuote?.pieces || []).map((piece) => (
                       <option key={piece.id} value={piece.id}>
-                        {piece.name} · {(piece.totalArea || piece.manualArea || piece.area || 0).toFixed(4)} m²
+                        {piece.name} · {formatArea(piece.totalArea || piece.manualArea || piece.area || 0)}
                       </option>
                     ))}
                   </select>

@@ -4,7 +4,7 @@ import {Banknote, CheckCircle2, ClipboardList, Edit2, FileText, FileUp, Info, Ma
 import {db} from '../lib/firestore';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureCategory, FixtureInfo, InventoryItem, LegacyClientPiece, LegacyPaymentInstallment, LegacyPaymentStatus, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
-import {cn, formatCurrency, formatCurrencyInput, parseCurrencyInput, repairText} from '../lib/utils';
+import {cn, formatArea, formatCentimeters, formatCurrency, formatCurrencyInput, parseCurrencyInput, repairText} from '../lib/utils';
 import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
@@ -1765,7 +1765,7 @@ export const ClientsPage: React.FC = () => {
                         </div>
                         <div className="rounded-3xl bg-slate-50 p-5">
                           <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Área total</div>
-                          <div className="mt-2 text-2xl font-display font-bold text-slate-900">{(selectedQuote.totalArea || 0).toFixed(4)} m²</div>
+                          <div className="mt-2 text-2xl font-display font-bold text-slate-900">{formatArea(selectedQuote.totalArea || 0)}</div>
                         </div>
                         <div className="rounded-3xl bg-slate-50 p-5">
                           <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Status</div>
@@ -1818,9 +1818,9 @@ export const ClientsPage: React.FC = () => {
                                         {getPieceDisplayStatus(piece, selectedQuote)}
                                       </span>
                                     </div>
-                                    <div className="text-xs text-slate-400">{piece.length || 0} x {piece.width || 0} cm</div>
+                                    <div className="text-xs text-slate-400">{formatCentimeters(piece.length || 0)} x {formatCentimeters(piece.width || 0)}</div>
                                     <div className="mt-1 text-xs text-slate-500">{materialById(piece.materialId)?.name || selectedQuote.materialName || 'Sem material'}</div>
-                                    <div className="mt-2 text-sm font-bold text-brand-primary">{getPieceAreaValue(piece).toFixed(4)} m²</div>
+                                    <div className="mt-2 text-sm font-bold text-brand-primary">{formatArea(getPieceAreaValue(piece))}</div>
                                     {piece.sides?.length > 0 && (
                                       <div className="mt-1 text-xs text-slate-500">{piece.sides.length} adicional(is)</div>
                                     )}
@@ -1856,11 +1856,11 @@ export const ClientsPage: React.FC = () => {
                                           </div>
                                           <div className="rounded-xl bg-white p-2">
                                             <div className="font-bold text-slate-400 uppercase">Usando</div>
-                                            <div className="font-mono font-bold text-brand-primary">{row.neededArea.toFixed(4)} m²</div>
+                                            <div className="font-mono font-bold text-brand-primary">{formatArea(row.neededArea)}</div>
                                           </div>
                                           <div className="rounded-xl bg-white p-2">
                                             <div className="font-bold text-slate-400 uppercase">Estoque</div>
-                                            <div className="font-mono font-bold text-slate-900">{row.stockArea.toFixed(2)} m²</div>
+                                            <div className="font-mono font-bold text-slate-900">{formatArea(row.stockArea)}</div>
                                           </div>
                                         </div>
                                       </div>
@@ -1910,7 +1910,7 @@ export const ClientsPage: React.FC = () => {
                             <h3 className="font-display text-xl font-bold text-slate-900 mb-4">Valores detalhados</h3>
                             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
                               <SummaryBox label="Valor total" value={canViewClientValues ? formatCurrency(selectedQuote.totalPrice || 0) : hiddenClientValueLabel} highlight />
-                              <SummaryBox label="Área total" value={`${(selectedQuote.totalArea || 0).toFixed(4)} m²`} />
+                              <SummaryBox label="Área total" value={formatArea(selectedQuote.totalArea || 0)} />
                               <SummaryBox label="Valor médio por m²" value={canViewClientValues ? (selectedQuote.totalArea ? formatCurrency((selectedQuote.totalPrice || 0) / selectedQuote.totalArea) : '-') : hiddenClientValueLabel} />
                               <SummaryBox label="Qtd. de peças" value={`${selectedQuote.pieces?.length || 0}`} />
                             </div>
@@ -1944,7 +1944,7 @@ export const ClientsPage: React.FC = () => {
                                       <div className="text-xs text-slate-400">{materialById(piece.materialId)?.name || selectedQuote.materialName || 'Sem material'}</div>
                                     </div>
                                     <div className="text-right">
-                                      <div className="font-mono text-sm font-bold text-brand-primary">{area.toFixed(4)} m²</div>
+                                      <div className="font-mono text-sm font-bold text-brand-primary">{formatArea(area)}</div>
                                       <div className="text-xs text-slate-500">{canViewClientValues ? formatCurrency(averageValue) : hiddenClientValueLabel}</div>
                                     </div>
                                   </div>

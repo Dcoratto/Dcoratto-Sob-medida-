@@ -19,7 +19,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from 'lucide-react';
-import {cn} from '../lib/utils';
+import {cn, formatArea, formatCentimeters, formatMeasureInput, formatMeters, parseMeasureInput} from '../lib/utils';
 import {DrawingCutout, FixtureCatalogItem, PieceSide} from '../types';
 
 type DrawTool = 'select' | 'line' | 'move-point' | 'pan' | 'cutout';
@@ -431,8 +431,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     if (!selectedFixture) return;
     const widthCm = selectedFixture.width || selectedFixture.diameter || 0;
     const heightCm = selectedFixture.depth || selectedFixture.height || selectedFixture.diameter || selectedFixture.width || 0;
-    if (widthCm) setCutoutWidth(String(widthCm).replace('.', ','));
-    if (heightCm) setCutoutHeight(String(heightCm).replace('.', ','));
+    if (widthCm) setCutoutWidth(formatMeasureInput(widthCm));
+    if (heightCm) setCutoutHeight(formatMeasureInput(heightCm));
   }, [selectedFixture]);
 
   const applyOrtho = useCallback((origin: Point, target: Point) => {
@@ -476,7 +476,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     setRedoPoints([]);
     setPreviewPoint(null);
     setDrawingActive(true);
-    setCurrentMeasure('0.00 m');
+    setCurrentMeasure(formatMeters(0));
     setClosed(false);
   }, [recordHistory]);
 
@@ -566,7 +566,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     if (drawTool === 'line' && drawPoints.length > 0 && !closed) {
       setPreviewPoint(world);
       const last = drawPoints[drawPoints.length - 1];
-      setCurrentMeasure(`${distance(last, world).toFixed(2)} m`);
+      setCurrentMeasure(formatMeters(distance(last, world)));
     } else {
       setCurrentMeasure('');
     }
@@ -687,7 +687,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     if (drawTool === 'line' && drawPoints.length > 0 && !closed) {
       setPreviewPoint(world);
       const last = drawPoints[drawPoints.length - 1];
-      setCurrentMeasure(`${distance(last, world).toFixed(2)} m`);
+      setCurrentMeasure(formatMeters(distance(last, world)));
     } else {
       setCurrentMeasure('');
     }
@@ -701,7 +701,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     const target = previewPoint || lastMouseWorld.current;
     if (!target) return;
     const last = drawPoints[drawPoints.length - 1];
-    setCurrentMeasure(`${distance(last, target).toFixed(2)} m`);
+    setCurrentMeasure(formatMeters(distance(last, target)));
   }, [closed, drawPoints, drawTool, previewPoint]);
 
   const stopDrag = () => {
@@ -740,7 +740,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     lastMouseWorld.current = nextPoint;
     setMeasureBuffer('');
     setPreviewPoint(null);
-    setCurrentMeasure('0.00 m');
+    setCurrentMeasure(formatMeters(0));
     setDrawingActive(true);
     setDrawTool('line');
     requestAnimationFrame(() => canvasRef.current?.focus());
@@ -829,7 +829,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       const next: PieceSide = {
         type,
         side: side.key,
-        sideLabel: `${side.name} (${side.lengthM.toFixed(2)} m)`,
+        sideLabel: `${side.name} (${formatMeters(side.lengthM)})`,
         length: side.lengthM * 100,
         height,
         quantity,
@@ -1126,7 +1126,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       const offset = 34 + (index % 3) * 16;
       const c1 = {x: a.x + normal.x * direction * offset, y: a.y + normal.y * direction * offset};
       const c2 = {x: b.x + normal.x * direction * offset, y: b.y + normal.y * direction * offset};
-      const label = `${side.name} ${side.lengthM.toFixed(2).replace('.', ',')} m`;
+      const label = `${side.name} ${formatMeters(side.lengthM)}`;
       ctx.save();
       ctx.strokeStyle = '#b6a17e';
       ctx.fillStyle = '#1f2937';
@@ -1245,7 +1245,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{selectedFixture?.name || 'Peça cadastrada / medida manual'}</span>
                 <span className="block truncate text-[11px] font-medium text-slate-400">
-                  {selectedFixture ?`${selectedFixture.width || selectedFixture.diameter || cutoutWidth} x ${selectedFixture.depth || selectedFixture.height || selectedFixture.diameter || selectedFixture.width || cutoutHeight} cm` : 'Escolha uma peça do Admin'}
+                  {selectedFixture ?`${formatCentimeters(selectedFixture.width || selectedFixture.diameter || cutoutWidth)} x ${formatCentimeters(selectedFixture.depth || selectedFixture.height || selectedFixture.diameter || selectedFixture.width || cutoutHeight)}` : 'Escolha uma peça do Admin'}
                 </span>
               </span>
             </button>
@@ -1309,7 +1309,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
               <span className="min-w-0 flex-1">
                 <span className="block truncate">{selectedFixture?.name || 'Peça cadastrada / medida manual'}</span>
                 <span className="block truncate text-[11px] font-medium text-slate-400">
-                  {selectedFixture ?`${selectedFixture.width || selectedFixture.diameter || cutoutWidth} x ${selectedFixture.depth || selectedFixture.height || selectedFixture.diameter || selectedFixture.width || cutoutHeight} cm` : 'Toque para escolher uma peça'}
+                  {selectedFixture ?`${formatCentimeters(selectedFixture.width || selectedFixture.diameter || cutoutWidth)} x ${formatCentimeters(selectedFixture.depth || selectedFixture.height || selectedFixture.diameter || selectedFixture.width || cutoutHeight)}` : 'Toque para escolher uma peça'}
                 </span>
               </span>
             </button>
@@ -1378,7 +1378,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
               <span className="min-w-0">
                 <span className="block truncate">{fixture.name}</span>
                 <span className={cn('block text-[11px] font-medium', selectedFixtureId === fixture.id ?'text-white/80' : 'text-slate-400')}>
-                  {fixture.width || fixture.diameter ?`${fixture.width || fixture.diameter} x ${fixture.depth || fixture.height || fixture.diameter || fixture.width} cm` : 'Sem medida cadastrada'}
+                  {fixture.width || fixture.diameter ?`${formatCentimeters(fixture.width || fixture.diameter)} x ${formatCentimeters(fixture.depth || fixture.height || fixture.diameter || fixture.width)}` : 'Sem medida cadastrada'}
                 </span>
               </span>
             </button>
@@ -1409,7 +1409,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                     <div className="mb-3 flex items-center justify-between gap-3">
                       <div>
                         <div className="text-sm font-bold text-slate-900">{side.name}</div>
-                        <div className="text-xs font-mono text-slate-400">{side.lengthM.toFixed(2).replace('.', ',')} m</div>
+                        <div className="text-xs font-mono text-slate-400">{formatMeters(side.lengthM)}</div>
                       </div>
                       <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                         Qtd
@@ -1510,9 +1510,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         </div>
         <div className="absolute right-3 top-3 rounded-2xl border border-slate-100 bg-white/95 p-3 shadow-xl sm:right-4 sm:top-4 sm:p-4">
           <div className="text-xs font-bold uppercase tracking-widest text-slate-400">área principal</div>
-          <div className="text-2xl font-display font-bold text-brand-primary">{area.toFixed(4)} m²</div>
-          <div className="mt-2 text-xs text-slate-500">Adicionais: {additionalArea.toFixed(4)} m²</div>
-          <div className="text-xs font-bold text-slate-700">Total: {totalArea.toFixed(4)} m²</div>
+          <div className="text-2xl font-display font-bold text-brand-primary">{formatArea(area)}</div>
+          <div className="mt-2 text-xs text-slate-500">Adicionais: {formatArea(additionalArea)}</div>
+          <div className="text-xs font-bold text-slate-700">Total: {formatArea(totalArea)}</div>
         </div>
         {showHelp && (
           <div className="absolute left-3 top-20 w-[calc(100%-24px)] max-w-56 rounded-2xl border border-slate-100 bg-white/95 p-4 shadow-xl sm:left-4 sm:top-4 sm:w-56">
@@ -1538,12 +1538,11 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           >
             <span className="text-[10px] font-bold text-slate-700">{side.name}</span>
             <input
-              key={`${side.key}-${side.lengthM.toFixed(2)}`}
-              type="number"
-              step="0.01"
-              min="0.01"
-              defaultValue={side.lengthM.toFixed(2)}
-              onBlur={(event) => editSideLength(index, Number(event.target.value))}
+              key={`${side.key}-${formatMeasureInput(side.lengthM)}`}
+              type="text"
+              inputMode="decimal"
+              defaultValue={formatMeasureInput(side.lengthM)}
+              onBlur={(event) => editSideLength(index, parseMeasureInput(event.target.value))}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   event.currentTarget.blur();
@@ -1583,10 +1582,10 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                       <td className="px-3 py-2 font-bold text-slate-800">{side.name}</td>
                       <td className="px-3 py-2">
                         <input
-                          type="number"
-                          step="0.01"
-                          value={side.lengthM.toFixed(2)}
-                          onChange={(event) => editSideLength(index, Number(event.target.value))}
+                          type="text"
+                          inputMode="decimal"
+                          value={formatMeasureInput(side.lengthM)}
+                          onChange={(event) => editSideLength(index, parseMeasureInput(event.target.value))}
                           className="w-24 rounded-lg border border-slate-200 px-2 py-1 font-mono text-sm"
                         /> m
                       </td>
@@ -1646,7 +1645,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                     className="inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-red-50 hover:text-red-500"
                   >
                     <CircleDot className="h-3 w-3" />
-                    {cutout.fixtureName || cutout.type} {(cutout.width * 100).toFixed(0)} x {(cutout.height * 100).toFixed(0)} cm
+                    {cutout.fixtureName || cutout.type} {formatCentimeters(cutout.width * 100)} x {formatCentimeters(cutout.height * 100)}
                     <X className="h-3 w-3" />
                   </button>
                 ))}
@@ -1659,11 +1658,11 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           <div className="space-y-3">
             <div className="rounded-2xl bg-white p-4">
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Maior lado</div>
-                <div className="font-mono text-xl font-bold text-slate-900">{majorSideM.toFixed(2)} m</div>
+                <div className="font-mono text-xl font-bold text-slate-900">{formatMeters(majorSideM)}</div>
               </div>
               <div className="rounded-2xl bg-white p-4">
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Menor lado</div>
-                <div className="font-mono text-xl font-bold text-slate-900">{minorSideM.toFixed(2)} m</div>
+                <div className="font-mono text-xl font-bold text-slate-900">{formatMeters(minorSideM)}</div>
               </div>
               <div className="rounded-2xl bg-white p-4">
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Persistência</div>

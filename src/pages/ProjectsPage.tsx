@@ -4,7 +4,7 @@ import {useNavigate} from 'react-router-dom';
 import {ClipboardCheck, Search} from 'lucide-react';
 import {db} from '../lib/firestore';
 import {Client, Employee, ProductionStep, Quote} from '../types';
-import {cn, formatCurrency} from '../lib/utils';
+import {cn, formatArea, formatCurrency} from '../lib/utils';
 import {getClientDisplayStatus, quoteStatusColor, shouldAppearInProjects} from '../lib/quoteStatus';
 
 const normalize = (value: unknown) =>
@@ -153,7 +153,7 @@ export const ProjectsPage: React.FC = () => {
                       <div className="text-xs text-brand-primary font-medium">{project.environment}</div>
                     </td>
                     <td className="px-6 py-4 font-mono text-slate-700">
-                      {project.legacy ? 'Projeto legado' : `${project.totalArea.toFixed(4)} m²`}
+                      {project.legacy ? 'Projeto legado' : formatArea(project.totalArea)}
                     </td>
                     <td className="px-6 py-4 font-mono font-bold text-slate-900">
                       {project.totalPrice > 0 ? formatCurrency(project.totalPrice) : '-'}
@@ -220,7 +220,7 @@ export const ProjectsPage: React.FC = () => {
                       <div className="mt-2 text-xs text-slate-500">
                         {assigned.length ? `Responsável: ${assigned.join(', ')}` : 'Sem responsável definido'}
                       </div>
-                      <div className="mt-2 text-xs font-semibold text-brand-primary">{project.totalArea.toFixed(2)} m²</div>
+                      <div className="mt-2 text-xs font-semibold text-brand-primary">{formatArea(project.totalArea)}</div>
                     </button>
                   );
                 })}

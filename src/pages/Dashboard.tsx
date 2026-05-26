@@ -4,7 +4,7 @@ import {useNavigate} from 'react-router-dom';
 import {AlertCircle, CheckCircle2, Clock, Database, FileText, FolderKanban, Package, Plus, StickyNote, Trash2, TrendingUp, Users} from 'lucide-react';
 import {db} from '../lib/firestore';
 import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Profile, Quote, QuoteStatus} from '../types';
-import {cn, formatCurrency} from '../lib/utils';
+import {cn, formatArea, formatCurrency} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {getClientDisplayStatus, normalizeQuoteStatus, quoteStatusColor, shouldAppearInProjects} from '../lib/quoteStatus';
 import {buildOperationalAlerts, buildQuickSearchResults} from '../lib/businessRules';
@@ -698,7 +698,7 @@ export const Dashboard: React.FC = () => {
                 <h3 className="font-display font-bold text-lg text-slate-800">Compra pendente para orçamento aprovado</h3>
                 <p className="text-sm text-slate-500 mt-1">
                   {pendingPurchases.length > 0
-                    ?`${pendingPurchases.length} material(is) com falta de área: ${totalPendingPurchaseArea.toFixed(2)} m²`
+                    ?`${pendingPurchases.length} material(is) com falta de área: ${formatArea(totalPendingPurchaseArea)}`
                     : 'Nenhuma compra pendente no momento.'}
                 </p>
               </div>

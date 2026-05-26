@@ -12,11 +12,49 @@ export function formatCurrency(value: number) {
   }).format(value);
 }
 
-export function formatNumber(value: number, decimals = 2) {
+export function formatNumber(value: number, decimals = 3) {
   return new Intl.NumberFormat('pt-BR', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals,
   }).format(value);
+}
+
+export function roundNumber(value: number | string, decimals = 3) {
+  const parsed = typeof value === 'number' ? value : Number(String(value).replace(',', '.'));
+  if (!Number.isFinite(parsed)) return 0;
+  const factor = 10 ** decimals;
+  return Math.round(parsed * factor) / factor;
+}
+
+export function formatMeasure(value: number | string, decimals = 3) {
+  return formatNumber(roundNumber(value, decimals), decimals);
+}
+
+export function formatArea(value: number | string) {
+  return `${formatMeasure(value)} m²`;
+}
+
+export function formatCentimeters(value: number | string) {
+  return `${formatMeasure(value)} cm`;
+}
+
+export function formatMeters(value: number | string) {
+  return `${formatMeasure(value)} m`;
+}
+
+export function formatMeasureInput(value: number | string, decimals = 3) {
+  const rounded = roundNumber(value, decimals);
+  return rounded.toFixed(decimals).replace('.', ',');
+}
+
+export function parseMeasureInput(value: string) {
+  const normalized = String(value || '')
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/\./g, '')
+    .replace(',', '.');
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 export function parseCurrencyInput(value: string) {

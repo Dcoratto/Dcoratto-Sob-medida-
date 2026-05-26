@@ -11,7 +11,7 @@ import {
   MapPin, Phone, User,
   Layers, PenTool
 } from 'lucide-react';
-import { cn, formatCurrency, formatNumber } from '../lib/utils';
+import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, parseMeasureInput, roundNumber } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
 import {applyQuoteInventoryByStatusTransition} from '../lib/inventoryReservations';
@@ -624,10 +624,10 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const sideOptionsForPiece = (piece: QuotePiece) => [
-    { value: 'top', label: `Comprimento superior (${piece.length || 0} cm)`, length: piece.length },
-    { value: 'bottom', label: `Comprimento inferior (${piece.length || 0} cm)`, length: piece.length },
-    { value: 'left', label: `Largura esquerda (${piece.width || 0} cm)`, length: piece.width },
-    { value: 'right', label: `Largura direita (${piece.width || 0} cm)`, length: piece.width },
+    { value: 'top', label: `Comprimento superior (${formatCentimeters(piece.length || 0)})`, length: piece.length },
+    { value: 'bottom', label: `Comprimento inferior (${formatCentimeters(piece.length || 0)})`, length: piece.length },
+    { value: 'left', label: `Largura esquerda (${formatCentimeters(piece.width || 0)})`, length: piece.width },
+    { value: 'right', label: `Largura direita (${formatCentimeters(piece.width || 0)})`, length: piece.width },
   ];
   const sideDimensionLabel = (type?: PieceSide['type']) =>
     ['frontao', 'saia', 'pe'].includes(String(type)) ? 'Altura' : 'Profundidade';
@@ -654,7 +654,7 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const handleSave = async () => {
-    const normalizedTotalArea = Number(totalArea.toFixed(4));
+    const normalizedTotalArea = roundNumber(totalArea);
     const normalizedTotalPrice = Number(totalPrice.toFixed(2));
     const validationError = validateQuoteBeforeSave({
       clientId,
@@ -816,7 +816,7 @@ export const QuoteEditor: React.FC = () => {
               {formatCurrency(totalPrice)}
             </div>
             <div className="space-y-2 text-sm font-medium text-white/75">
-              <div className="flex justify-between gap-3"><span>Área final total</span><strong>{formatNumber(totalArea, 4)} m²</strong></div>
+              <div className="flex justify-between gap-3"><span>Área final total</span><strong>{formatArea(totalArea)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pedras</span><strong>{formatCurrency(stonesCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Mão de obra</span><strong>{formatCurrency(laborCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Recortes</span><strong>{formatCurrency(cutoutsCost)}</strong></div>
@@ -831,11 +831,11 @@ export const QuoteEditor: React.FC = () => {
                     <span>{formatCurrency(totals.totalArea * (material?.pricePerM2 || 0))}</span>
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 opacity-80">
-                    <span>Bancada: {formatNumber(totals.mainArea, 4)} m²</span>
-                    <span>Cuba: {formatNumber(totals.sinkArea || 0, 4)} m²</span>
-                    <span>Adicionais: {formatNumber(totals.sidesArea + totals.recessArea, 4)} m²</span>
-                    <span>Perda: {formatNumber(totals.lossArea || 0, 4)} m²</span>
-                    <span className="col-span-2">Final: {formatNumber(totals.totalArea, 4)} m² | {material?.name || 'Sem material'}</span>
+                    <span>Bancada: {formatArea(totals.mainArea)}</span>
+                    <span>Cuba: {formatArea(totals.sinkArea || 0)}</span>
+                    <span>Adicionais: {formatArea(totals.sidesArea + totals.recessArea)}</span>
+                    <span>Perda: {formatArea(totals.lossArea || 0)}</span>
+                    <span className="col-span-2">Final: {formatArea(totals.totalArea)} | {material?.name || 'Sem material'}</span>
                   </div>
                 </div>
               ))}
@@ -1081,8 +1081,8 @@ export const QuoteEditor: React.FC = () => {
                       <div className="md:col-span-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
                         <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Medidas do desenho</div>
                         <div className="mt-2 flex flex-wrap gap-4 text-sm font-semibold text-slate-700">
-                          <span>Largura: <span className="font-mono text-slate-900">{pieceDimensions.major > 0 ? `${formatNumber(pieceDimensions.major, 0)} cm` : '-'}</span></span>
-                          <span>Profundidade: <span className="font-mono text-slate-900">{pieceDimensions.minor > 0 ? `${formatNumber(pieceDimensions.minor, 0)} cm` : '-'}</span></span>
+                          <span>Largura: <span className="font-mono text-slate-900">{pieceDimensions.major > 0 ? formatCentimeters(pieceDimensions.major) : '-'}</span></span>
+                          <span>Profundidade: <span className="font-mono text-slate-900">{pieceDimensions.minor > 0 ? formatCentimeters(pieceDimensions.minor) : '-'}</span></span>
                         </div>
                       </div>
                       <div className="space-y-1">
@@ -1239,21 +1239,22 @@ export const QuoteEditor: React.FC = () => {
                           </div>
 
                           <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Pisos</span><strong>{formatNumber(stairDetails.treadArea, 4)} m²</strong></div>
-                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Espelhos</span><strong>{formatNumber(stairDetails.riserArea, 4)} m²</strong></div>
-                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Patamar</span><strong>{formatNumber(stairDetails.landingArea, 4)} m²</strong></div>
-                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Rodapé</span><strong>{formatNumber(stairDetails.baseboardArea, 4)} m²</strong></div>
-                            <div className="rounded-2xl bg-brand-primary p-3 text-white"><span className="block font-bold uppercase text-white/70">Total escada</span><strong>{formatNumber(stairDetails.totalArea, 4)} m²</strong></div>
+                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Pisos</span><strong>{formatArea(stairDetails.treadArea)}</strong></div>
+                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Espelhos</span><strong>{formatArea(stairDetails.riserArea)}</strong></div>
+                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Patamar</span><strong>{formatArea(stairDetails.landingArea)}</strong></div>
+                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Rodapé</span><strong>{formatArea(stairDetails.baseboardArea)}</strong></div>
+                            <div className="rounded-2xl bg-brand-primary p-3 text-white"><span className="block font-bold uppercase text-white/70">Total escada</span><strong>{formatArea(stairDetails.totalArea)}</strong></div>
                           </div>
                         </div>
                       )}
                       {!piece.stair?.active && (
                       <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Comp. (cm)</label>
-                        <input 
-                          type="number" 
-                          value={piece.length}
-                          onChange={(e) => updatePiece(piece.id, { length: Number(e.target.value) })}
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={formatMeasureInput(piece.length)}
+                          onChange={(e) => updatePiece(piece.id, { length: parseMeasureInput(e.target.value) })}
                           className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
                         />
                       </div>
@@ -1261,10 +1262,11 @@ export const QuoteEditor: React.FC = () => {
                       {!piece.stair?.active && (
                       <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura (cm)</label>
-                        <input 
-                          type="number" 
-                          value={piece.width}
-                          onChange={(e) => updatePiece(piece.id, { width: Number(e.target.value) })}
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={formatMeasureInput(piece.width)}
+                          onChange={(e) => updatePiece(piece.id, { width: parseMeasureInput(e.target.value) })}
                           className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
                         />
                       </div>
@@ -1274,24 +1276,24 @@ export const QuoteEditor: React.FC = () => {
                         <div className="px-4 py-2.5 bg-slate-100 rounded-xl font-mono text-slate-600 flex flex-col items-end">
                           <div className="flex justify-between w-full items-center">
                             <span className="text-[9px] uppercase font-bold text-slate-400">Total:</span>
-                             <span className="font-bold text-slate-900">{pieceArea.toFixed(4)}</span>
+                             <span className="font-bold text-slate-900">{formatMeasure(pieceArea)}</span>
                           </div>
                           {piece.sculptedSink?.active && (
                             <div className="text-[8px] text-slate-400 flex flex-col w-full">
                               <div className="flex justify-between">
                                 <span>Peça:</span>
-                                <span>{calculatePieceArea(piece).mainArea.toFixed(4)}</span>
+                                <span>{formatMeasure(calculatePieceArea(piece).mainArea)}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Cuba:</span>
-                                <span>{calculatePieceArea(piece).sinkArea.toFixed(4)}</span>
+                                <span>{formatMeasure(calculatePieceArea(piece).sinkArea)}</span>
                               </div>
                             </div>
                           )}
                           {piece.wetAreaRecess?.active && (
                             <div className="text-[8px] text-slate-400 flex justify-between w-full">
                               <span>Rebaixo:</span>
-                              <span>{calculatePieceArea(piece).recessArea.toFixed(4)}</span>
+                              <span>{formatMeasure(calculatePieceArea(piece).recessArea)}</span>
                             </div>
                           )}
                           {piece.manualArea && (
@@ -1299,13 +1301,13 @@ export const QuoteEditor: React.FC = () => {
                           )}
                         </div>
                         <div className={cn('mt-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide', !hasMaterial ?'bg-slate-100 text-slate-500' : hasEnoughStock ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600')}>
-                          {!hasMaterial ?'Selecione um material para validar o estoque' : hasEnoughStock ?`m² suficiente: ${stock.available.toFixed(2)} m² disponível` : `m² insuficiente: precisa ${pieceArea.toFixed(2)} m² e há ${stock.available.toFixed(2)} m²`}
+                          {!hasMaterial ?'Selecione um material para validar o estoque' : hasEnoughStock ?`m² suficiente: ${formatArea(stock.available)} disponível` : `m² insuficiente: precisa ${formatArea(pieceArea)} e há ${formatArea(stock.available)}`}
                         </div>
                         {hasMaterial && hasEnoughStock && lotInfo && (
                           <div className={cn('mt-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide', lotInfo.canUseSingleLot ?'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700')}>
                             {lotInfo.canUseSingleLot
-                              ? `Mesmo lote: cabe na chapa ${lotInfo.singleLot?.code || 'sem lote'} (${lotInfo.singleLot?.availableArea.toFixed(2)} m²)`
-                              : `Lotes diferentes: precisa combinar ${lotInfo.lotCountNeeded || 2} chapas para ${pieceArea.toFixed(2)} m²`}
+                              ? `Mesmo lote: cabe na chapa ${lotInfo.singleLot?.code || 'sem lote'} (${formatArea(lotInfo.singleLot?.availableArea || 0)})`
+                              : `Lotes diferentes: precisa combinar ${lotInfo.lotCountNeeded || 2} chapas para ${formatArea(pieceArea)}`}
                           </div>
                         )}
                         {hasMaterial && !hasEnoughStock && (
@@ -1416,19 +1418,19 @@ export const QuoteEditor: React.FC = () => {
                                 <>
                                   <div className="space-y-0.5">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Área bancada</span>
-                                    <div className="text-slate-900 font-mono font-bold">{formatNumber(pieceTotals.mainArea, 4)} m²</div>
+                                    <div className="text-slate-900 font-mono font-bold">{formatArea(pieceTotals.mainArea)}</div>
                                   </div>
                                   <div className="space-y-0.5">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Área cuba</span>
-                                    <div className="text-slate-900 font-mono font-bold">{formatNumber(calc.baseArea, 4)} m²</div>
+                                    <div className="text-slate-900 font-mono font-bold">{formatArea(calc.baseArea)}</div>
                                   </div>
                                   <div className="space-y-0.5">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Perda aplicada</span>
-                                    <div className="text-slate-900 font-mono font-bold">{formatNumber(pieceTotals.lossArea || 0, 4)} m²</div>
+                                    <div className="text-slate-900 font-mono font-bold">{formatArea(pieceTotals.lossArea || 0)}</div>
                                   </div>
                                   <div className="space-y-0.5">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Área final</span>
-                                    <div className="text-brand-primary font-mono font-bold">{formatNumber(pieceTotals.totalArea, 4)} m²</div>
+                                    <div className="text-brand-primary font-mono font-bold">{formatArea(pieceTotals.totalArea)}</div>
                                   </div>
                                   <div className="space-y-0.5">
                                     <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Ralo</span>
@@ -1506,7 +1508,7 @@ export const QuoteEditor: React.FC = () => {
                         </div>
                         <div className="rounded-2xl border border-slate-100 bg-white p-4">
                           <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Área do rebaixo (m²)</span>
-                          <div className="text-brand-primary font-mono font-bold">{calculateWetAreaRecessArea(piece).toFixed(4)}</div>
+                          <div className="text-brand-primary font-mono font-bold">{formatMeasure(calculateWetAreaRecessArea(piece))}</div>
                         </div>
                       </div>
                     )}

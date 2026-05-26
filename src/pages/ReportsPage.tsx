@@ -3,7 +3,7 @@ import {collection, limit, onSnapshot, orderBy, query} from '../lib/firestore';
 import {AlertCircle, BarChart3, Boxes, FileDown, Gauge, TrendingUp, Users} from 'lucide-react';
 import {Client, Employee, InventoryItem, InventoryPurchase, InventoryReservation, LegacyPaymentInstallment, Material, ProductionStep, Quote, SystemEvent} from '../types';
 import {db} from '../lib/firestore';
-import {cn, formatCurrency} from '../lib/utils';
+import {cn, formatArea, formatCurrency} from '../lib/utils';
 import {QUOTE_STATUSES, getClientDisplayStatus, isQuoteApprovedOrBeyond, normalizeQuoteStatus} from '../lib/quoteStatus';
 import {useAuth} from '../contexts/AuthContext';
 
@@ -387,7 +387,7 @@ export const ReportsPage: React.FC = () => {
                   </div>
                   <div className="text-left md:text-right">
                     <div className="font-mono font-bold text-brand-primary">{canViewRevenue ? formatCurrency(quote.totalPrice || 0) : hiddenRevenueLabel}</div>
-                    <div className="text-xs text-slate-400">{(quote.totalArea || 0).toFixed(4)} m²</div>
+                    <div className="text-xs text-slate-400">{formatArea(quote.totalArea || 0)}</div>
                   </div>
                 </div>
               </div>
@@ -415,11 +415,11 @@ export const ReportsPage: React.FC = () => {
           <h2 className="font-display text-xl font-bold text-slate-900 mb-5">Resumo do estoque</h2>
           <div className="space-y-3">
             <MoneyLine label="Custo em estoque" value={canViewRevenue ? inventoryCost : hiddenRevenueLabel} className="text-slate-900" />
-            <InfoLine label="Área total" value={`${inventoryArea.toFixed(2)} m²`} />
-            <InfoLine label="Reservado em orçamentos" value={`${reservedArea.toFixed(2)} m²`} />
-            <InfoLine label="Vendido/finalizado" value={`${soldArea.toFixed(2)} m²`} />
-            <InfoLine label="Compra pendente" value={`${purchasePendingArea.toFixed(2)} m²`} />
-            <InfoLine label="Perdas/descarte" value={`${lossArea.toFixed(2)} m²`} danger />
+            <InfoLine label="Área total" value={formatArea(inventoryArea)} />
+            <InfoLine label="Reservado em orçamentos" value={formatArea(reservedArea)} />
+            <InfoLine label="Vendido/finalizado" value={formatArea(soldArea)} />
+            <InfoLine label="Compra pendente" value={formatArea(purchasePendingArea)} />
+            <InfoLine label="Perdas/descarte" value={formatArea(lossArea)} danger />
           </div>
         </div>
       </section>
@@ -448,14 +448,14 @@ export const ReportsPage: React.FC = () => {
             {filteredPurchases.slice(0, 10).map((purchase) => (
               <div key={purchase.id} className="rounded-2xl bg-slate-50 p-4">
                 <div className="font-bold text-slate-900">{purchase.materialName}</div>
-                <div className="text-sm text-slate-500">{purchase.status} · {purchase.code || 'Sem lote'} · {(purchase.area || 0).toFixed(2)} m²</div>
+                <div className="text-sm text-slate-500">{purchase.status} · {purchase.code || 'Sem lote'} · {formatArea(purchase.area || 0)}</div>
                 <div className="mt-1 text-xs text-slate-400">Comprou: {purchase.purchasedByName || '-'} · Recebeu: {purchase.receivedByName || '-'}</div>
               </div>
             ))}
             {lossItems.slice(0, 8).map((item) => (
               <div key={`loss-${item.id}`} className="rounded-2xl bg-red-50 p-4">
                 <div className="font-bold text-red-900">Perda: {item.materialName}</div>
-                <div className="text-sm text-red-700">{item.lossReason || 'Descarte'} · {item.lossClientName || 'Sem cliente'} · {(item.area || 0).toFixed(2)} m²</div>
+                <div className="text-sm text-red-700">{item.lossReason || 'Descarte'} · {item.lossClientName || 'Sem cliente'} · {formatArea(item.area || 0)}</div>
                 <div className="mt-1 text-xs text-red-500">{item.lossNotes || item.notes || '-'}</div>
               </div>
             ))}

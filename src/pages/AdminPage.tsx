@@ -7,7 +7,7 @@ import {storage} from '../lib/storage';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {useAuth} from '../contexts/AuthContext';
 import {AccessRole, AccessUser, Employee, EmployeeRole, FixtureCatalogItem, FixtureCategory, InventoryItem, Material, PermissionMap, Quote} from '../types';
-import {cn} from '../lib/utils';
+import {cn, formatCentimeters} from '../lib/utils';
 import { SettingsPage } from './SettingsPage';
 import {ACCESS_ROLES, ACTION_LABELS, getDefaultPermissions, hasPermission, isMasterAdmin, mergePermissions, MODULE_LABELS, roleLabel} from '../lib/permissions';
 import {logAuditEvent} from '../lib/auditLogs';
@@ -1019,7 +1019,7 @@ export const AdminPage: React.FC = () => {
                   <div className="font-bold text-slate-900">{item.name}</div>
                   <div className="text-xs text-slate-400">{item.category} · {[item.brand, item.model].filter(Boolean).join(' / ')}</div>
                   <div className="mt-1 text-xs font-semibold text-slate-500">
-                    {[item.width ?`${item.width} cm largura` : '', item.depth ?`${item.depth} cm profundidade` : '', item.diameter ?`${item.diameter} cm diâmetro` : ''].filter(Boolean).join(' · ') || 'Sem medidas cadastradas'}
+                    {[item.width ?`${formatCentimeters(item.width)} largura` : '', item.depth ?`${formatCentimeters(item.depth)} profundidade` : '', item.diameter ?`${formatCentimeters(item.diameter)} diâmetro` : ''].filter(Boolean).join(' · ') || 'Sem medidas cadastradas'}
                   </div>
                   {item.manualUrl && (
                     <a

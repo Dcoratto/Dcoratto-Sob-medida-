@@ -4,6 +4,7 @@ import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
 import {Quote, Settings} from '../types';
 import {getPieceMajorMinorSides} from './pieceDimensions';
+import {formatArea, formatCentimeters} from './utils';
 
 const money = (value = 0) => new Intl.NumberFormat('pt-BR', {style: 'currency', currency: 'BRL'}).format(value);
 
@@ -18,7 +19,7 @@ const safeText = (value?: string) => value?.trim() || '-';
 const formatPieceDimensions = (piece: Quote['pieces'][number]) => {
   const dimensions = getPieceMajorMinorSides(piece);
   if (!dimensions.major) return '-';
-  return `${dimensions.major.toFixed(0)} x ${dimensions.minor.toFixed(0)} cm`;
+  return `${formatCentimeters(dimensions.major)} x ${formatCentimeters(dimensions.minor)}`;
 };
 const sideTypeLabel = (type?: string) => {
   if (type === 'frontao') return 'Frontao';
@@ -113,7 +114,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
     startY: 99,
     theme: 'plain',
     body: [
-      ['área total', `${(quote.totalArea || 0).toFixed(4)} m²`, 'Recortes', `${totalCutouts} un`],
+      ['área total', formatArea(quote.totalArea || 0), 'Recortes', `${totalCutouts} un`],
       ['Status', quote.status, 'Valor total', money(quote.totalPrice || 0)],
     ],
     styles: {fontSize: 9, cellPadding: 4, lineColor: [230, 226, 220], lineWidth: 0.2},
@@ -142,7 +143,7 @@ export const generateQuotePDF = (quote: Quote, settings: Settings) => {
         String(index + 1).padStart(2, '0'),
         piece.sculptedSink?.active ?`${piece.name}\nPia esculpida: ${piece.sculptedSink.type}` : piece.name,
         formatPieceDimensions(piece),
-        `${(piece.totalArea || piece.manualArea || piece.area || 0).toFixed(4)} m²`,
+        formatArea(piece.totalArea || piece.manualArea || piece.area || 0),
         additions,
         piece.notes || '-',
       ];

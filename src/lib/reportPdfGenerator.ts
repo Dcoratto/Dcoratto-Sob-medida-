@@ -1,5 +1,6 @@
 import type {jsPDF} from 'jspdf';
 import {Employee, InventoryItem, InventoryPurchase, InventoryReservation, Material, ProductionStep, Quote, SystemEvent} from '../types';
+import {formatArea} from './utils';
 
 type PdfColor = [number, number, number];
 
@@ -286,7 +287,7 @@ export const generateReportPDF = async (data: ReportPdfData) => {
         item.materialName,
         item.code || '-',
         item.status,
-        `${(item.area || 0).toFixed(2)} M²`,
+        formatArea(item.area || 0),
         money(item.cost || 0),
         [item.lossReason, item.lossClientName].filter(Boolean).join(' - ') || '-',
       ])
@@ -309,19 +310,19 @@ export const generateReportPDF = async (data: ReportPdfData) => {
         'Compra',
         purchase.materialName,
         `${purchase.code || '-'} | ${purchase.purchasedByName || '-'}`,
-        `${(purchase.area || 0).toFixed(2)} M²`,
+        formatArea(purchase.area || 0),
         purchase.status,
       ]),
       ...(data.reservations || []).slice(0, 25).map((reservation) => [
         'Reserva',
         reservation.clientName || reservation.materialName,
         reservation.materialName,
-        `${(reservation.area || 0).toFixed(2)} M²`,
+        formatArea(reservation.area || 0),
         reservation.quoteStatus,
       ]),
     ].length ? [
-      ...(data.purchases || []).slice(0, 25).map((purchase) => ['Compra', purchase.materialName, `${purchase.code || '-'} | ${purchase.purchasedByName || '-'}`, `${(purchase.area || 0).toFixed(2)} M²`, purchase.status]),
-      ...(data.reservations || []).slice(0, 25).map((reservation) => ['Reserva', reservation.clientName || reservation.materialName, reservation.materialName, `${(reservation.area || 0).toFixed(2)} M²`, reservation.quoteStatus]),
+      ...(data.purchases || []).slice(0, 25).map((purchase) => ['Compra', purchase.materialName, `${purchase.code || '-'} | ${purchase.purchasedByName || '-'}`, formatArea(purchase.area || 0), purchase.status]),
+      ...(data.reservations || []).slice(0, 25).map((reservation) => ['Reserva', reservation.clientName || reservation.materialName, reservation.materialName, formatArea(reservation.area || 0), reservation.quoteStatus]),
     ] : [['Sem compras/reservas', '-', '-', '-', '-']],
     headStyles: {fillColor: dark, textColor: [255, 255, 255], fontSize: 7.2},
     styles: {fontSize: 6.8, cellPadding: 2.2, lineColor: [226, 232, 240], lineWidth: 0.2, valign: 'top'},

@@ -1,5 +1,5 @@
 import {formatMaterialSpecsWithProvider} from './materialSpecs';
-import {formatCurrency, formatNumber} from './utils';
+import {formatArea, formatCentimeters, formatCurrency, formatNumber} from './utils';
 import type {InventoryPurchase, Settings} from '../types';
 
 type PurchaseOrderGroup = {
@@ -67,8 +67,8 @@ export const generatePurchaseOrderPdf = async (group: PurchaseOrderGroup, settin
       sanitizePdfText(purchase.materialName),
       sanitizePdfText(formatMaterialSpecsWithProvider(purchase)),
       sanitizePdfText(purchase.code || '-'),
-      `${purchase.length} x ${purchase.width} cm`,
-      `${formatNumber(purchase.area || 0)} m²`,
+      `${formatCentimeters(purchase.length)} x ${formatCentimeters(purchase.width)}`,
+      formatArea(purchase.area || 0),
       sanitizePdfText(formatCurrency(purchase.cost || 0)),
     ]),
     theme: 'grid',

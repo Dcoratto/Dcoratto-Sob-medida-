@@ -150,8 +150,8 @@ export const MaterialsPage: React.FC = () => {
       const availableArea = Math.max(0, stockArea - manualReservedArea - quoteReservedArea - soldArea);
       const missingArea = Math.max(0, quoteReservedArea - Math.max(0, stockArea - manualReservedArea - soldArea));
       const baseCostPerM2 = stockArea > 0 ? stockCost / stockArea : (baseMaterial?.baseCostPerM2 ?? 0);
-      const baseMinimumSalePerM2 = stockArea > 0
-        ? stockMinimumSale / stockArea
+      const baseMinimumSalePerM2 = stockMinimumSaleValue > 0
+        ? stockMinimumSaleValue
         : (baseMaterial?.baseMinimumSalePerM2 ?? baseCostPerM2);
 
       return {
@@ -201,7 +201,9 @@ export const MaterialsPage: React.FC = () => {
     setSavingPrice(true);
     try {
       const baseCost = editingMaterial.baseCostPerM2 ?? 0;
-      const baseMinimumSale = editingMaterial.baseMinimumSalePerM2 ?? baseCost;
+      const baseMinimumSale = editingMaterial.stockMinimumSaleValue > 0
+        ? editingMaterial.stockMinimumSaleValue
+        : (editingMaterial.baseMinimumSalePerM2 ?? baseCost);
       const pricePerM2 = Math.max(0, Number(salePricePerM2) || 0);
       const rawMarginPercentage = baseMinimumSale > 0
         ? ((pricePerM2 / baseMinimumSale) - 1) * 100

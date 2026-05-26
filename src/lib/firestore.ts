@@ -625,8 +625,11 @@ export const updateDoc = async (reference: DocumentReference, data: object) => {
   }
 
   const currentData = current.data() || {};
-  let payload = applyArrayUnionMarkers(currentData, data as Record<string, unknown>);
-  payload = applyManagedTimestamps(reference.table, payload, {merge: true, existingData: currentData});
+  const payload = applyManagedTimestamps(
+    reference.table,
+    applyArrayUnionMarkers(currentData, data as Record<string, unknown>),
+    {merge: true, existingData: currentData},
+  );
   const mapped = mapDataToDb(reference.table, payload);
   const {error} = await withSupabaseRetry(() => supabase.from(getTableConfig(reference.table).table).update(mapped).eq('id', reference.id));
   if (error) throw error;

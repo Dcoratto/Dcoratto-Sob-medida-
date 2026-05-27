@@ -23,6 +23,7 @@ const patioRacks = Array.from({length: 9}, (_, index) => `Cavalete ${index + 1}`
 const UNASSIGNED_PANEL_ID = '__unassigned__';
 const PATIO_CARD_WIDTH = 116;
 const PATIO_CARD_HEIGHT = 82;
+const DEFAULT_PATIO_SIZE = {width: 100, height: 100};
 const DEFAULT_PATIO_LAYOUT: Record<string, {x: number; y: number}> = {
   'Cavalete 1': {x: 10, y: 42},
   'Cavalete 2': {x: 42, y: 14},
@@ -34,6 +35,24 @@ const DEFAULT_PATIO_LAYOUT: Record<string, {x: number; y: number}> = {
   'Cavalete 8': {x: 50, y: 74},
   'Cavalete 9': {x: 58, y: 74},
 };
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const buildPatioLayout = (layout?: Record<string, {x: number; y: number}>) =>
+  patioRacks.reduce((map, rack) => {
+    const point = layout?.[rack] || DEFAULT_PATIO_LAYOUT[rack];
+    map[rack] = {
+      x: clamp(Number(point?.x) || DEFAULT_PATIO_LAYOUT[rack].x, 0, 100),
+      y: clamp(Number(point?.y) || DEFAULT_PATIO_LAYOUT[rack].y, 0, 100),
+    };
+    return map;
+  }, {} as Record<string, {x: number; y: number}>);
+const serializePatioConfig = (layout: Record<string, {x: number; y: number}>, size: {width: number; height: number}) =>
+  JSON.stringify({
+    layout: patioRacks.reduce((map, rack) => {
+      map[rack] = layout[rack];
+      return map;
+    }, {} as Record<string, {x: number; y: number}>),
+    size,
+  });
 
 const normalizeStatus = (value: unknown) =>
   String(value || '')
@@ -118,9 +137,18 @@ export const InventoryPage: React.FC = () => {
   const [selectedPatioPanel, setSelectedPatioPanel] = useState<string>(patioRacks[0]);
   const [focusedInventoryId, setFocusedInventoryId] = useState('');
   const patioMapRef = useRef<HTMLDivElement | null>(null);
+  const patioCanvasRef = useRef<HTMLDivElement | null>(null);
+  const patioDragRef = useRef<{rack: string; pointerId: number} | null>(null);
+  const patioAutosaveTimerRef = useRef<number | null>(null);
+  const patioLastSavedRef = useRef('');
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
+  const [isEditingPatioLayout, setIsEditingPatioLayout] = useState(false);
+  const [patioDraftLayout, setPatioDraftLayout] = useState<Record<string, {x: number; y: number}>>(buildPatioLayout());
+  const [patioDraftSize, setPatioDraftSize] = useState(DEFAULT_PATIO_SIZE);
+  const [patioLayoutSaving, setPatioLayoutSaving] = useState(false);
+  const [patioLayoutFeedback, setPatioLayoutFeedback] = useState('');
 
   const [selectedMaterialId, setSelectedMaterialId] = useState('');
   const [materialName, setMaterialName] = useState('');
@@ -937,6 +965,13 @@ export const InventoryPage: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
   const activePatioItems = items.filter((item) => !['usada', 'descarte'].includes(normalizeStatus(item.status)));
+  const persistedPatioLayout = useMemo(() => buildPatioLayout(settings.patioLayout), [settings.patioLayout]);
+  const persistedPatioSize = useMemo(() => ({
+    width: clamp(Number(settings.patioSize?.width) || DEFAULT_PATIO_SIZE.width, 70, 180),
+    height: clamp(Number(settings.patioSize?.height) || DEFAULT_PATIO_SIZE.height, 70, 180),
+  }), [settings.patioSize?.height, settings.patioSize?.width]);
+  const patioCanvasWidth = `${Math.max(100, patioDraftSize.width)}%`;
+  const patioCanvasHeight = clamp(Math.round(320 * (patioDraftSize.height / 100)), 260, 620);
   const rackItemsMap = useMemo(() => patioRacks.reduce((map, rack) => {
     map.set(rack, activePatioItems.filter((item) => item.rackId === rack));
     return map;
@@ -1097,6 +1132,90 @@ export const InventoryPage: React.FC = () => {
   const purchaseTotalArea = purchasePreviewSlabs.reduce((acc, slab) => acc + ((Number(slab.length) * Number(slab.width)) / 10000), 0);
   const purchaseTotalCost = purchasePreviewSlabs.reduce((acc, slab) => acc + Number(slab.cost || 0), 0);
   const purchaseTotalMinimumSale = purchasePreviewSlabs.reduce((acc, slab) => acc + Number(slab.minimumSalePrice || slab.cost || 0), 0);
+
+  useEffect(() => {
+    setPatioDraftLayout(persistedPatioLayout);
+    setPatioDraftSize(persistedPatioSize);
+    patioLastSavedRef.current = serializePatioConfig(persistedPatioLayout, persistedPatioSize);
+  }, [persistedPatioLayout, persistedPatioSize]);
+
+  useEffect(() => {
+    if (!isEditingPatioLayout || !hasPermission('estoque', 'movimentar')) return;
+
+    const nextSnapshot = serializePatioConfig(patioDraftLayout, patioDraftSize);
+    if (nextSnapshot === patioLastSavedRef.current) return;
+
+    if (patioAutosaveTimerRef.current) window.clearTimeout(patioAutosaveTimerRef.current);
+    patioAutosaveTimerRef.current = window.setTimeout(async () => {
+      setPatioLayoutSaving(true);
+      try {
+        await setDoc(doc(db, 'settings', 'global'), {
+          patioLayout: patioDraftLayout,
+          patioSize: patioDraftSize,
+        }, {merge: true});
+        patioLastSavedRef.current = nextSnapshot;
+        setPatioLayoutFeedback('Layout salvo automaticamente.');
+      } catch (error) {
+        console.error('Erro ao salvar layout do patio:', error);
+        setPatioLayoutFeedback('Nao foi possivel salvar o layout agora.');
+      } finally {
+        setPatioLayoutSaving(false);
+      }
+    }, 450);
+
+    return () => {
+      if (patioAutosaveTimerRef.current) window.clearTimeout(patioAutosaveTimerRef.current);
+    };
+  }, [hasPermission, isEditingPatioLayout, patioDraftLayout, patioDraftSize]);
+
+  useEffect(() => {
+    if (!patioLayoutFeedback) return;
+    const timeout = window.setTimeout(() => setPatioLayoutFeedback(''), 2200);
+    return () => window.clearTimeout(timeout);
+  }, [patioLayoutFeedback]);
+
+  useEffect(() => {
+    const handlePointerMove = (event: PointerEvent) => {
+      const drag = patioDragRef.current;
+      const canvas = patioCanvasRef.current;
+      if (!drag || !canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      const maxX = Math.max(0, 100 - ((PATIO_CARD_WIDTH / rect.width) * 100));
+      const maxY = Math.max(0, 100 - ((PATIO_CARD_HEIGHT / rect.height) * 100));
+      const nextX = clamp(((event.clientX - rect.left - (PATIO_CARD_WIDTH / 2)) / rect.width) * 100, 0, maxX);
+      const nextY = clamp(((event.clientY - rect.top - (PATIO_CARD_HEIGHT / 2)) / rect.height) * 100, 0, maxY);
+
+      setPatioDraftLayout((current) => ({
+        ...current,
+        [drag.rack]: {x: Number(nextX.toFixed(2)), y: Number(nextY.toFixed(2))},
+      }));
+    };
+
+    const handlePointerUp = () => {
+      patioDragRef.current = null;
+    };
+
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp);
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, []);
+
+  const startPatioDrag = (rack: string, event: React.PointerEvent<HTMLButtonElement>) => {
+    if (!isEditingPatioLayout || !hasPermission('estoque', 'movimentar')) return;
+    patioDragRef.current = {rack, pointerId: event.pointerId};
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const resetPatioLayout = () => {
+    setPatioDraftLayout(buildPatioLayout());
+    setPatioDraftSize(DEFAULT_PATIO_SIZE);
+  };
 
   const downloadPurchaseOrder = async (groupId: string) => {
     const group = activePurchaseGroups.find((item) => item.groupId === groupId);
@@ -1397,10 +1516,37 @@ export const InventoryPage: React.FC = () => {
       <div ref={patioMapRef} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-6 space-y-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <h2 className="font-display text-xl font-bold text-slate-900">Pátio de chapas</h2>
-            <p className="mt-1 text-sm text-slate-400">Esquema do pátio visto de cima, com 9 cavaletes organizados por fileiras.</p>
+            <h2 className="font-display text-xl font-bold text-slate-900">Patio de chapas</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              {isEditingPatioLayout
+                ? 'Arraste os cavaletes para reposicionar e ajuste o tamanho da area. O layout salva sozinho.'
+                : 'Esquema do patio visto de cima, com layout personalizavel e persistente.'}
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {hasPermission('estoque', 'movimentar') && (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsEditingPatioLayout((current) => {
+                    const next = !current;
+                    if (!next) {
+                      setPatioDraftLayout(persistedPatioLayout);
+                      setPatioDraftSize(persistedPatioSize);
+                    }
+                    return next;
+                  });
+                  setFocusedInventoryId('');
+                }}
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all',
+                  isEditingPatioLayout ? 'bg-brand-primary text-white hover:bg-brand-primary/90' : 'bg-slate-900 text-white hover:bg-slate-800',
+                )}
+              >
+                <Edit2 className="h-4 w-4" />
+                {isEditingPatioLayout ? 'Concluir edicao' : 'Editar layout'}
+              </button>
+            )}
             {unassignedPatioItems.length > 0 && (
               <button
                 type="button"
@@ -1414,69 +1560,108 @@ export const InventoryPage: React.FC = () => {
               </button>
             )}
             <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600">
-              {activePatioItems.length} chapa(s) no pátio
+              {activePatioItems.length} chapa(s) no patio
             </div>
           </div>
         </div>
 
         <div className="space-y-5">
-          <div className="rounded-[28px] border border-slate-100 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95),_rgba(248,250,252,0.9)_55%,_rgba(241,245,249,0.9))] p-4">
-            <div className="rounded-[24px] border border-slate-200/80 bg-white/70 p-4 shadow-inner shadow-slate-100/80">
-              <div className="space-y-4">
-                {patioRackRows.map((row, rowIndex) => (
-                  <div
-                    key={`row-${rowIndex}`}
-                    className={cn(
-                      'flex items-center gap-3 md:gap-4',
-                      rowIndex === 0 && 'justify-center',
-                      rowIndex === 1 && 'justify-between md:px-16',
-                      rowIndex === 2 && 'justify-center',
-                    )}
-                  >
-                    {row.map((rack) => {
-                      const rackItems = rackItemsMap.get(rack) || [];
-                      const isSelected = selectedPatioPanel === rack;
-                      const hasFocusedItem = rackItems.some((item) => item.id === focusedInventoryId);
-                      const occupancy = rackOccupancyPercent(rack);
+          {isEditingPatioLayout && hasPermission('estoque', 'movimentar') && (
+            <div className="rounded-[24px] border border-brand-primary/15 bg-brand-primary/5 p-4">
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] lg:items-end">
+                <label className="block">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Largura da area</span>
+                  <input
+                    type="range"
+                    min="70"
+                    max="180"
+                    step="1"
+                    value={patioDraftSize.width}
+                    onChange={(event) => setPatioDraftSize((current) => ({...current, width: Number(event.target.value)}))}
+                    className="mt-3 w-full"
+                  />
+                  <span className="mt-2 block text-sm font-semibold text-slate-700">{patioDraftSize.width}%</span>
+                </label>
+                <label className="block">
+                  <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Altura da area</span>
+                  <input
+                    type="range"
+                    min="70"
+                    max="180"
+                    step="1"
+                    value={patioDraftSize.height}
+                    onChange={(event) => setPatioDraftSize((current) => ({...current, height: Number(event.target.value)}))}
+                    className="mt-3 w-full"
+                  />
+                  <span className="mt-2 block text-sm font-semibold text-slate-700">{patioDraftSize.height}%</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={resetPatioLayout}
+                  className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Restaurar padrao
+                </button>
+              </div>
+              <div className="mt-3 text-xs font-semibold text-slate-500">
+                {patioLayoutSaving ? 'Salvando layout...' : patioLayoutFeedback || 'As mudancas sao salvas automaticamente.'}
+              </div>
+            </div>
+          )}
 
-                      return (
-                        <button
-                          key={rack}
-                          type="button"
-                          title={rack}
-                          aria-label={rack}
-                          onClick={() => {
-                            setSelectedRackId(rack);
-                            setSelectedPatioPanel(rack);
-                            setFocusedInventoryId('');
-                          }}
-                          className={cn(
-                            'group relative h-[78px] w-[110px] shrink-0 rounded-[22px] border bg-white/95 p-3 transition-all md:h-[82px] md:w-[116px]',
-                            isSelected ? 'border-brand-primary shadow-[0_18px_50px_-28px_rgba(155,112,69,0.65)]' : 'border-slate-200 hover:border-brand-primary/35 hover:bg-white',
-                            hasFocusedItem && 'ring-2 ring-brand-primary ring-offset-2 ring-offset-slate-50',
-                          )}
-                        >
-                          <div className="relative h-full overflow-hidden rounded-[16px] border border-slate-100 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]">
-                            <div className="pointer-events-none absolute inset-y-2 left-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
-                            <div className="pointer-events-none absolute inset-y-2 right-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
-                            <div className="pointer-events-none absolute left-[26px] right-[26px] top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slate-200" />
-                            <div
-                              className="pointer-events-none absolute left-[26px] top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-brand-primary/18 transition-all"
-                              style={{width: `calc((100% - 52px) * ${Math.max(0.12, occupancy / 100)})`}}
-                            />
-                            <div className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400 transition-colors group-hover:text-brand-primary/80">
-                              {rack.replace('Cavalete ', '')}
-                            </div>
-                          </div>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))}
+          <div className="rounded-[28px] border border-slate-100 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.95),_rgba(248,250,252,0.9)_55%,_rgba(241,245,249,0.9))] p-4">
+            <div className="overflow-x-auto">
+              <div
+                ref={patioCanvasRef}
+                className="relative mx-auto rounded-[24px] border border-slate-200/80 bg-white/70 p-4 shadow-inner shadow-slate-100/80"
+                style={{width: patioCanvasWidth, height: patioCanvasHeight}}
+              >
+                {patioRacks.map((rack) => {
+                  const rackItems = rackItemsMap.get(rack) || [];
+                  const isSelected = selectedPatioPanel === rack;
+                  const hasFocusedItem = rackItems.some((item) => item.id === focusedInventoryId);
+                  const occupancy = rackOccupancyPercent(rack);
+                  const position = patioDraftLayout[rack] || DEFAULT_PATIO_LAYOUT[rack];
+
+                  return (
+                    <button
+                      key={rack}
+                      type="button"
+                      title={isEditingPatioLayout ? `${rack} - arraste para mover` : rack}
+                      aria-label={rack}
+                      onPointerDown={(event) => startPatioDrag(rack, event)}
+                      onClick={() => {
+                        if (isEditingPatioLayout) return;
+                        setSelectedRackId(rack);
+                        setSelectedPatioPanel(rack);
+                        setFocusedInventoryId('');
+                      }}
+                      className={cn(
+                        'group absolute rounded-[22px] border bg-white/95 p-3 transition-all md:h-[82px] md:w-[116px]',
+                        isEditingPatioLayout ? 'cursor-grab active:cursor-grabbing border-brand-primary/35 shadow-[0_18px_50px_-28px_rgba(155,112,69,0.35)]' : 'cursor-pointer',
+                        isSelected ? 'border-brand-primary shadow-[0_18px_50px_-28px_rgba(155,112,69,0.65)]' : 'border-slate-200 hover:border-brand-primary/35 hover:bg-white',
+                        hasFocusedItem && 'ring-2 ring-brand-primary ring-offset-2 ring-offset-slate-50',
+                      )}
+                      style={{left: `${position.x}%`, top: `${position.y}%`, width: PATIO_CARD_WIDTH, height: PATIO_CARD_HEIGHT}}
+                    >
+                      <div className="relative h-full overflow-hidden rounded-[16px] border border-slate-100 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]">
+                        <div className="pointer-events-none absolute inset-y-2 left-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
+                        <div className="pointer-events-none absolute inset-y-2 right-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
+                        <div className="pointer-events-none absolute left-[26px] right-[26px] top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slate-200" />
+                        <div
+                          className="pointer-events-none absolute left-[26px] top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-brand-primary/18 transition-all"
+                          style={{width: `calc((100% - 52px) * ${Math.max(0.12, occupancy / 100)})`}}
+                        />
+                        <div className="pointer-events-none absolute inset-x-0 bottom-2 text-center text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400 transition-colors group-hover:text-brand-primary/80">
+                          {rack.replace('Cavalete ', '')}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
-
           <div className="rounded-[24px] border border-slate-100 bg-white p-4">
             <div className="flex items-center justify-between gap-3 border-b border-slate-50 pb-3">
               <div>

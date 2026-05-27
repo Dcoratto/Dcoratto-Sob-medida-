@@ -67,6 +67,7 @@ export const DEFAULT_SETTINGS: Settings = {
     suppliers: [],
   },
   patioLayout: {},
+  patioSize: {width: 100, height: 100},
 };
 
 export const useSettings = () => {
@@ -106,6 +107,10 @@ export const useSettings = () => {
             suppliers: (data.materialCatalog?.suppliers || DEFAULT_SETTINGS.materialCatalog.suppliers).map(normalizeSupplier).filter((supplier) => supplier.name),
           },
           patioLayout: data.patioLayout || DEFAULT_SETTINGS.patioLayout,
+          patioSize: {
+            ...DEFAULT_SETTINGS.patioSize,
+            ...(data.patioSize || {}),
+          },
         } as Settings);
       }
       setLoading(false);

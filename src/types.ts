@@ -102,6 +102,7 @@ export interface Settings {
     suppliers: SupplierContact[];
   };
   patioLayout?: Record<string, {x: number; y: number}>;
+  patioSize?: {width: number; height: number};
 }
 
 export interface SupplierContact {

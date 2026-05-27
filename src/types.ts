@@ -101,7 +101,7 @@ export interface Settings {
     textures: string[];
     suppliers: SupplierContact[];
   };
-  patioLayout?: Record<string, {x: number; y: number}>;
+  patioLayout?: Record<string, {x: number; y: number; rotation?: number}>;
   patioSize?: {width: number; height: number};
 }
 

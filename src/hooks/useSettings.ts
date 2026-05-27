@@ -66,6 +66,7 @@ export const DEFAULT_SETTINGS: Settings = {
     textures: ['Polido', 'Escovado', 'Acetinado', 'Flameado', 'Fosco', 'Levigado'],
     suppliers: [],
   },
+  patioLayout: {},
 };
 
 export const useSettings = () => {
@@ -104,6 +105,7 @@ export const useSettings = () => {
             textures: sanitizeList(data.materialCatalog?.textures, DEFAULT_SETTINGS.materialCatalog.textures),
             suppliers: (data.materialCatalog?.suppliers || DEFAULT_SETTINGS.materialCatalog.suppliers).map(normalizeSupplier).filter((supplier) => supplier.name),
           },
+          patioLayout: data.patioLayout || DEFAULT_SETTINGS.patioLayout,
         } as Settings);
       }
       setLoading(false);

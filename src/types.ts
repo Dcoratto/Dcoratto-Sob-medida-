@@ -101,6 +101,7 @@ export interface Settings {
     textures: string[];
     suppliers: SupplierContact[];
   };
+  patioLayout?: Record<string, {x: number; y: number}>;
 }
 
 export interface SupplierContact {

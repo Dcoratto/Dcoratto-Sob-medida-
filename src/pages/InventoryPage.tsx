@@ -20,12 +20,20 @@ import {validateInventoryItemPayload, validatePurchaseSlabs} from '../lib/busine
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
 const patioRacks = Array.from({length: 9}, (_, index) => `Cavalete ${index + 1}`);
-const patioRackRows = [
-  ['Cavalete 2', 'Cavalete 3', 'Cavalete 4'],
-  ['Cavalete 1', 'Cavalete 5', 'Cavalete 6'],
-  ['Cavalete 7', 'Cavalete 8', 'Cavalete 9'],
-] as const;
 const UNASSIGNED_PANEL_ID = '__unassigned__';
+const PATIO_CARD_WIDTH = 116;
+const PATIO_CARD_HEIGHT = 82;
+const DEFAULT_PATIO_LAYOUT: Record<string, {x: number; y: number}> = {
+  'Cavalete 1': {x: 10, y: 42},
+  'Cavalete 2': {x: 42, y: 14},
+  'Cavalete 3': {x: 50, y: 14},
+  'Cavalete 4': {x: 58, y: 14},
+  'Cavalete 5': {x: 50, y: 44},
+  'Cavalete 6': {x: 90, y: 42},
+  'Cavalete 7': {x: 42, y: 74},
+  'Cavalete 8': {x: 50, y: 74},
+  'Cavalete 9': {x: 58, y: 74},
+};
 
 const normalizeStatus = (value: unknown) =>
   String(value || '')

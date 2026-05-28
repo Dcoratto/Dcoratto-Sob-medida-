@@ -124,7 +124,7 @@ const TABLE_CONFIG: Record<string, TableConfig> = {
   profiles: {table: 'profiles', timestampFields: ['createdAt', 'updatedAt'], ignoredFields: ['uid'], includeUidFromId: true},
   quotes: {
     table: 'quotes',
-    timestampFields: ['validityDate', 'measurementDate', 'deliveryDate', 'createdAt', 'updatedAt', 'premiumPresentationSharedAt'],
+    timestampFields: ['validityDate', 'measurementDate', 'deliveryDate', 'createdAt', 'updatedAt'],
     numericFields: ['deliveryDays', 'totalArea', 'totalPrice', 'entryAmount', 'negotiationDiscountPercent', 'rtPercent'],
   },
   settings: {

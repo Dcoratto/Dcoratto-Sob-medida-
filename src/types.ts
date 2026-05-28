@@ -462,59 +462,7 @@ export interface Quote {
   employeeAssignments?: EmployeeAssignment[];
   employeeEvaluations?: EmployeeEvaluation[];
   statusHistory?: QuoteStatusHistory[];
-  premiumPresentation?: PremiumPresentationSnapshot;
-  premiumPresentationToken?: string;
-  premiumPresentationSharedAt?: any;
-  premiumPresentationSharedByUid?: string;
-  premiumPresentationSharedByName?: string;
 }
-
-export interface PremiumPresentationPiece {
-  id: string;
-  name: string;
-  dimensions: string;
-  area: number;
-  materialName: string;
-  materialCategory?: string;
-  materialImageUrl?: string;
-  pieceImageUrl?: string;
-  notes?: string;
-}
-
-export interface PremiumPresentationMaterial {
-  key: string;
-  name: string;
-  category: string;
-  imageUrl?: string;
-  pieces: string[];
-}
-
-export interface PremiumPresentationSnapshot {
-  version: 1;
-  quoteId: string;
-  companyName: string;
-  companyLogoUrl?: string;
-  companyPhone?: string;
-  companyEmail?: string;
-  companyAddress?: string;
-  clientName: string;
-  clientPhone?: string;
-  clientAddress?: string;
-  environment?: string;
-  responsible?: string;
-  validityDate?: string;
-  deliveryDays?: number;
-  deliveryDate?: string;
-  paymentMethod?: string;
-  commercialNotes?: string;
-  totalPrice: number;
-  generatedAt: string;
-  publishedAt: string;
-  pieces: PremiumPresentationPiece[];
-  materials: PremiumPresentationMaterial[];
-}
-
-export type PremiumPresentationOverrides = Record<string, string | undefined>;
 
 export interface InventoryItem {
   id: string;

@@ -2,7 +2,6 @@ import express from 'express';
 import path from 'path';
 import {fileURLToPath} from 'url';
 import calendarFeedHandler from './api/calendar-feed.js';
-import premiumProposalHandler from './api/premium-proposal.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,10 +11,6 @@ const distDir = path.join(__dirname, 'dist');
 
 app.get('/api/calendar-feed', (req, res) => {
   calendarFeedHandler(req, res);
-});
-
-app.get('/api/premium-proposal/:id', (req, res) => {
-  premiumProposalHandler(req, res);
 });
 
 app.get('/calendar/:uid/:token.ics', (req, res) => {

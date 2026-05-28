@@ -618,6 +618,26 @@ export const QuoteEditor: React.FC = () => {
     popUpTower: 'popUpTowerCutout',
     trashBin: 'trashBinCutout',
   };
+
+  const pieceLaborCost = (piece: QuotePiece) => calculateLabor([piece]);
+
+  const pieceCutoutSummary = (piece: QuotePiece) => {
+    const pieceCutouts = countCutouts(piece.cutouts);
+    const sourceCutouts = piece.cutouts?.length || pieces.length !== 1 ? pieceCutouts : cutouts;
+    const rows = [
+      {label: 'Cooktop', count: sourceCutouts.cooktop || 0, price: settings.cutoutPrices?.cooktop || 0},
+      {label: 'Cuba embutida', count: sourceCutouts.sinkUnder || 0, price: settings.cutoutPrices?.sinkUnder || 0},
+      {label: 'Cuba sobreposta', count: sourceCutouts.sinkOver || 0, price: settings.cutoutPrices?.sinkOver || 0},
+      {label: 'Furo torneira', count: sourceCutouts.faucetHole || 0, price: settings.cutoutPrices?.faucetHole || 0},
+      {label: 'Lixeira', count: sourceCutouts.trashBinCutout || 0, price: settings.cutoutPrices?.trashBinCutout || 0},
+      {label: 'Torre tomada', count: sourceCutouts.popUpTowerCutout || 0, price: settings.cutoutPrices?.popUpTowerCutout || 0},
+      {label: 'Rebaixo americano', count: sourceCutouts.wetAreaAmericanRecess || 0, price: settings.cutoutPrices?.wetAreaAmericanRecess || 0},
+      {label: 'Rebaixo italiano', count: sourceCutouts.wetAreaItalianRecess || 0, price: settings.cutoutPrices?.wetAreaItalianRecess || 0},
+    ].filter((item) => item.count > 0);
+    const totalCount = rows.reduce((sum, item) => sum + item.count, 0);
+    const totalValue = rows.reduce((sum, item) => sum + item.count * item.price, 0);
+    return {rows, totalCount, totalValue};
+  };
   const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
     cooktop: 'cooktop',
     cuba: 'sink',
@@ -904,19 +924,30 @@ export const QuoteEditor: React.FC = () => {
             </div>
             <div className="mt-4 space-y-2 rounded-2xl bg-white/10 p-3 text-xs text-white/80">
               {pieceAreaDetails.map(({piece, totals, material}) => (
-                <div key={piece.id} className="space-y-1">
-                  <div className="flex justify-between gap-3 font-bold">
-                    <span>{piece.name}</span>
-                    <span>{formatCurrency(totals.totalArea * (material?.pricePerM2 || 0))}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-x-3 gap-y-1 opacity-80">
-                    <span>Bancada: {formatArea(totals.mainArea)}</span>
-                    <span>Cuba: {formatArea(totals.sinkArea || 0)}</span>
-                    <span>Adicionais: {formatArea(totals.sidesArea + totals.recessArea)}</span>
-                    <span>Perda: {formatArea(totals.lossArea || 0)}</span>
-                    <span className="col-span-2">Final: {formatArea(totals.totalArea)} | {material?.name || 'Sem material'}</span>
-                  </div>
-                </div>
+                (() => {
+                  const laborValue = pieceLaborCost(piece);
+                  const cutoutSummary = pieceCutoutSummary(piece);
+                  return (
+                    <div key={piece.id} className="space-y-1">
+                      <div className="flex justify-between gap-3 font-bold">
+                        <span>{piece.name}</span>
+                        <span>{formatCurrency(totals.totalArea * (material?.pricePerM2 || 0))}</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 opacity-80">
+                        <span>Bancada: {formatArea(totals.mainArea)}</span>
+                        <span>Cuba: {formatArea(totals.sinkArea || 0)}</span>
+                        <span>Adicionais: {formatArea(totals.sidesArea + totals.recessArea)}</span>
+                        <span>Perda: {formatArea(totals.lossArea || 0)}</span>
+                        <span>Mão de obra: {formatCurrency(laborValue)}</span>
+                        <span>Furos/recortes: {cutoutSummary.totalCount} un</span>
+                        {cutoutSummary.totalCount > 0 && (
+                          <span className="col-span-2">Recortes: {cutoutSummary.rows.map((item) => `${item.count} ${item.label}`).join(', ')} | {formatCurrency(cutoutSummary.totalValue)}</span>
+                        )}
+                        <span className="col-span-2">Final: {formatArea(totals.totalArea)} | {material?.name || 'Sem material'}</span>
+                      </div>
+                    </div>
+                  );
+                })()
               ))}
             </div>
           </section>

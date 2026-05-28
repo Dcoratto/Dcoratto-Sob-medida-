@@ -440,6 +440,10 @@ export interface Quote {
   materialId: string;
   materialName?: string;
   paymentMethod: string;
+  paymentMode?: 'total' | 'entry';
+  totalPaymentMethod?: string;
+  remainingPaymentMethod?: string;
+  entryAmount?: number;
   deliveryDays: number;
   validityDate: any;
   measurementDate?: any;

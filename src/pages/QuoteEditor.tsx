@@ -66,6 +66,10 @@ export const QuoteEditor: React.FC = () => {
   const [responsible, setResponsible] = useState(user?.user_metadata?.name || '');
   const [materialId, setMaterialId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('');
+  const [paymentMode, setPaymentMode] = useState<'total' | 'entry'>('total');
+  const [totalPaymentMethod, setTotalPaymentMethod] = useState('');
+  const [remainingPaymentMethod, setRemainingPaymentMethod] = useState('');
+  const [entryAmount, setEntryAmount] = useState('');
   const [deliveryDays, setDeliveryDays] = useState(15);
   const [measurementDate, setMeasurementDate] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
@@ -178,8 +182,8 @@ export const QuoteEditor: React.FC = () => {
   const { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithUserPrice(piece.materialId || materialId, piece.materialVariantKey));
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
   
-  const selectedPaymentAdjustment = settings.paymentMethods.find(m => m.name === paymentMethod)?.adjustment || 0;
-  const totalPrice = calculateTotal(pieces, cutouts, selectedPaymentAdjustment);
+  const totalMethodAdjustment = settings.paymentMethods.find(m => m.name === totalPaymentMethod)?.adjustment || 0;
+  const remainingMethodAdjustment = settings.paymentMethods.find(m => m.name === remainingPaymentMethod)?.adjustment || 0;
   const totalArea = pieces.reduce((acc, p) => acc + calculatePieceArea(p).totalArea, 0);
   const pieceAreaDetails = pieces.map((piece) => ({piece, totals: calculatePieceArea(piece), material: materialWithUserPrice(piece.materialId || materialId, piece.materialVariantKey)}));
   const stonesCost = pieceAreaDetails.reduce((acc, item) => acc + item.totals.totalArea * (item.material?.pricePerM2 || 0), 0);
@@ -187,7 +191,18 @@ export const QuoteEditor: React.FC = () => {
   const cutoutsCost = calculateCutouts(cutouts);
   const sculptedLaborCost = pieceAreaDetails.reduce((acc, item) => acc + (item.totals.sinkAdditionalValue || 0), 0);
   const subtotalBeforeAdjustment = stonesCost + laborCost + cutoutsCost + sculptedLaborCost;
-  const adjustmentValue = subtotalBeforeAdjustment * (selectedPaymentAdjustment / 100);
+  const normalizedEntryAmount = Math.min(Math.max(Number(entryAmount) || 0, 0), subtotalBeforeAdjustment);
+  const financedAmount = Math.max(0, subtotalBeforeAdjustment - normalizedEntryAmount);
+  const selectedPaymentAdjustment = paymentMode === 'entry' ? remainingMethodAdjustment : totalMethodAdjustment;
+  const adjustmentBase = paymentMode === 'entry' ? financedAmount : subtotalBeforeAdjustment;
+  const adjustmentValue = adjustmentBase * (selectedPaymentAdjustment / 100);
+  const totalPrice = subtotalBeforeAdjustment + adjustmentValue;
+  const resolvedPaymentMethod = paymentMode === 'entry'
+    ? [
+      normalizedEntryAmount > 0 ? `Entrada de ${formatCurrency(normalizedEntryAmount)}` : 'Entrada',
+      remainingPaymentMethod ? `restante em ${remainingPaymentMethod}` : 'restante a definir',
+    ].join(' + ')
+    : totalPaymentMethod;
   const materialStock = (materialIdToCheck: string, variantKey?: string) => {
     const stockItems = inventory.filter((item) => item.materialId === materialIdToCheck && (!variantKey || buildMaterialVariantKey(item) === variantKey));
     const physicalTotal = stockItems
@@ -247,30 +262,40 @@ export const QuoteEditor: React.FC = () => {
 
 
   useEffect(() => {
-    // Listen for clients
-    const unsubClients = onSnapshot(collection(db, 'clients'), (snap) => {
-      setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client)));
-    });
+    let cancelled = false;
+    let subscribeTimer: number | undefined;
+    let unsubClients = () => {};
+    let unsubCondominiums = () => {};
+    let unsubMaterials = () => {};
+    let unsubInventory = () => {};
+    let unsubReservations = () => {};
+    let unsubFixtureCatalog = () => {};
 
-    const unsubCondominiums = onSnapshot(collection(db, 'condominiums'), (snap) => {
-      setCondominiums(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CondominiumRule)));
-    });
+    const subscribeAuxiliaryData = () => {
+      if (cancelled) return;
+      unsubClients = onSnapshot(collection(db, 'clients'), (snap) => {
+        setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client)));
+      });
 
-    // Listen for materials
-    const unsubMaterials = onSnapshot(collection(db, 'materials'), (snap) => {
-      setMaterials(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Material)));
-    });
+      unsubCondominiums = onSnapshot(collection(db, 'condominiums'), (snap) => {
+        setCondominiums(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CondominiumRule)));
+      });
 
-    const unsubInventory = onSnapshot(collection(db, 'inventory'), (snap) => {
-      setInventory(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItem)));
-    });
+      unsubMaterials = onSnapshot(collection(db, 'materials'), (snap) => {
+        setMaterials(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Material)));
+      });
 
-    const unsubReservations = onSnapshot(collection(db, 'inventoryReservations'), (snap) => {
-      setReservations(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryReservation)));
-    });
-    const unsubFixtureCatalog = onSnapshot(collection(db, 'fixtureCatalog'), (snap) => {
-      setFixtureCatalog(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as FixtureCatalogItem)));
-    });
+      unsubInventory = onSnapshot(collection(db, 'inventory'), (snap) => {
+        setInventory(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItem)));
+      });
+
+      unsubReservations = onSnapshot(collection(db, 'inventoryReservations'), (snap) => {
+        setReservations(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryReservation)));
+      });
+      unsubFixtureCatalog = onSnapshot(collection(db, 'fixtureCatalog'), (snap) => {
+        setFixtureCatalog(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as FixtureCatalogItem)));
+      });
+    };
 
     const applyDraft = (draft: Record<string, unknown> | null) => {
       if (!draft) return;
@@ -280,6 +305,10 @@ export const QuoteEditor: React.FC = () => {
       setResponsible(String(draft.responsible || ''));
       setMaterialId(String(draft.materialId || ''));
       setPaymentMethod(String(draft.paymentMethod || ''));
+      setPaymentMode((draft.paymentMode as 'total' | 'entry') || 'total');
+      setTotalPaymentMethod(String(draft.totalPaymentMethod || draft.paymentMethod || ''));
+      setRemainingPaymentMethod(String(draft.remainingPaymentMethod || ''));
+      setEntryAmount(String(draft.entryAmount || ''));
       setDeliveryDays(Number(draft.deliveryDays) || 15);
       setMeasurementDate(String(draft.measurementDate || ''));
       setDeliveryDate(String(draft.deliveryDate || ''));
@@ -307,6 +336,10 @@ export const QuoteEditor: React.FC = () => {
           setResponsible(data.responsible);
           setMaterialId(data.materialId);
           setPaymentMethod(data.paymentMethod);
+          setPaymentMode(data.paymentMode || (data.remainingPaymentMethod || data.entryAmount ? 'entry' : 'total'));
+          setTotalPaymentMethod(data.totalPaymentMethod || data.paymentMethod || '');
+          setRemainingPaymentMethod(data.remainingPaymentMethod || '');
+          setEntryAmount(data.entryAmount ? String(data.entryAmount) : '');
           setDeliveryDays(data.deliveryDays);
           setMeasurementDate(formatDateInput(data.measurementDate));
           setDeliveryDate(formatDateInput(data.deliveryDate));
@@ -346,9 +379,18 @@ export const QuoteEditor: React.FC = () => {
       setLoading(false);
     };
 
-    fetchQuote();
+    void fetchQuote()
+      .catch((error) => {
+        console.error('Erro ao carregar orçamento:', error);
+        setLoading(false);
+      })
+      .finally(() => {
+        subscribeTimer = window.setTimeout(subscribeAuxiliaryData, 80);
+      });
 
     return () => {
+      cancelled = true;
+      if (subscribeTimer) window.clearTimeout(subscribeTimer);
       unsubClients();
       unsubCondominiums();
       unsubMaterials();
@@ -365,6 +407,18 @@ export const QuoteEditor: React.FC = () => {
   }, [currentUserName, id, responsible]);
 
   useEffect(() => {
+    if (paymentMode === 'total') {
+      setPaymentMethod(totalPaymentMethod);
+      return;
+    }
+
+    setPaymentMethod([
+      normalizedEntryAmount > 0 ? `Entrada de ${formatCurrency(normalizedEntryAmount)}` : 'Entrada',
+      remainingPaymentMethod ? `restante em ${remainingPaymentMethod}` : 'restante a definir',
+    ].join(' + '));
+  }, [normalizedEntryAmount, paymentMode, remainingPaymentMethod, totalPaymentMethod]);
+
+  useEffect(() => {
     if (loading || !quoteDraftHydratedRef.current) return;
 
     const savedAt = saveDraft(quoteDraftKey, {
@@ -374,6 +428,10 @@ export const QuoteEditor: React.FC = () => {
       responsible,
       materialId,
       paymentMethod,
+      paymentMode,
+      totalPaymentMethod,
+      remainingPaymentMethod,
+      entryAmount,
       deliveryDays,
       measurementDate,
       deliveryDate,
@@ -388,7 +446,7 @@ export const QuoteEditor: React.FC = () => {
       pieceMaterialSearch,
     });
     if (savedAt) setQuoteDraftSavedAt(savedAt);
-  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, environment, loading, materialId, measurementDate, originalStatus, paymentMethod, pieceMaterialSearch, pieces, quoteDraftKey, responsible, status, statusHistory, validityDays]);
+  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, loading, materialId, measurementDate, originalStatus, paymentMethod, paymentMode, pieceMaterialSearch, pieces, quoteDraftKey, remainingPaymentMethod, responsible, status, statusHistory, totalPaymentMethod, validityDays]);
 
   const clearQuoteDraftState = () => {
     clearDraft(quoteDraftKey);
@@ -686,7 +744,11 @@ export const QuoteEditor: React.FC = () => {
       responsibleUserName: currentUserName,
       materialId: primaryMaterialId,
       materialName: primaryMaterial?.name || '',
-      paymentMethod,
+      paymentMethod: resolvedPaymentMethod,
+      paymentMode,
+      totalPaymentMethod,
+      remainingPaymentMethod,
+      entryAmount: normalizedEntryAmount,
       deliveryDays,
       validityDate: Timestamp.fromDate(new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000)),
       commercialNotes,
@@ -943,21 +1005,87 @@ export const QuoteEditor: React.FC = () => {
 
             <div className="space-y-1">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pagamento</label>
-              <select
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
-              >
-                <option value="">Selecionar forma de pagamento</option>
-                {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
-                  <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
-                ))}
-              </select>
-              {paymentMethod && (
-                <div className="text-[11px] text-slate-500">
-                  Ajuste aplicado: {selectedPaymentAdjustment > 0 ? '+' : ''}{selectedPaymentAdjustment}%
+              <div className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMode('total')}
+                    className={cn(
+                      'rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
+                      paymentMode === 'total' ? 'bg-brand-primary text-white' : 'bg-white text-slate-600',
+                    )}
+                  >
+                    Valor total
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMode('entry')}
+                    className={cn(
+                      'rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
+                      paymentMode === 'entry' ? 'bg-brand-primary text-white' : 'bg-white text-slate-600',
+                    )}
+                  >
+                    Entrada + restante
+                  </button>
                 </div>
-              )}
+
+                {paymentMode === 'total' ? (
+                  <div className="space-y-1">
+                    <select
+                      value={totalPaymentMethod}
+                      onChange={(e) => setTotalPaymentMethod(e.target.value)}
+                      className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+                    >
+                      <option value="">Selecionar forma de pagamento</option>
+                      {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
+                        <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Entrada</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={entryAmount}
+                        onChange={(e) => setEntryAmount(e.target.value)}
+                        placeholder="0,00"
+                        className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Restante</label>
+                      <select
+                        value={remainingPaymentMethod}
+                        onChange={(e) => setRemainingPaymentMethod(e.target.value)}
+                        className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+                      >
+                        <option value="">Selecionar condição do restante</option>
+                        {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
+                          <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {(resolvedPaymentMethod || selectedPaymentAdjustment) && (
+                  <div className="space-y-1 text-[11px] text-slate-500">
+                    <div>Condição: {resolvedPaymentMethod || 'A definir'}</div>
+                    <div>
+                      Ajuste aplicado: {selectedPaymentAdjustment > 0 ? '+' : ''}{selectedPaymentAdjustment}% {paymentMode === 'entry' ? 'sobre o saldo restante' : 'sobre o valor total'}
+                    </div>
+                    {paymentMode === 'entry' && (
+                      <div>
+                        Entrada: {formatCurrency(normalizedEntryAmount)} · Restante: {formatCurrency(financedAmount)}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </section>
         </div>

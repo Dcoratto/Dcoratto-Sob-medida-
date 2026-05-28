@@ -51,6 +51,7 @@ export const MaterialsPage: React.FC = () => {
   const [salePricePerM2, setSalePricePerM2] = useState('');
   const [active, setActive] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [savingPrice, setSavingPrice] = useState(false);
   const [materialPriceDraftRecovered, setMaterialPriceDraftRecovered] = useState(false);
   const [materialPriceDraftSavedAt, setMaterialPriceDraftSavedAt] = useState<string | null>(null);
@@ -61,6 +62,10 @@ export const MaterialsPage: React.FC = () => {
     const q = query(collection(db, 'materials'), orderBy('name', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material)));
+      setLoading(false);
+    }, (error) => {
+      console.error('Erro ao carregar materiais:', error);
+      setLoadError('Nao foi possivel carregar o cadastro de materiais. Os itens do estoque ainda serao exibidos com os dados disponiveis.');
       setLoading(false);
     });
 
@@ -92,6 +97,11 @@ export const MaterialsPage: React.FC = () => {
     const q = query(collection(db, 'inventory'), orderBy('materialName', 'asc'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setInventory(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem)));
+      setLoading(false);
+    }, (error) => {
+      console.error('Erro ao carregar estoque para materiais:', error);
+      setLoadError('Nao foi possivel carregar o estoque agora. Tente atualizar a pagina em instantes.');
+      setLoading(false);
     });
 
     return unsubscribe;
@@ -100,22 +110,29 @@ export const MaterialsPage: React.FC = () => {
   useEffect(() => {
     const unsubscribeReservations = onSnapshot(collection(db, 'inventoryReservations'), (snapshot) => {
       setReservations(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryReservation)));
+    }, (error) => {
+      console.error('Erro ao carregar reservas para materiais:', error);
+      setLoadError('Nao foi possivel carregar as reservas agora. Os totais podem ficar incompletos ate a conexao normalizar.');
     });
 
+    return unsubscribeReservations;
+  }, []);
+
+  useEffect(() => {
+    if (!reservationMaterialId) return;
     const qQuotes = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
     const unsubscribeQuotes = onSnapshot(qQuotes, (snapshot) => {
       setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
+    }, (error) => {
+      console.error('Erro ao carregar orcamentos das reservas:', error);
     });
 
-    return () => {
-      unsubscribeReservations();
-      unsubscribeQuotes();
-    };
-  }, []);
+    return unsubscribeQuotes;
+  }, [reservationMaterialId]);
 
-  const activeStockItems = inventory.filter((item) => !['usada', 'descarte'].includes(normalizeStatus(item.status)));
-  const activeReservations = reservations.filter((reservation) => !['recusado', 'cancelado', 'finalizado'].includes(normalizeStatus(reservation.quoteStatus)));
-  const soldReservations = reservations.filter((reservation) => normalizeStatus(reservation.quoteStatus) === 'finalizado');
+  const activeStockItems = useMemo(() => inventory.filter((item) => !['usada', 'descarte'].includes(normalizeStatus(item.status))), [inventory]);
+  const activeReservations = useMemo(() => reservations.filter((reservation) => !['recusado', 'cancelado', 'finalizado'].includes(normalizeStatus(reservation.quoteStatus))), [reservations]);
+  const soldReservations = useMemo(() => reservations.filter((reservation) => normalizeStatus(reservation.quoteStatus) === 'finalizado'), [reservations]);
   const materialsById = useMemo(() => new Map(materials.map((material) => [material.id, material])), [materials]);
 
   const materialRows: MaterialStockRow[] = useMemo(() => {
@@ -126,6 +143,14 @@ export const MaterialsPage: React.FC = () => {
       map.set(item.materialId, current);
       return map;
     }, new Map<string, InventoryItem[]>());
+    const activeReservedByMaterialId = activeReservations.reduce((map, reservation) => {
+      map.set(reservation.materialId, (map.get(reservation.materialId) || 0) + (reservation.area || 0));
+      return map;
+    }, new Map<string, number>());
+    const soldByMaterialId = soldReservations.reduce((map, reservation) => {
+      map.set(reservation.materialId, (map.get(reservation.materialId) || 0) + (reservation.area || 0));
+      return map;
+    }, new Map<string, number>());
 
     return Array.from(stockByMaterialId.entries()).map(([materialId, stockItems]) => {
       const first = stockItems[0];
@@ -141,12 +166,8 @@ export const MaterialsPage: React.FC = () => {
       const manualReservedArea = stockItems
         .filter((item) => normalizeStatus(item.status) === 'reservada')
         .reduce((acc, item) => acc + getInventoryItemArea(item), 0);
-      const quoteReservedArea = activeReservations
-        .filter((reservation) => reservation.materialId === materialId)
-        .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
-      const soldArea = soldReservations
-        .filter((reservation) => reservation.materialId === materialId)
-        .reduce((acc, reservation) => acc + (reservation.area || 0), 0);
+      const quoteReservedArea = activeReservedByMaterialId.get(materialId) || 0;
+      const soldArea = soldByMaterialId.get(materialId) || 0;
       const availableArea = Math.max(0, stockArea - manualReservedArea - quoteReservedArea - soldArea);
       const missingArea = Math.max(0, quoteReservedArea - Math.max(0, stockArea - manualReservedArea - soldArea));
       const baseCostPerM2 = stockArea > 0 ? stockCost / stockArea : (baseMaterial?.baseCostPerM2 ?? 0);
@@ -306,6 +327,12 @@ export const MaterialsPage: React.FC = () => {
           <p className="text-slate-500 mt-1">Aqui aparecem somente as pedras já cadastradas no estoque. Nesta tela você define apenas o preço final de venda.</p>
         </div>
       </header>
+
+      {loadError && (
+        <div className="rounded-[24px] border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-800">
+          {loadError}
+        </div>
+      )}
 
       {materialRows.some((material) => material.missingArea > 0) && (
         <div className="rounded-[28px] border border-red-100 bg-red-50 p-5 shadow-sm">

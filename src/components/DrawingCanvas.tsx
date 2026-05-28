@@ -1345,8 +1345,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       )}
 
       {fixturePickerOpen && (
-        <div className="fixed inset-x-3 bottom-3 top-auto z-[140] max-h-[72vh] overflow-auto rounded-[28px] border border-slate-100 bg-white p-3 shadow-2xl sm:absolute sm:left-auto sm:right-auto sm:top-[calc(100%+6px)] sm:bottom-auto sm:max-h-72 sm:w-[min(100%,420px)] sm:rounded-2xl sm:p-2">
-          <div className="mb-3 flex items-center justify-between sm:hidden">
+        <div className="fixed inset-0 z-[140] flex items-center justify-center bg-slate-900/20 p-3 backdrop-blur-[1px]" onClick={() => setFixturePickerOpen(false)}>
+          <div className="w-full max-w-[420px] max-h-[72vh] overflow-auto rounded-[28px] border border-slate-100 bg-white p-3 shadow-2xl sm:rounded-2xl sm:p-2" onClick={(event) => event.stopPropagation()}>
+          <div className="mb-3 flex items-center justify-between">
             <div>
               <div className="text-sm font-bold text-slate-900">Escolher peça</div>
               <div className="text-xs font-semibold text-slate-500">Selecione o modelo do recorte.</div>
@@ -1399,6 +1400,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           {!availableFixtures.length && (
             <div className="px-3 py-3 text-sm font-semibold text-slate-400">Nenhuma peça cadastrada para este tipo.</div>
           )}
+          </div>
         </div>
       )}
 

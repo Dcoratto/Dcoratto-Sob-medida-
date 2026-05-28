@@ -189,10 +189,11 @@ export const QuoteEditor: React.FC = () => {
   const totalArea = pieces.reduce((acc, p) => acc + calculatePieceArea(p).totalArea, 0);
   const pieceAreaDetails = pieces.map((piece) => ({piece, totals: calculatePieceArea(piece), material: materialWithUserPrice(piece.materialId || materialId, piece.materialVariantKey)}));
   const stonesCost = pieceAreaDetails.reduce((acc, item) => acc + item.totals.totalArea * (item.material?.pricePerM2 || 0), 0);
+  const materialLossCost = pieceAreaDetails.reduce((acc, item) => acc + (item.totals.lossArea || 0) * (item.material?.pricePerM2 || 0), 0);
   const laborCost = calculateLabor(pieces);
   const cutoutsCost = calculateCutouts(cutouts);
   const sculptedLaborCost = pieceAreaDetails.reduce((acc, item) => acc + (item.totals.sinkAdditionalValue || 0), 0);
-  const subtotalBeforeAdjustment = stonesCost + laborCost + cutoutsCost + sculptedLaborCost;
+  const subtotalBeforeAdjustment = stonesCost + materialLossCost + laborCost + cutoutsCost + sculptedLaborCost;
   const normalizedEntryAmount = Math.min(Math.max(Number(entryAmount) || 0, 0), subtotalBeforeAdjustment);
   const financedAmount = Math.max(0, subtotalBeforeAdjustment - normalizedEntryAmount);
   const selectedPaymentAdjustment = paymentMode === 'entry' ? remainingMethodAdjustment : totalMethodAdjustment;
@@ -915,6 +916,7 @@ export const QuoteEditor: React.FC = () => {
             <div className="space-y-2 text-sm font-medium text-white/75">
               <div className="flex justify-between gap-3"><span>Área final total</span><strong>{formatArea(totalArea)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pedras</span><strong>{formatCurrency(stonesCost)}</strong></div>
+              <div className="flex justify-between gap-3"><span>Perda material (10%)</span><strong>{formatCurrency(materialLossCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Mão de obra</span><strong>{formatCurrency(laborCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Recortes</span><strong>{formatCurrency(cutoutsCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pia esculpida</span><strong>{formatCurrency(sculptedLaborCost)}</strong></div>
@@ -928,10 +930,9 @@ export const QuoteEditor: React.FC = () => {
                   const laborValue = pieceLaborCost(piece);
                   const cutoutSummary = pieceCutoutSummary(piece);
                   const materialPricePerM2 = material?.pricePerM2 || 0;
-                  const areaWithoutLoss = Math.max(0, totals.totalArea - (totals.lossArea || 0));
-                  const baseStoneValue = areaWithoutLoss * materialPricePerM2;
+                  const baseStoneValue = totals.totalArea * materialPricePerM2;
                   const lossValue = (totals.lossArea || 0) * materialPricePerM2;
-                  const stoneValue = totals.totalArea * materialPricePerM2;
+                  const stoneValue = baseStoneValue + lossValue;
                   const sinkAdditionalValue = totals.sinkAdditionalValue || 0;
                   const pieceTotalValue = stoneValue + laborValue + cutoutSummary.totalValue + sinkAdditionalValue;
                   return (

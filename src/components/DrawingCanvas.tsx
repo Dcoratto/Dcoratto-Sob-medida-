@@ -297,7 +297,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     torre_tomada: 'popUpTower',
   };
   const availableFixtures = useMemo(
-    () => fixtureCatalog.filter((item) => item.active && item.category === fixtureCategoryByCutoutType[cutoutType]),
+    () => fixtureCatalog
+      .filter((item) => item.active !== false && item.category === fixtureCategoryByCutoutType[cutoutType])
+      .sort((a, b) => a.name.localeCompare(b.name)),
     [cutoutType, fixtureCatalog],
   );
   const selectedFixture = useMemo(
@@ -1221,7 +1223,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           <option value="soleira">Soleira/peitoril</option>
         </select>
 
-        <div className="hidden sm:contents">
+        {drawTool === 'cutout' && (
+          <div className="hidden w-full items-center gap-2 rounded-2xl border border-brand-primary/10 bg-brand-primary/5 p-2 sm:flex xl:w-auto">
           <select value={cutoutType} onChange={(e) => setCutoutType(e.target.value as CutoutType)} className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600">
             <option value="cuba">Cuba</option>
             <option value="cooktop">Cooktop</option>
@@ -1260,7 +1263,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           >
             {cutoutRotation === 90 ?'Vertical' : 'Horizontal'}
           </button>
-        </div>
+          </div>
+        )}
 
         <button type="button" onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value * 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomIn className="h-4 w-4" /></button>
         <button type="button" onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value / 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomOut className="h-4 w-4" /></button>

@@ -129,7 +129,7 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
       recessArea,
       sinkValue: sinkResult.value,
       sinkAdditionalValue: sinkResult.additionalValue,
-      totalArea: subtotalArea + pieceLossArea
+      totalArea: subtotalArea
     };
   };
 
@@ -164,13 +164,17 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
       const pieceMaterial = materialForPiece?.(piece);
       return acc + totals[index].totalArea * (pieceMaterial?.pricePerM2 || 0);
     }, 0);
+    const materialLossCost = pieces.reduce((acc, piece, index) => {
+      const pieceMaterial = materialForPiece?.(piece);
+      return acc + (totals[index].lossArea || 0) * (pieceMaterial?.pricePerM2 || 0);
+    }, 0);
     const laborCost = calculateLabor(pieces);
     
     // Drawing cutouts update the quote cutout counters when the drawing is saved.
     // Charging only from the counters avoids duplicating the same recorte.
     let totalCutoutsCost = calculateCutouts(cutouts);
 
-    const subtotal = stonesCost + laborCost + totalCutoutsCost + sinkAdditionalValue;
+    const subtotal = stonesCost + materialLossCost + laborCost + totalCutoutsCost + sinkAdditionalValue;
     const adjustmentValue = subtotal * (paymentMethodAdjustment / 100);
     
     return subtotal + adjustmentValue;

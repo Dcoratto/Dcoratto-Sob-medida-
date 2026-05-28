@@ -37,16 +37,10 @@ export const SettingsPage: React.FC = () => {
   const [condoDraftRecovered, setCondoDraftRecovered] = useState(false);
   const [condoDraftSavedAt, setCondoDraftSavedAt] = useState<string | null>(null);
   const condoDraftLoadedRef = React.useRef(false);
+  const settingsHydratedRef = React.useRef(false);
   const condoDraftKey = `settings-condo-draft`;
   type MaterialCatalogListField = Exclude<keyof typeof settings.materialCatalog, 'suppliers'>;
   const createSupplierId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-
-  useEffect(() => {
-    if (currentSettings) {
-      setSettings(currentSettings);
-      lastPersistedSettingsRef.current = JSON.stringify(buildPersistedSettings(currentSettings));
-    }
-  }, [currentSettings]);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(query(collection(db, 'condominiums'), orderBy('name', 'asc')), (snapshot) => {
@@ -149,6 +143,20 @@ export const SettingsPage: React.FC = () => {
     };
   };
 
+  useEffect(() => {
+    if (!currentSettings) return;
+
+    const incomingSerialized = JSON.stringify(buildPersistedSettings(currentSettings));
+    const localSerialized = JSON.stringify(buildPersistedSettings(settings));
+    const hasPendingLocalChanges = settingsHydratedRef.current && localSerialized !== lastPersistedSettingsRef.current;
+
+    if (hasPendingLocalChanges && incomingSerialized === lastPersistedSettingsRef.current) return;
+
+    setSettings(currentSettings);
+    lastPersistedSettingsRef.current = incomingSerialized;
+    settingsHydratedRef.current = true;
+  }, [currentSettings]);
+
   const handleSave = async () => {
     if (!isAdmin) return;
     setSaving(true);
@@ -170,14 +178,15 @@ export const SettingsPage: React.FC = () => {
   const addPaymentMethod = () => {
     setSettings({
       ...settings,
-      paymentMethods: [...settings.paymentMethods, { name: '', adjustment: 0 }]
+      paymentMethods: [...settings.paymentMethods, {name: '', adjustment: 0}],
     });
   };
 
   const removePaymentMethod = (index: number) => {
-    const newMethods = [...settings.paymentMethods];
-    newMethods.splice(index, 1);
-    setSettings({ ...settings, paymentMethods: newMethods });
+    setSettings({
+      ...settings,
+      paymentMethods: settings.paymentMethods.filter((_, methodIndex) => methodIndex !== index),
+    });
   };
 
   const addSupplier = async (supplier: SupplierContact) => {
@@ -692,9 +701,14 @@ export const SettingsPage: React.FC = () => {
                     type="text"
                     value={method.name}
                     onChange={(e) => {
-                      const newMethods = [...settings.paymentMethods];
-                      newMethods[idx].name = e.target.value;
-                      setSettings({ ...settings, paymentMethods: newMethods });
+                      setSettings({
+                        ...settings,
+                        paymentMethods: settings.paymentMethods.map((currentMethod, methodIndex) => (
+                          methodIndex === idx
+                            ? {...currentMethod, name: e.target.value}
+                            : currentMethod
+                        )),
+                      });
                     }}
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
                   />
@@ -705,9 +719,14 @@ export const SettingsPage: React.FC = () => {
                     type="number"
                     value={method.adjustment}
                     onChange={(e) => {
-                      const newMethods = [...settings.paymentMethods];
-                      newMethods[idx].adjustment = Number(e.target.value);
-                      setSettings({ ...settings, paymentMethods: newMethods });
+                      setSettings({
+                        ...settings,
+                        paymentMethods: settings.paymentMethods.map((currentMethod, methodIndex) => (
+                          methodIndex === idx
+                            ? {...currentMethod, adjustment: Number(e.target.value)}
+                            : currentMethod
+                        )),
+                      });
                     }}
                     className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono"
                   />

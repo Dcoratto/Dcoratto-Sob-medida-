@@ -24,7 +24,7 @@ const UNASSIGNED_PANEL_ID = '__unassigned__';
 const PATIO_CARD_WIDTH = 116;
 const PATIO_CARD_HEIGHT = 82;
 const DEFAULT_PATIO_SIZE = {width: 100, height: 100};
-const DEFAULT_PATIO_LAYOUT: Record<string, {x: number; y: number; rotation?: number}> = {
+const LEGACY_PATIO_LAYOUT: Record<string, {x: number; y: number; rotation?: number}> = {
   'Cavalete 1': {x: 10, y: 42, rotation: 0},
   'Cavalete 2': {x: 42, y: 14, rotation: 0},
   'Cavalete 3': {x: 50, y: 14, rotation: 0},
@@ -35,13 +35,41 @@ const DEFAULT_PATIO_LAYOUT: Record<string, {x: number; y: number; rotation?: num
   'Cavalete 8': {x: 50, y: 74, rotation: 0},
   'Cavalete 9': {x: 58, y: 74, rotation: 0},
 };
+const DEFAULT_PATIO_LAYOUT: Record<string, {x: number; y: number; rotation?: number}> = {
+  'Cavalete 1': {x: 4, y: 34, rotation: -18},
+  'Cavalete 2': {x: 23, y: 6, rotation: -17},
+  'Cavalete 3': {x: 42, y: 6, rotation: -16},
+  'Cavalete 4': {x: 61, y: 4, rotation: -15},
+  'Cavalete 5': {x: 25, y: 52, rotation: -18},
+  'Cavalete 6': {x: 84, y: 10, rotation: 0},
+  'Cavalete 7': {x: 44, y: 53, rotation: -16},
+  'Cavalete 8': {x: 63, y: 49, rotation: -17},
+  'Cavalete 9': {x: 84, y: 58, rotation: 0},
+};
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
-const normalizePatioRotation = (value: unknown) => Number(value) === 90 ? 90 : 0;
-const getPatioCardDimensions = (rotation = 0) => (
-  normalizePatioRotation(rotation) === 90
-    ? {width: PATIO_CARD_HEIGHT, height: PATIO_CARD_WIDTH}
-    : {width: PATIO_CARD_WIDTH, height: PATIO_CARD_HEIGHT}
-);
+const normalizePatioRotation = (value: unknown) => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return 0;
+  return clamp(Math.round(numericValue), -180, 180);
+};
+const getPatioCardDimensions = (rotation = 0) => {
+  const angle = Math.abs(normalizePatioRotation(rotation)) * (Math.PI / 180);
+  const width = Math.abs(Math.cos(angle) * PATIO_CARD_WIDTH) + Math.abs(Math.sin(angle) * PATIO_CARD_HEIGHT);
+  const height = Math.abs(Math.sin(angle) * PATIO_CARD_WIDTH) + Math.abs(Math.cos(angle) * PATIO_CARD_HEIGHT);
+  return {width, height};
+};
+const isSamePatioLayout = (
+  first: Record<string, {x: number; y: number; rotation?: number}>,
+  second: Record<string, {x: number; y: number; rotation?: number}>,
+) => patioRacks.every((rack) => {
+  const firstRack = first[rack];
+  const secondRack = second[rack];
+  return firstRack
+    && secondRack
+    && firstRack.x === secondRack.x
+    && firstRack.y === secondRack.y
+    && normalizePatioRotation(firstRack.rotation) === normalizePatioRotation(secondRack.rotation);
+});
 const buildPatioLayout = (layout?: Record<string, {x: number; y: number; rotation?: number}>) =>
   patioRacks.reduce((map, rack) => {
     const point = layout?.[rack] || DEFAULT_PATIO_LAYOUT[rack];
@@ -57,7 +85,7 @@ const serializePatioConfig = (layout: Record<string, {x: number; y: number; rota
     layout: patioRacks.reduce((map, rack) => {
       map[rack] = layout[rack];
       return map;
-    }, {} as Record<string, {x: number; y: number}>),
+    }, {} as Record<string, {x: number; y: number; rotation?: number}>),
     size,
   });
 
@@ -972,7 +1000,11 @@ export const InventoryPage: React.FC = () => {
     return matchesSearch && matchesStatus;
   });
   const activePatioItems = items.filter((item) => !['usada', 'descarte'].includes(normalizeStatus(item.status)));
-  const persistedPatioLayout = useMemo(() => buildPatioLayout(settings.patioLayout), [settings.patioLayout]);
+  const persistedPatioLayout = useMemo(() => {
+    const savedLayout = buildPatioLayout(settings.patioLayout);
+    if (!settings.patioLayout || !Object.keys(settings.patioLayout).length) return buildPatioLayout();
+    return isSamePatioLayout(savedLayout, LEGACY_PATIO_LAYOUT) ? buildPatioLayout() : savedLayout;
+  }, [settings.patioLayout]);
   const persistedPatioSize = useMemo(() => ({
     width: clamp(Number(settings.patioSize?.width) || DEFAULT_PATIO_SIZE.width, 70, 180),
     height: clamp(Number(settings.patioSize?.height) || DEFAULT_PATIO_SIZE.height, 70, 180),
@@ -1259,7 +1291,8 @@ export const InventoryPage: React.FC = () => {
   const togglePatioRackRotation = (rack: string) => {
     setPatioDraftLayout((current) => {
       const currentRack = current[rack] || DEFAULT_PATIO_LAYOUT[rack];
-      const nextRotation = normalizePatioRotation(currentRack.rotation) === 90 ? 0 : 90;
+      const currentRotation = normalizePatioRotation(currentRack.rotation);
+      const nextRotation = currentRotation === 0 ? 90 : currentRotation === 90 ? -15 : 0;
       return {
         ...current,
         [rack]: {
@@ -1670,7 +1703,7 @@ export const InventoryPage: React.FC = () => {
                   disabled={selectedPatioPanel === UNASSIGNED_PANEL_ID}
                   className="inline-flex items-center justify-center rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  Girar cavalete {selectedPatioRackLayout?.rotation === 90 ? '(vertical)' : '(horizontal)'}
+                  Girar cavalete ({normalizePatioRotation(selectedPatioRackLayout?.rotation)}°)
                 </button>
               </div>
               <div className="mt-3 text-xs font-semibold text-slate-500">
@@ -1716,10 +1749,10 @@ export const InventoryPage: React.FC = () => {
                       )}
                       style={{left: `${position.x}%`, top: `${position.y}%`, width: dimensions.width, height: dimensions.height}}
                     >
-                      <div className={cn(
-                        'relative h-full overflow-hidden rounded-[16px] border border-slate-100 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]',
-                        rotation === 90 && 'rotate-90',
-                      )}>
+                      <div
+                        className="relative h-full overflow-hidden rounded-[16px] border border-slate-100 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]"
+                        style={{transform: `rotate(${rotation}deg)`}}
+                      >
                         <div className="pointer-events-none absolute inset-y-2 left-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
                         <div className="pointer-events-none absolute inset-y-2 right-3 w-3.5 rounded-full border border-slate-300 bg-slate-100/85" />
                         <div className="pointer-events-none absolute left-[26px] right-[26px] top-1/2 h-1.5 -translate-y-1/2 rounded-full bg-slate-200" />

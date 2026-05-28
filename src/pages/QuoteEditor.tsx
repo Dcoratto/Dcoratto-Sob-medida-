@@ -40,6 +40,22 @@ const ensurePieceWorkflowStatus = (piece: QuotePiece, fallbackStatus?: QuoteStat
   pieceStatus: normalizeQuoteStatus(piece.pieceStatus || fallbackStatus || LABELS.quotes.singular),
 });
 
+const normalizeFixtureCategory = (category?: string): FixtureCategory => {
+  const value = String(category || '').trim();
+  if (value === 'cuba') return 'sink';
+  if (value === 'torneira') return 'faucet';
+  if (value === 'lixeira') return 'trashBin';
+  if (value === 'torre_tomada') return 'popUpTower';
+  if (value === 'cooktop' || value === 'sink' || value === 'faucet' || value === 'trashBin' || value === 'popUpTower') return value;
+  return 'cooktop';
+};
+
+const normalizeFixtureCatalogItem = (item: FixtureCatalogItem): FixtureCatalogItem => ({
+  ...item,
+  category: normalizeFixtureCategory(item.category),
+  active: item.active !== false,
+});
+
 export const QuoteEditor: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -301,7 +317,9 @@ export const QuoteEditor: React.FC = () => {
         setReservations(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryReservation)));
       });
       unsubFixtureCatalog = onSnapshot(collection(db, 'fixtureCatalog'), (snap) => {
-        setFixtureCatalog(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as FixtureCatalogItem)));
+        setFixtureCatalog(
+          snap.docs.map((doc) => normalizeFixtureCatalogItem({ id: doc.id, ...doc.data() } as FixtureCatalogItem)),
+        );
       });
     };
 

@@ -298,7 +298,16 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   };
   const availableFixtures = useMemo(
     () => fixtureCatalog
-      .filter((item) => item.active !== false && item.category === fixtureCategoryByCutoutType[cutoutType])
+      .filter((item) => {
+        if (item.active === false) return false;
+        const normalizedCategory =
+          item.category === 'sink' || item.category === 'cuba' ? 'sink' :
+          item.category === 'faucet' || item.category === 'torneira' ? 'faucet' :
+          item.category === 'trashBin' || item.category === 'lixeira' ? 'trashBin' :
+          item.category === 'popUpTower' || item.category === 'torre_tomada' ? 'popUpTower' :
+          item.category;
+        return normalizedCategory === fixtureCategoryByCutoutType[cutoutType];
+      })
       .sort((a, b) => a.name.localeCompare(b.name)),
     [cutoutType, fixtureCatalog],
   );

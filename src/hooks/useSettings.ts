@@ -21,6 +21,45 @@ const sanitizeList = (values: string[] | undefined, fallback: string[]) => {
   return sanitized.length ? Array.from(new Set(sanitized)) : fallback;
 };
 
+const DEFAULT_PAYMENT_METHODS = [
+  {name: 'À vista (Dinheiro/Pix)', adjustment: -5},
+  {name: 'Cartão de Débito', adjustment: 0},
+  {name: 'CRÉDITO 1X', adjustment: 2.5},
+  {name: 'CRÉDITO 2X', adjustment: 3.75},
+  {name: 'CRÉDITO 3X', adjustment: 5},
+  {name: 'CRÉDITO 4X', adjustment: 6.3},
+  {name: 'CRÉDITO 5X', adjustment: 7.6},
+  {name: 'CRÉDITO 6X', adjustment: 8.9},
+  {name: 'CRÉDITO 7X', adjustment: 10.2},
+  {name: 'CRÉDITO 8X', adjustment: 11.5},
+  {name: 'CRÉDITO 9X', adjustment: 12.9},
+  {name: 'CRÉDITO 10X', adjustment: 14.2},
+  {name: 'CRÉDITO 11X', adjustment: 15.6},
+  {name: 'CRÉDITO 12X', adjustment: 17},
+];
+
+const LEGACY_PAYMENT_METHODS = [
+  {name: 'À vista (Dinheiro/Pix)', adjustment: -5},
+  {name: 'Cartão de Débito', adjustment: 0},
+  {name: 'Cartão de Crédito 1x', adjustment: 3},
+  {name: 'Parcelado 10x', adjustment: 15},
+];
+
+const normalizePaymentMethods = (methods: {name: string; adjustment: number}[] | undefined) =>
+  (methods || [])
+    .map((method) => ({
+      name: repairText(method.name || '').trim(),
+      adjustment: Number(method.adjustment) || 0,
+    }))
+    .filter((method) => method.name);
+
+const samePaymentMethods = (first: {name: string; adjustment: number}[], second: {name: string; adjustment: number}[]) =>
+  first.length === second.length
+  && first.every((method, index) => (
+    method.name === second[index]?.name
+    && Number(method.adjustment) === Number(second[index]?.adjustment)
+  ));
+
 export const DEFAULT_SETTINGS: Settings = {
   companyName: "D'Coratto Sob Medida",
   phone: '(00) 00000-0000',
@@ -44,12 +83,7 @@ export const DEFAULT_SETTINGS: Settings = {
     sinkSculpted: false,
     sinkSculptedPrice: 800,
   },
-  paymentMethods: [
-    {name: 'À vista (Dinheiro/Pix)', adjustment: -5},
-    {name: 'Cartão de Débito', adjustment: 0},
-    {name: 'Cartão de Crédito 1x', adjustment: 3},
-    {name: 'Parcelado 10x', adjustment: 15},
-  ],
+  paymentMethods: DEFAULT_PAYMENT_METHODS,
   sculptedSinkRates: {
     simple: 800,
     ramp: 1200,
@@ -90,7 +124,12 @@ export const useSettings = () => {
             ...DEFAULT_SETTINGS.cutoutPrices,
             ...(data.cutoutPrices || {}),
           },
-          paymentMethods: data.paymentMethods?.length ? data.paymentMethods : DEFAULT_SETTINGS.paymentMethods,
+          paymentMethods: (() => {
+            const sanitizedPaymentMethods = normalizePaymentMethods(data.paymentMethods);
+            return !sanitizedPaymentMethods.length || samePaymentMethods(sanitizedPaymentMethods, LEGACY_PAYMENT_METHODS)
+              ? DEFAULT_SETTINGS.paymentMethods
+              : sanitizedPaymentMethods;
+          })(),
           sculptedSinkRates: {
             ...DEFAULT_SETTINGS.sculptedSinkRates,
             ...(data.sculptedSinkRates || {}),

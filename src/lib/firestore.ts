@@ -125,7 +125,7 @@ const TABLE_CONFIG: Record<string, TableConfig> = {
   quotes: {
     table: 'quotes',
     timestampFields: ['validityDate', 'measurementDate', 'deliveryDate', 'createdAt', 'updatedAt'],
-    numericFields: ['deliveryDays', 'totalArea', 'totalPrice'],
+    numericFields: ['deliveryDays', 'totalArea', 'totalPrice', 'entryAmount', 'negotiationDiscountPercent', 'rtPercent'],
   },
   settings: {
     table: 'settings',

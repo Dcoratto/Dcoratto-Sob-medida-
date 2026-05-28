@@ -444,6 +444,8 @@ export interface Quote {
   totalPaymentMethod?: string;
   remainingPaymentMethod?: string;
   entryAmount?: number;
+  negotiationDiscountPercent?: number;
+  rtPercent?: number;
   deliveryDays: number;
   validityDate: any;
   measurementDate?: any;

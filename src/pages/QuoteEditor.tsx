@@ -70,6 +70,8 @@ export const QuoteEditor: React.FC = () => {
   const [totalPaymentMethod, setTotalPaymentMethod] = useState('');
   const [remainingPaymentMethod, setRemainingPaymentMethod] = useState('');
   const [entryAmount, setEntryAmount] = useState('');
+  const [negotiationDiscountPercent, setNegotiationDiscountPercent] = useState('');
+  const [rtPercent, setRtPercent] = useState('');
   const [deliveryDays, setDeliveryDays] = useState(15);
   const [measurementDate, setMeasurementDate] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
@@ -196,7 +198,12 @@ export const QuoteEditor: React.FC = () => {
   const selectedPaymentAdjustment = paymentMode === 'entry' ? remainingMethodAdjustment : totalMethodAdjustment;
   const adjustmentBase = paymentMode === 'entry' ? financedAmount : subtotalBeforeAdjustment;
   const adjustmentValue = adjustmentBase * (selectedPaymentAdjustment / 100);
-  const totalPrice = subtotalBeforeAdjustment + adjustmentValue;
+  const paymentAdjustedTotal = subtotalBeforeAdjustment + adjustmentValue;
+  const normalizedNegotiationDiscountPercent = Math.max(0, Number(negotiationDiscountPercent) || 0);
+  const normalizedRtPercent = Math.max(0, Number(rtPercent) || 0);
+  const negotiationDiscountValue = paymentAdjustedTotal * (normalizedNegotiationDiscountPercent / 100);
+  const rtValue = paymentAdjustedTotal * (normalizedRtPercent / 100);
+  const totalPrice = paymentAdjustedTotal - negotiationDiscountValue + rtValue;
   const resolvedPaymentMethod = paymentMode === 'entry'
     ? [
       normalizedEntryAmount > 0 ? `Entrada de ${formatCurrency(normalizedEntryAmount)}` : 'Entrada',
@@ -309,6 +316,8 @@ export const QuoteEditor: React.FC = () => {
       setTotalPaymentMethod(String(draft.totalPaymentMethod || draft.paymentMethod || ''));
       setRemainingPaymentMethod(String(draft.remainingPaymentMethod || ''));
       setEntryAmount(String(draft.entryAmount || ''));
+      setNegotiationDiscountPercent(String(draft.negotiationDiscountPercent || ''));
+      setRtPercent(String(draft.rtPercent || ''));
       setDeliveryDays(Number(draft.deliveryDays) || 15);
       setMeasurementDate(String(draft.measurementDate || ''));
       setDeliveryDate(String(draft.deliveryDate || ''));
@@ -340,6 +349,8 @@ export const QuoteEditor: React.FC = () => {
           setTotalPaymentMethod(data.totalPaymentMethod || data.paymentMethod || '');
           setRemainingPaymentMethod(data.remainingPaymentMethod || '');
           setEntryAmount(data.entryAmount ? String(data.entryAmount) : '');
+          setNegotiationDiscountPercent(data.negotiationDiscountPercent ? String(data.negotiationDiscountPercent) : '');
+          setRtPercent(data.rtPercent ? String(data.rtPercent) : '');
           setDeliveryDays(data.deliveryDays);
           setMeasurementDate(formatDateInput(data.measurementDate));
           setDeliveryDate(formatDateInput(data.deliveryDate));
@@ -432,6 +443,8 @@ export const QuoteEditor: React.FC = () => {
       totalPaymentMethod,
       remainingPaymentMethod,
       entryAmount,
+      negotiationDiscountPercent,
+      rtPercent,
       deliveryDays,
       measurementDate,
       deliveryDate,
@@ -446,7 +459,7 @@ export const QuoteEditor: React.FC = () => {
       pieceMaterialSearch,
     });
     if (savedAt) setQuoteDraftSavedAt(savedAt);
-  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, loading, materialId, measurementDate, originalStatus, paymentMethod, paymentMode, pieceMaterialSearch, pieces, quoteDraftKey, remainingPaymentMethod, responsible, status, statusHistory, totalPaymentMethod, validityDays]);
+  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, loading, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, pieceMaterialSearch, pieces, quoteDraftKey, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
 
   const clearQuoteDraftState = () => {
     clearDraft(quoteDraftKey);
@@ -749,6 +762,8 @@ export const QuoteEditor: React.FC = () => {
       totalPaymentMethod,
       remainingPaymentMethod,
       entryAmount: normalizedEntryAmount,
+      negotiationDiscountPercent: normalizedNegotiationDiscountPercent,
+      rtPercent: normalizedRtPercent,
       deliveryDays,
       validityDate: Timestamp.fromDate(new Date(Date.now() + validityDays * 24 * 60 * 60 * 1000)),
       commercialNotes,
@@ -884,6 +899,8 @@ export const QuoteEditor: React.FC = () => {
               <div className="flex justify-between gap-3"><span>Recortes</span><strong>{formatCurrency(cutoutsCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pia esculpida</span><strong>{formatCurrency(sculptedLaborCost)}</strong></div>
               <div className="flex justify-between gap-3 border-t border-white/15 pt-2"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong>{formatCurrency(adjustmentValue)}</strong></div>
+              <div className="flex justify-between gap-3"><span>Negociação (-{normalizedNegotiationDiscountPercent}%)</span><strong>-{formatCurrency(negotiationDiscountValue)}</strong></div>
+              <div className="flex justify-between gap-3"><span>RT (+{normalizedRtPercent}%)</span><strong>{formatCurrency(rtValue)}</strong></div>
             </div>
             <div className="mt-4 space-y-2 rounded-2xl bg-white/10 p-3 text-xs text-white/80">
               {pieceAreaDetails.map(({piece, totals, material}) => (
@@ -1085,6 +1102,35 @@ export const QuoteEditor: React.FC = () => {
                     )}
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Negociação (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={negotiationDiscountPercent}
+                  onChange={(e) => setNegotiationDiscountPercent(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
+                  placeholder="Desconto"
+                />
+                <div className="text-[10px] font-semibold text-slate-400">Desconto no total</div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">RT (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={rtPercent}
+                  onChange={(e) => setRtPercent(e.target.value)}
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
+                  placeholder="Acréscimo"
+                />
+                <div className="text-[10px] font-semibold text-slate-400">Acréscimo no total</div>
               </div>
             </div>
           </section>

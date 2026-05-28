@@ -927,13 +927,17 @@ export const QuoteEditor: React.FC = () => {
                 (() => {
                   const laborValue = pieceLaborCost(piece);
                   const cutoutSummary = pieceCutoutSummary(piece);
+                  const stoneValue = totals.totalArea * (material?.pricePerM2 || 0);
+                  const pieceTotalValue = stoneValue + laborValue + cutoutSummary.totalValue + (totals.sinkAdditionalValue || 0);
                   return (
                     <div key={piece.id} className="space-y-1">
                       <div className="flex justify-between gap-3 font-bold">
                         <span>{piece.name}</span>
-                        <span>{formatCurrency(totals.totalArea * (material?.pricePerM2 || 0))}</span>
+                        <span>{formatCurrency(pieceTotalValue)}</span>
                       </div>
                       <div className="grid grid-cols-2 gap-x-3 gap-y-1 opacity-80">
+                        <span>Pedra: {formatCurrency(stoneValue)}</span>
+                        <span>Total peça: {formatCurrency(pieceTotalValue)}</span>
                         <span>Bancada: {formatArea(totals.mainArea)}</span>
                         <span>Cuba: {formatArea(totals.sinkArea || 0)}</span>
                         <span>Adicionais: {formatArea(totals.sidesArea + totals.recessArea)}</span>

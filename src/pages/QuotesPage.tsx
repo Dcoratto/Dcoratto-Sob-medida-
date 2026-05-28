@@ -24,7 +24,7 @@ export const QuotesPage: React.FC = () => {
   const scope = new URLSearchParams(location.search).get('scope') || 'all';
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
   const openPremiumProposal = (quoteId: string) => {
-    const proposalUrl = window.location.origin + '/quotes/proposal/' + quoteId;
+    const proposalUrl = window.location.origin + '/quotes/proposal/' + quoteId + '/edit';
     window.open(proposalUrl, '_blank', 'noopener,noreferrer');
   };
 
@@ -261,7 +261,7 @@ export const QuotesPage: React.FC = () => {
                       <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                         <button
                           type="button"
-                          title="Abrir proposta premium"
+                          title="Abrir PDF Premium"
                           onClick={() => openPremiumProposal(quote.id)}
                           className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/5 hover:text-brand-primary"
                         >

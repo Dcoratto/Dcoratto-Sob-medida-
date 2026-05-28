@@ -17,6 +17,7 @@ import {
   loadLoginPage,
   loadMaterialsPage,
   loadPremiumProposalPage,
+  loadPremiumProposalBuilderPage,
   loadProfilePage,
   loadProjectsPage,
   loadQuoteEditorPage,
@@ -34,7 +35,8 @@ const MaterialsPage = lazy(() => loadMaterialsPage().then((module) => ({default:
 const AdminPage = lazy(() => loadAdminPage().then((module) => ({default: module.AdminPage})));
 const ProfilePage = lazy(() => loadProfilePage().then((module) => ({default: module.ProfilePage})));
 const ReportsPage = lazy(() => loadReportsPage().then((module) => ({default: module.ReportsPage})));
-const PremiumProposalPage = lazy(() => loadPremiumProposalPage().then((module) => ({default: module.PremiumProposalPage})));
+const PremiumProposalPage = lazy(() => loadPremiumProposalPage().then((module) => ({default: module.PremiumProposalPublicPage})));
+const PremiumProposalBuilderPage = lazy(() => loadPremiumProposalBuilderPage().then((module) => ({default: module.PremiumProposalBuilderPage})));
 const ProjectsPage = lazy(() => loadProjectsPage().then((module) => ({default: module.ProjectsPage})));
 const CalendarPage = lazy(() => loadCalendarPage().then((module) => ({default: module.CalendarPage})));
 
@@ -112,7 +114,8 @@ export default function App() {
             <Route path="/quotes" element={<ProtectedRoute permission={['orcamento', 'visualizar']}><QuotesPage /></ProtectedRoute>} />
             <Route path="/quotes/new" element={<ProtectedRoute permission={['orcamento', 'criar']}><QuoteEditor /></ProtectedRoute>} />
             <Route path="/quotes/edit/:id" element={<ProtectedRoute permission={['orcamento', 'editar']}><QuoteEditor /></ProtectedRoute>} />
-            <Route path="/quotes/proposal/:id" element={<ProtectedRoute shell={false} permission={['orcamento', 'visualizar']}><PremiumProposalPage /></ProtectedRoute>} />
+            <Route path="/quotes/proposal/:id/edit" element={<ProtectedRoute shell={false} permission={['orcamento', 'visualizar']}><PremiumProposalBuilderPage /></ProtectedRoute>} />
+            <Route path="/quotes/proposal/:id" element={<PremiumProposalPage />} />
             <Route path="/projects" element={<ProtectedRoute permission={['projeto', 'visualizar']}><ProjectsPage /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute permission={['medicao', 'visualizar']}><CalendarPage /></ProtectedRoute>} />
             <Route path="/clients" element={<ProtectedRoute permission={['cliente', 'visualizar']}><ClientsPage /></ProtectedRoute>} />

@@ -927,27 +927,59 @@ export const QuoteEditor: React.FC = () => {
                 (() => {
                   const laborValue = pieceLaborCost(piece);
                   const cutoutSummary = pieceCutoutSummary(piece);
-                  const stoneValue = totals.totalArea * (material?.pricePerM2 || 0);
-                  const pieceTotalValue = stoneValue + laborValue + cutoutSummary.totalValue + (totals.sinkAdditionalValue || 0);
+                  const materialPricePerM2 = material?.pricePerM2 || 0;
+                  const areaWithoutLoss = Math.max(0, totals.totalArea - (totals.lossArea || 0));
+                  const baseStoneValue = areaWithoutLoss * materialPricePerM2;
+                  const lossValue = (totals.lossArea || 0) * materialPricePerM2;
+                  const stoneValue = totals.totalArea * materialPricePerM2;
+                  const sinkAdditionalValue = totals.sinkAdditionalValue || 0;
+                  const pieceTotalValue = stoneValue + laborValue + cutoutSummary.totalValue + sinkAdditionalValue;
                   return (
-                    <div key={piece.id} className="space-y-1">
-                      <div className="flex justify-between gap-3 font-bold">
-                        <span>{piece.name}</span>
-                        <span>{formatCurrency(pieceTotalValue)}</span>
+                    <div key={piece.id} className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="font-bold text-sm text-white">{piece.name}</div>
+                          <div className="text-[11px] text-white/65">{material?.name || 'Sem material'}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-white/60">Total da peça</div>
+                          <div className="font-bold text-sm text-white">{formatCurrency(pieceTotalValue)}</div>
+                        </div>
                       </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="rounded-xl bg-white/6 p-2">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-white/55">Pedra base</div>
+                          <div className="mt-1 font-semibold text-white">{formatCurrency(baseStoneValue)}</div>
+                        </div>
+                        <div className="rounded-xl bg-amber-400/10 p-2">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-100/80">Perda 10%</div>
+                          <div className="mt-1 font-semibold text-white">{formatCurrency(lossValue)}</div>
+                        </div>
+                        <div className="rounded-xl bg-white/6 p-2">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-white/55">Mão de obra</div>
+                          <div className="mt-1 font-semibold text-white">{formatCurrency(laborValue)}</div>
+                        </div>
+                        <div className="rounded-xl bg-white/6 p-2">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-white/55">Recortes</div>
+                          <div className="mt-1 font-semibold text-white">{formatCurrency(cutoutSummary.totalValue)}</div>
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-2 gap-x-3 gap-y-1 opacity-80">
-                        <span>Pedra: {formatCurrency(stoneValue)}</span>
-                        <span>Total peça: {formatCurrency(pieceTotalValue)}</span>
                         <span>Bancada: {formatArea(totals.mainArea)}</span>
                         <span>Cuba: {formatArea(totals.sinkArea || 0)}</span>
                         <span>Adicionais: {formatArea(totals.sidesArea + totals.recessArea)}</span>
                         <span>Perda: {formatArea(totals.lossArea || 0)}</span>
-                        <span>Mão de obra: {formatCurrency(laborValue)}</span>
+                        <span>Pedra com perda: {formatCurrency(stoneValue)}</span>
                         <span>Furos/recortes: {cutoutSummary.totalCount} un</span>
-                        {cutoutSummary.totalCount > 0 && (
-                          <span className="col-span-2">Recortes: {cutoutSummary.rows.map((item) => `${item.count} ${item.label}`).join(', ')} | {formatCurrency(cutoutSummary.totalValue)}</span>
+                        {sinkAdditionalValue > 0 && (
+                          <span className="col-span-2">Adicional pia esculpida: {formatCurrency(sinkAdditionalValue)}</span>
                         )}
-                        <span className="col-span-2">Final: {formatArea(totals.totalArea)} | {material?.name || 'Sem material'}</span>
+                        {cutoutSummary.totalCount > 0 && (
+                          <span className="col-span-2">Detalhe recortes: {cutoutSummary.rows.map((item) => `${item.count} ${item.label}`).join(', ')}</span>
+                        )}
+                        <span className="col-span-2 border-t border-white/10 pt-2">Área final: {formatArea(totals.totalArea)}</span>
                       </div>
                     </div>
                   );

@@ -1,5 +1,7 @@
 import { QuotePiece, QuoteCutouts, Settings, Material, SculptedSink } from '../types';
 
+const MATERIAL_LOSS_PERCENTAGE = 10;
+
 export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece: QuotePiece) => Material | undefined) => {
   const calculateSculptedSink = (sink: SculptedSink, pieceMaterial?: Material) => {
     if (!sink.active) return { area: 0, baseArea: 0, lossArea: 0, value: 0, materialValue: 0, laborValue: 0, extraSinkValue: 0, lossValue: 0 };
@@ -21,7 +23,7 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
 
     const hiddenDrainArea = sink.drainType === 'Ralo oculto' ?areaFundo * sink.quantity : 0;
     const baseArea = (areaCuba * sink.quantity) + hiddenDrainArea;
-    const lossPercentage = 10;
+    const lossPercentage = MATERIAL_LOSS_PERCENTAGE;
     const lossArea = baseArea * (lossPercentage / 100);
     const totalArea = baseArea + lossArea;
     const materialValue = totalArea * (pieceMaterial?.pricePerM2 || 0);
@@ -114,7 +116,7 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
     const sinkResult = piece.sculptedSink ?calculateSculptedSink(piece.sculptedSink, materialForPiece?.(piece)) : { area: 0, baseArea: 0, lossArea: 0, value: 0, additionalValue: 0 };
     const recessArea = calculateWetAreaRecess(piece);
     const subtotalArea = (piece.manualArea || mainArea) + sidesArea + sinkResult.baseArea + recessArea;
-    const lossPercentage = settings.sculptedSinkRates?.riskPercentage || 0;
+    const lossPercentage = MATERIAL_LOSS_PERCENTAGE;
     const pieceLossArea = subtotalArea * (lossPercentage / 100);
 
     return { 

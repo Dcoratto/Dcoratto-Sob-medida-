@@ -25,6 +25,7 @@ import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {validateQuoteBeforeSave} from '../lib/businessRules';
 import {getPieceMajorMinorSides} from '../lib/pieceDimensions';
 import {getInventoryItemArea} from '../lib/inventoryMetrics';
+import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {LABELS} from '../constants/labels';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
@@ -638,25 +639,17 @@ export const QuoteEditor: React.FC = () => {
     trashBin: 'trashBinCutout',
   };
 
-  const pieceLaborCost = (piece: QuotePiece) => calculateLabor([piece]);
-
-  const pieceCutoutSummary = (piece: QuotePiece) => {
-    const pieceCutouts = countCutouts(piece.cutouts);
-    const sourceCutouts = piece.cutouts?.length || pieces.length !== 1 ? pieceCutouts : cutouts;
-    const rows = [
-      {label: 'Cooktop', count: sourceCutouts.cooktop || 0, price: settings.cutoutPrices?.cooktop || 0},
-      {label: 'Cuba embutida', count: sourceCutouts.sinkUnder || 0, price: settings.cutoutPrices?.sinkUnder || 0},
-      {label: 'Cuba sobreposta', count: sourceCutouts.sinkOver || 0, price: settings.cutoutPrices?.sinkOver || 0},
-      {label: 'Furo torneira', count: sourceCutouts.faucetHole || 0, price: settings.cutoutPrices?.faucetHole || 0},
-      {label: 'Lixeira', count: sourceCutouts.trashBinCutout || 0, price: settings.cutoutPrices?.trashBinCutout || 0},
-      {label: 'Torre tomada', count: sourceCutouts.popUpTowerCutout || 0, price: settings.cutoutPrices?.popUpTowerCutout || 0},
-      {label: 'Rebaixo americano', count: sourceCutouts.wetAreaAmericanRecess || 0, price: settings.cutoutPrices?.wetAreaAmericanRecess || 0},
-      {label: 'Rebaixo italiano', count: sourceCutouts.wetAreaItalianRecess || 0, price: settings.cutoutPrices?.wetAreaItalianRecess || 0},
-    ].filter((item) => item.count > 0);
-    const totalCount = rows.reduce((sum, item) => sum + item.count, 0);
-    const totalValue = rows.reduce((sum, item) => sum + item.count * item.price, 0);
-    return {rows, totalCount, totalValue};
-  };
+  const piecePricingBreakdowns = useMemo(
+    () => buildPiecePricingBreakdowns({
+      pieces,
+      quoteCutouts: cutouts,
+      totalQuotePrice: totalPrice,
+      settings,
+      calculatePieceArea,
+      resolveMaterialPricePerM2: (piece) => materialWithUserPrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
+    }),
+    [calculatePieceArea, cutouts, materialId, pieces, settings, totalPrice],
+  );
   const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
     cooktop: 'cooktop',
     cuba: 'sink',
@@ -943,16 +936,19 @@ export const QuoteEditor: React.FC = () => {
               <div className="flex justify-between gap-3"><span>RT (+{normalizedRtPercent}%)</span><strong>{formatCurrency(rtValue)}</strong></div>
             </div>
             <div className="mt-4 space-y-2 rounded-2xl bg-white/10 p-3 text-xs text-white/80">
-              {pieceAreaDetails.map(({piece, totals, material}) => (
+              {pieceAreaDetails.map(({piece, totals, material}, index) => (
                 (() => {
-                  const laborValue = pieceLaborCost(piece);
-                  const cutoutSummary = pieceCutoutSummary(piece);
-                  const materialPricePerM2 = material?.pricePerM2 || 0;
-                  const baseStoneValue = totals.totalArea * materialPricePerM2;
-                  const lossValue = (totals.lossArea || 0) * materialPricePerM2;
-                  const stoneValue = baseStoneValue + lossValue;
-                  const sinkAdditionalValue = totals.sinkAdditionalValue || 0;
-                  const pieceTotalValue = stoneValue + laborValue + cutoutSummary.totalValue + sinkAdditionalValue;
+                  const pricing = piecePricingBreakdowns[index];
+                  const baseStoneValue = pricing?.stoneBaseValue || 0;
+                  const lossValue = pricing?.materialLossValue || 0;
+                  const stoneValue = pricing?.stoneWithLossValue || 0;
+                  const laborValue = pricing?.laborValue || 0;
+                  const cutoutValue = pricing?.cutoutValue || 0;
+                  const sinkAdditionalValue = pricing?.sinkAdditionalValue || 0;
+                  const pieceTotalValue = pricing?.pieceFinalValue || 0;
+                  const allocatedAdjustmentValue = pricing?.allocatedQuoteAdjustmentValue || 0;
+                  const cutoutCount = pricing?.cutoutCount || 0;
+                  const cutoutRows = pricing?.cutoutRows || [];
                   return (
                     <div key={piece.id} className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-3">
                       <div className="flex items-start justify-between gap-3">
@@ -981,7 +977,7 @@ export const QuoteEditor: React.FC = () => {
                         </div>
                         <div className="rounded-xl bg-white/6 p-2">
                           <div className="text-[10px] font-bold uppercase tracking-wider text-white/55">Recortes</div>
-                          <div className="mt-1 font-semibold text-white">{formatCurrency(cutoutSummary.totalValue)}</div>
+                          <div className="mt-1 font-semibold text-white">{formatCurrency(cutoutValue)}</div>
                         </div>
                       </div>
 
@@ -991,12 +987,15 @@ export const QuoteEditor: React.FC = () => {
                         <span>Adicionais: {formatArea(totals.sidesArea + totals.recessArea)}</span>
                         <span>Perda: {formatArea(totals.lossArea || 0)}</span>
                         <span>Pedra com perda: {formatCurrency(stoneValue)}</span>
-                        <span>Furos/recortes: {cutoutSummary.totalCount} un</span>
+                        <span>Furos/recortes: {cutoutCount} un</span>
                         {sinkAdditionalValue > 0 && (
                           <span className="col-span-2">Adicional pia esculpida: {formatCurrency(sinkAdditionalValue)}</span>
                         )}
-                        {cutoutSummary.totalCount > 0 && (
-                          <span className="col-span-2">Detalhe recortes: {cutoutSummary.rows.map((item) => `${item.count} ${item.label}`).join(', ')}</span>
+                        {allocatedAdjustmentValue !== 0 && (
+                          <span className="col-span-2">Rateio ajustes do orçamento: {allocatedAdjustmentValue > 0 ? '+' : ''}{formatCurrency(allocatedAdjustmentValue)}</span>
+                        )}
+                        {cutoutCount > 0 && (
+                          <span className="col-span-2">Detalhe recortes: {cutoutRows.map((item) => `${item.count} ${item.label}`).join(', ')}</span>
                         )}
                         <span className="col-span-2 border-t border-white/10 pt-2">Área final: {formatArea(totals.totalArea)}</span>
                       </div>

@@ -8,6 +8,8 @@ import {db} from '../lib/firestore';
 import {useSettings} from '../hooks/useSettings';
 import {convertImageUrlToWebp} from '../lib/imageUtils';
 import {Material, Quote, QuotePiece} from '../types';
+import {useQuoteCalculator} from '../hooks/useQuoteCalculator';
+import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {formatArea, formatCentimeters, formatCurrency, formatMeasure} from '../lib/utils';
 import {getPieceMajorMinorSides} from '../lib/pieceDimensions';
 
@@ -88,6 +90,9 @@ export const PremiumProposalPage: React.FC = () => {
     () => materials.find((material) => material.id === quote?.materialId),
     [materials, quote?.materialId],
   );
+  const materialForPiece = (piece: QuotePiece) =>
+    materials.find((material) => material.id === piece.materialId) || selectedMaterial;
+  const {calculatePieceArea} = useQuoteCalculator(settings, materialForPiece);
 
   const materialCards = useMemo(() => {
     const cards = new Map<string, MaterialCardData>();
@@ -147,23 +152,15 @@ export const PremiumProposalPage: React.FC = () => {
   const piecePrices = useMemo(() => {
     const pieces = quote?.pieces || [];
     if (!pieces.length) return [];
-
-    const areas = pieces.map((piece) => pieceArea(piece));
-    const totalArea = areas.reduce((sum, value) => sum + value, 0);
-    const totalCents = Math.max(0, Math.round(Number(quote?.totalPrice || 0) * 100));
-    const weights = pieces.map((_, index) => {
-      if (totalArea > 0) return areas[index] / totalArea;
-      return 1 / pieces.length;
-    });
-
-    let remainingCents = totalCents;
-    return pieces.map((_, index) => {
-      if (index === pieces.length - 1) return remainingCents / 100;
-      const cents = Math.max(0, Math.round(totalCents * weights[index]));
-      remainingCents -= cents;
-      return cents / 100;
-    });
-  }, [quote?.pieces, quote?.totalPrice]);
+    return buildPiecePricingBreakdowns({
+      pieces,
+      quoteCutouts: quote?.cutouts || {cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0},
+      totalQuotePrice: quote?.totalPrice || 0,
+      settings,
+      calculatePieceArea,
+      resolveMaterialPricePerM2: (piece) => materialForPiece(piece)?.pricePerM2 || 0,
+    }).map((item) => item.pieceFinalValue);
+  }, [calculatePieceArea, materialForPiece, quote?.cutouts, quote?.pieces, quote?.totalPrice, settings]);
 
   useEffect(() => {
     if (!navItems.length) return;

@@ -200,16 +200,18 @@ export const QuoteEditor: React.FC = () => {
     });
   }, [inventory, materials]);
 
-  const minimumSalePerM2FromInventory = (materialIdToFind?: string, materialVariantKey?: string) => {
+  const minimumSaleFromInventory = (materialIdToFind?: string, materialVariantKey?: string) => {
     if (!materialIdToFind) return 0;
     const stockItems = inventory.filter((item) =>
       item.materialId === materialIdToFind &&
       !['usada', 'descarte'].includes(normalizeStockStatus(item.status)) &&
       (!materialVariantKey || buildMaterialVariantKey(item) === materialVariantKey),
     );
-    const stockArea = stockItems.reduce((sum, item) => sum + getInventoryItemArea(item), 0);
-    const minimumSaleTotal = stockItems.reduce((sum, item) => sum + (item.minimumSalePrice ?? item.cost ?? 0), 0);
-    return stockArea > 0 ? minimumSaleTotal / stockArea : 0;
+    return stockItems.reduce((lowest, item) => {
+      const value = Number(item.minimumSalePrice ?? item.cost ?? 0);
+      if (!(value > 0)) return lowest;
+      return lowest > 0 ? Math.min(lowest, value) : value;
+    }, 0);
   };
 
   const materialWithUserPrice = (idToFind?: string, materialVariantKey?: string) => {
@@ -217,8 +219,8 @@ export const QuoteEditor: React.FC = () => {
     const matchedVariant = materialVariantKey
       ? materialVariantOptions.find((material) => material.id === idToFind && material.variantKey === materialVariantKey)
       : undefined;
-    const minimumSalePerM2 = minimumSalePerM2FromInventory(idToFind, materialVariantKey);
-    const fallbackMinimum = minimumSalePerM2 || baseMaterial?.baseMinimumSalePerM2 || baseMaterial?.baseCostPerM2 || 0;
+    const minimumSale = minimumSaleFromInventory(idToFind, materialVariantKey);
+    const fallbackMinimum = minimumSale || baseMaterial?.baseMinimumSalePerM2 || baseMaterial?.baseCostPerM2 || 0;
     const fallbackPrice = matchedVariant?.pricePerM2 || baseMaterial?.pricePerM2 || fallbackMinimum;
     return baseMaterial
       ?{

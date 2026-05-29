@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {addDoc, collection, deleteDoc, doc, onSnapshot, Timestamp, updateDoc} from '../lib/firestore';
+import {addDoc, collection, deleteDoc, doc, onSnapshot, query, selectFields, Timestamp, updateDoc} from '../lib/firestore';
 import {AlertTriangle, CalendarPlus, ChevronLeft, ChevronRight, Copy, ExternalLink, MapPin, Phone, Plus, X} from 'lucide-react';
 import {db} from '../lib/firestore';
 import {Client, CondominiumRule, Quote} from '../types';
@@ -185,11 +185,23 @@ export const CalendarPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const unsubQuotes = onSnapshot(collection(db, 'quotes'), (s) => setQuotes(s.docs.map((d) => ({id: d.id, ...d.data()} as Quote))));
-    const unsubClients = onSnapshot(collection(db, 'clients'), (s) => setClients(s.docs.map((d) => ({id: d.id, ...d.data()} as Client))));
-    const unsubCondominiums = onSnapshot(collection(db, 'condominiums'), (s) => setCondominiums(s.docs.map((d) => ({id: d.id, ...d.data()} as CondominiumRule))));
+    const unsubQuotes = onSnapshot(query(
+      collection(db, 'quotes'),
+      selectFields('clientId', 'clientName', 'measurementDate', 'deliveryDate', 'status'),
+    ), (s) => setQuotes(s.docs.map((d) => ({id: d.id, ...d.data()} as Quote))));
+    const unsubClients = onSnapshot(query(
+      collection(db, 'clients'),
+      selectFields('name', 'phone', 'email', 'address', 'streetAddress', 'neighborhood', 'city', 'zipCode', 'condominiumId', 'condominiumName', 'tower', 'apartmentNumber', 'block', 'lot', 'addressType', 'cpf', 'rg', 'birthDate', 'notes'),
+    ), (s) => setClients(s.docs.map((d) => ({id: d.id, ...d.data()} as Client))));
+    const unsubCondominiums = onSnapshot(query(
+      collection(db, 'condominiums'),
+      selectFields('name', 'city', 'allowedWeekdays', 'blockNationalHolidays', 'blockCityHolidays'),
+    ), (s) => setCondominiums(s.docs.map((d) => ({id: d.id, ...d.data()} as CondominiumRule))));
     const unsubManualEvents = onSnapshot(
-      collection(db, 'calendarEvents'),
+      query(
+        collection(db, 'calendarEvents'),
+        selectFields('title', 'description', 'date', 'dateKey', 'clientId', 'clientName', 'city', 'eventTime', 'createdByUid', 'createdByName', 'sourceType', 'status', 'supplier', 'materialName', 'purchaseGroupId'),
+      ),
       (s) => setManualEvents(s.docs.map((d) => ({id: d.id, ...d.data()} as ManualCalendarEvent))),
       (error) => console.error('Erro ao carregar eventos manuais', error),
     );

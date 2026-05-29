@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {collection, limit, onSnapshot, orderBy, query} from '../lib/firestore';
+import {collection, limit, onSnapshot, orderBy, query, selectFields} from '../lib/firestore';
 import {AlertCircle, BarChart3, Boxes, FileDown, Gauge, TrendingUp, Users} from 'lucide-react';
 import {Client, Employee, InventoryItem, InventoryPurchase, InventoryReservation, LegacyPaymentInstallment, Material, ProductionStep, Quote, SystemEvent} from '../types';
 import {db} from '../lib/firestore';
@@ -90,15 +90,38 @@ export const ReportsPage: React.FC = () => {
   const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
-    const unsubQuotes = onSnapshot(collection(db, 'quotes'), (snapshot) => setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote))));
-    const unsubClients = onSnapshot(collection(db, 'clients'), (snapshot) => setClients(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Client))));
-    const unsubMaterials = onSnapshot(collection(db, 'materials'), (snapshot) => setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material))));
-    const unsubInventory = onSnapshot(collection(db, 'inventory'), (snapshot) => setInventory(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem))));
-    const unsubPurchases = onSnapshot(collection(db, 'inventoryPurchases'), (snapshot) => setPurchases(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryPurchase))));
-    const unsubReservations = onSnapshot(collection(db, 'inventoryReservations'), (snapshot) => setReservations(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryReservation))));
-    const unsubCalendarEvents = onSnapshot(collection(db, 'calendarEvents'), (snapshot) => setCalendarEvents(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as ManualCalendarEvent))));
-    const unsubEmployees = onSnapshot(collection(db, 'employees'), (snapshot) => setEmployees(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Employee))));
-    const unsubSystemEvents = onSnapshot(query(collection(db, 'systemEvents'), orderBy('createdAt', 'desc'), limit(60)), (snapshot) => {
+    const unsubQuotes = onSnapshot(query(
+      collection(db, 'quotes'),
+      selectFields('clientId', 'clientName', 'environment', 'materialId', 'materialName', 'paymentMethod', 'deliveryDays', 'validityDate', 'measurementDate', 'deliveryDate', 'commercialNotes', 'status', 'totalArea', 'totalPrice', 'pieces', 'cutouts', 'createdAt', 'employeeAssignments', 'employeeEvaluations', 'statusHistory'),
+    ), (snapshot) => setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote))));
+    const unsubClients = onSnapshot(query(
+      collection(db, 'clients'),
+      selectFields('name', 'manualQuoteStatus', 'manualStage', 'legacyProjectMode', 'legacyManualQuote'),
+    ), (snapshot) => setClients(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Client))));
+    const unsubMaterials = onSnapshot(query(collection(db, 'materials'), selectFields('name')), (snapshot) => setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material))));
+    const unsubInventory = onSnapshot(query(
+      collection(db, 'inventory'),
+      selectFields('materialId', 'materialName', 'status', 'area', 'cost', 'lossReason', 'lossNotes', 'lossClientName', 'notes'),
+    ), (snapshot) => setInventory(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem))));
+    const unsubPurchases = onSnapshot(query(
+      collection(db, 'inventoryPurchases'),
+      selectFields('materialId', 'materialName', 'provider', 'code', 'area', 'status', 'purchasedByName', 'purchasedAt', 'receivedByName', 'receivedAt'),
+    ), (snapshot) => setPurchases(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryPurchase))));
+    const unsubReservations = onSnapshot(query(
+      collection(db, 'inventoryReservations'),
+      selectFields('materialId', 'area', 'quoteStatus'),
+    ), (snapshot) => setReservations(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryReservation))));
+    const unsubCalendarEvents = onSnapshot(query(
+      collection(db, 'calendarEvents'),
+      selectFields('title', 'description', 'date', 'dateKey', 'eventTime', 'clientId', 'clientName', 'city', 'createdByName'),
+    ), (snapshot) => setCalendarEvents(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as ManualCalendarEvent))));
+    const unsubEmployees = onSnapshot(query(collection(db, 'employees'), selectFields('name', 'role')), (snapshot) => setEmployees(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Employee))));
+    const unsubSystemEvents = onSnapshot(query(
+      collection(db, 'systemEvents'),
+      selectFields('type', 'title', 'description', 'entityType', 'entityId', 'clientId', 'clientName', 'quoteId', 'quoteStatus', 'materialId', 'materialName', 'employeeId', 'employeeName', 'userUid', 'userName', 'createdAt', 'metadata'),
+      orderBy('createdAt', 'desc'),
+      limit(60),
+    ), (snapshot) => {
       setSystemEvents(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as SystemEvent)));
     });
     return () => {

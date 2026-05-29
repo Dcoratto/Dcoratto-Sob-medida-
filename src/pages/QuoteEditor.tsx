@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot } from '../lib/firestore';
+import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, selectFields } from '../lib/firestore';
 import { db } from '../lib/firestore';
 import { useSettings } from '../hooks/useSettings';
 import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
@@ -299,26 +299,44 @@ export const QuoteEditor: React.FC = () => {
 
     const subscribeAuxiliaryData = () => {
       if (cancelled) return;
-      unsubClients = onSnapshot(collection(db, 'clients'), (snap) => {
+      unsubClients = onSnapshot(query(
+        collection(db, 'clients'),
+        selectFields('name', 'phone', 'email', 'cpf', 'rg', 'address', 'streetAddress', 'city', 'condominiumId', 'condominiumName', 'neighborhood', 'zipCode', 'addressType', 'block', 'lot', 'tower', 'apartmentNumber'),
+      ), (snap) => {
         setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client)));
       });
 
-      unsubCondominiums = onSnapshot(collection(db, 'condominiums'), (snap) => {
+      unsubCondominiums = onSnapshot(query(
+        collection(db, 'condominiums'),
+        selectFields('name', 'city', 'allowedWeekdays', 'blockNationalHolidays', 'blockCityHolidays'),
+      ), (snap) => {
         setCondominiums(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CondominiumRule)));
       });
 
-      unsubMaterials = onSnapshot(collection(db, 'materials'), (snap) => {
+      unsubMaterials = onSnapshot(query(
+        collection(db, 'materials'),
+        selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'pricePerM2', 'baseCostPerM2', 'baseMinimumSalePerM2', 'active'),
+      ), (snap) => {
         setMaterials(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Material)));
       });
 
-      unsubInventory = onSnapshot(collection(db, 'inventory'), (snap) => {
+      unsubInventory = onSnapshot(query(
+        collection(db, 'inventory'),
+        selectFields('materialId', 'materialName', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'area', 'cost', 'minimumSalePrice', 'status', 'photoUrl', 'thumbnailUrl', 'mediumUrl'),
+      ), (snap) => {
         setInventory(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItem)));
       });
 
-      unsubReservations = onSnapshot(collection(db, 'inventoryReservations'), (snap) => {
+      unsubReservations = onSnapshot(query(
+        collection(db, 'inventoryReservations'),
+        selectFields('quoteId', 'materialId', 'materialVariantKey', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'provider', 'materialName', 'area', 'quoteStatus', 'clientName'),
+      ), (snap) => {
         setReservations(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryReservation)));
       });
-      unsubFixtureCatalog = onSnapshot(collection(db, 'fixtureCatalog'), (snap) => {
+      unsubFixtureCatalog = onSnapshot(query(
+        collection(db, 'fixtureCatalog'),
+        selectFields('name', 'category', 'brand', 'model', 'width', 'depth', 'height', 'diameter', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'notes', 'active'),
+      ), (snap) => {
         setFixtureCatalog(
           snap.docs.map((doc) => normalizeFixtureCatalogItem({ id: doc.id, ...doc.data() } as FixtureCatalogItem)),
         );

@@ -1,5 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from '../lib/firestore';
+import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, selectFields, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from '../lib/firestore';
 import {deleteObject, getDownloadURL, imageVariantUrl, ref as storageRef, storagePath, uploadBytes, uploadDataUrl} from '../lib/storage';
 import {AlertTriangle, BriefcaseBusiness, CheckCircle2, ChevronDown, Mail, Pencil, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
 import {db} from '../lib/firestore';
@@ -210,7 +210,11 @@ export const AdminPage: React.FC = () => {
   const fixtureDraftKey = `admin-fixture-draft:${accessUser?.uid || 'anonymous'}`;
 
   useEffect(() => {
-    const q = query(collection(db, 'users'), orderBy('email', 'asc'));
+    const q = query(
+      collection(db, 'users'),
+      selectFields('email', 'nome', 'name', 'role', 'permissions', 'blocked', 'updatedByName', 'updatedByEmail', 'createdAt', 'updatedAt'),
+      orderBy('email', 'asc'),
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const allUsers = snapshot.docs.map((item) => ({uid: item.id, ...item.data()} as AccessUser));
       const uniqueUsers = allUsers.reduce((acc: AccessUser[], current) => {
@@ -284,7 +288,11 @@ export const AdminPage: React.FC = () => {
   }, [employeeDraftKey, employeeForm]);
 
   useEffect(() => {
-    const q = query(collection(db, 'materials'), orderBy('name', 'asc'));
+    const q = query(
+      collection(db, 'materials'),
+      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'baseCostPerM2', 'marginPercentage', 'pricePerM2', 'active'),
+      orderBy('name', 'asc'),
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material)));
     });
@@ -292,10 +300,10 @@ export const AdminPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const unsubscribeInventory = onSnapshot(collection(db, 'inventory'), (snapshot) => {
+    const unsubscribeInventory = onSnapshot(query(collection(db, 'inventory'), selectFields('materialId')), (snapshot) => {
       setInventoryItems(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem)));
     });
-    const unsubscribeQuotes = onSnapshot(collection(db, 'quotes'), (snapshot) => {
+    const unsubscribeQuotes = onSnapshot(query(collection(db, 'quotes'), selectFields('materialId', 'pieces')), (snapshot) => {
       setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
     });
     return () => {
@@ -305,7 +313,11 @@ export const AdminPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, 'fixtureCatalog'), orderBy('name', 'asc'));
+    const q = query(
+      collection(db, 'fixtureCatalog'),
+      selectFields('name', 'category', 'brand', 'model', 'width', 'depth', 'height', 'diameter', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'manualUrl', 'manualFileName', 'notes', 'active'),
+      orderBy('name', 'asc'),
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setFixtureCatalog(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as FixtureCatalogItem)));
     });
@@ -313,7 +325,11 @@ export const AdminPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const q = query(collection(db, 'employees'), orderBy('name', 'asc'));
+    const q = query(
+      collection(db, 'employees'),
+      selectFields('name', 'role', 'phone', 'active'),
+      orderBy('name', 'asc'),
+    );
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {

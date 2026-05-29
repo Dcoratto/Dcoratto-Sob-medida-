@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc} from '../lib/firestore';
+import {collection, doc, onSnapshot, orderBy, query, selectFields, serverTimestamp, setDoc, updateDoc} from '../lib/firestore';
 import {AlertTriangle, Edit2, Eye, PackageCheck, Search, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
 import {db} from '../lib/firestore';
@@ -60,7 +60,11 @@ export const MaterialsPage: React.FC = () => {
   const materialPriceDraftKey = `materials-price-draft:${editingMaterial?.baseMaterialId || 'new'}`;
 
   useEffect(() => {
-    const q = query(collection(db, 'materials'), orderBy('name', 'asc'));
+    const q = query(
+      collection(db, 'materials'),
+      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'active', 'pricePerM2', 'baseCostPerM2', 'baseMinimumSalePerM2'),
+      orderBy('name', 'asc'),
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material)));
       setLoading(false);
@@ -95,7 +99,11 @@ export const MaterialsPage: React.FC = () => {
   }, [active, editingMaterial, materialPriceDraftKey, salePricePerM2, showModal]);
 
   useEffect(() => {
-    const q = query(collection(db, 'inventory'), orderBy('materialName', 'asc'));
+    const q = query(
+      collection(db, 'inventory'),
+      selectFields('materialId', 'materialName', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'area', 'cost', 'minimumSalePrice', 'status', 'photoUrl', 'thumbnailUrl', 'mediumUrl'),
+      orderBy('materialName', 'asc'),
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setInventory(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem)));
       setLoading(false);
@@ -109,7 +117,10 @@ export const MaterialsPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    const unsubscribeReservations = onSnapshot(collection(db, 'inventoryReservations'), (snapshot) => {
+    const unsubscribeReservations = onSnapshot(query(
+      collection(db, 'inventoryReservations'),
+      selectFields('quoteId', 'materialId', 'materialName', 'area', 'quoteStatus', 'clientName'),
+    ), (snapshot) => {
       setReservations(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryReservation)));
     }, (error) => {
       console.error('Erro ao carregar reservas para materiais:', error);
@@ -121,7 +132,11 @@ export const MaterialsPage: React.FC = () => {
 
   useEffect(() => {
     if (!reservationMaterialId) return;
-    const qQuotes = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
+    const qQuotes = query(
+      collection(db, 'quotes'),
+      selectFields('clientId', 'clientName', 'environment', 'status', 'totalPrice', 'createdAt'),
+      orderBy('createdAt', 'desc'),
+    );
     const unsubscribeQuotes = onSnapshot(qQuotes, (snapshot) => {
       setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
     }, (error) => {

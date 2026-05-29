@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, Timestamp} from '../lib/firestore';
+import {addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query, selectFields, Timestamp} from '../lib/firestore';
 import {useNavigate} from 'react-router-dom';
 import {AlertCircle, CheckCircle2, Clock, Database, FileText, FolderKanban, Package, Plus, StickyNote, Trash2, TrendingUp, Users} from 'lucide-react';
 import {db} from '../lib/firestore';
@@ -106,43 +106,78 @@ export const Dashboard: React.FC = () => {
   const [deletingEventId, setDeletingEventId] = useState<string | null>(null);
 
   useEffect(() => {
-    const qQuotesAll = query(collection(db, 'quotes'));
+    const qQuotesAll = query(
+      collection(db, 'quotes'),
+      selectFields('clientId', 'clientName', 'environment', 'materialName', 'status', 'totalPrice', 'createdAt', 'measurementDate', 'deliveryDate'),
+    );
     const unsubQuotesAll = onSnapshot(qQuotesAll, (snap) => {
       setQuotes(snap.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
     });
 
-    const qQuotesRecent = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'), limit(5));
+    const qQuotesRecent = query(
+      collection(db, 'quotes'),
+      selectFields('clientId', 'clientName', 'environment', 'status', 'totalPrice', 'createdAt'),
+      orderBy('createdAt', 'desc'),
+      limit(5),
+    );
     const unsubQuotesRecent = onSnapshot(qQuotesRecent, (snap) => {
       setRecentQuotes(snap.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
     });
 
-    const unsubClients = onSnapshot(collection(db, 'clients'), (snap) => {
+    const unsubClients = onSnapshot(query(
+      collection(db, 'clients'),
+      selectFields('name', 'phone', 'address', 'city', 'manualQuoteStatus', 'manualStage', 'legacyProjectMode', 'legacyManualQuote'),
+    ), (snap) => {
       setClients(snap.docs.map((item) => ({id: item.id, ...item.data()} as Client)));
     });
 
-    const unsubMaterials = onSnapshot(collection(db, 'materials'), (snap) => {
+    const unsubMaterials = onSnapshot(query(
+      collection(db, 'materials'),
+      selectFields('name', 'provider', 'category', 'materialLine', 'pricePerM2', 'active'),
+    ), (snap) => {
       const materials = snap.docs.map((item) => ({id: item.id, ...item.data()} as Material));
       setMaterials(materials);
       setMaterialsCount(materials.length);
     });
 
-    const unsubInventory = onSnapshot(collection(db, 'inventory'), (snap) => {
+    const unsubInventory = onSnapshot(query(
+      collection(db, 'inventory'),
+      selectFields('materialId', 'materialName', 'code', 'provider', 'rackId', 'status', 'area', 'minimumSalePrice'),
+    ), (snap) => {
       setInventory(snap.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem)));
       setLoading(false);
     });
-    const unsubReservations = onSnapshot(collection(db, 'inventoryReservations'), (snap) => {
+    const unsubReservations = onSnapshot(query(
+      collection(db, 'inventoryReservations'),
+      selectFields('materialId', 'materialName', 'area', 'quoteStatus'),
+    ), (snap) => {
       setReservations(snap.docs.map((item) => ({id: item.id, ...item.data()} as InventoryReservation)));
     });
-    const unsubPurchases = onSnapshot(collection(db, 'inventoryPurchases'), (snap) => {
+    const unsubPurchases = onSnapshot(query(
+      collection(db, 'inventoryPurchases'),
+      selectFields('materialId', 'materialName', 'area', 'status'),
+    ), (snap) => {
       setPurchases(snap.docs.map((item) => ({id: item.id, ...item.data()} as InventoryPurchase)));
     });
-    const unsubNotes = onSnapshot(query(collection(db, 'dashboardNotes'), orderBy('createdAt', 'desc'), limit(12)), (snap) => {
+    const unsubNotes = onSnapshot(query(
+      collection(db, 'dashboardNotes'),
+      selectFields('text', 'createdAt', 'userUid', 'userName', 'targetUid', 'targetName'),
+      orderBy('createdAt', 'desc'),
+      limit(12),
+    ), (snap) => {
       setNotes(snap.docs.map((item) => ({id: item.id, ...item.data()} as DashboardNote)));
     });
-    const unsubUsers = onSnapshot(query(collection(db, 'profiles'), orderBy('name', 'asc')), (snap) => {
+    const unsubUsers = onSnapshot(query(
+      collection(db, 'profiles'),
+      selectFields('name'),
+      orderBy('name', 'asc'),
+    ), (snap) => {
       setUsers(snap.docs.map((item) => ({uid: item.id, ...item.data()} as Profile)));
     });
-    const unsubManualEvents = onSnapshot(collection(db, 'calendarEvents'), (snap) => {
+    const unsubManualEvents = onSnapshot(query(
+      collection(db, 'calendarEvents'),
+      selectFields('title', 'description', 'date', 'dateKey', 'clientId', 'clientName'),
+    ), (snap) => {
       setManualEvents(snap.docs.map((item) => ({id: item.id, ...item.data()} as ManualCalendarEvent)));
     });
 

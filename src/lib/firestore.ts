@@ -166,8 +166,8 @@ const listenersByTable = new Map<string, Set<() => void>>();
 const snapshotCache = new Map<string, {value: DocumentSnapshot | QuerySnapshot; fetchedAt: number}>();
 const snapshotRequests = new Map<string, Promise<DocumentSnapshot | QuerySnapshot>>();
 
-const POLL_INTERVAL_MS = 60000;
-const SNAPSHOT_CACHE_TTL_MS = 45000;
+const POLL_INTERVAL_MS = 300000;
+const SNAPSHOT_CACHE_TTL_MS = 240000;
 
 const camelToSnake = (value: string) =>
   value.replace(/[A-Z]/g, (match) => `_${match.toLowerCase()}`);

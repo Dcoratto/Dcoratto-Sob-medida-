@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {collection, doc, getDoc, onSnapshot} from '../lib/firestore';
+import {collection, doc, getDoc, onSnapshot, query, selectFields} from '../lib/firestore';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
 import {ArrowLeft, Expand, FileText, Printer, Sparkles, X} from 'lucide-react';
@@ -71,7 +71,10 @@ export const PremiumProposalPage: React.FC = () => {
   const [lightbox, setLightbox] = useState<LightboxState>(null);
 
   useEffect(() => {
-    const unsubscribeMaterials = onSnapshot(collection(db, 'materials'), (snapshot) => {
+    const unsubscribeMaterials = onSnapshot(query(
+      collection(db, 'materials'),
+      selectFields('name', 'provider', 'category', 'imageUrl', 'thumbnailUrl', 'mediumUrl'),
+    ), (snapshot) => {
       setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material)));
     });
 

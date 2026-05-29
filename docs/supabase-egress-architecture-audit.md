@@ -20,8 +20,8 @@ Data: 2026-05-29
 
 ## Mudanças Aplicadas
 
-- Polling global reduzido de 10s para 60s.
-- Cache compartilhado de snapshots por 45s, deduplicando consultas iguais entre componentes/telas.
+- Polling global reduzido de 10s para 5 minutos em modo emergencial anti-egress.
+- Cache compartilhado de snapshots por 4 minutos, deduplicando consultas iguais entre componentes/telas.
 - Polling pausado quando a aba não está visível.
 - Criada base multiempresa com `empresas` e `empresa_id` em todas as tabelas operacionais.
 - RLS autenticado saiu de `auth.uid() IS NOT NULL` para isolamento por `empresa_id`.
@@ -31,6 +31,9 @@ Data: 2026-05-29
 - Proposta premium parou de converter imagem remota para base64/WebP no browser.
 - Criadas views: `vw_orcamentos_listagem`, `vw_clientes_listagem`, `vw_materiais_listagem`.
 - Criada RPC: `get_dashboard_summary()`.
+- Telas de alto tráfego agora usam campos específicos no lugar de `SELECT *`: Dashboard, Clientes, Orçamentos, Projetos, Calendário, Relatórios, Materiais, Estoque, Administração, Configurações, Editor de Orçamento e Proposta Premium.
+- Ações raras que precisam do documento completo, como duplicar orçamento ou alterar status com sincronização de estoque, passaram a buscar detalhes sob demanda.
+- Histórico operacional em Estoque ficou limitado aos 60 eventos mais recentes.
 
 ## Métricas Observadas
 
@@ -39,6 +42,8 @@ Data: 2026-05-29
 - `vw_orcamentos_listagem` em teste atual: aproximadamente 0.67 ms.
 - `get_dashboard_summary()` em teste atual: aproximadamente 3.4 ms.
 - Consultas de listagem agora têm caminho para trocar `SELECT *` por views leves.
+- Logs recentes ainda mostram telas chamando `SELECT *`; a correção no frontend precisa ser publicada em produção e as abas antigas precisam ser recarregadas.
+- Banco público atual está pequeno; o consumo de 90+ GB é tráfego acumulado do período, principalmente por polling antigo, `SELECT *` repetido e imagens antes da migração para WebP/thumbnails.
 
 ## Riscos Restantes
 

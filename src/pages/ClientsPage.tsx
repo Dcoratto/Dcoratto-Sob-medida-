@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {addDoc, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from '../lib/firestore';
+import {addDoc, collection, doc, onSnapshot, orderBy, query, selectFields, Timestamp, updateDoc} from '../lib/firestore';
 import {Banknote, CheckCircle2, ClipboardList, Edit2, FileText, FileUp, Info, MapPin, Phone, Plus, Search, Trash2, User, Users, X} from 'lucide-react';
 import {db} from '../lib/firestore';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
@@ -288,33 +288,52 @@ export const ClientsPage: React.FC = () => {
   const clientDraftKey = `client-form-draft:${appUid || 'anonymous'}`;
 
   useEffect(() => {
-    const qClients = query(collection(db, 'clients'), orderBy('name', 'asc'));
+    const qClients = query(
+      collection(db, 'clients'),
+      selectFields('name', 'phone', 'email', 'googleDriveUrl', 'cpf', 'rg', 'birthDate', 'address', 'streetAddress', 'city', 'zipCode', 'neighborhood', 'addressType', 'condominiumId', 'condominiumName', 'block', 'lot', 'tower', 'apartmentNumber', 'notes', 'manualStage', 'manualQuoteStatus', 'legacyProjectMode', 'legacyManualQuote', 'createdAt', 'updatedAt'),
+      orderBy('name', 'asc'),
+    );
     const unsubClients = onSnapshot(qClients, (snapshot) => {
       setClients(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Client)));
       setLoading(false);
     });
 
-    const unsubQuotes = onSnapshot(collection(db, 'quotes'), (snapshot) => {
+    const unsubQuotes = onSnapshot(query(
+      collection(db, 'quotes'),
+      selectFields('clientId', 'clientName', 'environment', 'responsible', 'responsibleUserName', 'materialId', 'materialName', 'paymentMethod', 'deliveryDays', 'measurementDate', 'deliveryDate', 'commercialNotes', 'status', 'totalArea', 'totalPrice', 'pieces', 'cutouts', 'createdAt', 'teamCounts', 'employeeAssignments', 'employeeEvaluations', 'statusHistory'),
+    ), (snapshot) => {
       setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
     });
 
-    const unsubEmployees = onSnapshot(collection(db, 'employees'), (snapshot) => {
+    const unsubEmployees = onSnapshot(query(collection(db, 'employees'), selectFields('name', 'role', 'phone', 'active')), (snapshot) => {
       setEmployees(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Employee)));
     });
 
-    const unsubFixtures = onSnapshot(collection(db, 'fixtureCatalog'), (snapshot) => {
+    const unsubFixtures = onSnapshot(query(
+      collection(db, 'fixtureCatalog'),
+      selectFields('name', 'category', 'brand', 'model', 'width', 'depth', 'height', 'diameter', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'notes', 'active'),
+    ), (snapshot) => {
       setFixtureCatalog(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as FixtureCatalogItem)));
     });
 
-    const unsubInventory = onSnapshot(collection(db, 'inventory'), (snapshot) => {
+    const unsubInventory = onSnapshot(query(
+      collection(db, 'inventory'),
+      selectFields('materialId', 'materialName', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'area', 'status', 'photoUrl', 'thumbnailUrl', 'mediumUrl'),
+    ), (snapshot) => {
       setInventory(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem)));
     });
 
-    const unsubMaterials = onSnapshot(collection(db, 'materials'), (snapshot) => {
+    const unsubMaterials = onSnapshot(query(
+      collection(db, 'materials'),
+      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl'),
+    ), (snapshot) => {
       setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material)));
     });
 
-    const unsubCondominiums = onSnapshot(collection(db, 'condominiums'), (snapshot) => {
+    const unsubCondominiums = onSnapshot(query(
+      collection(db, 'condominiums'),
+      selectFields('name', 'city', 'allowedWeekdays', 'blockNationalHolidays', 'blockCityHolidays'),
+    ), (snapshot) => {
       setCondominiums(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as CondominiumRule)));
     });
 

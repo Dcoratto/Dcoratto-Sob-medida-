@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, setDoc, updateDoc } from '../lib/firestore';
+import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, selectFields, setDoc, updateDoc } from '../lib/firestore';
 import { db } from '../lib/firestore';
 import { useSettings, DEFAULT_SETTINGS } from '../hooks/useSettings';
 import { useAuth } from '../contexts/AuthContext';
@@ -43,7 +43,11 @@ export const SettingsPage: React.FC = () => {
   const createSupplierId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 
   useEffect(() => {
-    const unsubscribe = onSnapshot(query(collection(db, 'condominiums'), orderBy('name', 'asc')), (snapshot) => {
+    const unsubscribe = onSnapshot(query(
+      collection(db, 'condominiums'),
+      selectFields('name', 'city', 'addressMode', 'workStartHour', 'workEndHour', 'allowedWeekdays', 'blockNationalHolidays', 'blockCityHolidays', 'notes'),
+      orderBy('name', 'asc'),
+    ), (snapshot) => {
       setCondominiums(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as CondominiumRule)));
     });
     return unsubscribe;

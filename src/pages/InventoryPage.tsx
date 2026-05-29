@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
-import {addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc} from '../lib/firestore';
+import {addDoc, collection, deleteDoc, doc, getDocs, limit, onSnapshot, orderBy, query, selectFields, serverTimestamp, setDoc, Timestamp, updateDoc} from '../lib/firestore';
 import {AlertTriangle, CheckCircle2, Edit2, Eye, FileText, Filter, ImagePlus, LocateFixed, MapPin, MessageCircle, PackageCheck, Plus, Search, ShoppingCart, Trash2, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
 import {db} from '../lib/firestore';
@@ -269,7 +269,11 @@ export const InventoryPage: React.FC = () => {
   const purchaseDraftKey = `inventory-purchase-draft:${appUid || 'anonymous'}`;
 
   useEffect(() => {
-    const qItems = query(collection(db, 'inventory'), orderBy('code', 'asc'));
+    const qItems = query(
+      collection(db, 'inventory'),
+      selectFields('materialId', 'materialName', 'code', 'provider', 'rackId', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'length', 'width', 'thickness', 'area', 'cost', 'minimumSalePrice', 'status', 'notes', 'photoUrl', 'thumbnailUrl', 'mediumUrl', 'lossReason', 'lossNotes', 'lossQuoteId', 'lossClientId', 'lossClientName', 'lossPieceId', 'lossPieceName', 'lostByUid', 'lostByName', 'lostAt'),
+      orderBy('code', 'asc'),
+    );
     const handleReadError = (error: unknown, label: string) => {
       console.error(`Erro ao carregar ${label}:`, error);
       setLoadError('Não foi possível carregar todo o estoque agora. A tela pode ficar incompleta até a conexão estabilizar ou o acesso ao banco voltar ao normal.');
@@ -280,20 +284,36 @@ export const InventoryPage: React.FC = () => {
       setLoading(false);
     }, (error) => handleReadError(error, 'itens de estoque'));
 
-    const qMaterials = query(collection(db, 'materials'), orderBy('name', 'asc'));
+    const qMaterials = query(
+      collection(db, 'materials'),
+      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'active', 'pricePerM2', 'baseCostPerM2', 'baseMinimumSalePerM2'),
+      orderBy('name', 'asc'),
+    );
     const unsubscribeMaterials = onSnapshot(qMaterials, (snapshot) => {
       setMaterials(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as Material)));
     }, (error) => handleReadError(error, 'pedras do catálogo'));
 
-    const unsubscribeReservations = onSnapshot(collection(db, 'inventoryReservations'), (snapshot) => {
+    const unsubscribeReservations = onSnapshot(query(
+      collection(db, 'inventoryReservations'),
+      selectFields('quoteId', 'materialId', 'materialVariantKey', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'provider', 'materialName', 'area', 'quoteStatus', 'clientName', 'updatedAt'),
+    ), (snapshot) => {
       setReservations(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryReservation)));
     }, (error) => handleReadError(error, 'reservas do estoque'));
 
-    const qPurchases = query(collection(db, 'inventoryPurchases'), orderBy('purchasedAt', 'desc'));
+    const qPurchases = query(
+      collection(db, 'inventoryPurchases'),
+      selectFields('materialId', 'materialName', 'provider', 'code', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'length', 'width', 'thickness', 'area', 'cost', 'minimumSalePrice', 'photoUrl', 'thumbnailUrl', 'mediumUrl', 'purchaseGroupId', 'purchaseIndex', 'purchaseQuantity', 'status', 'notes', 'expectedDeliveryDate', 'expectedDeliveryDateKey', 'purchasedByUid', 'purchasedByName', 'purchasedAt', 'receivedByUid', 'receivedByName', 'receivedAt', 'inventoryItemId'),
+      orderBy('purchasedAt', 'desc'),
+    );
     const unsubscribePurchases = onSnapshot(qPurchases, (snapshot) => {
       setPurchases(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as InventoryPurchase)));
     }, (error) => handleReadError(error, 'histórico de compras'));
-    const unsubscribeEvents = onSnapshot(query(collection(db, 'systemEvents'), orderBy('createdAt', 'desc')), (snapshot) => {
+    const unsubscribeEvents = onSnapshot(query(
+      collection(db, 'systemEvents'),
+      selectFields('type', 'title', 'description', 'entityType', 'entityId', 'clientId', 'clientName', 'quoteId', 'quoteStatus', 'materialId', 'materialName', 'employeeId', 'employeeName', 'userUid', 'userName', 'createdAt', 'metadata'),
+      orderBy('createdAt', 'desc'),
+      limit(60),
+    ), (snapshot) => {
       setSystemEvents(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as SystemEvent)));
     }, (error) => handleReadError(error, 'histórico operacional'));
 
@@ -429,7 +449,11 @@ export const InventoryPage: React.FC = () => {
   const ensureQuotesLoaded = async () => {
     if (quotesLoaded) return;
     try {
-      const qQuotes = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
+      const qQuotes = query(
+        collection(db, 'quotes'),
+        selectFields('clientId', 'clientName', 'environment', 'totalPrice', 'status', 'pieces', 'createdAt'),
+        orderBy('createdAt', 'desc'),
+      );
       const snapshot = await getDocs(qQuotes);
       setQuotes(snapshot.docs.map((doc) => ({id: doc.id, ...doc.data()} as Quote)));
       setQuotesLoaded(true);

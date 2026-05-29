@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {collection, onSnapshot, orderBy, query} from '../lib/firestore';
+import {collection, onSnapshot, orderBy, query, selectFields} from '../lib/firestore';
 import {useNavigate} from 'react-router-dom';
 import {ClipboardCheck, Search} from 'lucide-react';
 import {db} from '../lib/firestore';
@@ -41,14 +41,21 @@ export const ProjectsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubQuotes = onSnapshot(query(collection(db, 'quotes'), orderBy('createdAt', 'desc')), (snapshot) => {
+    const unsubQuotes = onSnapshot(query(
+      collection(db, 'quotes'),
+      selectFields('clientId', 'clientName', 'environment', 'totalArea', 'totalPrice', 'status', 'employeeAssignments', 'createdAt'),
+      orderBy('createdAt', 'desc'),
+    ), (snapshot) => {
       setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
       setLoading(false);
     });
-    const unsubClients = onSnapshot(collection(db, 'clients'), (snapshot) => {
+    const unsubClients = onSnapshot(query(
+      collection(db, 'clients'),
+      selectFields('name', 'manualQuoteStatus', 'manualStage', 'legacyProjectMode', 'legacyManualQuote'),
+    ), (snapshot) => {
       setClients(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Client)));
     });
-    const unsubEmployees = onSnapshot(collection(db, 'employees'), (snapshot) => {
+    const unsubEmployees = onSnapshot(query(collection(db, 'employees'), selectFields('name')), (snapshot) => {
       setEmployees(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Employee)));
     });
 

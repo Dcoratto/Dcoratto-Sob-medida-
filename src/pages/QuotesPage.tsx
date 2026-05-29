@@ -1,5 +1,5 @@
 import React, {useEffect, useState} from 'react';
-import {addDoc, arrayUnion, collection, doc, onSnapshot, orderBy, query, Timestamp, updateDoc} from '../lib/firestore';
+import {addDoc, arrayUnion, collection, doc, getDoc, onSnapshot, orderBy, query, selectFields, Timestamp, updateDoc} from '../lib/firestore';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
@@ -29,7 +29,11 @@ export const QuotesPage: React.FC = () => {
   };
 
   useEffect(() => {
-    const q = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
+    const q = query(
+      collection(db, 'quotes'),
+      selectFields('clientId', 'clientName', 'environment', 'phone', 'address', 'responsible', 'status', 'totalPrice', 'createdAt', 'materialId', 'materialName'),
+      orderBy('createdAt', 'desc'),
+    );
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
       setLoading(false);
@@ -55,6 +59,11 @@ export const QuotesPage: React.FC = () => {
     return matchesScope && searchable.includes(normalizeText(search));
   });
 
+  const loadQuoteForAction = async (quote: Quote) => {
+    const snapshot = await getDoc(doc(db, 'quotes', quote.id));
+    return snapshot.exists() ? ({id: snapshot.id, ...snapshot.data()} as Quote) : quote;
+  };
+
   const handleStatusChange = async (quote: Quote, status: QuoteStatus) => {
     if (!hasPermission('orcamento', 'editar')) {
       alert('Você não tem permissão para alterar orçamentos. Fale com o administrador.');
@@ -65,11 +74,12 @@ export const QuotesPage: React.FC = () => {
       return;
     }
     try {
-      if (!isApprovedOrBeyond(quote.status) && isApprovedOrBeyond(status)) {
-        await applyQuoteInventoryByStatusTransition(quote.id, quote.status, status, quote);
+      const fullQuote = await loadQuoteForAction(quote);
+      if (!isApprovedOrBeyond(fullQuote.status) && isApprovedOrBeyond(status)) {
+        await applyQuoteInventoryByStatusTransition(fullQuote.id, fullQuote.status, status, fullQuote);
       }
 
-      await updateDoc(doc(db, 'quotes', quote.id), {
+      await updateDoc(doc(db, 'quotes', fullQuote.id), {
         status,
         statusHistory: arrayUnion({
           status,
@@ -80,22 +90,22 @@ export const QuotesPage: React.FC = () => {
         }),
       });
 
-      if (isApprovedOrBeyond(quote.status) || !isApprovedOrBeyond(status)) {
-        await syncQuoteReservation(quote.id, {...quote, status});
+      if (isApprovedOrBeyond(fullQuote.status) || !isApprovedOrBeyond(status)) {
+        await syncQuoteReservation(fullQuote.id, {...fullQuote, status});
       }
 
       await logSystemEvent({
         type: 'quote_status_changed',
         title: 'Status do orçamento alterado',
-        description: `${quote.clientName}: ${quote.status} -> ${status}`,
+        description: `${fullQuote.clientName}: ${fullQuote.status} -> ${status}`,
         entityType: 'quote',
-        entityId: quote.id,
-        quoteId: quote.id,
+        entityId: fullQuote.id,
+        quoteId: fullQuote.id,
         quoteStatus: status,
-        clientId: quote.clientId,
-        clientName: quote.clientName,
-        materialId: quote.materialId,
-        materialName: quote.materialName,
+        clientId: fullQuote.clientId,
+        clientName: fullQuote.clientName,
+        materialId: fullQuote.materialId,
+        materialName: fullQuote.materialName,
         userUid: appUid || '',
         userName: currentUserName,
       });
@@ -109,7 +119,8 @@ export const QuotesPage: React.FC = () => {
       alert('Você não tem permissão para criar orçamentos. Fale com o administrador.');
       return;
     }
-    const {id, ...data} = quote;
+    const sourceQuote = await loadQuoteForAction(quote);
+    const {id, ...data} = sourceQuote;
     const duplicatedQuote = {
       ...data,
       createdAt: Timestamp.now(),
@@ -121,15 +132,15 @@ export const QuotesPage: React.FC = () => {
     await logSystemEvent({
       type: 'quote_duplicated',
       title: LABELS.quotes.duplicated,
-      description: `${quote.clientName} foi duplicado`,
+      description: `${sourceQuote.clientName} foi duplicado`,
       entityType: 'quote',
       entityId: createdRef.id,
       quoteId: createdRef.id,
       quoteStatus: duplicatedQuote.status,
-      clientId: quote.clientId,
+      clientId: sourceQuote.clientId,
       clientName: duplicatedQuote.clientName,
-      materialId: quote.materialId,
-      materialName: quote.materialName,
+      materialId: sourceQuote.materialId,
+      materialName: sourceQuote.materialName,
       userUid: appUid || '',
       userName: currentUserName,
     });

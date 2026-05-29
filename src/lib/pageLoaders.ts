@@ -1,4 +1,5 @@
 export const loadLoginPage = () => import('../pages/Login');
+export const loadAuthCallbackPage = () => import('../pages/AuthCallback');
 export const loadDashboardPage = () => import('../pages/Dashboard');
 export const loadQuotesPage = () => import('../pages/QuotesPage');
 export const loadQuoteEditorPage = () => import('../pages/QuoteEditor');
@@ -25,6 +26,7 @@ export const preloadRoute = (path: string) => {
   if (path.startsWith('/inventory')) return loadInventoryPage();
   if (path.startsWith('/admin')) return loadAdminPage();
   if (path.startsWith('/profile')) return loadProfilePage();
+  if (path.startsWith('/auth/confirm')) return loadAuthCallbackPage();
   if (path.startsWith('/login')) return loadLoginPage();
   return Promise.resolve();
 };

@@ -10,6 +10,7 @@ import {Shell} from './components/layout/Shell';
 import {PermissionModule} from './lib/permissions';
 import {
   loadAdminPage,
+  loadAuthCallbackPage,
   loadCalendarPage,
   loadClientsPage,
   loadDashboardPage,
@@ -25,6 +26,7 @@ import {
 } from './lib/pageLoaders';
 
 const Login = lazy(() => loadLoginPage().then((module) => ({default: module.Login})));
+const AuthCallback = lazy(() => loadAuthCallbackPage().then((module) => ({default: module.AuthCallback})));
 const Dashboard = lazy(() => loadDashboardPage().then((module) => ({default: module.Dashboard})));
 const QuotesPage = lazy(() => loadQuotesPage().then((module) => ({default: module.QuotesPage})));
 const QuoteEditor = lazy(() => loadQuoteEditorPage().then((module) => ({default: module.QuoteEditor})));
@@ -107,6 +109,7 @@ export default function App() {
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/auth/confirm" element={<AuthCallback />} />
 
             <Route path="/" element={<ProtectedRoute permission={['dashboard', 'visualizar']}><Dashboard /></ProtectedRoute>} />
             <Route path="/quotes" element={<ProtectedRoute permission={['orcamento', 'visualizar']}><QuotesPage /></ProtectedRoute>} />

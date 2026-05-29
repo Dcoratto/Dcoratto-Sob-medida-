@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<{children: React.ReactNode}> = ({children}) 
       if (active && !options?.preserveView && !sameUser) setLoading(true);
 
       const email = authUser.email || '';
-      const displayName = authUser.user_metadata?.name || authUser.email?.split('@')[0] || 'Usuário';
+      const displayName = authUser.user_metadata?.name || authUser.user_metadata?.full_name || authUser.email?.split('@')[0] || 'Usuário';
       const master = isMasterAdmin(authUser);
 
       const profileRef = doc(db, 'profiles', authUser.id);

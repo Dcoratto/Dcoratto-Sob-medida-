@@ -125,6 +125,19 @@ export const Login: React.FC = () => {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    try {
+      const {error: googleError} = await auth.signInWithGoogle();
+      if (googleError) throw googleError;
+    } catch (err: any) {
+      setError(translateError(err?.message || err?.code || ''));
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#FBFBFD] p-6">
       <motion.div
@@ -230,6 +243,25 @@ export const Login: React.FC = () => {
             )}
           </button>
         </form>
+
+        {!isRecovery && (
+          <div className="mt-4 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-slate-100" />
+              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">ou</span>
+              <div className="h-px flex-1 bg-slate-100" />
+            </div>
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-3.5 font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98] disabled:opacity-50"
+            >
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-sm font-bold text-[#4285F4]">G</span>
+              Entrar com Google
+            </button>
+          </div>
+        )}
 
         {!isRecovery && (
           <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-4">

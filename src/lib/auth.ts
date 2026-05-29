@@ -1,5 +1,10 @@
-import type {AuthChangeEvent, Session, User} from '@supabase/supabase-js';
+import type {AuthChangeEvent, EmailOtpType, Session, User} from '@supabase/supabase-js';
 import {supabase} from './supabase';
+
+const authRedirectUrl = () => {
+  if (typeof window === 'undefined') return undefined;
+  return `${window.location.origin}/auth/confirm`;
+};
 
 const authListener = (
   callback: (event: AuthChangeEvent, session: Session | null, user: User | null) => void,
@@ -26,7 +31,7 @@ export const auth = {
       password,
       options: {
         data: {name: name || ''},
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: authRedirectUrl(),
       },
     }),
   signInWithOtp: (email: string) =>
@@ -34,13 +39,26 @@ export const auth = {
       email,
       options: {
         shouldCreateUser: true,
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: authRedirectUrl(),
+      },
+    }),
+  signInWithGoogle: () =>
+    supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: authRedirectUrl(),
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'select_account',
+        },
       },
     }),
   resetPasswordForEmail: (email: string) =>
     supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin,
+      redirectTo: authRedirectUrl(),
     }),
+  verifyEmailOtp: (tokenHash: string, type: EmailOtpType) =>
+    supabase.auth.verifyOtp({token_hash: tokenHash, type}),
   updatePassword: (password: string) =>
     supabase.auth.updateUser({password}),
   signOut: () => supabase.auth.signOut(),

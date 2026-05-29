@@ -6,7 +6,7 @@ import {ArrowLeft, Expand, FileText, Printer, Sparkles, X} from 'lucide-react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {db} from '../lib/firestore';
 import {useSettings} from '../hooks/useSettings';
-import {Material, Quote, QuotePiece} from '../types';
+import {Material, Quote, QuoteMaterialPriceOverride, QuotePiece} from '../types';
 import {useQuoteCalculator} from '../hooks/useQuoteCalculator';
 import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {formatArea, formatCentimeters, formatCurrency, formatMeasure} from '../lib/utils';
@@ -23,8 +23,10 @@ const toDate = (value: any) => {
 const safe = (value?: string) => value?.trim() || '-';
 const pieceArea = (piece: QuotePiece) => Number(piece.totalArea || piece.manualArea || piece.area || 0);
 const pieceImage = (piece: QuotePiece) => piece.proposalImageUrl?.trim() || piece.previewUrl || '';
-const materialImage = (material?: Material | null) => imageVariantUrl(material || undefined, 'medium') || material?.imageUrl?.trim() || '';
+const materialImage = (material?: Material | null) => imageVariantUrl(material || undefined, 'original') || material?.imageUrl?.trim() || '';
 const sectionIdForPiece = (index: number) => `ambiente-${index + 1}`;
+const quoteMaterialPriceKey = (materialId?: string, materialVariantKey?: string) =>
+  `${materialId || ''}::${materialVariantKey || ''}`;
 const pieceDimensionsText = (piece: QuotePiece) => {
   const dimensions = getPieceMajorMinorSides(piece);
   if (!dimensions.major) return 'Medidas não informadas';
@@ -73,7 +75,7 @@ export const PremiumProposalPage: React.FC = () => {
   useEffect(() => {
     const unsubscribeMaterials = onSnapshot(query(
       collection(db, 'materials'),
-      selectFields('name', 'provider', 'category', 'imageUrl', 'thumbnailUrl', 'mediumUrl'),
+      selectFields('name', 'provider', 'category', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'pricePerM2', 'baseMinimumSalePerM2'),
     ), (snapshot) => {
       setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material)));
     });
@@ -93,8 +95,27 @@ export const PremiumProposalPage: React.FC = () => {
     () => materials.find((material) => material.id === quote?.materialId),
     [materials, quote?.materialId],
   );
-  const materialForPiece = (piece: QuotePiece) =>
-    materials.find((material) => material.id === piece.materialId) || selectedMaterial;
+  const materialPriceOverridesByKey = useMemo(() => {
+    const entries = (quote?.materialPriceOverrides || []).filter((override): override is QuoteMaterialPriceOverride =>
+      Boolean(override?.materialId) && Number.isFinite(Number(override.pricePerM2)),
+    );
+    return new Map(entries.map((override) => [quoteMaterialPriceKey(override.materialId, override.materialVariantKey), override]));
+  }, [quote?.materialPriceOverrides]);
+  const materialForPiece = (piece: QuotePiece) => {
+    const material = materials.find((item) => item.id === piece.materialId) || selectedMaterial;
+    if (!material) return material;
+
+    const override = materialPriceOverridesByKey.get(quoteMaterialPriceKey(piece.materialId || material.id, piece.materialVariantKey));
+    if (!override) return material;
+
+    const minimumSalePerM2 = Math.max(0, Number(override.minimumSalePerM2 || material.baseMinimumSalePerM2 || 0));
+    const overridePricePerM2 = Math.max(0, Number(override.pricePerM2 || 0));
+    return {
+      ...material,
+      pricePerM2: Math.max(overridePricePerM2, minimumSalePerM2),
+      baseMinimumSalePerM2: minimumSalePerM2,
+    };
+  };
   const {calculatePieceArea} = useQuoteCalculator(settings, materialForPiece);
 
   const materialCards = useMemo(() => {

@@ -311,21 +311,21 @@ export const ClientsPage: React.FC = () => {
 
     const unsubFixtures = onSnapshot(query(
       collection(db, 'fixtureCatalog'),
-      selectFields('name', 'category', 'brand', 'model', 'width', 'depth', 'height', 'diameter', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'notes', 'active'),
+      selectFields('name', 'category', 'brand', 'model', 'width', 'depth', 'height', 'diameter', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'notes', 'active'),
     ), (snapshot) => {
       setFixtureCatalog(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as FixtureCatalogItem)));
     });
 
     const unsubInventory = onSnapshot(query(
       collection(db, 'inventory'),
-      selectFields('materialId', 'materialName', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'area', 'status', 'photoUrl', 'thumbnailUrl', 'mediumUrl'),
+      selectFields('materialId', 'materialName', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'area', 'status', 'photoUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl'),
     ), (snapshot) => {
       setInventory(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem)));
     });
 
     const unsubMaterials = onSnapshot(query(
       collection(db, 'materials'),
-      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl'),
+      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl'),
     ), (snapshot) => {
       setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material)));
     });
@@ -510,6 +510,9 @@ export const ClientsPage: React.FC = () => {
       materialId,
       materialName: material?.name || stockItems[0]?.materialName || materialId,
       imageUrl: material?.imageUrl || stockItems.find((item) => item.photoUrl)?.photoUrl || '',
+      thumbnailUrl: material?.thumbnailUrl || stockItems.find((item) => item.thumbnailUrl)?.thumbnailUrl || '',
+      mediumUrl: material?.mediumUrl || stockItems.find((item) => item.mediumUrl)?.mediumUrl || '',
+      originalUrl: material?.originalUrl || stockItems.find((item) => item.originalUrl)?.originalUrl || stockItems.find((item) => item.photoUrl)?.photoUrl || material?.imageUrl || '',
       category: material?.category || stockItems[0]?.category || 'Sem categoria',
       materialLine: material?.materialLine || stockItems[0]?.materialLine || stockItems[0]?.category || '',
       thicknessLabel: material?.thicknessLabel || stockItems[0]?.thicknessLabel || '',

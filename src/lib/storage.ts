@@ -127,7 +127,7 @@ export const imageVariantUrl = (
     return source.thumbnailUrl || source.mediumUrl || source.imageUrl || source.photoUrl || source.logoUrl || source.originalUrl || '';
   }
   if (variant === 'medium') {
-    return source.mediumUrl || source.thumbnailUrl || source.imageUrl || source.photoUrl || source.logoUrl || source.originalUrl || '';
+    return source.mediumUrl || source.imageUrl || source.photoUrl || source.thumbnailUrl || source.logoUrl || source.originalUrl || '';
   }
   return source.originalUrl || source.imageUrl || source.photoUrl || source.logoUrl || source.mediumUrl || source.thumbnailUrl || '';
 };

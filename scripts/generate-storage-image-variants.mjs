@@ -38,8 +38,8 @@ const TARGETS = [
 ];
 
 const VARIANTS = [
-  {field: 'thumbnail_url', folder: 'thumbnails', width: 320, quality: 72},
-  {field: 'medium_url', folder: 'medium', width: 900, quality: 80},
+  {field: 'thumbnail_url', folder: 'thumbnails', width: 360, quality: 78},
+  {field: 'medium_url', folder: 'medium', width: 1600, quality: 88},
 ];
 
 const isImageUrl = (value) => typeof value === 'string' && value.startsWith('http');

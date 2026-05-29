@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, selectFields } from '../lib/firestore';
 import { db } from '../lib/firestore';
 import { useSettings } from '../hooks/useSettings';
-import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
+import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuoteMaterialPriceOverride, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
 import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
@@ -11,7 +11,7 @@ import {
   MapPin, Phone, User,
   Layers, PenTool
 } from 'lucide-react';
-import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, parseMeasureInput, roundNumber } from '../lib/utils';
+import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, parseCurrencyInput, parseMeasureInput, roundNumber } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
 import {applyQuoteInventoryByStatusTransition} from '../lib/inventoryReservations';
@@ -30,6 +30,39 @@ import {LABELS} from '../constants/labels';
 import {imageVariantUrl} from '../lib/storage';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
+
+const MATERIAL_PRICE_MINIMUM_ERROR = 'O valor personalizado não pode ser menor que o valor mínimo definido para este material.';
+
+const quoteMaterialPriceKey = (materialId?: string, materialVariantKey?: string) =>
+  `${materialId || ''}::${materialVariantKey || ''}`;
+
+const formatPriceInputValue = (value: number) =>
+  (Number.isFinite(value) ? value : 0).toFixed(2).replace('.', ',');
+
+const parseQuoteMaterialPriceInput = (value: string): {status: 'empty' | 'valid' | 'invalid' | 'negative'; value?: number} => {
+  const raw = String(value || '').trim();
+  if (!raw) return {status: 'empty'};
+
+  const normalized = raw.replace(/\s+/g, '').replace(/^R\$/i, '');
+  if (!normalized) return {status: 'empty'};
+  if (normalized.includes('-')) return {status: 'negative'};
+
+  const acceptsBrazilianCurrency =
+    /^\d+(?:\.\d{3})*(?:,\d{0,2})?$/.test(normalized) ||
+    /^\d+(?:,\d{1,2})?$/.test(normalized) ||
+    /^\d+\.\d{1,2}$/.test(normalized);
+  if (!acceptsBrazilianCurrency) return {status: 'invalid'};
+
+  const parsed = parseCurrencyInput(normalized);
+  return Number.isFinite(parsed) ? {status: 'valid', value: parsed} : {status: 'invalid'};
+};
+
+const inputValuesFromMaterialOverrides = (overrides?: QuoteMaterialPriceOverride[]) =>
+  (overrides || []).reduce((acc, override) => {
+    if (!override.materialId || !Number.isFinite(Number(override.pricePerM2))) return acc;
+    acc[quoteMaterialPriceKey(override.materialId, override.materialVariantKey)] = formatPriceInputValue(Number(override.pricePerM2));
+    return acc;
+  }, {} as Record<string, string>);
 
 const normalizeStockStatus = (value: unknown) =>
   String(value || '')
@@ -98,6 +131,7 @@ export const QuoteEditor: React.FC = () => {
   const [status, setStatus] = useState<QuoteStatus>(QUOTE_STATUSES[0]);
   const [originalStatus, setOriginalStatus] = useState<QuoteStatus>(QUOTE_STATUSES[0]);
   const [pieces, setPieces] = useState<QuotePiece[]>([]);
+  const [materialCustomPriceInputs, setMaterialCustomPriceInputs] = useState<Record<string, string>>({});
   const [cutouts, setCutouts] = useState<QuoteCutoutState>({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
   const [showDrawing, setShowDrawing] = useState<string | null>(null);
   const [employeeAssignments, setEmployeeAssignments] = useState<EmployeeAssignment[]>([]);
@@ -139,6 +173,9 @@ export const QuoteEditor: React.FC = () => {
           thicknessLabel: item.thicknessLabel || baseMaterial?.thicknessLabel || '',
           texture: item.texture || baseMaterial?.texture || '',
           imageUrl: item.photoUrl || baseMaterial?.imageUrl || '',
+          thumbnailUrl: item.thumbnailUrl || baseMaterial?.thumbnailUrl || '',
+          mediumUrl: item.mediumUrl || baseMaterial?.mediumUrl || '',
+          originalUrl: item.originalUrl || item.photoUrl || baseMaterial?.originalUrl || baseMaterial?.imageUrl || '',
           variantKey,
           availableArea,
           stockArea: item.area || 0,
@@ -198,14 +235,100 @@ export const QuoteEditor: React.FC = () => {
       }
       : undefined;
   };
+
+  const quoteMaterialPriceRows = useMemo(() => {
+    type QuoteMaterialPriceRow = {
+      key: string;
+      materialId: string;
+      materialVariantKey?: string;
+      name: string;
+      specs: string;
+      defaultPricePerM2: number;
+      minimumSalePerM2: number;
+      customInput: string;
+      customPricePerM2?: number;
+      usedPricePerM2: number;
+      pieceNames: string[];
+      error?: string;
+    };
+
+    const rows = new Map<string, QuoteMaterialPriceRow>();
+
+    pieces.forEach((piece) => {
+      const material = materialWithUserPrice(piece.materialId || materialId, piece.materialVariantKey);
+      if (!piece.materialId || !material) return;
+
+      const key = quoteMaterialPriceKey(piece.materialId, piece.materialVariantKey);
+      const defaultPricePerM2 = Math.max(0, Number(material.pricePerM2 || 0));
+      const minimumSalePerM2 = Math.max(0, Number(material.baseMinimumSalePerM2 || 0));
+      const customInput = materialCustomPriceInputs[key] || '';
+      const parsed = parseQuoteMaterialPriceInput(customInput);
+      const customPricePerM2 = parsed.status === 'valid' ? Math.max(0, Number(parsed.value || 0)) : undefined;
+      const error =
+        parsed.status === 'negative'
+          ? 'O valor personalizado não pode ser negativo.'
+          : parsed.status === 'invalid'
+            ? 'Informe um valor monetário válido, como 850,00.'
+            : typeof customPricePerM2 === 'number' && customPricePerM2 < minimumSalePerM2
+              ? MATERIAL_PRICE_MINIMUM_ERROR
+              : undefined;
+      const usedPricePerM2 = !error && typeof customPricePerM2 === 'number'
+        ? customPricePerM2
+        : Math.max(defaultPricePerM2, minimumSalePerM2);
+
+      const existing = rows.get(key);
+      if (existing) {
+        if (piece.name && !existing.pieceNames.includes(piece.name)) existing.pieceNames.push(piece.name);
+        return;
+      }
+
+      rows.set(key, {
+        key,
+        materialId: piece.materialId,
+        materialVariantKey: piece.materialVariantKey,
+        name: material.name,
+        specs: formatMaterialSpecs(material),
+        defaultPricePerM2,
+        minimumSalePerM2,
+        customInput,
+        customPricePerM2,
+        usedPricePerM2,
+        pieceNames: piece.name ? [piece.name] : [],
+        error,
+      });
+    });
+
+    return Array.from(rows.values());
+  }, [inventory, materialCustomPriceInputs, materialId, materialVariantOptions, materials, pieces]);
+
+  const quoteMaterialPriceError = quoteMaterialPriceRows.find((row) => row.error)?.error;
+
+  const materialWithQuotePrice = (idToFind?: string, materialVariantKey?: string) => {
+    const material = materialWithUserPrice(idToFind, materialVariantKey);
+    if (!material || !idToFind) return material;
+
+    const key = quoteMaterialPriceKey(idToFind, materialVariantKey);
+    const minimumSalePerM2 = Math.max(0, Number(material.baseMinimumSalePerM2 || 0));
+    const defaultPricePerM2 = Math.max(0, Number(material.pricePerM2 || 0));
+    const parsed = parseQuoteMaterialPriceInput(materialCustomPriceInputs[key] || '');
+    const validCustomPrice = parsed.status === 'valid' && Number(parsed.value) >= minimumSalePerM2
+      ? Number(parsed.value)
+      : undefined;
+
+    return {
+      ...material,
+      pricePerM2: typeof validCustomPrice === 'number' ? validCustomPrice : Math.max(defaultPricePerM2, minimumSalePerM2),
+    };
+  };
+
   const selectedClient = clients.find(c => c.id === clientId);
-  const { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithUserPrice(piece.materialId || materialId, piece.materialVariantKey));
+  const { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey));
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
   
   const totalMethodAdjustment = settings.paymentMethods.find(m => m.name === totalPaymentMethod)?.adjustment || 0;
   const remainingMethodAdjustment = settings.paymentMethods.find(m => m.name === remainingPaymentMethod)?.adjustment || 0;
   const totalArea = pieces.reduce((acc, p) => acc + calculatePieceArea(p).totalArea, 0);
-  const pieceAreaDetails = pieces.map((piece) => ({piece, totals: calculatePieceArea(piece), material: materialWithUserPrice(piece.materialId || materialId, piece.materialVariantKey)}));
+  const pieceAreaDetails = pieces.map((piece) => ({piece, totals: calculatePieceArea(piece), material: materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)}));
   const stonesCost = pieceAreaDetails.reduce((acc, item) => acc + item.totals.totalArea * (item.material?.pricePerM2 || 0), 0);
   const materialLossCost = pieceAreaDetails.reduce((acc, item) => acc + (item.totals.lossArea || 0) * (item.material?.pricePerM2 || 0), 0);
   const laborCost = calculateLabor(pieces);
@@ -315,14 +438,14 @@ export const QuoteEditor: React.FC = () => {
 
       unsubMaterials = onSnapshot(query(
         collection(db, 'materials'),
-        selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'pricePerM2', 'baseCostPerM2', 'baseMinimumSalePerM2', 'active'),
+        selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'pricePerM2', 'baseCostPerM2', 'baseMinimumSalePerM2', 'active'),
       ), (snap) => {
         setMaterials(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Material)));
       });
 
       unsubInventory = onSnapshot(query(
         collection(db, 'inventory'),
-        selectFields('materialId', 'materialName', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'area', 'cost', 'minimumSalePrice', 'status', 'photoUrl', 'thumbnailUrl', 'mediumUrl'),
+        selectFields('materialId', 'materialName', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'area', 'cost', 'minimumSalePrice', 'status', 'photoUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl'),
       ), (snap) => {
         setInventory(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItem)));
       });
@@ -335,7 +458,7 @@ export const QuoteEditor: React.FC = () => {
       });
       unsubFixtureCatalog = onSnapshot(query(
         collection(db, 'fixtureCatalog'),
-        selectFields('name', 'category', 'brand', 'model', 'width', 'depth', 'height', 'diameter', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'notes', 'active'),
+        selectFields('name', 'category', 'brand', 'model', 'width', 'depth', 'height', 'diameter', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'notes', 'active'),
       ), (snap) => {
         setFixtureCatalog(
           snap.docs.map((doc) => normalizeFixtureCatalogItem({ id: doc.id, ...doc.data() } as FixtureCatalogItem)),
@@ -365,6 +488,7 @@ export const QuoteEditor: React.FC = () => {
       setStatus((draft.status as QuoteStatus) || QUOTE_STATUSES[0]);
       setOriginalStatus((draft.originalStatus as QuoteStatus) || (draft.status as QuoteStatus) || QUOTE_STATUSES[0]);
       setPieces(Array.isArray(draft.pieces) ? draft.pieces as QuotePiece[] : []);
+      setMaterialCustomPriceInputs((draft.materialCustomPriceInputs as Record<string, string>) || inputValuesFromMaterialOverrides(draft.materialPriceOverrides as QuoteMaterialPriceOverride[]));
       setCutouts((draft.cutouts as QuoteCutoutState) || { cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
       setEmployeeAssignments(Array.isArray(draft.employeeAssignments) ? draft.employeeAssignments as EmployeeAssignment[] : []);
       setStatusHistory(Array.isArray(draft.statusHistory) ? draft.statusHistory as QuoteStatusHistory[] : []);
@@ -402,6 +526,7 @@ export const QuoteEditor: React.FC = () => {
             materialId: piece.materialId || data.materialId || '',
           }, data.status));
           setPieces(loadedPieces);
+          setMaterialCustomPriceInputs(inputValuesFromMaterialOverrides(data.materialPriceOverrides));
           setPieceMaterialSearch(loadedPieces.reduce((acc, piece) => {
             const material = materials.find((item) => item.id === piece.materialId);
             if (material) acc[piece.id] = material.name;
@@ -492,18 +617,31 @@ export const QuoteEditor: React.FC = () => {
       status,
       originalStatus,
       pieces,
+      materialCustomPriceInputs,
       cutouts,
       employeeAssignments,
       statusHistory,
       pieceMaterialSearch,
     });
     if (savedAt) setQuoteDraftSavedAt(savedAt);
-  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, loading, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, pieceMaterialSearch, pieces, quoteDraftKey, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
+  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, pieceMaterialSearch, pieces, quoteDraftKey, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
 
   const clearQuoteDraftState = () => {
     clearDraft(quoteDraftKey);
     setQuoteDraftRecovered(false);
     setQuoteDraftSavedAt(null);
+  };
+
+  const updateMaterialCustomPriceInput = (key: string, value: string) => {
+    setMaterialCustomPriceInputs((current) => ({...current, [key]: value}));
+  };
+
+  const formatMaterialCustomPriceInput = (key: string) => {
+    setMaterialCustomPriceInputs((current) => {
+      const parsed = parseQuoteMaterialPriceInput(current[key] || '');
+      if (parsed.status !== 'valid' || typeof parsed.value !== 'number') return current;
+      return {...current, [key]: formatPriceInputValue(parsed.value)};
+    });
   };
 
   useEffect(() => {
@@ -665,9 +803,9 @@ export const QuoteEditor: React.FC = () => {
       totalQuotePrice: totalPrice,
       settings,
       calculatePieceArea,
-      resolveMaterialPricePerM2: (piece) => materialWithUserPrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
+      resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
     }),
-    [calculatePieceArea, cutouts, materialId, pieces, settings, totalPrice],
+    [calculatePieceArea, cutouts, materialCustomPriceInputs, materialId, pieces, settings, totalPrice],
   );
   const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
     cooktop: 'cooktop',
@@ -790,12 +928,27 @@ export const QuoteEditor: React.FC = () => {
       alert(validationError);
       return;
     }
+    if (quoteMaterialPriceError) {
+      alert(quoteMaterialPriceError);
+      return;
+    }
     setSaving(true);
     const firstAssigned = employeeAssignments.find((item) => item.employeeId);
     const primaryMaterialId = pieces[0]?.materialId || materialId || '';
     const primaryMaterialVariantKey = pieces[0]?.materialVariantKey;
-    const primaryMaterial = materialWithUserPrice(primaryMaterialId, primaryMaterialVariantKey);
+    const primaryMaterial = materialWithQuotePrice(primaryMaterialId, primaryMaterialVariantKey);
     const piecesWithStatus = pieces.map((piece) => ensurePieceWorkflowStatus(piece, status));
+    const materialPriceOverrides: QuoteMaterialPriceOverride[] = quoteMaterialPriceRows
+      .filter((row) => !row.error && typeof row.customPricePerM2 === 'number')
+      .map((row) => ({
+        materialId: row.materialId,
+        materialVariantKey: row.materialVariantKey,
+        materialName: row.name,
+        pricePerM2: Number(row.customPricePerM2?.toFixed(2) || 0),
+        defaultPricePerM2: Number(row.defaultPricePerM2.toFixed(2)),
+        minimumSalePerM2: Number(row.minimumSalePerM2.toFixed(2)),
+        updatedAt: Timestamp.now(),
+      }));
     
     const quoteData: Partial<Quote> = {
       clientId,
@@ -823,6 +976,7 @@ export const QuoteEditor: React.FC = () => {
       totalPrice: normalizedTotalPrice,
       pieces: piecesWithStatus,
       cutouts,
+      materialPriceOverrides,
       employeeAssignments,
       statusHistory: [...statusHistory, {
         status,
@@ -915,7 +1069,7 @@ export const QuoteEditor: React.FC = () => {
         </div>
         <button
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || Boolean(quoteMaterialPriceError)}
           className="flex items-center gap-2 bg-brand-primary text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95 disabled:opacity-50"
         >
           <Save className="w-5 h-5" />
@@ -1124,6 +1278,80 @@ export const QuoteEditor: React.FC = () => {
               </div>
             </div>
 
+            <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-display text-lg font-bold text-slate-800">Materiais do orçamento</h3>
+                  <p className="text-xs text-slate-500">Preços personalizados ficam salvos apenas neste orçamento.</p>
+                </div>
+                {quoteMaterialPriceError && (
+                  <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-bold uppercase text-red-600">Revisar</span>
+                )}
+              </div>
+
+              {quoteMaterialPriceRows.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm font-semibold text-slate-400">
+                  Selecione materiais nas peças para personalizar os valores deste orçamento.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {quoteMaterialPriceRows.map((row) => {
+                    const hasCustomInput = Boolean(row.customInput.trim());
+                    const isValidCustom = hasCustomInput && !row.error;
+                    return (
+                      <div key={row.key} className={cn('rounded-2xl border bg-white p-4 shadow-sm transition-all', row.error ? 'border-red-200 ring-2 ring-red-50' : isValidCustom ? 'border-green-100' : 'border-slate-100')}>
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="font-bold text-slate-900">{row.name}</div>
+                            <div className="text-[11px] font-semibold text-slate-400">{row.specs || row.pieceNames.join(', ') || 'Material selecionado'}</div>
+                            {row.pieceNames.length > 0 && (
+                              <div className="mt-1 text-[11px] text-slate-500">Peças: {row.pieceNames.join(', ')}</div>
+                            )}
+                          </div>
+                          <span className={cn('inline-flex self-start rounded-full px-3 py-1 text-[10px] font-bold uppercase', row.error ? 'bg-red-50 text-red-600' : isValidCustom ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500')}>
+                            {row.error ? 'Inválido' : isValidCustom ? 'Válido' : 'Preço padrão'}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                          <div className="rounded-xl bg-slate-50 p-3">
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Preço padrão</span>
+                            <strong className="font-mono text-slate-900">{formatCurrency(row.defaultPricePerM2)}/m²</strong>
+                          </div>
+                          <div className="rounded-xl bg-slate-50 p-3">
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor mínimo</span>
+                            <strong className="font-mono text-slate-900">{formatCurrency(row.minimumSalePerM2)}/m²</strong>
+                          </div>
+                        </div>
+
+                        <label className="mt-3 block space-y-1">
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Valor personalizado neste orçamento</span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={row.customInput}
+                            onChange={(event) => updateMaterialCustomPriceInput(row.key, event.target.value)}
+                            onBlur={() => formatMaterialCustomPriceInput(row.key)}
+                            className={cn(
+                              'w-full rounded-xl border bg-white px-4 py-2.5 text-sm font-mono outline-none transition-all focus:ring-2',
+                              row.error ? 'border-red-300 text-red-700 focus:ring-red-100' : isValidCustom ? 'border-green-200 text-slate-900 focus:ring-green-100' : 'border-slate-100 text-slate-900 focus:ring-brand-primary/20',
+                            )}
+                            placeholder="0,00"
+                          />
+                        </label>
+                        <div className={cn('mt-2 text-[11px] font-semibold', row.error ? 'text-red-600' : 'text-slate-500')}>
+                          {row.error || 'Esse valor será aplicado apenas neste orçamento.'}
+                        </div>
+                        <div className="mt-2 text-[11px] text-slate-400">
+                          Valor em uso no cálculo: <span className="font-mono font-bold text-slate-600">{formatCurrency(row.usedPricePerM2)}/m²</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             <div className="space-y-1">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pagamento</label>
               <div className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
@@ -1277,7 +1505,7 @@ export const QuoteEditor: React.FC = () => {
             {pieces.map((piece, pIdx) => {
               const pieceArea = calculatePieceArea(piece).totalArea;
               const stairDetails = calculateStairArea(piece);
-              const pieceMaterial = materialWithUserPrice(piece.materialId, piece.materialVariantKey);
+              const pieceMaterial = materialWithQuotePrice(piece.materialId, piece.materialVariantKey);
               const stock = piece.materialId ?materialStock(piece.materialId, piece.materialVariantKey) : {available: 0};
               const pieceDimensions = getPieceMajorMinorSides(piece);
               const hasMaterial = Boolean(piece.materialId);
@@ -1690,7 +1918,7 @@ export const QuoteEditor: React.FC = () => {
                           <div className="bg-white border border-slate-100 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
                             {(() => {
                               const pieceTotals = calculatePieceArea(piece);
-                              const pieceMaterial = materialWithUserPrice(piece.materialId || materialId, piece.materialVariantKey);
+                              const pieceMaterial = materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey);
                               const calc = calculateSculptedSink(piece.sculptedSink, pieceMaterial);
                               return (
                                 <>

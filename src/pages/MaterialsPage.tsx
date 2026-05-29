@@ -62,7 +62,7 @@ export const MaterialsPage: React.FC = () => {
   useEffect(() => {
     const q = query(
       collection(db, 'materials'),
-      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'active', 'pricePerM2', 'baseCostPerM2', 'baseMinimumSalePerM2'),
+      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'active', 'pricePerM2', 'baseCostPerM2', 'baseMinimumSalePerM2'),
       orderBy('name', 'asc'),
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -101,7 +101,7 @@ export const MaterialsPage: React.FC = () => {
   useEffect(() => {
     const q = query(
       collection(db, 'inventory'),
-      selectFields('materialId', 'materialName', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'area', 'cost', 'minimumSalePrice', 'status', 'photoUrl', 'thumbnailUrl', 'mediumUrl'),
+      selectFields('materialId', 'materialName', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'area', 'cost', 'minimumSalePrice', 'status', 'photoUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl'),
       orderBy('materialName', 'asc'),
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -202,6 +202,9 @@ export const MaterialsPage: React.FC = () => {
         thicknessLabel: baseMaterial?.thicknessLabel || first.thicknessLabel || '',
         texture: baseMaterial?.texture || first.texture || '',
         imageUrl: baseMaterial?.imageUrl || first.photoUrl || '',
+        thumbnailUrl: baseMaterial?.thumbnailUrl || first.thumbnailUrl || '',
+        mediumUrl: baseMaterial?.mediumUrl || first.mediumUrl || '',
+        originalUrl: baseMaterial?.originalUrl || first.originalUrl || first.photoUrl || baseMaterial?.imageUrl || '',
         stockArea,
         stockCost,
         stockMinimumSale,

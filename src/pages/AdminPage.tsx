@@ -40,8 +40,8 @@ const resetCollections = [
 ];
 
 const MAX_IMAGE_SIZE_MB = 8;
-const MAX_STORED_IMAGE_BYTES = 850 * 1024;
-const IMAGE_MAX_SIDE = 900;
+const MAX_STORED_IMAGE_BYTES = 2 * 1024 * 1024;
+const IMAGE_MAX_SIDE = 1600;
 const DEFAULT_STONE_CATEGORIES = [
   'Granito',
   'Mármore',
@@ -93,6 +93,14 @@ const uploadOptimizedImage = async (file: File, folder: string, baseName: string
   const fileReference = storageRef(storage, storagePath(folder, buildStorageFileName(baseName, 'webp')));
   await uploadDataUrl(fileReference, dataUrl);
   return getDownloadURL(fileReference);
+};
+
+const uploadCatalogImage = async (file: File, folder: string, baseName: string) => {
+  const imageUrl = await uploadOptimizedImage(file, folder, baseName);
+  const originalReference = storageRef(storage, storagePath(folder, buildStorageFileName(baseName, getFileExtension(file.name))));
+  await uploadBytes(originalReference, file);
+  const originalUrl = await getDownloadURL(originalReference);
+  return {imageUrl, originalUrl};
 };
 
 const uploadRawFile = async (file: File, folder: string, baseName: string) => {
@@ -290,7 +298,7 @@ export const AdminPage: React.FC = () => {
   useEffect(() => {
     const q = query(
       collection(db, 'materials'),
-      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'baseCostPerM2', 'marginPercentage', 'pricePerM2', 'active'),
+      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'baseCostPerM2', 'marginPercentage', 'pricePerM2', 'active'),
       orderBy('name', 'asc'),
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -315,7 +323,7 @@ export const AdminPage: React.FC = () => {
   useEffect(() => {
     const q = query(
       collection(db, 'fixtureCatalog'),
-      selectFields('name', 'category', 'brand', 'model', 'width', 'depth', 'height', 'diameter', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'manualUrl', 'manualFileName', 'notes', 'active'),
+      selectFields('name', 'category', 'brand', 'model', 'width', 'depth', 'height', 'diameter', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'manualUrl', 'manualFileName', 'notes', 'active'),
       orderBy('name', 'asc'),
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -549,8 +557,12 @@ export const AdminPage: React.FC = () => {
       const thicknessLabel = materialForm.thicknessLabel.trim();
       const texture = materialForm.texture.trim();
       let imageUrl = previousImageUrl;
+      const previousOriginalUrl = editingMaterial?.originalUrl || '';
+      let originalUrl = previousOriginalUrl;
       if (materialImageFile) {
-        imageUrl = await uploadOptimizedImage(materialImageFile, 'materials', `pedra-${name}-${materialDocRef.id}`);
+        const uploadedImage = await uploadCatalogImage(materialImageFile, 'materials', `pedra-${name}-${materialDocRef.id}`);
+        imageUrl = uploadedImage.imageUrl;
+        originalUrl = uploadedImage.originalUrl;
       }
       const materialPayload = {
         name,
@@ -563,7 +575,7 @@ export const AdminPage: React.FC = () => {
         baseCostPerM2: editingMaterial?.baseCostPerM2 ?? 0,
         marginPercentage: editingMaterial?.marginPercentage ?? 0,
         pricePerM2: editingMaterial?.pricePerM2 ?? 0,
-        ...(imageUrl ?{imageUrl} : {}),
+        ...(imageUrl ?{imageUrl, originalUrl} : {}),
         active: editingMaterial?.active ?? true,
         updatedAt: serverTimestamp(),
       };
@@ -575,8 +587,12 @@ export const AdminPage: React.FC = () => {
           createdAt: serverTimestamp(),
         });
       }
-      if (materialImageFile && previousImageUrl && previousImageUrl !== imageUrl) {
-        await deleteStoredFile(previousImageUrl);
+      if (materialImageFile) {
+        for (const url of new Set([previousImageUrl, previousOriginalUrl])) {
+          if (url && url !== imageUrl && url !== originalUrl) {
+            await deleteStoredFile(url);
+          }
+        }
       }
       resetMaterialForm();
     } catch (error: any) {
@@ -617,10 +633,14 @@ export const AdminPage: React.FC = () => {
     try {
       const fixtureDocRef = editingFixture?.id ? doc(db, 'fixtureCatalog', editingFixture.id) : doc(collection(db, 'fixtureCatalog'));
       const previousImageUrl = editingFixture?.imageUrl || '';
+      const previousOriginalUrl = editingFixture?.originalUrl || '';
       const previousManualUrl = editingFixture?.manualUrl || '';
       let imageUrl = fixtureForm.imageUrl.trim();
+      let originalUrl = previousOriginalUrl;
       if (fixtureImageFile) {
-        imageUrl = await uploadOptimizedImage(fixtureImageFile, 'fixtures', `peca-${fixtureForm.name.trim()}-${fixtureDocRef.id}`);
+        const uploadedImage = await uploadCatalogImage(fixtureImageFile, 'fixtures', `peca-${fixtureForm.name.trim()}-${fixtureDocRef.id}`);
+        imageUrl = uploadedImage.imageUrl;
+        originalUrl = uploadedImage.originalUrl;
       }
       let manualUrl = fixtureForm.manualUrl.trim();
       let manualFileName = fixtureForm.manualFileName.trim();
@@ -632,7 +652,7 @@ export const AdminPage: React.FC = () => {
         }
         manualFileName = fixtureManualFile.name;
       }
-      const imagePayload = imageUrl ?{imageUrl} : {};
+      const imagePayload = imageUrl ?{imageUrl, originalUrl} : {};
       const fixturePayload = {
         name: fixtureForm.name.trim(),
         category: fixtureForm.category,
@@ -657,8 +677,12 @@ export const AdminPage: React.FC = () => {
           createdAt: Timestamp.now(),
         });
       }
-      if (fixtureImageFile && previousImageUrl && previousImageUrl !== imageUrl) {
-        await deleteStoredFile(previousImageUrl);
+      if (fixtureImageFile) {
+        for (const url of new Set([previousImageUrl, previousOriginalUrl])) {
+          if (url && url !== imageUrl && url !== originalUrl) {
+            await deleteStoredFile(url);
+          }
+        }
       }
       if (fixtureManualFile && previousManualUrl && previousManualUrl !== manualUrl) {
         await deleteStoredFile(previousManualUrl);

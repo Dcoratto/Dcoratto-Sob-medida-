@@ -1,5 +1,5 @@
-const DEFAULT_MAX_STORED_IMAGE_BYTES = 850 * 1024;
-const DEFAULT_IMAGE_MAX_SIDE = 900;
+const DEFAULT_MAX_STORED_IMAGE_BYTES = 2 * 1024 * 1024;
+const DEFAULT_IMAGE_MAX_SIDE = 1600;
 
 type OptimizeImageOptions = {
   maxBytes?: number;

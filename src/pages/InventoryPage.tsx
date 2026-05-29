@@ -12,7 +12,7 @@ import {useSettings} from '../hooks/useSettings';
 import {formatMaterialSpecs, formatMaterialSpecsWithProvider} from '../lib/materialSpecs';
 import {generatePurchaseOrderPdf} from '../lib/purchaseOrderPdfGenerator';
 import {optimizeImageFile} from '../lib/imageUtils';
-import {deleteObject, getDownloadURL, imageVariantUrl, ref as storageRef, storage, storagePath, uploadDataUrl} from '../lib/storage';
+import {deleteObject, getDownloadURL, imageVariantUrl, ref as storageRef, storage, storagePath, uploadBytes, uploadDataUrl} from '../lib/storage';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
@@ -132,15 +132,24 @@ const buildStorageFileName = (baseName: string, extension: string) => {
   return `${normalizedBase}-${Date.now()}-${randomToken}.${extension.replace(/^\./, '')}`;
 };
 
+const getFileExtension = (fileName: string, fallback = 'bin') => {
+  const extension = fileName.split('.').pop()?.trim().toLowerCase();
+  return extension && extension.length <= 8 ? extension : fallback;
+};
+
 const uploadInventoryImage = async (file: File, baseName: string) => {
   const dataUrl = await optimizeImageFile(file, {
-    maxBytes: 850 * 1024,
-    maxSide: 900,
+    maxBytes: 2 * 1024 * 1024,
+    maxSide: 1600,
     mimeType: 'image/webp',
   });
   const fileReference = storageRef(storage, storagePath('inventory', buildStorageFileName(baseName, 'webp')));
   await uploadDataUrl(fileReference, dataUrl);
-  return getDownloadURL(fileReference);
+  const photoUrl = await getDownloadURL(fileReference);
+  const originalReference = storageRef(storage, storagePath('inventory', buildStorageFileName(baseName, getFileExtension(file.name))));
+  await uploadBytes(originalReference, file);
+  const originalUrl = await getDownloadURL(originalReference);
+  return {photoUrl, originalUrl};
 };
 
 const deleteStoredFile = async (fileUrl?: unknown) => {
@@ -271,7 +280,7 @@ export const InventoryPage: React.FC = () => {
   useEffect(() => {
     const qItems = query(
       collection(db, 'inventory'),
-      selectFields('materialId', 'materialName', 'code', 'provider', 'rackId', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'length', 'width', 'thickness', 'area', 'cost', 'minimumSalePrice', 'status', 'notes', 'photoUrl', 'thumbnailUrl', 'mediumUrl', 'lossReason', 'lossNotes', 'lossQuoteId', 'lossClientId', 'lossClientName', 'lossPieceId', 'lossPieceName', 'lostByUid', 'lostByName', 'lostAt'),
+      selectFields('materialId', 'materialName', 'code', 'provider', 'rackId', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'length', 'width', 'thickness', 'area', 'cost', 'minimumSalePrice', 'status', 'notes', 'photoUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'lossReason', 'lossNotes', 'lossQuoteId', 'lossClientId', 'lossClientName', 'lossPieceId', 'lossPieceName', 'lostByUid', 'lostByName', 'lostAt'),
       orderBy('code', 'asc'),
     );
     const handleReadError = (error: unknown, label: string) => {
@@ -286,7 +295,7 @@ export const InventoryPage: React.FC = () => {
 
     const qMaterials = query(
       collection(db, 'materials'),
-      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'active', 'pricePerM2', 'baseCostPerM2', 'baseMinimumSalePerM2'),
+      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'active', 'pricePerM2', 'baseCostPerM2', 'baseMinimumSalePerM2'),
       orderBy('name', 'asc'),
     );
     const unsubscribeMaterials = onSnapshot(qMaterials, (snapshot) => {
@@ -302,7 +311,7 @@ export const InventoryPage: React.FC = () => {
 
     const qPurchases = query(
       collection(db, 'inventoryPurchases'),
-      selectFields('materialId', 'materialName', 'provider', 'code', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'length', 'width', 'thickness', 'area', 'cost', 'minimumSalePrice', 'photoUrl', 'thumbnailUrl', 'mediumUrl', 'purchaseGroupId', 'purchaseIndex', 'purchaseQuantity', 'status', 'notes', 'expectedDeliveryDate', 'expectedDeliveryDateKey', 'purchasedByUid', 'purchasedByName', 'purchasedAt', 'receivedByUid', 'receivedByName', 'receivedAt', 'inventoryItemId'),
+      selectFields('materialId', 'materialName', 'provider', 'code', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'length', 'width', 'thickness', 'area', 'cost', 'minimumSalePrice', 'photoUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'purchaseGroupId', 'purchaseIndex', 'purchaseQuantity', 'status', 'notes', 'expectedDeliveryDate', 'expectedDeliveryDateKey', 'purchasedByUid', 'purchasedByName', 'purchasedAt', 'receivedByUid', 'receivedByName', 'receivedAt', 'inventoryItemId'),
       orderBy('purchasedAt', 'desc'),
     );
     const unsubscribePurchases = onSnapshot(qPurchases, (snapshot) => {
@@ -616,9 +625,13 @@ export const InventoryPage: React.FC = () => {
     const materialId = selectedMaterialId;
     const selectedMaterial = materials.find((material) => material.id === materialId);
     const previousPhotoUrl = editingItem?.photoUrl || '';
+    const previousOriginalUrl = editingItem?.originalUrl || '';
     let photoUrl = previousPhotoUrl || selectedMaterial?.imageUrl || '';
+    let originalUrl = previousOriginalUrl || selectedMaterial?.originalUrl || selectedMaterial?.imageUrl || '';
     if (photoFile) {
-      photoUrl = await uploadInventoryImage(photoFile, `${materialName || selectedMaterial?.name || 'estoque'}-${inventoryRef.id}`);
+      const uploadedPhoto = await uploadInventoryImage(photoFile, `${materialName || selectedMaterial?.name || 'estoque'}-${inventoryRef.id}`);
+      photoUrl = uploadedPhoto.photoUrl;
+      originalUrl = uploadedPhoto.originalUrl;
     }
 
     const data = {
@@ -641,6 +654,7 @@ export const InventoryPage: React.FC = () => {
       status,
       notes,
       photoUrl,
+      originalUrl,
     };
     const validationError = validateInventoryItemPayload({
       selectedMaterialId,
@@ -849,6 +863,9 @@ export const InventoryPage: React.FC = () => {
         cost: Number(slab.cost),
         minimumSalePrice: Number(slab.minimumSalePrice || slab.cost),
         photoUrl: selectedMaterial?.imageUrl || '',
+        thumbnailUrl: selectedMaterial?.thumbnailUrl || '',
+        mediumUrl: selectedMaterial?.mediumUrl || '',
+        originalUrl: selectedMaterial?.originalUrl || selectedMaterial?.imageUrl || '',
         purchaseGroupId,
         purchaseIndex: index + 1,
         purchaseQuantity: quantity,
@@ -896,6 +913,8 @@ export const InventoryPage: React.FC = () => {
     }
     if (purchase.status === 'Entregue') return;
     const inventoryRef = doc(collection(db, 'inventory'));
+    const materialForPurchase = materials.find((material) => material.id === purchase.materialId);
+    const purchasePhotoUrl = purchase.photoUrl || materialForPurchase?.imageUrl || '';
     await setDoc(inventoryRef, {
       materialId: purchase.materialId,
       materialName: purchase.materialName,
@@ -914,7 +933,10 @@ export const InventoryPage: React.FC = () => {
       minimumSalePrice: purchase.minimumSalePrice ?? purchase.cost,
       status: 'Disponível',
       notes: purchase.notes || '',
-      photoUrl: purchase.photoUrl || materials.find((material) => material.id === purchase.materialId)?.imageUrl || '',
+      photoUrl: purchasePhotoUrl,
+      thumbnailUrl: purchase.thumbnailUrl || materialForPurchase?.thumbnailUrl || '',
+      mediumUrl: purchase.mediumUrl || materialForPurchase?.mediumUrl || '',
+      originalUrl: purchase.originalUrl || purchasePhotoUrl,
     });
     await updateDoc(doc(db, 'inventoryPurchases', purchase.id), {
       status: 'Entregue',
@@ -1208,7 +1230,7 @@ export const InventoryPage: React.FC = () => {
     purchasedByName: groupedPurchases[0]?.purchasedByName || '',
     totalArea: groupedPurchases.reduce((sum, item) => sum + (item.area || 0), 0),
   }));
-  const materialImageById = (materialId: string) => imageVariantUrl(materials.find((material) => material.id === materialId), 'thumbnail');
+  const materialImageById = (materialId: string, variant: 'thumbnail' | 'medium' | 'original' = 'thumbnail') => imageVariantUrl(materials.find((material) => material.id === materialId), variant);
   const selectedReservationMaterial = reservationMaterialId
     ? materials.find((material) => material.id === reservationMaterialId) || items.find((item) => item.materialId === reservationMaterialId)
     : null;
@@ -2421,8 +2443,8 @@ export const InventoryPage: React.FC = () => {
                   <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Informações da pedra selecionada</div>
                   <div className="mt-3 grid grid-cols-1 md:grid-cols-[140px,1fr] gap-4">
                     <div className="h-28 overflow-hidden rounded-2xl border border-slate-200 bg-white flex items-center justify-center">
-                      {imageVariantUrl(selectedPurchaseMaterial, 'medium') ?(
-                        <img src={imageVariantUrl(selectedPurchaseMaterial, 'medium')} alt={selectedPurchaseMaterial.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                      {imageVariantUrl(selectedPurchaseMaterial, 'original') ?(
+                        <img src={imageVariantUrl(selectedPurchaseMaterial, 'original')} alt={selectedPurchaseMaterial.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                       ) : (
                         <PackageCheck className="h-6 w-6 text-slate-400" />
                       )}

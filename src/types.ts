@@ -449,6 +449,16 @@ export interface QuoteCutouts {
   sinkSculpted?: boolean;
 }
 
+export interface QuoteMaterialPriceOverride {
+  materialId: string;
+  materialVariantKey?: string;
+  materialName: string;
+  pricePerM2: number;
+  defaultPricePerM2: number;
+  minimumSalePerM2: number;
+  updatedAt?: any;
+}
+
 export interface Quote {
   id: string;
   empresaId?: string;
@@ -479,6 +489,7 @@ export interface Quote {
   totalPrice: number;
   pieces: QuotePiece[];
   cutouts: QuoteCutouts;
+  materialPriceOverrides?: QuoteMaterialPriceOverride[];
   createdAt: any;
   createdBy: string;
   teamCounts?: Partial<Record<ProductionStep, number>>;

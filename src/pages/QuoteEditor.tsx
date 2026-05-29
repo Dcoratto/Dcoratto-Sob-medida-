@@ -27,6 +27,7 @@ import {getPieceMajorMinorSides} from '../lib/pieceDimensions';
 import {getInventoryItemArea} from '../lib/inventoryMetrics';
 import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {LABELS} from '../constants/labels';
+import {imageVariantUrl} from '../lib/storage';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 
@@ -402,7 +403,7 @@ export const QuoteEditor: React.FC = () => {
           });
         }
       }
-      const {data: draft, savedAt} = loadDraftMeta(quoteDraftKey);
+      const {data: draft, savedAt} = loadDraftMeta<Record<string, unknown>>(quoteDraftKey);
       setQuoteDraftRecovered(Boolean(draft));
       setQuoteDraftSavedAt(savedAt);
       applyDraft(draft);
@@ -1411,7 +1412,7 @@ export const QuoteEditor: React.FC = () => {
                                     className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', piece.materialId === material.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
                                   >
                                     <div className={cn('h-12 w-12 shrink-0 overflow-hidden rounded-xl border', piece.materialId === material.id ? 'border-white/30 bg-white/15' : 'border-slate-100 bg-slate-50')}>
-                                      {material.imageUrl ? <img src={material.imageUrl} alt={material.name} className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase text-slate-300">Sem foto</div>}
+                                      {imageVariantUrl(material, 'thumbnail') ? <img src={imageVariantUrl(material, 'thumbnail')} alt={material.name} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase text-slate-300">Sem foto</div>}
                                     </div>
                                     <span className="min-w-0 flex-1">
                                       <span className="block truncate">{material.name}</span>
@@ -1938,7 +1939,7 @@ export const QuoteEditor: React.FC = () => {
                         <div className="space-y-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
                           <div><span className="font-semibold text-slate-600">Marca:</span> {selectedItem.brand || '-'}</div>
                           <div><span className="font-semibold text-slate-600">Modelo:</span> {selectedItem.model || '-'}</div>
-                          {selectedItem.imageUrl && <img src={selectedItem.imageUrl} alt={selectedItem.name} className="mt-2 h-20 w-full rounded-lg object-contain bg-slate-50" />}
+                          {imageVariantUrl(selectedItem, 'thumbnail') && <img src={imageVariantUrl(selectedItem, 'thumbnail')} alt={selectedItem.name} loading="lazy" decoding="async" className="mt-2 h-20 w-full rounded-lg object-contain bg-slate-50" />}
                         </div>
                       )}
                       {!options.length && (

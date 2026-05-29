@@ -23,7 +23,18 @@ type QueryLimitClause = {
   value: number;
 };
 
-type QueryClause = QueryWhereClause | QueryOrderByClause | QueryLimitClause;
+type QuerySelectClause = {
+  type: 'select';
+  fields: string[];
+};
+
+type QueryRangeClause = {
+  type: 'range';
+  from: number;
+  to: number;
+};
+
+type QueryClause = QueryWhereClause | QueryOrderByClause | QueryLimitClause | QuerySelectClause | QueryRangeClause;
 
 type CollectionReference = {
   kind: 'collection';
@@ -49,6 +60,11 @@ type BatchOperation =
 
 type SnapshotListener<T> = (snapshot: T) => void;
 type SnapshotErrorListener = (error: unknown) => void;
+
+type SupabaseListResult = {
+  data: Record<string, unknown>[] | null;
+  error: unknown;
+};
 
 type ArrayUnionMarker = {
   __type: 'arrayUnion';
@@ -147,8 +163,11 @@ const TABLE_CONFIG: Record<string, TableConfig> = {
 };
 
 const listenersByTable = new Map<string, Set<() => void>>();
+const snapshotCache = new Map<string, {value: DocumentSnapshot | QuerySnapshot; fetchedAt: number}>();
+const snapshotRequests = new Map<string, Promise<DocumentSnapshot | QuerySnapshot>>();
 
-const POLL_INTERVAL_MS = 10000;
+const POLL_INTERVAL_MS = 60000;
+const SNAPSHOT_CACHE_TTL_MS = 45000;
 
 const camelToSnake = (value: string) =>
   value.replace(/[A-Z]/g, (match) => `_${match.toLowerCase()}`);
@@ -198,7 +217,7 @@ const refreshAuthSession = async () => {
   await supabase.auth.refreshSession({refresh_token: refreshToken});
 };
 
-const withSupabaseRetry = async <T>(operation: () => Promise<T>): Promise<T> => {
+const withSupabaseRetry = async <T>(operation: () => PromiseLike<T> | T): Promise<T> => {
   try {
     return await operation();
   } catch (error) {
@@ -357,7 +376,17 @@ const applyArrayUnionMarkers = (currentData: Record<string, unknown>, nextData: 
   return resolvedData;
 };
 
+const clearSnapshotCacheForTable = (table: string) => {
+  const prefixes = [`document:${table}:`, `collection:${table}:`, `query:${table}:`];
+  for (const key of snapshotCache.keys()) {
+    if (prefixes.some((prefix) => key.startsWith(prefix))) {
+      snapshotCache.delete(key);
+    }
+  }
+};
+
 const notifyTableListeners = (table: string) => {
+  clearSnapshotCacheForTable(table);
   listenersByTable.get(table)?.forEach((listener) => listener());
 };
 
@@ -371,11 +400,57 @@ const registerTableListener = (table: string, listener: () => void) => {
   };
 };
 
+const buildSelectColumns = (fields: string[]) => {
+  const selectedFields = Array.from(new Set(['id', ...fields].filter(Boolean)));
+  return selectedFields.map((field) => camelToSnake(field)).join(', ');
+};
+
+const snapshotKey = (reference: DocumentReference | CollectionReference | QueryReference) => {
+  if (reference.kind === 'document') return `document:${reference.table}:${reference.id}`;
+  if (reference.kind === 'collection') return `collection:${reference.table}:all`;
+  return `query:${reference.table}:${JSON.stringify(reference.clauses)}`;
+};
+
+const loadSnapshot = async (reference: DocumentReference | CollectionReference | QueryReference) =>
+  reference.kind === 'document'
+    ? fetchDocument(reference)
+    : new QuerySnapshot(await fetchRows(reference));
+
+const loadSnapshotWithCache = async (
+  reference: DocumentReference | CollectionReference | QueryReference,
+  forceRefresh = false,
+) => {
+  const key = snapshotKey(reference);
+  const cached = snapshotCache.get(key);
+  if (!forceRefresh && cached && Date.now() - cached.fetchedAt < SNAPSHOT_CACHE_TTL_MS) {
+    return cached.value;
+  }
+
+  const activeRequest = snapshotRequests.get(key);
+  if (!forceRefresh && activeRequest) {
+    return activeRequest;
+  }
+
+  const request = loadSnapshot(reference)
+    .then((snapshot) => {
+      snapshotCache.set(key, {value: snapshot, fetchedAt: Date.now()});
+      return snapshot;
+    })
+    .finally(() => snapshotRequests.delete(key));
+
+  snapshotRequests.set(key, request);
+  return request;
+};
+
 const buildSelectQuery = (table: string, clauses: QueryClause[] = []) => {
-  let request = supabase.from(getTableConfig(table).table).select('*');
+  const selectClause = clauses.find((clause): clause is QuerySelectClause => clause.type === 'select');
+  let request = supabase
+    .from(getTableConfig(table).table)
+    .select(selectClause?.fields.length ? buildSelectColumns(selectClause.fields) : '*');
+
   clauses.forEach((clause) => {
-    const field = camelToSnake(clause.type === 'limit' ? 'id' : clause.field);
     if (clause.type === 'where') {
+      const field = camelToSnake(clause.field);
       const value = normalizeTopLevelValueForDb(table, clause.field, clause.value);
       switch (clause.operator) {
         case '==':
@@ -399,10 +474,14 @@ const buildSelectQuery = (table: string, clauses: QueryClause[] = []) => {
       }
     }
     if (clause.type === 'orderBy') {
+      const field = camelToSnake(clause.field);
       request = request.order(field, {ascending: clause.direction !== 'desc'});
     }
     if (clause.type === 'limit') {
       request = request.limit(clause.value);
+    }
+    if (clause.type === 'range') {
+      request = request.range(clause.from, clause.to);
     }
   });
   return request;
@@ -410,9 +489,11 @@ const buildSelectQuery = (table: string, clauses: QueryClause[] = []) => {
 
 const fetchRows = async (target: CollectionReference | QueryReference) => {
   const clauses = target.kind === 'query' ? target.clauses : [];
-  const {data, error} = await withSupabaseRetry(() => buildSelectQuery(target.table, clauses));
+  const {data, error} = await withSupabaseRetry<SupabaseListResult>(
+    () => buildSelectQuery(target.table, clauses) as unknown as PromiseLike<SupabaseListResult>,
+  );
   if (error) throw error;
-  return (data || []).map((row) => new QueryDocumentSnapshot(target.table, row.id as string, mapRowFromDb(target.table, row as Record<string, unknown>)));
+  return (data || []).map((row) => new QueryDocumentSnapshot(target.table, row.id as string, mapRowFromDb(target.table, row)));
 };
 
 const fetchDocument = async (target: DocumentReference) => {
@@ -530,6 +611,17 @@ export const limit = (value: number): QueryLimitClause => ({
   value,
 });
 
+export const selectFields = (...fields: string[]): QuerySelectClause => ({
+  type: 'select',
+  fields,
+});
+
+export const range = (from: number, to: number): QueryRangeClause => ({
+  type: 'range',
+  from,
+  to,
+});
+
 export const query = (reference: CollectionReference | QueryReference, ...clauses: QueryClause[]): QueryReference => ({
   kind: 'query',
   table: reference.table,
@@ -545,9 +637,10 @@ export const arrayUnion = (...values: unknown[]): ArrayUnionMarker => ({
   values,
 });
 
-export const getDoc = async (reference: DocumentReference) => fetchDocument(reference);
+export const getDoc = async (reference: DocumentReference) => loadSnapshotWithCache(reference) as Promise<DocumentSnapshot>;
 
-export const getDocs = async (reference: CollectionReference | QueryReference) => new QuerySnapshot(await fetchRows(reference));
+export const getDocs = async (reference: CollectionReference | QueryReference) =>
+  loadSnapshotWithCache(reference) as Promise<QuerySnapshot>;
 
 export function onSnapshot(
   reference: DocumentReference,
@@ -567,11 +660,9 @@ export function onSnapshot(
   const table = reference.table;
   let cancelled = false;
 
-  const load = async () => {
+  const load = async (forceRefresh = false) => {
     try {
-      const snapshot = reference.kind === 'document'
-        ? await fetchDocument(reference)
-        : new QuerySnapshot(await fetchRows(reference));
+      const snapshot = await loadSnapshotWithCache(reference, forceRefresh);
       if (!cancelled) onNext(snapshot);
     } catch (error) {
       if (!cancelled) onError?.(error);
@@ -580,9 +671,12 @@ export function onSnapshot(
 
   void load();
   const unsubscribeTable = registerTableListener(table, () => {
-    void load();
+    void load(true);
   });
   const interval = window.setInterval(() => {
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+      return;
+    }
     void load();
   }, POLL_INTERVAL_MS);
 

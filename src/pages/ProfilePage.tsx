@@ -5,6 +5,8 @@ import {useAuth} from '../contexts/AuthContext';
 import {Briefcase, Camera, Mail, Phone, Save, Upload, User} from 'lucide-react';
 import {cn} from '../lib/utils';
 import {roleLabel} from '../lib/permissions';
+import {deleteObject, getDownloadURL, ref as storageRef, storage, storagePath, uploadDataUrl} from '../lib/storage';
+import {optimizeImageFile} from '../lib/imageUtils';
 
 export const ProfilePage: React.FC = () => {
   const {profile, accessUser, user, appUid} = useAuth();
@@ -12,6 +14,8 @@ export const ProfilePage: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [position, setPosition] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
+  const [photoPreview, setPhotoPreview] = useState('');
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -22,6 +26,7 @@ export const ProfilePage: React.FC = () => {
     setPhone(profile.phone || '');
     setPosition(profile.position || '');
     setPhotoUrl(profile.photoUrl || '');
+    setPhotoPreview(profile.photoUrl || '');
   }, [accessUser?.nome, profile]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,9 +40,22 @@ export const ProfilePage: React.FC = () => {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setPhotoUrl(String(reader.result || ''));
+      const preview = String(reader.result || '');
+      setPhotoPreview(preview);
+      setPhotoFile(file);
     };
     reader.readAsDataURL(file);
+  };
+
+  const uploadProfilePhoto = async (file: File) => {
+    const optimizedDataUrl = await optimizeImageFile(file, {
+      maxBytes: 500 * 1024,
+      maxSide: 640,
+      mimeType: 'image/webp',
+    });
+    const fileReference = storageRef(storage, storagePath('profiles', appUid || 'profile', `photo-${Date.now()}.webp`));
+    await uploadDataUrl(fileReference, optimizedDataUrl);
+    return getDownloadURL(fileReference);
   };
 
   const handleSave = async (event: React.FormEvent) => {
@@ -48,13 +66,29 @@ export const ProfilePage: React.FC = () => {
 
     setSaving(true);
     try {
+      const previousPhotoUrl = profile?.photoUrl || '';
+      let nextPhotoUrl = photoUrl;
+      if (photoFile) {
+        nextPhotoUrl = await uploadProfilePhoto(photoFile);
+      }
+
       await updateDoc(doc(db, 'profiles', appUid), {
         name: nextName,
         phone,
         position,
-        photoUrl,
+        photoUrl: nextPhotoUrl,
         updatedAt: new Date(),
       });
+
+      if (photoFile && previousPhotoUrl && previousPhotoUrl !== nextPhotoUrl) {
+        if (previousPhotoUrl.startsWith('http') && previousPhotoUrl.includes('/storage/v1/object/public/')) {
+          try {
+            await deleteObject(storageRef(storage, previousPhotoUrl));
+          } catch (error) {
+            console.warn('Não foi possível excluir a foto antiga:', error);
+          }
+        }
+      }
 
       await setDoc(doc(db, 'users', appUid), {
         uid: appUid,
@@ -64,6 +98,9 @@ export const ProfilePage: React.FC = () => {
         updatedAt: new Date(),
       }, {merge: true});
 
+      setPhotoUrl(nextPhotoUrl);
+      setPhotoPreview(nextPhotoUrl);
+      setPhotoFile(null);
       setName(nextName);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -93,8 +130,8 @@ export const ProfilePage: React.FC = () => {
             <div className="group relative">
               <div className="h-24 w-24 rounded-3xl bg-white p-1 shadow-xl">
                 <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-2xl bg-brand-primary/10 text-brand-primary shadow-inner">
-                  {photoUrl ?(
-                    <img src={photoUrl} alt={name || 'Perfil'} className="h-full w-full object-cover" />
+                  {photoPreview || photoUrl ?(
+                    <img src={photoPreview || photoUrl} alt={name || 'Perfil'} className="h-full w-full object-cover" />
                   ) : (
                     <User className="h-10 w-10" />
                   )}

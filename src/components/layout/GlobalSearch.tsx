@@ -1,7 +1,7 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {Search, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
-import {collection, onSnapshot, query} from '../../lib/firestore';
+import {collection, limit, onSnapshot, orderBy, query, selectFields} from '../../lib/firestore';
 import {db} from '../../lib/firestore';
 import {Client, InventoryItem, Material, Quote} from '../../types';
 import {buildQuickSearchResults} from '../../lib/businessRules';
@@ -28,16 +28,36 @@ export const GlobalSearch: React.FC = () => {
   }, [term]);
 
   useEffect(() => {
-    const unsubClients = onSnapshot(collection(db, 'clients'), (snapshot) => {
+    const unsubClients = onSnapshot(query(
+      collection(db, 'clients'),
+      selectFields('name', 'phone', 'email', 'address', 'city'),
+      orderBy('name', 'asc'),
+      limit(300),
+    ), (snapshot) => {
       setClients(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Client)));
     });
-    const unsubQuotes = onSnapshot(query(collection(db, 'quotes')), (snapshot) => {
+    const unsubQuotes = onSnapshot(query(
+      collection(db, 'quotes'),
+      selectFields('clientName', 'environment', 'materialName', 'status', 'createdAt'),
+      orderBy('createdAt', 'desc'),
+      limit(300),
+    ), (snapshot) => {
       setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
     });
-    const unsubInventory = onSnapshot(collection(db, 'inventory'), (snapshot) => {
+    const unsubInventory = onSnapshot(query(
+      collection(db, 'inventory'),
+      selectFields('materialName', 'code', 'provider', 'rackId'),
+      orderBy('code', 'asc'),
+      limit(300),
+    ), (snapshot) => {
       setInventory(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as InventoryItem)));
     });
-    const unsubMaterials = onSnapshot(collection(db, 'materials'), (snapshot) => {
+    const unsubMaterials = onSnapshot(query(
+      collection(db, 'materials'),
+      selectFields('name', 'provider', 'category', 'materialLine'),
+      orderBy('name', 'asc'),
+      limit(300),
+    ), (snapshot) => {
       setMaterials(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Material)));
     });
     return () => {

@@ -11,10 +11,23 @@ type UploadResult = {
   ref: StorageReference;
 };
 
+type ImageVariantSource = {
+  imageUrl?: string;
+  photoUrl?: string;
+  logoUrl?: string;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  originalUrl?: string;
+};
+
 const resolveBucket = (path: string) => {
+  if (path.startsWith('materials/')) return 'materials-images';
   if (path.startsWith('inventory/')) return 'inventory-images';
   if (path.startsWith('fixture-manuals/')) return 'fixture-files';
   if (path.startsWith('fixtures/')) return 'fixture-files';
+  if (path.startsWith('profiles/')) return 'company-files';
+  if (path.startsWith('settings/')) return 'company-files';
+  if (path.startsWith('logos/')) return 'company-files';
   return 'company-files';
 };
 
@@ -50,6 +63,12 @@ export const ref = (_storage: typeof storage, pathOrUrl: string): StorageReferen
   };
 };
 
+export const storagePath = (...segments: string[]) =>
+  segments
+    .map((segment) => String(segment || '').trim().replace(/^\/+|\/+$/g, ''))
+    .filter(Boolean)
+    .join('/');
+
 export const uploadBytes = async (reference: StorageReference, file: File | Blob): Promise<UploadResult> => {
   const {error} = await supabase.storage
     .from(reference.bucket)
@@ -65,6 +84,12 @@ export const uploadBytes = async (reference: StorageReference, file: File | Blob
   return {ref: reference};
 };
 
+export const uploadDataUrl = async (reference: StorageReference, dataUrl: string): Promise<UploadResult> => {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+  return uploadBytes(reference, blob);
+};
+
 export const getDownloadURL = async (reference: StorageReference) => {
   if (reference.publicUrl?.startsWith('data:') || (reference.publicUrl && !reference.publicUrl.includes('/storage/v1/object/public/'))) {
     return reference.publicUrl;
@@ -75,7 +100,15 @@ export const getDownloadURL = async (reference: StorageReference) => {
 };
 
 export const deleteObject = async (reference: StorageReference) => {
+  if (reference.publicUrl?.startsWith('data:')) {
+    return;
+  }
+
   if (reference.publicUrl && !reference.publicUrl.includes('/storage/v1/object/public/')) {
+    return;
+  }
+
+  if (reference.path.startsWith('data:')) {
     return;
   }
 
@@ -85,3 +118,16 @@ export const deleteObject = async (reference: StorageReference) => {
 
 export const uploadFileAsDataUrl = (file: File) => readFileAsDataUrl(file);
 
+export const imageVariantUrl = (
+  source: ImageVariantSource | undefined,
+  variant: 'thumbnail' | 'medium' | 'original' = 'thumbnail',
+) => {
+  if (!source) return '';
+  if (variant === 'thumbnail') {
+    return source.thumbnailUrl || source.mediumUrl || source.imageUrl || source.photoUrl || source.logoUrl || source.originalUrl || '';
+  }
+  if (variant === 'medium') {
+    return source.mediumUrl || source.thumbnailUrl || source.imageUrl || source.photoUrl || source.logoUrl || source.originalUrl || '';
+  }
+  return source.originalUrl || source.imageUrl || source.photoUrl || source.logoUrl || source.mediumUrl || source.thumbnailUrl || '';
+};

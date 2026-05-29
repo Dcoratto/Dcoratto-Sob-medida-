@@ -15,14 +15,14 @@ const normalizeEnv = (value, fallback = '') => {
 };
 
 const SUPABASE_URL = normalizeEnv(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
-const SUPABASE_ANON_KEY = normalizeEnv(process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY);
+const SUPABASE_SERVICE_ROLE_KEY = normalizeEnv(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
 const getSupabaseClient = () => {
-  if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-    throw new Error('SUPABASE_ENV_MISSING:SUPABASE_URL,SUPABASE_ANON_KEY');
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('SUPABASE_ENV_MISSING:SUPABASE_URL,SUPABASE_SERVICE_ROLE_KEY');
   }
 
-  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  return createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
     auth: {
       persistSession: false,
       autoRefreshToken: false,
@@ -139,9 +139,16 @@ export default async function handler(req, res) {
     }
 
     const [{data: quotes, error: quotesError}, {data: clients, error: clientsError}, {data: manualEvents, error: manualEventsError}] = await Promise.all([
-      supabase.from('quotes').select('*'),
-      supabase.from('clients').select('*'),
-      supabase.from('calendar_events').select('*'),
+      supabase
+        .from('quotes')
+        .select('id, client_id, client_name, environment, status, measurement_date, delivery_date')
+        .or('measurement_date.not.is.null,delivery_date.not.is.null'),
+      supabase
+        .from('clients')
+        .select('id, phone, email, address, neighborhood, city, zip_code, condominium_name, tower, apartment_number, block, lot'),
+      supabase
+        .from('calendar_events')
+        .select('id, title, description, date, date_key, client_id, client_name, event_time, created_by_name'),
     ]);
 
     if (quotesError) throw quotesError;

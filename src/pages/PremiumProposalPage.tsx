@@ -6,12 +6,12 @@ import {ArrowLeft, Expand, FileText, Printer, Sparkles, X} from 'lucide-react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {db} from '../lib/firestore';
 import {useSettings} from '../hooks/useSettings';
-import {convertImageUrlToWebp} from '../lib/imageUtils';
 import {Material, Quote, QuotePiece} from '../types';
 import {useQuoteCalculator} from '../hooks/useQuoteCalculator';
 import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {formatArea, formatCentimeters, formatCurrency, formatMeasure} from '../lib/utils';
 import {getPieceMajorMinorSides} from '../lib/pieceDimensions';
+import {imageVariantUrl} from '../lib/storage';
 
 const toDate = (value: any) => {
   if (!value) return new Date();
@@ -23,7 +23,7 @@ const toDate = (value: any) => {
 const safe = (value?: string) => value?.trim() || '-';
 const pieceArea = (piece: QuotePiece) => Number(piece.totalArea || piece.manualArea || piece.area || 0);
 const pieceImage = (piece: QuotePiece) => piece.proposalImageUrl?.trim() || piece.previewUrl || '';
-const materialImage = (material?: Material | null) => material?.imageUrl?.trim() || '';
+const materialImage = (material?: Material | null) => imageVariantUrl(material || undefined, 'medium') || material?.imageUrl?.trim() || '';
 const sectionIdForPiece = (index: number) => `ambiente-${index + 1}`;
 const pieceDimensionsText = (piece: QuotePiece) => {
   const dimensions = getPieceMajorMinorSides(piece);
@@ -486,7 +486,6 @@ const Hero = ({
           className="mb-8 h-16 max-w-[220px] premium-reveal"
           imageClassName="h-full w-full object-contain opacity-90"
           onOpen={onOpenImage}
-          removeWhiteBackground
         />
       ) : (
         <div className="premium-reveal mb-8 text-sm font-bold uppercase tracking-[0.4em] text-white/35">{settings.companyName || "D'Coratto Sob Medida"}</div>
@@ -752,31 +751,16 @@ const ProposalImage = ({
   className = '',
   imageClassName = '',
   onOpen,
-  removeWhiteBackground = false,
 }: {
   src: string;
   alt: string;
   className?: string;
   imageClassName?: string;
   onOpen?: React.Dispatch<React.SetStateAction<LightboxState>>;
-  removeWhiteBackground?: boolean;
 }) => {
-  const [optimizedSrc, setOptimizedSrc] = useState(src);
-
-  useEffect(() => {
-    let mounted = true;
-    setOptimizedSrc(src);
-    convertImageUrlToWebp(src, {removeWhiteBackground}).then((result) => {
-      if (mounted && result) setOptimizedSrc(result);
-    });
-    return () => {
-      mounted = false;
-    };
-  }, [src, removeWhiteBackground]);
-
   if (!src) return null;
 
-  const imageNode = <img src={optimizedSrc || src} alt={alt} className={imageClassName} />;
+  const imageNode = <img src={src} alt={alt} loading="lazy" decoding="async" className={imageClassName} />;
   if (!onOpen) {
     return <div className={className}>{imageNode}</div>;
   }
@@ -785,7 +769,7 @@ const ProposalImage = ({
     <button
       type="button"
       className={`group relative overflow-hidden transition-transform duration-500 hover:scale-[1.01] active:scale-[0.995] ${className}`}
-      onClick={() => onOpen({src: optimizedSrc || src, alt})}
+      onClick={() => onOpen({src, alt})}
       title={`Abrir imagem de ${alt}`}
     >
       {imageNode}

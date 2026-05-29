@@ -13,6 +13,8 @@
     "check:encoding": "node scripts/check-encoding.mjs",
     "build:supabase-import": "node scripts/build-supabase-import.mjs",
     "bootstrap:supabase-auth": "node scripts/bootstrap-supabase-auth.mjs",
+    "migrate:inline-images": "node scripts/migrate-inline-images-to-storage.mjs",
+    "storage:generate-variants": "node scripts/generate-storage-image-variants.mjs",
     "reset:supabase-users": "node scripts/reset-supabase-users.mjs"
   },
   "dependencies": {
@@ -41,6 +43,7 @@
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",

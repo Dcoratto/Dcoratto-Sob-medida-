@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import {cn, formatArea, formatCentimeters, formatMeasureInput, formatMeters, parseMeasureInput} from '../lib/utils';
 import {DrawingCutout, FixtureCatalogItem, PieceSide} from '../types';
+import {imageVariantUrl} from '../lib/storage';
 
 type DrawTool = 'select' | 'line' | 'move-point' | 'pan' | 'cutout';
 type CutoutType = 'cuba' | 'cooktop' | 'torneira' | 'lixeira' | 'torre_tomada';
@@ -1249,7 +1250,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             >
               <div className="flex h-10 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-100 bg-slate-50">
                 {selectedFixture?.imageUrl ?(
-                  <img src={selectedFixture.imageUrl} alt={selectedFixture.name} className="h-full w-full object-contain p-1" />
+                  <img src={imageVariantUrl(selectedFixture, 'thumbnail')} alt={selectedFixture.name} loading="lazy" decoding="async" className="h-full w-full object-contain p-1" />
                 ) : (
                   <Scissors className="h-4 w-4 text-slate-300" />
                 )}
@@ -1314,7 +1315,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             >
               <div className="flex h-10 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-slate-100 bg-slate-50">
                 {selectedFixture?.imageUrl ?(
-                  <img src={selectedFixture.imageUrl} alt={selectedFixture.name} className="h-full w-full object-contain p-1" />
+                  <img src={imageVariantUrl(selectedFixture, 'thumbnail')} alt={selectedFixture.name} loading="lazy" decoding="async" className="h-full w-full object-contain p-1" />
                 ) : (
                   <Scissors className="h-4 w-4 text-slate-300" />
                 )}
@@ -1384,7 +1385,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             >
               <div className={cn('flex h-12 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border', selectedFixtureId === fixture.id ?'border-white/30 bg-white/15' : 'border-slate-100 bg-slate-50')}>
                 {fixture.imageUrl ?(
-                  <img src={fixture.imageUrl} alt={fixture.name} className="h-full w-full object-contain p-1" />
+                  <img src={imageVariantUrl(fixture, 'thumbnail')} alt={fixture.name} loading="lazy" decoding="async" className="h-full w-full object-contain p-1" />
                 ) : (
                   <Scissors className="h-4 w-4 text-slate-300" />
                 )}

@@ -1,6 +1,6 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from '../lib/firestore';
-import {deleteObject, ref as storageRef} from '../lib/storage';
+import {deleteObject, getDownloadURL, imageVariantUrl, ref as storageRef, storagePath, uploadBytes, uploadDataUrl} from '../lib/storage';
 import {AlertTriangle, BriefcaseBusiness, CheckCircle2, ChevronDown, Mail, Pencil, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
 import {db} from '../lib/firestore';
 import {storage} from '../lib/storage';
@@ -11,7 +11,7 @@ import {cn, formatCentimeters} from '../lib/utils';
 import { SettingsPage } from './SettingsPage';
 import {ACCESS_ROLES, ACTION_LABELS, getDefaultPermissions, hasPermission, isMasterAdmin, mergePermissions, MODULE_LABELS, roleLabel} from '../lib/permissions';
 import {logAuditEvent} from '../lib/auditLogs';
-import {optimizeImageFile, readFileAsDataUrl} from '../lib/imageUtils';
+import {optimizeImageFile} from '../lib/imageUtils';
 import {useSettings} from '../hooks/useSettings';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
@@ -74,6 +74,31 @@ const optimizeCatalogImage = async (file: File) => {
     maxSide: IMAGE_MAX_SIDE,
     mimeType: 'image/webp',
   });
+};
+
+const getFileExtension = (fileName: string, fallback = 'bin') => {
+  const extension = fileName.split('.').pop()?.trim().toLowerCase();
+  return extension && extension.length <= 8 ? extension : fallback;
+};
+
+const buildStorageFileName = (baseName: string, extension: string) => {
+  const randomToken = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2, 10);
+  return `${slugify(baseName) || 'arquivo'}-${Date.now()}-${randomToken}.${extension.replace(/^\./, '')}`;
+};
+
+const uploadOptimizedImage = async (file: File, folder: string, baseName: string) => {
+  const dataUrl = await optimizeCatalogImage(file);
+  const fileReference = storageRef(storage, storagePath(folder, buildStorageFileName(baseName, 'webp')));
+  await uploadDataUrl(fileReference, dataUrl);
+  return getDownloadURL(fileReference);
+};
+
+const uploadRawFile = async (file: File, folder: string, baseName: string) => {
+  const fileReference = storageRef(storage, storagePath(folder, buildStorageFileName(baseName, getFileExtension(file.name))));
+  await uploadBytes(fileReference, file);
+  return getDownloadURL(fileReference);
 };
 
 const getCatalogSaveErrorMessage = (error: any, itemName: string) => {
@@ -501,13 +526,15 @@ export const AdminPage: React.FC = () => {
     setSavingMaterial(true);
     setMaterialError('');
     try {
+      const materialDocRef = editingMaterial?.id ? doc(db, 'materials', editingMaterial.id) : doc(collection(db, 'materials'));
+      const previousImageUrl = editingMaterial?.imageUrl || '';
       const materialLine = materialForm.materialLine.trim();
       const materialType = materialForm.materialType.trim() || 'Chapa';
       const thicknessLabel = materialForm.thicknessLabel.trim();
       const texture = materialForm.texture.trim();
-      let imageUrl = editingMaterial?.imageUrl || '';
+      let imageUrl = previousImageUrl;
       if (materialImageFile) {
-        imageUrl = await optimizeCatalogImage(materialImageFile);
+        imageUrl = await uploadOptimizedImage(materialImageFile, 'materials', `pedra-${name}-${materialDocRef.id}`);
       }
       const materialPayload = {
         name,
@@ -525,12 +552,15 @@ export const AdminPage: React.FC = () => {
         updatedAt: serverTimestamp(),
       };
       if (editingMaterial?.id) {
-        await setDoc(doc(db, 'materials', editingMaterial.id), materialPayload, {merge: true});
+        await setDoc(materialDocRef, materialPayload, {merge: true});
       } else {
-        await addDoc(collection(db, 'materials'), {
+        await setDoc(materialDocRef, {
           ...materialPayload,
           createdAt: serverTimestamp(),
         });
+      }
+      if (materialImageFile && previousImageUrl && previousImageUrl !== imageUrl) {
+        await deleteStoredFile(previousImageUrl);
       }
       resetMaterialForm();
     } catch (error: any) {
@@ -569,17 +599,20 @@ export const AdminPage: React.FC = () => {
     setSavingFixture(true);
     setFixtureError('');
     try {
+      const fixtureDocRef = editingFixture?.id ? doc(db, 'fixtureCatalog', editingFixture.id) : doc(collection(db, 'fixtureCatalog'));
+      const previousImageUrl = editingFixture?.imageUrl || '';
+      const previousManualUrl = editingFixture?.manualUrl || '';
       let imageUrl = fixtureForm.imageUrl.trim();
       if (fixtureImageFile) {
-        imageUrl = await optimizeCatalogImage(fixtureImageFile);
+        imageUrl = await uploadOptimizedImage(fixtureImageFile, 'fixtures', `peca-${fixtureForm.name.trim()}-${fixtureDocRef.id}`);
       }
       let manualUrl = fixtureForm.manualUrl.trim();
       let manualFileName = fixtureForm.manualFileName.trim();
       if (fixtureManualFile) {
         if (fixtureManualFile.type.startsWith('image/')) {
-          manualUrl = await optimizeCatalogImage(fixtureManualFile);
+          manualUrl = await uploadOptimizedImage(fixtureManualFile, 'fixture-manuals', `manual-${fixtureForm.name.trim()}-${fixtureDocRef.id}`);
         } else {
-          manualUrl = await readFileAsDataUrl(fixtureManualFile);
+          manualUrl = await uploadRawFile(fixtureManualFile, 'fixture-manuals', `manual-${fixtureForm.name.trim()}-${fixtureDocRef.id}`);
         }
         manualFileName = fixtureManualFile.name;
       }
@@ -601,12 +634,18 @@ export const AdminPage: React.FC = () => {
         updatedAt: Timestamp.now(),
       };
       if (editingFixture) {
-        await updateDoc(doc(db, 'fixtureCatalog', editingFixture.id), fixturePayload);
+        await updateDoc(fixtureDocRef, fixturePayload);
       } else {
-        await addDoc(collection(db, 'fixtureCatalog'), {
+        await setDoc(fixtureDocRef, {
           ...fixturePayload,
           createdAt: Timestamp.now(),
         });
+      }
+      if (fixtureImageFile && previousImageUrl && previousImageUrl !== imageUrl) {
+        await deleteStoredFile(previousImageUrl);
+      }
+      if (fixtureManualFile && previousManualUrl && previousManualUrl !== manualUrl) {
+        await deleteStoredFile(previousManualUrl);
       }
       resetFixtureForm(fixtureForm.category);
     } catch (error: any) {
@@ -896,7 +935,7 @@ export const AdminPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {materials.map((material) => (
             <div key={material.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-              {material.imageUrl && <img src={material.imageUrl} alt={material.name} className="mb-3 h-28 w-full rounded-xl object-cover" />}
+              {imageVariantUrl(material, 'thumbnail') && <img src={imageVariantUrl(material, 'thumbnail')} alt={material.name} loading="lazy" decoding="async" className="mb-3 h-28 w-full rounded-xl object-cover" />}
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="font-bold text-slate-900">{material.name}</div>
@@ -1008,7 +1047,7 @@ export const AdminPage: React.FC = () => {
           {fixtureCatalog.map((item) => (
             <div key={item.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
               {item.imageUrl ?(
-                <img src={item.imageUrl} alt={item.name} className="mb-3 h-32 w-full rounded-xl bg-white object-contain p-2" />
+                <img src={imageVariantUrl(item, 'thumbnail')} alt={item.name} loading="lazy" decoding="async" className="mb-3 h-32 w-full rounded-xl bg-white object-contain p-2" />
               ) : (
                 <div className="mb-3 flex h-32 w-full items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white text-xs font-bold uppercase text-slate-300">
                   Sem imagem

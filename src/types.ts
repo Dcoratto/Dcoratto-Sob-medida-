@@ -18,6 +18,7 @@ export type PermissionMap = {
 
 export interface AccessUser {
   uid: string;
+  empresaId?: string;
   nome: string;
   name?: string;
   email: string;
@@ -33,6 +34,7 @@ export interface AccessUser {
 
 export interface AuditLog {
   id: string;
+  empresaId?: string;
   userId: string;
   userEmail: string;
   userName: string;
@@ -46,19 +48,27 @@ export interface AuditLog {
 
 export interface Profile {
   uid: string;
+  empresaId?: string;
   name: string;
   email: string;
   role: UserRole;
   blocked: boolean;
   phone?: string;
   photoUrl?: string;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  originalUrl?: string;
   position?: string;
   calendarFeedToken?: string;
 }
 
 export interface Settings {
+  empresaId?: string;
   companyName: string;
   logoUrl?: string;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  originalUrl?: string;
   phone: string;
   email: string;
   address: string;
@@ -116,6 +126,7 @@ export interface SupplierContact {
 
 export interface Material {
   id: string;
+  empresaId?: string;
   name: string;
   pricePerM2: number;
   baseCostPerM2?: number;
@@ -128,6 +139,9 @@ export interface Material {
   thicknessLabel?: string;
   texture?: string;
   imageUrl?: string;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  originalUrl?: string;
   active: boolean;
   sourceInventoryId?: string;
   updatedAt?: any;
@@ -135,6 +149,7 @@ export interface Material {
 
 export interface UserMaterialPrice {
   id: string;
+  empresaId?: string;
   userId: string;
   materialId: string;
   materialVariantKey?: string;
@@ -148,6 +163,7 @@ export interface UserMaterialPrice {
 
 export interface Client {
   id: string;
+  empresaId?: string;
   name: string;
   phone: string;
   email?: string;
@@ -204,6 +220,7 @@ export interface LegacyManualQuote {
 
 export interface CondominiumRule {
   id: string;
+  empresaId?: string;
   name: string;
   city: string;
   addressMode?: 'street' | 'lot';
@@ -220,6 +237,7 @@ export type EmployeeRole = 'Vendedor' | 'Medidor' | 'Cortador' | 'Acabador' | 'I
 
 export interface Employee {
   id: string;
+  empresaId?: string;
   name: string;
   role: EmployeeRole;
   phone?: string;
@@ -399,6 +417,7 @@ export type FixtureCategory = 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'tr
 
 export interface FixtureCatalogItem {
   id: string;
+  empresaId?: string;
   name: string;
   category: FixtureCategory;
   brand?: string;
@@ -408,6 +427,9 @@ export interface FixtureCatalogItem {
   height?: number;
   diameter?: number;
   imageUrl?: string;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  originalUrl?: string;
   manualUrl?: string;
   manualFileName?: string;
   notes?: string;
@@ -429,6 +451,7 @@ export interface QuoteCutouts {
 
 export interface Quote {
   id: string;
+  empresaId?: string;
   clientId: string;
   clientName: string;
   phone: string;
@@ -466,6 +489,7 @@ export interface Quote {
 
 export interface InventoryItem {
   id: string;
+  empresaId?: string;
   materialId: string;
   materialName: string;
   code: string;
@@ -485,6 +509,9 @@ export interface InventoryItem {
   status: 'Disponível' | 'Reservada' | 'Usada' | 'Retalho' | 'Descarte';
   notes: string;
   photoUrl?: string;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  originalUrl?: string;
   lossReason?: string;
   lossNotes?: string;
   lossQuoteId?: string;
@@ -499,6 +526,7 @@ export interface InventoryItem {
 
 export interface InventoryReservation {
   id: string;
+  empresaId?: string;
   quoteId: string;
   materialId: string;
   materialVariantKey?: string;
@@ -518,6 +546,7 @@ export type InventoryPurchaseStatus = 'Pedido' | 'Entregue' | 'Cancelado';
 
 export interface InventoryPurchase {
   id: string;
+  empresaId?: string;
   materialId: string;
   materialName: string;
   provider?: string;
@@ -534,6 +563,9 @@ export interface InventoryPurchase {
   cost: number;
   minimumSalePrice?: number;
   photoUrl?: string;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  originalUrl?: string;
   purchaseGroupId?: string;
   purchaseIndex?: number;
   purchaseQuantity?: number;
@@ -572,6 +604,7 @@ export type SystemEventType =
 
 export interface SystemEvent {
   id: string;
+  empresaId?: string;
   type: SystemEventType;
   title: string;
   description?: string;

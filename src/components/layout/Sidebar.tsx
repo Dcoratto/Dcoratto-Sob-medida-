@@ -18,6 +18,7 @@ import {
 import {useAuth} from '../../contexts/AuthContext';
 import {auth} from '../../lib/auth';
 import {cn} from '../../lib/utils';
+import {imageVariantUrl} from '../../lib/storage';
 import {Logo} from './Logo';
 import {roleLabel} from '../../lib/permissions';
 import {preloadRoute} from '../../lib/pageLoaders';
@@ -82,7 +83,7 @@ export const Sidebar: React.FC = () => {
         >
           <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-brand-primary/10 font-bold text-brand-primary">
             {profile?.photoUrl ?(
-              <img src={profile.photoUrl} alt={displayName} className="h-full w-full object-cover" />
+              <img src={imageVariantUrl(profile, 'thumbnail')} alt={displayName} loading="lazy" decoding="async" className="h-full w-full object-cover" />
             ) : (
               displayName.charAt(0).toUpperCase()
             )}

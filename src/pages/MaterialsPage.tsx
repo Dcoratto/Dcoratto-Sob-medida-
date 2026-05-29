@@ -12,6 +12,7 @@ import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {logSystemEvent} from '../lib/systemEvents';
 import {getInventoryItemArea} from '../lib/inventoryMetrics';
+import {imageVariantUrl} from '../lib/storage';
 
 type MaterialStockRow = Material & {
   baseMaterialId: string;
@@ -390,7 +391,7 @@ export const MaterialsPage: React.FC = () => {
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full border border-slate-200 bg-slate-100 flex items-center justify-center">
                           {material.imageUrl ? (
-                            <img src={material.imageUrl} alt={material.name} className="h-full w-full object-cover" />
+                            <img src={imageVariantUrl(material, 'thumbnail')} alt={material.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                           ) : (
                             <PackageCheck className="h-5 w-5 text-slate-400" />
                           )}

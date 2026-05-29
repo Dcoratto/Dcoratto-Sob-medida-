@@ -13,6 +13,7 @@ import {QUOTE_STATUSES, normalizeQuoteStatus, quoteStatusColor, quoteStatusDotCo
 import {getHolidayInfo} from '../lib/holidays';
 import {formatMaterialSpecs} from '../lib/materialSpecs';
 import {parseClientContractPdf, parseLegacyQuotePdf} from '../lib/contractParser';
+import {imageVariantUrl} from '../lib/storage';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
@@ -1839,7 +1840,7 @@ export const ClientsPage: React.FC = () => {
                                     <div className="flex gap-4">
                                       <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white flex items-center justify-center">
                                         {row.imageUrl ? (
-                                          <img src={row.imageUrl} alt={row.materialName} className="h-full w-full object-cover" />
+                                          <img src={imageVariantUrl(row, 'thumbnail')} alt={row.materialName} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                                         ) : (
                                           <ClipboardList className="h-8 w-8 text-slate-300" />
                                         )}

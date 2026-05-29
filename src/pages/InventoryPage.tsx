@@ -12,6 +12,7 @@ import {useSettings} from '../hooks/useSettings';
 import {formatMaterialSpecs, formatMaterialSpecsWithProvider} from '../lib/materialSpecs';
 import {generatePurchaseOrderPdf} from '../lib/purchaseOrderPdfGenerator';
 import {optimizeImageFile} from '../lib/imageUtils';
+import {deleteObject, getDownloadURL, imageVariantUrl, ref as storageRef, storage, storagePath, uploadDataUrl} from '../lib/storage';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
@@ -116,6 +117,40 @@ const emptyPurchaseSlab = (): PurchaseSlabForm => ({
 });
 
 const parseThicknessValue = (label: string) => Number(String(label || '').replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+
+const buildStorageFileName = (baseName: string, extension: string) => {
+  const randomToken = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2, 10);
+  const normalizedBase = baseName
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '') || 'arquivo';
+  return `${normalizedBase}-${Date.now()}-${randomToken}.${extension.replace(/^\./, '')}`;
+};
+
+const uploadInventoryImage = async (file: File, baseName: string) => {
+  const dataUrl = await optimizeImageFile(file, {
+    maxBytes: 850 * 1024,
+    maxSide: 900,
+    mimeType: 'image/webp',
+  });
+  const fileReference = storageRef(storage, storagePath('inventory', buildStorageFileName(baseName, 'webp')));
+  await uploadDataUrl(fileReference, dataUrl);
+  return getDownloadURL(fileReference);
+};
+
+const deleteStoredFile = async (fileUrl?: unknown) => {
+  if (typeof fileUrl !== 'string' || !fileUrl.startsWith('http')) return;
+  try {
+    await deleteObject(storageRef(storage, fileUrl));
+  } catch (error) {
+    console.warn('Não foi possível excluir arquivo armazenado:', error);
+  }
+};
 
 const isApprovedReservation = (reservation: InventoryReservation) => {
   const status = normalizeStatus(reservation.quoteStatus);
@@ -556,13 +591,10 @@ export const InventoryPage: React.FC = () => {
     const inventoryRef = editingItem ?doc(db, 'inventory', editingItem.id) : doc(collection(db, 'inventory'));
     const materialId = selectedMaterialId;
     const selectedMaterial = materials.find((material) => material.id === materialId);
-    let photoUrl = editingItem?.photoUrl || selectedMaterial?.imageUrl || '';
+    const previousPhotoUrl = editingItem?.photoUrl || '';
+    let photoUrl = previousPhotoUrl || selectedMaterial?.imageUrl || '';
     if (photoFile) {
-      photoUrl = await optimizeImageFile(photoFile, {
-        maxBytes: 850 * 1024,
-        maxSide: 900,
-        mimeType: 'image/webp',
-      });
+      photoUrl = await uploadInventoryImage(photoFile, `${materialName || selectedMaterial?.name || 'estoque'}-${inventoryRef.id}`);
     }
 
     const data = {
@@ -616,6 +648,9 @@ export const InventoryPage: React.FC = () => {
     try {
       if (editingItem) {
         await updateDoc(inventoryRef, data);
+        if (photoFile && previousPhotoUrl && previousPhotoUrl !== photoUrl) {
+          await deleteStoredFile(previousPhotoUrl);
+        }
         syncSavedItem();
         clearDraft(inventoryDraftKey);
         setShowModal(false);
@@ -1019,7 +1054,7 @@ export const InventoryPage: React.FC = () => {
   const unassignedPatioItems = activePatioItems.filter((item) => !item.rackId);
   const rackArea = (rack: string) => activePatioItems
     .filter((item) => item.rackId === rack)
-    .reduce((acc, item) => acc + (item.area || 0), 0);
+    .reduce((acc, item) => acc + (Number(item.area) || 0), 0);
   const selectedRackItems = selectedPatioPanel === UNASSIGNED_PANEL_ID
     ? unassignedPatioItems
     : (rackItemsMap.get(selectedPatioPanel) || []);
@@ -1028,8 +1063,8 @@ export const InventoryPage: React.FC = () => {
     map.set(rack, rackArea(rack));
     return map;
   }, new Map<string, number>()), [activePatioItems]);
-  const maxRackArea = Math.max(0, ...Array.from(rackAreaMap.values()));
-  const selectedRackArea = selectedPatioPanel === UNASSIGNED_PANEL_ID ? 0 : (rackAreaMap.get(selectedPatioPanel) || 0);
+  const maxRackArea = Math.max(0, ...Array.from(rackAreaMap.values()).map((value) => Number(value) || 0));
+  const selectedRackArea = selectedPatioPanel === UNASSIGNED_PANEL_ID ? 0 : (Number(rackAreaMap.get(selectedPatioPanel)) || 0);
   const selectedTimelineEvents = useMemo(() => {
     if (!selectedTimelineItem) return [];
     return systemEvents
@@ -1149,7 +1184,7 @@ export const InventoryPage: React.FC = () => {
     purchasedByName: groupedPurchases[0]?.purchasedByName || '',
     totalArea: groupedPurchases.reduce((sum, item) => sum + (item.area || 0), 0),
   }));
-  const materialImageById = (materialId: string) => materials.find((material) => material.id === materialId)?.imageUrl || '';
+  const materialImageById = (materialId: string) => imageVariantUrl(materials.find((material) => material.id === materialId), 'thumbnail');
   const selectedReservationMaterial = reservationMaterialId
     ? materials.find((material) => material.id === reservationMaterialId) || items.find((item) => item.materialId === reservationMaterialId)
     : null;
@@ -1970,8 +2005,8 @@ export const InventoryPage: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 shrink-0 rounded-full border border-slate-200 bg-slate-100 overflow-hidden flex items-center justify-center">
-                          {item.photoUrl || materialImageById(item.materialId) ?(
-                            <img src={item.photoUrl || materialImageById(item.materialId)} alt={item.materialName} className="h-full w-full object-cover" />
+                          {imageVariantUrl(item, 'thumbnail') || materialImageById(item.materialId) ?(
+                            <img src={imageVariantUrl(item, 'thumbnail') || materialImageById(item.materialId)} alt={item.materialName} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                           ) : (
                             <PackageCheck className="w-5 h-5 text-slate-400" />
                           )}
@@ -2321,8 +2356,8 @@ export const InventoryPage: React.FC = () => {
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 p-3 flex items-center gap-3">
                   <div className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-slate-200 bg-white flex items-center justify-center">
-                    {selectedPurchaseMaterial?.imageUrl ?(
-                      <img src={selectedPurchaseMaterial.imageUrl} alt={selectedPurchaseMaterial.name} className="h-full w-full object-cover" />
+                    {imageVariantUrl(selectedPurchaseMaterial, 'thumbnail') ?(
+                      <img src={imageVariantUrl(selectedPurchaseMaterial, 'thumbnail')} alt={selectedPurchaseMaterial.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                     ) : (
                       <PackageCheck className="h-5 w-5 text-slate-400" />
                     )}
@@ -2362,8 +2397,8 @@ export const InventoryPage: React.FC = () => {
                   <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Informações da pedra selecionada</div>
                   <div className="mt-3 grid grid-cols-1 md:grid-cols-[140px,1fr] gap-4">
                     <div className="h-28 overflow-hidden rounded-2xl border border-slate-200 bg-white flex items-center justify-center">
-                      {selectedPurchaseMaterial?.imageUrl ?(
-                        <img src={selectedPurchaseMaterial.imageUrl} alt={selectedPurchaseMaterial.name} className="h-full w-full object-cover" />
+                      {imageVariantUrl(selectedPurchaseMaterial, 'medium') ?(
+                        <img src={imageVariantUrl(selectedPurchaseMaterial, 'medium')} alt={selectedPurchaseMaterial.name} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                       ) : (
                         <PackageCheck className="h-6 w-6 text-slate-400" />
                       )}

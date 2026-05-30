@@ -39,6 +39,12 @@ const quoteMaterialPriceKey = (materialId?: string, materialVariantKey?: string)
 const formatPriceInputValue = (value: number) =>
   (Number.isFinite(value) ? value : 0).toFixed(2).replace('.', ',');
 
+const formatEditableMeasureValue = (value: number) => {
+  if (!Number.isFinite(value)) return '';
+  const normalized = String(roundNumber(value, 3)).replace('.', ',');
+  return normalized.replace(/,?0+$/g, '');
+};
+
 const parseQuoteMaterialPriceInput = (value: string): {status: 'empty' | 'valid' | 'invalid' | 'negative'; value?: number} => {
   const raw = String(value || '').trim();
   if (!raw) return {status: 'empty'};
@@ -734,7 +740,7 @@ export const QuoteEditor: React.FC = () => {
   const handlePieceMeasureInputFocus = (pieceId: string, field: 'length' | 'width', value: number) => {
     const key = pieceMeasureInputKey(pieceId, field);
     setActivePieceMeasureInput(key);
-    setPieceMeasureInputs((current) => ({...current, [key]: formatMeasureInput(value || 0)}));
+    setPieceMeasureInputs((current) => ({...current, [key]: formatEditableMeasureValue(value || 0)}));
   };
 
   const handlePieceMeasureInputChange = (pieceId: string, field: 'length' | 'width', value: string) => {
@@ -1930,7 +1936,10 @@ export const QuoteEditor: React.FC = () => {
                           type="text"
                           inputMode="decimal"
                           value={pieceMeasureInputs[pieceMeasureInputKey(piece.id, 'length')] || formatMeasureInput(piece.length)}
-                          onFocus={() => handlePieceMeasureInputFocus(piece.id, 'length', piece.length)}
+                          onFocus={(event) => {
+                            handlePieceMeasureInputFocus(piece.id, 'length', piece.length);
+                            event.currentTarget.select();
+                          }}
                           onChange={(e) => handlePieceMeasureInputChange(piece.id, 'length', e.target.value)}
                           onBlur={() => handlePieceMeasureInputBlur(piece, 'length')}
                           className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
@@ -1944,7 +1953,10 @@ export const QuoteEditor: React.FC = () => {
                           type="text"
                           inputMode="decimal"
                           value={pieceMeasureInputs[pieceMeasureInputKey(piece.id, 'width')] || formatMeasureInput(piece.width)}
-                          onFocus={() => handlePieceMeasureInputFocus(piece.id, 'width', piece.width)}
+                          onFocus={(event) => {
+                            handlePieceMeasureInputFocus(piece.id, 'width', piece.width);
+                            event.currentTarget.select();
+                          }}
                           onChange={(e) => handlePieceMeasureInputChange(piece.id, 'width', e.target.value)}
                           onBlur={() => handlePieceMeasureInputBlur(piece, 'width')}
                           className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"

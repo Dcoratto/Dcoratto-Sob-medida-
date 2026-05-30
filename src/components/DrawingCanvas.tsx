@@ -20,6 +20,7 @@ import {
   ZoomOut,
 } from 'lucide-react';
 import {cn, formatArea, formatCentimeters, formatMeasureInput, formatMeters, parseMeasureInput} from '../lib/utils';
+import {roundNumber} from '../lib/utils';
 import {DrawingCutout, FixtureCatalogItem, PieceSide} from '../types';
 import {imageVariantUrl} from '../lib/storage';
 
@@ -193,6 +194,12 @@ const defaultHeightFor = (type: ComplementType, settings?: DrawingCanvasProps['s
   if (type === 'frontao') return settings?.defaultFrontonHeight ?? 10;
   if (type === 'saia') return settings?.defaultSkirtHeight ?? 4;
   return settings?.defaultTurnHeight ?? 2;
+};
+
+const formatEditableMeasureValue = (value: number) => {
+  if (!Number.isFinite(value)) return '';
+  const normalized = String(roundNumber(value, 3)).replace('.', ',');
+  return normalized.replace(/,?0+$/g, '');
 };
 
 export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
@@ -910,7 +917,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
   const handleSideLengthFocus = (sideKey: string, value: number) => {
     setActiveSideLengthInput(sideKey);
-    setSideLengthInputs((current) => ({...current, [sideKey]: formatMeasureInput(value)}));
+    setSideLengthInputs((current) => ({...current, [sideKey]: formatEditableMeasureValue(value)}));
   };
 
   const handleSideLengthChange = (sideKey: string, value: string) => {
@@ -1586,7 +1593,10 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
               type="text"
               inputMode="decimal"
               value={sideLengthInputs[side.key] || formatMeasureInput(side.lengthM)}
-              onFocus={() => handleSideLengthFocus(side.key, side.lengthM)}
+              onFocus={(event) => {
+                handleSideLengthFocus(side.key, side.lengthM);
+                event.currentTarget.select();
+              }}
               onChange={(event) => handleSideLengthChange(side.key, event.target.value)}
               onBlur={() => handleSideLengthBlur(index, side.key)}
               onKeyDown={(event) => {
@@ -1631,7 +1641,10 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                           type="text"
                           inputMode="decimal"
                           value={sideLengthInputs[side.key] || formatMeasureInput(side.lengthM)}
-                          onFocus={() => handleSideLengthFocus(side.key, side.lengthM)}
+                          onFocus={(event) => {
+                            handleSideLengthFocus(side.key, side.lengthM);
+                            event.currentTarget.select();
+                          }}
                           onChange={(event) => handleSideLengthChange(side.key, event.target.value)}
                           onBlur={() => handleSideLengthBlur(index, side.key)}
                           className="w-24 rounded-lg border border-slate-200 px-2 py-1 font-mono text-sm"

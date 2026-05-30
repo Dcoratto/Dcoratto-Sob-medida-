@@ -357,6 +357,8 @@ export interface QuotePiece {
   id: string;
   name: string;
   pieceStatus?: QuoteStatus;
+  pricingMode?: 'automatic' | 'manual';
+  manualPrice?: number;
   materialId: string;
   materialVariantKey?: string;
   materialLine?: string;
@@ -487,6 +489,7 @@ export interface Quote {
   status: QuoteStatus;
   totalArea: number;
   totalPrice: number;
+  pricingMode?: 'sale' | 'cost';
   pieces: QuotePiece[];
   cutouts: QuoteCutouts;
   materialPriceOverrides?: QuoteMaterialPriceOverride[];

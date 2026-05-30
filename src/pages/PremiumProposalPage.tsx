@@ -183,8 +183,13 @@ export const PremiumProposalPage: React.FC = () => {
       settings,
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialForPiece(piece)?.pricePerM2 || 0,
+      includeLabor: quote?.pricingMode !== 'cost',
+      resolveManualPiecePrice: (piece) =>
+        (piece.pricingMode || 'automatic') === 'manual' && Number.isFinite(Number(piece.manualPrice))
+          ? Number(piece.manualPrice)
+          : undefined,
     }).map((item) => item.pieceFinalValue);
-  }, [calculatePieceArea, materialForPiece, quote?.cutouts, quote?.pieces, quote?.totalPrice, settings]);
+  }, [calculatePieceArea, materialForPiece, quote?.cutouts, quote?.pieces, quote?.pricingMode, quote?.totalPrice, settings]);
 
   useEffect(() => {
     if (!navItems.length) return;

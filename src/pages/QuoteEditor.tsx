@@ -64,6 +64,13 @@ const inputValuesFromMaterialOverrides = (overrides?: QuoteMaterialPriceOverride
     return acc;
   }, {} as Record<string, string>);
 
+const inputValuesFromPieceManualPrices = (pieces?: QuotePiece[]) =>
+  (pieces || []).reduce((acc, piece) => {
+    if (!piece.id || !Number.isFinite(Number(piece.manualPrice))) return acc;
+    acc[piece.id] = formatPriceInputValue(Number(piece.manualPrice));
+    return acc;
+  }, {} as Record<string, string>);
+
 const normalizeStockStatus = (value: unknown) =>
   String(value || '')
     .toLowerCase()
@@ -132,11 +139,13 @@ export const QuoteEditor: React.FC = () => {
   const [originalStatus, setOriginalStatus] = useState<QuoteStatus>(QUOTE_STATUSES[0]);
   const [pieces, setPieces] = useState<QuotePiece[]>([]);
   const [materialCustomPriceInputs, setMaterialCustomPriceInputs] = useState<Record<string, string>>({});
+  const [pieceManualPriceInputs, setPieceManualPriceInputs] = useState<Record<string, string>>({});
   const [cutouts, setCutouts] = useState<QuoteCutoutState>({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
   const [showDrawing, setShowDrawing] = useState<string | null>(null);
   const [employeeAssignments, setEmployeeAssignments] = useState<EmployeeAssignment[]>([]);
   const [statusHistory, setStatusHistory] = useState<QuoteStatusHistory[]>([]);
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
+  const [quotePricingMode, setQuotePricingMode] = useState<'sale' | 'cost'>('sale');
   const quoteDraftHydratedRef = useRef(false);
   const quoteDraftKey = `quote-editor-draft:${appUid || 'anonymous'}:${id || 'new'}`;
 
@@ -324,19 +333,53 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const selectedClient = clients.find(c => c.id === clientId);
-  const { calculatePieceArea, calculateTotal, calculateLabor, calculateCutouts, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey));
+  const { calculatePieceArea, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey));
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
   
+  const pieceManualPriceErrors = useMemo(() =>
+    pieces.reduce((acc, piece) => {
+      if ((piece.pricingMode || 'automatic') !== 'manual') return acc;
+      const input = pieceManualPriceInputs[piece.id] || '';
+      const parsed = parseQuoteMaterialPriceInput(input);
+      acc[piece.id] =
+        parsed.status === 'empty'
+          ? 'Informe o valor manual desta peça.'
+          : parsed.status === 'negative'
+            ? 'O valor manual da peça não pode ser negativo.'
+            : parsed.status === 'invalid'
+              ? 'Informe um valor monetário válido, como 850,00.'
+              : undefined;
+      return acc;
+    }, {} as Record<string, string | undefined>),
+  [pieceManualPriceInputs, pieces]);
+  const pieceManualPriceError = Object.values(pieceManualPriceErrors).find(Boolean);
+
   const totalMethodAdjustment = settings.paymentMethods.find(m => m.name === totalPaymentMethod)?.adjustment || 0;
   const remainingMethodAdjustment = settings.paymentMethods.find(m => m.name === remainingPaymentMethod)?.adjustment || 0;
   const totalArea = pieces.reduce((acc, p) => acc + calculatePieceArea(p).totalArea, 0);
   const pieceAreaDetails = pieces.map((piece) => ({piece, totals: calculatePieceArea(piece), material: materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)}));
-  const stonesCost = pieceAreaDetails.reduce((acc, item) => acc + item.totals.totalArea * (item.material?.pricePerM2 || 0), 0);
-  const materialLossCost = pieceAreaDetails.reduce((acc, item) => acc + (item.totals.lossArea || 0) * (item.material?.pricePerM2 || 0), 0);
-  const laborCost = calculateLabor(pieces);
-  const cutoutsCost = calculateCutouts(cutouts);
-  const sculptedLaborCost = pieceAreaDetails.reduce((acc, item) => acc + (item.totals.sinkAdditionalValue || 0), 0);
-  const subtotalBeforeAdjustment = stonesCost + materialLossCost + laborCost + cutoutsCost + sculptedLaborCost;
+  const basePiecePricingBreakdowns = useMemo(
+    () => buildPiecePricingBreakdowns({
+      pieces,
+      quoteCutouts: cutouts,
+      settings,
+      calculatePieceArea,
+      resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
+      includeLabor: quotePricingMode !== 'cost',
+      resolveManualPiecePrice: (piece) => {
+        if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
+        const parsed = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
+        return parsed.status === 'valid' ? Number(parsed.value) : undefined;
+      },
+    }),
+    [calculatePieceArea, cutouts, materialId, pieceManualPriceInputs, pieces, quotePricingMode, settings],
+  );
+  const stonesCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.stoneBaseValue, 0);
+  const materialLossCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
+  const laborCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.laborValue, 0);
+  const cutoutsCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.cutoutValue, 0);
+  const sculptedLaborCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.sinkAdditionalValue, 0);
+  const subtotalBeforeAdjustment = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.pieceSubtotalValue, 0);
   const normalizedEntryAmount = Math.min(Math.max(Number(entryAmount) || 0, 0), subtotalBeforeAdjustment);
   const financedAmount = Math.max(0, subtotalBeforeAdjustment - normalizedEntryAmount);
   const selectedPaymentAdjustment = paymentMode === 'entry' ? remainingMethodAdjustment : totalMethodAdjustment;
@@ -489,8 +532,11 @@ export const QuoteEditor: React.FC = () => {
       setCommercialNotes(String(draft.commercialNotes || ''));
       setStatus((draft.status as QuoteStatus) || QUOTE_STATUSES[0]);
       setOriginalStatus((draft.originalStatus as QuoteStatus) || (draft.status as QuoteStatus) || QUOTE_STATUSES[0]);
-      setPieces(Array.isArray(draft.pieces) ? draft.pieces as QuotePiece[] : []);
+      const draftPieces = Array.isArray(draft.pieces) ? draft.pieces as QuotePiece[] : [];
+      setPieces(draftPieces);
+      setQuotePricingMode((draft.pricingMode as 'sale' | 'cost') || 'sale');
       setMaterialCustomPriceInputs((draft.materialCustomPriceInputs as Record<string, string>) || inputValuesFromMaterialOverrides(draft.materialPriceOverrides as QuoteMaterialPriceOverride[]));
+      setPieceManualPriceInputs((draft.pieceManualPriceInputs as Record<string, string>) || inputValuesFromPieceManualPrices(draftPieces));
       setCutouts((draft.cutouts as QuoteCutoutState) || { cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
       setEmployeeAssignments(Array.isArray(draft.employeeAssignments) ? draft.employeeAssignments as EmployeeAssignment[] : []);
       setStatusHistory(Array.isArray(draft.statusHistory) ? draft.statusHistory as QuoteStatusHistory[] : []);
@@ -523,12 +569,14 @@ export const QuoteEditor: React.FC = () => {
           setCommercialNotes(data.commercialNotes || '');
           setStatus(normalizeQuoteStatus(data.status));
           setOriginalStatus(normalizeQuoteStatus(data.status));
+          setQuotePricingMode(data.pricingMode || 'sale');
           const loadedPieces = (data.pieces || []).map((piece) => ensurePieceWorkflowStatus({
             ...piece,
             materialId: piece.materialId || data.materialId || '',
           }, data.status));
           setPieces(loadedPieces);
           setMaterialCustomPriceInputs(inputValuesFromMaterialOverrides(data.materialPriceOverrides));
+          setPieceManualPriceInputs(inputValuesFromPieceManualPrices(loadedPieces));
           setPieceMaterialSearch(loadedPieces.reduce((acc, piece) => {
             const material = materials.find((item) => item.id === piece.materialId);
             if (material) acc[piece.id] = material.name;
@@ -615,18 +663,20 @@ export const QuoteEditor: React.FC = () => {
       measurementDate,
       deliveryDate,
       validityDays,
+      pricingMode: quotePricingMode,
       commercialNotes,
       status,
       originalStatus,
       pieces,
       materialCustomPriceInputs,
+      pieceManualPriceInputs,
       cutouts,
       employeeAssignments,
       statusHistory,
       pieceMaterialSearch,
     });
     if (savedAt) setQuoteDraftSavedAt(savedAt);
-  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, pieceMaterialSearch, pieces, quoteDraftKey, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
+  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, pieceManualPriceInputs, pieceMaterialSearch, pieces, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
 
   const clearQuoteDraftState = () => {
     clearDraft(quoteDraftKey);
@@ -643,6 +693,18 @@ export const QuoteEditor: React.FC = () => {
       const parsed = parseQuoteMaterialPriceInput(current[key] || '');
       if (parsed.status !== 'valid' || typeof parsed.value !== 'number') return current;
       return {...current, [key]: formatPriceInputValue(parsed.value)};
+    });
+  };
+
+  const updatePieceManualPriceInput = (pieceId: string, value: string) => {
+    setPieceManualPriceInputs((current) => ({...current, [pieceId]: value}));
+  };
+
+  const formatPieceManualPriceInput = (pieceId: string) => {
+    setPieceManualPriceInputs((current) => {
+      const parsed = parseQuoteMaterialPriceInput(current[pieceId] || '');
+      if (parsed.status !== 'valid' || typeof parsed.value !== 'number') return current;
+      return {...current, [pieceId]: formatPriceInputValue(parsed.value)};
     });
   };
 
@@ -700,6 +762,7 @@ export const QuoteEditor: React.FC = () => {
       id: Math.random().toString(36).substr(2, 9),
       name: asStair ?`Escada ${pieces.filter((piece) => piece.stair?.active).length + 1}` : `${LABELS.pieces.singular} ${pieces.length + 1}`,
       pieceStatus: status,
+      pricingMode: 'automatic',
       materialId: '',
       unit: 'cm',
       width: 0,
@@ -756,6 +819,11 @@ export const QuoteEditor: React.FC = () => {
       applyCutoutDiff(removedPiece.cutouts, []);
     }
     setPieces(pieces.filter(p => p.id !== id));
+    setPieceManualPriceInputs((current) => {
+      const next = {...current};
+      delete next[id];
+      return next;
+    });
   };
 
   const updatePiece = (id: string, data: Partial<QuotePiece>) => {
@@ -806,8 +874,14 @@ export const QuoteEditor: React.FC = () => {
       settings,
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
+      includeLabor: quotePricingMode !== 'cost',
+      resolveManualPiecePrice: (piece) => {
+        if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
+        const parsed = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
+        return parsed.status === 'valid' ? Number(parsed.value) : undefined;
+      },
     }),
-    [calculatePieceArea, cutouts, materialCustomPriceInputs, materialId, pieces, settings, totalPrice],
+    [calculatePieceArea, cutouts, materialId, pieceManualPriceInputs, pieces, quotePricingMode, settings, totalPrice],
   );
   const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
     cooktop: 'cooktop',
@@ -934,12 +1008,26 @@ export const QuoteEditor: React.FC = () => {
       alert(quoteMaterialPriceError);
       return;
     }
+    if (pieceManualPriceError) {
+      alert(pieceManualPriceError);
+      return;
+    }
     setSaving(true);
     const firstAssigned = employeeAssignments.find((item) => item.employeeId);
     const primaryMaterialId = pieces[0]?.materialId || materialId || '';
     const primaryMaterialVariantKey = pieces[0]?.materialVariantKey;
     const primaryMaterial = materialWithQuotePrice(primaryMaterialId, primaryMaterialVariantKey);
-    const piecesWithStatus = pieces.map((piece) => ensurePieceWorkflowStatus(piece, status));
+    const piecesWithStatus = pieces.map((piece) => {
+      const parsedManualPrice = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
+      return ensurePieceWorkflowStatus({
+        ...piece,
+        pricingMode: piece.pricingMode || 'automatic',
+        manualPrice:
+          (piece.pricingMode || 'automatic') === 'manual' && parsedManualPrice.status === 'valid'
+            ? Number(parsedManualPrice.value)
+            : undefined,
+      }, status);
+    });
     const materialPriceOverrides: QuoteMaterialPriceOverride[] = quoteMaterialPriceRows
       .filter((row) => !row.error && typeof row.customPricePerM2 === 'number')
       .map((row) => ({
@@ -976,6 +1064,7 @@ export const QuoteEditor: React.FC = () => {
       status,
       totalArea: normalizedTotalArea,
       totalPrice: normalizedTotalPrice,
+      pricingMode: quotePricingMode,
       pieces: piecesWithStatus,
       cutouts,
       materialPriceOverrides,
@@ -1071,7 +1160,7 @@ export const QuoteEditor: React.FC = () => {
         </div>
         <button
           onClick={handleSave}
-          disabled={saving || Boolean(quoteMaterialPriceError)}
+          disabled={saving || Boolean(quoteMaterialPriceError) || Boolean(pieceManualPriceError)}
           className="flex items-center gap-2 bg-brand-primary text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95 disabled:opacity-50"
         >
           <Save className="w-5 h-5" />
@@ -1277,6 +1366,35 @@ export const QuoteEditor: React.FC = () => {
                   onChange={(e) => setValidityDays(Number(e.target.value))}
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
                 />
+              </div>
+            </div>
+
+            <div className="space-y-2 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
+              <div>
+                <h3 className="font-display text-lg font-bold text-slate-800">Modo de preço</h3>
+                <p className="text-xs text-slate-500">No preço de custo, a mão de obra da peça sai do cálculo do orçamento.</p>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => setQuotePricingMode('sale')}
+                  className={cn(
+                    'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
+                    quotePricingMode === 'sale' ? 'bg-brand-primary text-white shadow-sm' : 'bg-white text-slate-600',
+                  )}
+                >
+                  Preço de venda
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuotePricingMode('cost')}
+                  className={cn(
+                    'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
+                    quotePricingMode === 'cost' ? 'bg-brand-primary text-white shadow-sm' : 'bg-white text-slate-600',
+                  )}
+                >
+                  Preço de custo
+                </button>
               </div>
             </div>
 
@@ -1823,6 +1941,67 @@ export const QuoteEditor: React.FC = () => {
                             Não há lote suficiente para esta peça.
                         </div>
                         )}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-slate-50 space-y-4">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">Preço da peça</h3>
+                        <p className="text-xs text-slate-500">Você pode manter o cálculo automático ou informar um valor manual só para esta peça.</p>
+                      </div>
+                      <div className="flex rounded-xl bg-slate-100 p-1">
+                        <button
+                          type="button"
+                          onClick={() => updatePiece(piece.id, {pricingMode: 'automatic', manualPrice: undefined})}
+                          className={cn('px-4 py-2 text-[10px] font-bold uppercase rounded-lg transition-all', (piece.pricingMode || 'automatic') === 'automatic' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-400')}
+                        >
+                          Automático
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => updatePiece(piece.id, {pricingMode: 'manual'})}
+                          className={cn('px-4 py-2 text-[10px] font-bold uppercase rounded-lg transition-all', piece.pricingMode === 'manual' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-400')}
+                        >
+                          Manual
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+                      <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor em uso</div>
+                        <div className="mt-2 font-mono text-lg font-bold text-slate-900">
+                          {formatCurrency(basePiecePricingBreakdowns[pIdx]?.pieceSubtotalValue || 0)}
+                        </div>
+                      </div>
+                      <div className="md:col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                        <label className="block space-y-1">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor manual da peça</span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            value={pieceManualPriceInputs[piece.id] || ''}
+                            onChange={(event) => updatePieceManualPriceInput(piece.id, event.target.value)}
+                            onBlur={() => formatPieceManualPriceInput(piece.id)}
+                            disabled={(piece.pricingMode || 'automatic') !== 'manual'}
+                            placeholder="0,00"
+                            className={cn(
+                              'w-full rounded-xl border bg-white px-4 py-2.5 text-sm font-mono outline-none transition-all focus:ring-2',
+                              (piece.pricingMode || 'automatic') !== 'manual'
+                                ? 'cursor-not-allowed border-slate-100 text-slate-400'
+                                : pieceManualPriceErrors[piece.id]
+                                  ? 'border-red-300 text-red-700 focus:ring-red-100'
+                                  : 'border-slate-200 text-slate-900 focus:ring-brand-primary/20',
+                            )}
+                          />
+                        </label>
+                        <div className={cn('mt-2 text-[11px] font-semibold', pieceManualPriceErrors[piece.id] ? 'text-red-600' : 'text-slate-500')}>
+                          {pieceManualPriceErrors[piece.id] || ((piece.pricingMode || 'automatic') === 'manual'
+                            ? 'Esse valor manual substitui o cálculo automático desta peça.'
+                            : 'Ative o modo manual para digitar um valor personalizado para esta peça.')}
+                        </div>
                       </div>
                     </div>
                   </div>

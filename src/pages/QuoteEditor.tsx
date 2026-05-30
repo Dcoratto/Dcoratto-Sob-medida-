@@ -746,13 +746,21 @@ export const QuoteEditor: React.FC = () => {
   const handlePieceMeasureInputChange = (pieceId: string, field: 'length' | 'width', value: string) => {
     const key = pieceMeasureInputKey(pieceId, field);
     setPieceMeasureInputs((current) => ({...current, [key]: value}));
+    const parsedValue = parseMeasureInput(value);
+    updatePiece(pieceId, {
+      [field]: parsedValue,
+      manualArea: undefined,
+    } as Partial<QuotePiece>);
   };
 
   const handlePieceMeasureInputBlur = (piece: QuotePiece, field: 'length' | 'width') => {
     const key = pieceMeasureInputKey(piece.id, field);
     const rawValue = pieceMeasureInputs[key] || '';
     const parsedValue = parseMeasureInput(rawValue);
-    updatePiece(piece.id, {[field]: parsedValue} as Partial<QuotePiece>);
+    updatePiece(piece.id, {
+      [field]: parsedValue,
+      manualArea: undefined,
+    } as Partial<QuotePiece>);
     setPieceMeasureInputs((current) => ({...current, [key]: formatMeasureInput(parsedValue)}));
     setActivePieceMeasureInput((current) => (current === key ? null : current));
   };

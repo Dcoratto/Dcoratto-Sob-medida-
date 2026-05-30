@@ -243,6 +243,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const [fixturePickerOpen, setFixturePickerOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showPiecesPanel, setShowPiecesPanel] = useState(false);
+  const [sideLengthInputs, setSideLengthInputs] = useState<Record<string, string>>({});
+  const [activeSideLengthInput, setActiveSideLengthInput] = useState<string | null>(null);
 
   const activateCutoutTool = () => {
     setDrawTool('cutout');
@@ -282,6 +284,17 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       };
     });
   }, [closed, drawPoints]);
+
+  useEffect(() => {
+    setSideLengthInputs((current) => {
+      const next = {...current};
+      technicalSides.forEach((side) => {
+        if (activeSideLengthInput === side.key) return;
+        next[side.key] = formatMeasureInput(side.lengthM);
+      });
+      return next;
+    });
+  }, [activeSideLengthInput, technicalSides]);
 
   const area = useMemo(() => closed ?polygonArea(drawPoints) : 0, [closed, drawPoints]);
   const majorSideM = useMemo(() => Math.max(0, ...technicalSides.map((side) => side.lengthM)), [technicalSides]);
@@ -893,6 +906,22 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     const uy = (side.end.y - side.start.y) / currentLength;
     const newEnd = {x: side.start.x + ux * lengthM, y: side.start.y + uy * lengthM};
     setDrawPoints((current) => current.map((point, pointIndex) => pointIndex === (index + 1) % current.length ?newEnd : point));
+  };
+
+  const handleSideLengthFocus = (sideKey: string, value: number) => {
+    setActiveSideLengthInput(sideKey);
+    setSideLengthInputs((current) => ({...current, [sideKey]: formatMeasureInput(value)}));
+  };
+
+  const handleSideLengthChange = (sideKey: string, value: string) => {
+    setSideLengthInputs((current) => ({...current, [sideKey]: value}));
+  };
+
+  const handleSideLengthBlur = (index: number, sideKey: string) => {
+    const parsed = parseMeasureInput(sideLengthInputs[sideKey] || '');
+    editSideLength(index, parsed);
+    setSideLengthInputs((current) => ({...current, [sideKey]: formatMeasureInput(parsed)}));
+    setActiveSideLengthInput((current) => (current === sideKey ? null : current));
   };
 
   const generatePreview = useCallback(() => {
@@ -1554,11 +1583,12 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           >
             <span className="text-[10px] font-bold text-slate-700">{side.name}</span>
             <input
-              key={`${side.key}-${formatMeasureInput(side.lengthM)}`}
               type="text"
               inputMode="decimal"
-              defaultValue={formatMeasureInput(side.lengthM)}
-              onBlur={(event) => editSideLength(index, parseMeasureInput(event.target.value))}
+              value={sideLengthInputs[side.key] || formatMeasureInput(side.lengthM)}
+              onFocus={() => handleSideLengthFocus(side.key, side.lengthM)}
+              onChange={(event) => handleSideLengthChange(side.key, event.target.value)}
+              onBlur={() => handleSideLengthBlur(index, side.key)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') {
                   event.currentTarget.blur();
@@ -1600,8 +1630,10 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                         <input
                           type="text"
                           inputMode="decimal"
-                          value={formatMeasureInput(side.lengthM)}
-                          onChange={(event) => editSideLength(index, parseMeasureInput(event.target.value))}
+                          value={sideLengthInputs[side.key] || formatMeasureInput(side.lengthM)}
+                          onFocus={() => handleSideLengthFocus(side.key, side.lengthM)}
+                          onChange={(event) => handleSideLengthChange(side.key, event.target.value)}
+                          onBlur={() => handleSideLengthBlur(index, side.key)}
                           className="w-24 rounded-lg border border-slate-200 px-2 py-1 font-mono text-sm"
                         /> m
                       </td>

@@ -71,6 +71,8 @@ const inputValuesFromPieceManualPrices = (pieces?: QuotePiece[]) =>
     return acc;
   }, {} as Record<string, string>);
 
+const pieceMeasureInputKey = (pieceId: string, field: 'length' | 'width') => `${pieceId}:${field}`;
+
 const normalizeStockStatus = (value: unknown) =>
   String(value || '')
     .toLowerCase()
@@ -140,6 +142,8 @@ export const QuoteEditor: React.FC = () => {
   const [pieces, setPieces] = useState<QuotePiece[]>([]);
   const [materialCustomPriceInputs, setMaterialCustomPriceInputs] = useState<Record<string, string>>({});
   const [pieceManualPriceInputs, setPieceManualPriceInputs] = useState<Record<string, string>>({});
+  const [pieceMeasureInputs, setPieceMeasureInputs] = useState<Record<string, string>>({});
+  const [activePieceMeasureInput, setActivePieceMeasureInput] = useState<string | null>(null);
   const [cutouts, setCutouts] = useState<QuoteCutoutState>({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
   const [showDrawing, setShowDrawing] = useState<string | null>(null);
   const [employeeAssignments, setEmployeeAssignments] = useState<EmployeeAssignment[]>([]);
@@ -366,6 +370,7 @@ export const QuoteEditor: React.FC = () => {
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
       includeLabor: quotePricingMode !== 'cost',
+      includeMaterialLoss: quotePricingMode !== 'cost',
       resolveManualPiecePrice: (piece) => {
         if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
         const parsed = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
@@ -632,6 +637,10 @@ export const QuoteEditor: React.FC = () => {
   }, [currentUserName, id, responsible]);
 
   useEffect(() => {
+    syncPieceMeasureInputs(pieces);
+  }, [activePieceMeasureInput, pieces]);
+
+  useEffect(() => {
     if (paymentMode === 'total') {
       setPaymentMethod(totalPaymentMethod);
       return;
@@ -706,6 +715,40 @@ export const QuoteEditor: React.FC = () => {
       if (parsed.status !== 'valid' || typeof parsed.value !== 'number') return current;
       return {...current, [pieceId]: formatPriceInputValue(parsed.value)};
     });
+  };
+
+  const syncPieceMeasureInputs = (sourcePieces: QuotePiece[]) => {
+    setPieceMeasureInputs((current) => {
+      const next = {...current};
+      sourcePieces.forEach((piece) => {
+        (['length', 'width'] as const).forEach((field) => {
+          const key = pieceMeasureInputKey(piece.id, field);
+          if (activePieceMeasureInput === key) return;
+          next[key] = formatMeasureInput(piece[field] || 0);
+        });
+      });
+      return next;
+    });
+  };
+
+  const handlePieceMeasureInputFocus = (pieceId: string, field: 'length' | 'width', value: number) => {
+    const key = pieceMeasureInputKey(pieceId, field);
+    setActivePieceMeasureInput(key);
+    setPieceMeasureInputs((current) => ({...current, [key]: formatMeasureInput(value || 0)}));
+  };
+
+  const handlePieceMeasureInputChange = (pieceId: string, field: 'length' | 'width', value: string) => {
+    const key = pieceMeasureInputKey(pieceId, field);
+    setPieceMeasureInputs((current) => ({...current, [key]: value}));
+  };
+
+  const handlePieceMeasureInputBlur = (piece: QuotePiece, field: 'length' | 'width') => {
+    const key = pieceMeasureInputKey(piece.id, field);
+    const rawValue = pieceMeasureInputs[key] || '';
+    const parsedValue = parseMeasureInput(rawValue);
+    updatePiece(piece.id, {[field]: parsedValue} as Partial<QuotePiece>);
+    setPieceMeasureInputs((current) => ({...current, [key]: formatMeasureInput(parsedValue)}));
+    setActivePieceMeasureInput((current) => (current === key ? null : current));
   };
 
   useEffect(() => {
@@ -824,6 +867,12 @@ export const QuoteEditor: React.FC = () => {
       delete next[id];
       return next;
     });
+    setPieceMeasureInputs((current) => {
+      const next = {...current};
+      delete next[pieceMeasureInputKey(id, 'length')];
+      delete next[pieceMeasureInputKey(id, 'width')];
+      return next;
+    });
   };
 
   const updatePiece = (id: string, data: Partial<QuotePiece>) => {
@@ -875,6 +924,7 @@ export const QuoteEditor: React.FC = () => {
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
       includeLabor: quotePricingMode !== 'cost',
+      includeMaterialLoss: quotePricingMode !== 'cost',
       resolveManualPiecePrice: (piece) => {
         if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
         const parsed = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
@@ -1879,8 +1929,10 @@ export const QuoteEditor: React.FC = () => {
                         <input
                           type="text"
                           inputMode="decimal"
-                          value={formatMeasureInput(piece.length)}
-                          onChange={(e) => updatePiece(piece.id, { length: parseMeasureInput(e.target.value) })}
+                          value={pieceMeasureInputs[pieceMeasureInputKey(piece.id, 'length')] || formatMeasureInput(piece.length)}
+                          onFocus={() => handlePieceMeasureInputFocus(piece.id, 'length', piece.length)}
+                          onChange={(e) => handlePieceMeasureInputChange(piece.id, 'length', e.target.value)}
+                          onBlur={() => handlePieceMeasureInputBlur(piece, 'length')}
                           className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
                         />
                       </div>
@@ -1891,8 +1943,10 @@ export const QuoteEditor: React.FC = () => {
                         <input
                           type="text"
                           inputMode="decimal"
-                          value={formatMeasureInput(piece.width)}
-                          onChange={(e) => updatePiece(piece.id, { width: parseMeasureInput(e.target.value) })}
+                          value={pieceMeasureInputs[pieceMeasureInputKey(piece.id, 'width')] || formatMeasureInput(piece.width)}
+                          onFocus={() => handlePieceMeasureInputFocus(piece.id, 'width', piece.width)}
+                          onChange={(e) => handlePieceMeasureInputChange(piece.id, 'width', e.target.value)}
+                          onBlur={() => handlePieceMeasureInputBlur(piece, 'width')}
                           className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
                         />
                       </div>

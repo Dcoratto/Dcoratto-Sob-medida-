@@ -116,6 +116,7 @@ export const buildPiecePricingBreakdowns = ({
   calculatePieceArea,
   resolveMaterialPricePerM2,
   includeLabor = true,
+  includeMaterialLoss = true,
   resolveManualPiecePrice,
 }: {
   pieces: QuotePiece[];
@@ -125,6 +126,7 @@ export const buildPiecePricingBreakdowns = ({
   calculatePieceArea: (piece: QuotePiece) => {totalArea: number; lossArea?: number; sinkAdditionalValue?: number};
   resolveMaterialPricePerM2: (piece: QuotePiece) => number;
   includeLabor?: boolean;
+  includeMaterialLoss?: boolean;
   resolveManualPiecePrice?: (piece: QuotePiece) => number | undefined;
 }) => {
   const breakdowns = pieces.map((piece) => {
@@ -132,7 +134,7 @@ export const buildPiecePricingBreakdowns = ({
     const cutoutSummary = buildPieceCutoutSummary({piece, pieces, quoteCutouts, settings});
     const materialPricePerM2 = resolveMaterialPricePerM2(piece);
     const stoneBaseValue = roundCurrency((totals.totalArea || 0) * materialPricePerM2);
-    const materialLossValue = roundCurrency((totals.lossArea || 0) * materialPricePerM2);
+    const materialLossValue = includeMaterialLoss ? roundCurrency((totals.lossArea || 0) * materialPricePerM2) : 0;
     const stoneWithLossValue = roundCurrency(stoneBaseValue + materialLossValue);
     const laborValue = includeLabor ? calculatePieceLaborValue(piece, settings.laborRatePerLinearMeter) : 0;
     const sinkAdditionalValue = roundCurrency(totals.sinkAdditionalValue || 0);

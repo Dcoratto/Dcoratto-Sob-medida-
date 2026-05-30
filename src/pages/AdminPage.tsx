@@ -975,7 +975,15 @@ export const AdminPage: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
           {materials.map((material) => (
             <div key={material.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-              {imageVariantUrl(material, 'thumbnail') && <img src={imageVariantUrl(material, 'thumbnail')} alt={material.name} loading="lazy" decoding="async" className="mb-3 h-28 w-full rounded-xl object-cover" />}
+              {imageVariantUrl(material, 'medium') && (
+                <img
+                  src={imageVariantUrl(material, 'medium')}
+                  alt={material.name}
+                  loading="lazy"
+                  decoding="async"
+                  className="mb-3 h-28 w-full rounded-xl object-cover"
+                />
+              )}
               <div className="flex items-start justify-between gap-2">
                 <div>
                   <div className="font-bold text-slate-900">{material.name}</div>

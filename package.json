@@ -17,6 +17,25 @@
     "storage:generate-variants": "node scripts/generate-storage-image-variants.mjs",
     "reset:supabase-users": "node scripts/reset-supabase-users.mjs"
   },
+  "build": {
+    "appId": "br.com.dcoratto.sobmedida",
+    "productName": "D'Coratto Sob Medida",
+    "directories": {
+      "buildResources": "assets"
+    },
+    "files": [
+      "dist/**/*"
+    ],
+    "win": {
+      "icon": "assets/logo.ico"
+    },
+    "mac": {
+      "icon": "assets/logo.png"
+    },
+    "linux": {
+      "icon": "assets/logo.png"
+    }
+  },
   "dependencies": {
     "@google/genai": "^1.29.0",
     "@hookform/resolvers": "^5.2.2",

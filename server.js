@@ -8,6 +8,33 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const port = Number(process.env.PORT) || 3000;
 const distDir = path.join(__dirname, 'dist');
+const allowedOrigins = String(process.env.CORS_ORIGIN || process.env.APP_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  const originAllowed = origin && (allowedOrigins.includes('*') || allowedOrigins.includes(origin));
+
+  if (originAllowed) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  }
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).end();
+    return;
+  }
+
+  next();
+});
+
+app.get('/healthz', (_req, res) => {
+  res.status(200).send('ok');
+});
 
 app.get('/api/calendar-feed', (req, res) => {
   calendarFeedHandler(req, res);

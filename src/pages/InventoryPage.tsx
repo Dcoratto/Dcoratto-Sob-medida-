@@ -5,7 +5,7 @@ import {useNavigate} from 'react-router-dom';
 import {db} from '../lib/firestore';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote, SystemEvent} from '../types';
-import {cn, formatArea, formatCentimeters, formatCurrency, formatNumber} from '../lib/utils';
+import {cn, formatArea, formatCentimeters, formatCurrency, formatNumber, parseFlexibleNumberInput} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
 import {useSettings} from '../hooks/useSettings';
@@ -17,6 +17,7 @@ import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {validateInventoryItemPayload, validatePurchaseSlabs} from '../lib/businessRules';
+import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
 
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
@@ -560,8 +561,8 @@ export const InventoryPage: React.FC = () => {
   };
 
   const updatePurchaseQuantity = (value: string) => {
-    const quantity = Math.max(1, Number(value) || 1);
-    setPurchaseQuantity(String(quantity));
+    const quantity = Math.max(1, Math.floor(parseFlexibleNumberInput(value)) || 1);
+    setPurchaseQuantity(value);
     setPurchaseSlabs((prev) => Array.from({length: quantity}, (_, index) => prev[index] || emptyPurchaseSlab()));
   };
 
@@ -618,9 +619,12 @@ export const InventoryPage: React.FC = () => {
       return;
     }
 
-    const area = (Number(length) * Number(width)) / 10000;
-    const totalCost = Number(cost);
-    const minimumSale = Number(minimumSalePrice || cost);
+    const parsedLength = parseFlexibleNumberInput(length);
+    const parsedWidth = parseFlexibleNumberInput(width);
+    const parsedThickness = parseThicknessValue(thicknessLabel) || parseFlexibleNumberInput(thickness);
+    const totalCost = parseFlexibleNumberInput(cost);
+    const minimumSale = parseFlexibleNumberInput(minimumSalePrice || cost);
+    const area = (parsedLength * parsedWidth) / 10000;
     const inventoryRef = editingItem ?doc(db, 'inventory', editingItem.id) : doc(collection(db, 'inventory'));
     const materialId = selectedMaterialId;
     const selectedMaterial = materials.find((material) => material.id === materialId);
@@ -645,9 +649,9 @@ export const InventoryPage: React.FC = () => {
       materialType: materialType.trim(),
       thicknessLabel: thicknessLabel.trim(),
       texture: texture.trim(),
-      length: Number(length),
-      width: Number(width),
-      thickness: parseThicknessValue(thicknessLabel) || Number(thickness),
+      length: parsedLength,
+      width: parsedWidth,
+      thickness: parsedThickness,
       area,
       cost: totalCost,
       minimumSalePrice: minimumSale,
@@ -659,8 +663,8 @@ export const InventoryPage: React.FC = () => {
     const validationError = validateInventoryItemPayload({
       selectedMaterialId,
       code,
-      length: Number(length),
-      width: Number(width),
+      length: parsedLength,
+      width: parsedWidth,
       cost: totalCost,
       minimumSalePrice: minimumSale,
     }, items, editingItem?.id);
@@ -816,7 +820,7 @@ export const InventoryPage: React.FC = () => {
     }
     const selectedMaterial = materials.find((material) => material.id === purchaseMaterialId);
     const selectedMaterialName = selectedMaterial?.name || purchaseMaterialName.trim();
-    const quantity = Math.max(1, Number(purchaseQuantity) || 1);
+    const quantity = Math.max(1, Math.floor(parseFlexibleNumberInput(purchaseQuantity)) || 1);
     const slabs = purchaseMeasureMode === 'same'
       ? Array.from({length: quantity}, (_, index) => ({
         code: quantity > 1 && purchaseCode.trim() ?`${purchaseCode.trim()}-${index + 1}` : purchaseCode.trim(),
@@ -845,7 +849,12 @@ export const InventoryPage: React.FC = () => {
 
     const purchaseGroupId = doc(collection(db, 'inventoryPurchases')).id;
     const createdPurchases = await Promise.all(slabs.map((slab, index) => {
-      const area = (Number(slab.length) * Number(slab.width)) / 10000;
+      const slabLength = parseFlexibleNumberInput(slab.length);
+      const slabWidth = parseFlexibleNumberInput(slab.width);
+      const slabThickness = parseThicknessValue(purchaseThicknessLabel || slab.thickness) || parseFlexibleNumberInput(slab.thickness);
+      const slabCost = parseFlexibleNumberInput(slab.cost);
+      const slabMinimumSalePrice = parseFlexibleNumberInput(slab.minimumSalePrice || slab.cost);
+      const area = (slabLength * slabWidth) / 10000;
       return addDoc(collection(db, 'inventoryPurchases'), {
         materialId: purchaseMaterialId,
         materialName: selectedMaterialName,
@@ -856,12 +865,12 @@ export const InventoryPage: React.FC = () => {
         materialType: purchaseMaterialType.trim(),
         thicknessLabel: purchaseThicknessLabel.trim() || slab.thickness,
         texture: purchaseTexture.trim(),
-        length: Number(slab.length),
-        width: Number(slab.width),
-        thickness: parseThicknessValue(purchaseThicknessLabel || slab.thickness) || Number(slab.thickness),
+        length: slabLength,
+        width: slabWidth,
+        thickness: slabThickness,
         area,
-        cost: Number(slab.cost),
-        minimumSalePrice: Number(slab.minimumSalePrice || slab.cost),
+        cost: slabCost,
+        minimumSalePrice: slabMinimumSalePrice,
         photoUrl: selectedMaterial?.imageUrl || '',
         thumbnailUrl: selectedMaterial?.thumbnailUrl || '',
         mediumUrl: selectedMaterial?.mediumUrl || '',
@@ -878,9 +887,9 @@ export const InventoryPage: React.FC = () => {
         purchasedAt: serverTimestamp(),
       });
     }));
-    const totalArea = slabs.reduce((acc, slab) => acc + (Number(slab.length) * Number(slab.width)) / 10000, 0);
-    const totalCost = slabs.reduce((acc, slab) => acc + Number(slab.cost), 0);
-    const totalMinimumSale = slabs.reduce((acc, slab) => acc + Number(slab.minimumSalePrice || slab.cost), 0);
+    const totalArea = slabs.reduce((acc, slab) => acc + (parseFlexibleNumberInput(slab.length) * parseFlexibleNumberInput(slab.width)) / 10000, 0);
+    const totalCost = slabs.reduce((acc, slab) => acc + parseFlexibleNumberInput(slab.cost), 0);
+    const totalMinimumSale = slabs.reduce((acc, slab) => acc + parseFlexibleNumberInput(slab.minimumSalePrice || slab.cost), 0);
     await upsertPurchaseCalendarEvent(purchaseGroupId, {
       supplier: purchaseProvider.trim(),
       materialName: selectedMaterialName,
@@ -1245,14 +1254,14 @@ export const InventoryPage: React.FC = () => {
   const selectedPurchaseSupplier = findSupplier(purchaseProvider);
   const selectedInventoryMaterial = materials.find((material) => material.id === selectedMaterialId);
   const selectedInventorySupplier = findSupplier(provider);
-  const purchaseQuantityNumber = Math.max(1, Number(purchaseQuantity) || 1);
+  const purchaseQuantityNumber = Math.max(1, Math.floor(parseFlexibleNumberInput(purchaseQuantity)) || 1);
   const purchaseSlabRows = purchaseSlabs.slice(0, purchaseQuantityNumber);
   const purchasePreviewSlabs = purchaseMeasureMode === 'same'
     ? Array.from({length: purchaseQuantityNumber}, () => ({length: purchaseLength, width: purchaseWidth, cost: purchaseCost, minimumSalePrice: purchaseMinimumSalePrice || purchaseCost}))
     : purchaseSlabRows;
-  const purchaseTotalArea = purchasePreviewSlabs.reduce((acc, slab) => acc + ((Number(slab.length) * Number(slab.width)) / 10000), 0);
-  const purchaseTotalCost = purchasePreviewSlabs.reduce((acc, slab) => acc + Number(slab.cost || 0), 0);
-  const purchaseTotalMinimumSale = purchasePreviewSlabs.reduce((acc, slab) => acc + Number(slab.minimumSalePrice || slab.cost || 0), 0);
+  const purchaseTotalArea = purchasePreviewSlabs.reduce((acc, slab) => acc + ((parseFlexibleNumberInput(slab.length) * parseFlexibleNumberInput(slab.width)) / 10000), 0);
+  const purchaseTotalCost = purchasePreviewSlabs.reduce((acc, slab) => acc + parseFlexibleNumberInput(slab.cost || 0), 0);
+  const purchaseTotalMinimumSale = purchasePreviewSlabs.reduce((acc, slab) => acc + parseFlexibleNumberInput(slab.minimumSalePrice || slab.cost || 0), 0);
 
   useEffect(() => {
     setPatioDraftLayout(persistedPatioLayout);
@@ -2422,7 +2431,7 @@ export const InventoryPage: React.FC = () => {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Quantidade de chapas</label>
-                  <input type="number" min="1" required value={purchaseQuantity} onChange={(e) => updatePurchaseQuantity(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                  <NumericInput min="1" required value={purchaseQuantity} onValueChange={(_, rawValue) => updatePurchaseQuantity(rawValue)} decimals={0} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Fornecedor</label>
@@ -2511,14 +2520,14 @@ export const InventoryPage: React.FC = () => {
                   <div className="md:col-span-2 rounded-3xl border border-slate-100 bg-slate-50 p-4">
                     <div className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">Medida usada em todas as chapas</div>
                     <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-                      <input type="number" required value={purchaseLength} onChange={(e) => setPurchaseLength(e.target.value)} placeholder="Comprimento (cm)" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
-                      <input type="number" required value={purchaseWidth} onChange={(e) => setPurchaseWidth(e.target.value)} placeholder="Largura (cm)" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                      <NumericInput required value={purchaseLength} onValueChange={(_, rawValue) => setPurchaseLength(rawValue)} placeholder="Comprimento (cm)" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                      <NumericInput required value={purchaseWidth} onValueChange={(_, rawValue) => setPurchaseWidth(rawValue)} placeholder="Largura (cm)" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                       <select value={purchaseThicknessLabel} onChange={(e) => { setPurchaseThicknessLabel(e.target.value); setPurchaseThickness(String(parseThicknessValue(e.target.value))); }} className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
                         <option value="">Espessura</option>
                         {purchaseThicknessOptions.map((option) => <option key={option} value={option}>{option}</option>)}
                       </select>
-                      <input type="number" step="0.01" required value={purchaseCost} onChange={(e) => setPurchaseCost(e.target.value)} placeholder="Compra por chapa" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
-                      <input type="number" step="0.01" required value={purchaseMinimumSalePrice} onChange={(e) => setPurchaseMinimumSalePrice(e.target.value)} placeholder="Mínimo de venda" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                      <CurrencyInput required value={purchaseCost} onValueChange={(_, rawValue) => setPurchaseCost(rawValue)} placeholder="Compra por chapa" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                      <CurrencyInput required value={purchaseMinimumSalePrice} onValueChange={(_, rawValue) => setPurchaseMinimumSalePrice(rawValue)} placeholder="Mínimo de venda" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                     </div>
                   </div>
                 ) : (
@@ -2528,11 +2537,11 @@ export const InventoryPage: React.FC = () => {
                         <div className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">Chapa {index + 1}</div>
                         <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
                           <input type="text" value={slab.code} onChange={(e) => updatePurchaseSlab(index, 'code', e.target.value)} placeholder={`Lote ${index + 1}`} className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium" />
-                          <input type="number" required value={slab.length} onChange={(e) => updatePurchaseSlab(index, 'length', e.target.value)} placeholder="Comprimento" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
-                          <input type="number" required value={slab.width} onChange={(e) => updatePurchaseSlab(index, 'width', e.target.value)} placeholder="Largura" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
-                          <input type="number" value={slab.thickness} onChange={(e) => updatePurchaseSlab(index, 'thickness', e.target.value)} placeholder="Espessura" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
-                          <input type="number" step="0.01" required value={slab.cost} onChange={(e) => updatePurchaseSlab(index, 'cost', e.target.value)} placeholder="Compra" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
-                          <input type="number" step="0.01" required value={slab.minimumSalePrice} onChange={(e) => updatePurchaseSlab(index, 'minimumSalePrice', e.target.value)} placeholder="Venda mín." className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                          <NumericInput required value={slab.length} onValueChange={(_, rawValue) => updatePurchaseSlab(index, 'length', rawValue)} placeholder="Comprimento" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                          <NumericInput required value={slab.width} onValueChange={(_, rawValue) => updatePurchaseSlab(index, 'width', rawValue)} placeholder="Largura" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                          <NumericInput value={slab.thickness} onValueChange={(_, rawValue) => updatePurchaseSlab(index, 'thickness', rawValue)} placeholder="Espessura" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                          <CurrencyInput required value={slab.cost} onValueChange={(_, rawValue) => updatePurchaseSlab(index, 'cost', rawValue)} placeholder="Compra" className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                          <CurrencyInput required value={slab.minimumSalePrice} onValueChange={(_, rawValue) => updatePurchaseSlab(index, 'minimumSalePrice', rawValue)} placeholder="Venda mín." className="bg-white border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                         </div>
                       </div>
                     ))}
@@ -2672,11 +2681,11 @@ export const InventoryPage: React.FC = () => {
                 <div className="grid grid-cols-3 gap-2 md:col-span-2">
                   <div className="space-y-1.5">
                     <label className="text-slate-500 font-medium text-xs">Comprimento (cm)</label>
-                    <input type="number" required value={length} onChange={(e) => setLength(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                    <NumericInput required value={length} onValueChange={(_, rawValue) => setLength(rawValue)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-slate-500 font-medium text-xs">Largura (cm)</label>
-                    <input type="number" required value={width} onChange={(e) => setWidth(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                    <NumericInput required value={width} onValueChange={(_, rawValue) => setWidth(rawValue)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-slate-500 font-medium text-xs">Espessura</label>
@@ -2688,11 +2697,11 @@ export const InventoryPage: React.FC = () => {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Valor de compra da chapa</label>
-                  <input type="number" step="0.01" required value={cost} onChange={(e) => setCost(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                  <CurrencyInput required value={cost} onValueChange={(_, rawValue) => setCost(rawValue)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Valor mínimo de venda</label>
-                  <input type="number" step="0.01" required value={minimumSalePrice} onChange={(e) => setMinimumSalePrice(e.target.value)} placeholder="Mínimo para vender esta chapa" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
+                  <CurrencyInput required value={minimumSalePrice} onValueChange={(_, rawValue) => setMinimumSalePrice(rawValue)} placeholder="Mínimo para vender esta chapa" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono" />
                 </div>
                 <div className="space-y-1.5 md:col-span-2">
                   <label className="text-slate-500 font-medium text-sm">Imagem da pedra</label>

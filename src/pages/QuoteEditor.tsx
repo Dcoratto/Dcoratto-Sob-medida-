@@ -28,6 +28,7 @@ import {getInventoryItemArea} from '../lib/inventoryMetrics';
 import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {LABELS} from '../constants/labels';
 import {imageVariantUrl} from '../lib/storage';
+import {NumericInput} from '../components/inputs/NumericInput';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 
@@ -1415,19 +1416,19 @@ export const QuoteEditor: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Prazo (dias)</label>
-                <input
-                  type="number"
+                <NumericInput
                   value={deliveryDays}
-                  onChange={(e) => setDeliveryDays(Number(e.target.value))}
+                  onValueChange={(value) => setDeliveryDays(value)}
+                  decimals={0}
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
                 />
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Validade (dias)</label>
-                <input
-                  type="number"
+                <NumericInput
                   value={validityDays}
-                  onChange={(e) => setValidityDays(Number(e.target.value))}
+                  onValueChange={(value) => setValidityDays(value)}
+                  decimals={0}
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
                 />
               </div>
@@ -1882,34 +1883,34 @@ export const QuoteEditor: React.FC = () => {
                           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                             <label className="space-y-1">
                               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Qtd. degraus</span>
-                              <input type="number" min="0" value={piece.stair.stepCount} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, stepCount: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                              <NumericInput min="0" value={piece.stair.stepCount} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, stepCount: value}})} decimals={0} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
                             </label>
                             <label className="space-y-1">
                               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura degrau</span>
-                              <input type="number" min="0" value={piece.stair.stepWidth} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, stepWidth: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                              <NumericInput min="0" value={piece.stair.stepWidth} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, stepWidth: value}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
                             </label>
                             <label className="space-y-1">
                               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Profundidade piso</span>
-                              <input type="number" min="0" value={piece.stair.treadDepth} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, treadDepth: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                              <NumericInput min="0" value={piece.stair.treadDepth} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, treadDepth: value}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
                             </label>
                             <label className="space-y-1">
                               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Altura espelho</span>
-                              <input type="number" min="0" value={piece.stair.riserHeight} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, riserHeight: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                              <NumericInput min="0" value={piece.stair.riserHeight} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, riserHeight: value}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
                             </label>
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                             <label className="space-y-1">
                               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Qtd. patamares</span>
-                              <input type="number" min="0" value={piece.stair.landingCount} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, landingCount: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                              <NumericInput min="0" value={piece.stair.landingCount} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, landingCount: value}})} decimals={0} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
                             </label>
                             <label className="space-y-1">
                               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura patamar</span>
-                              <input type="number" min="0" value={piece.stair.landingWidth} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, landingWidth: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                              <NumericInput min="0" value={piece.stair.landingWidth} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, landingWidth: value}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
                             </label>
                             <label className="space-y-1">
                               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Profundidade patamar</span>
-                              <input type="number" min="0" value={piece.stair.landingDepth} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, landingDepth: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                              <NumericInput min="0" value={piece.stair.landingDepth} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, landingDepth: value}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
                             </label>
                           </div>
 
@@ -1924,7 +1925,7 @@ export const QuoteEditor: React.FC = () => {
                             </label>
                             <label className="space-y-1">
                               <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Altura rodapé</span>
-                              <input type="number" min="0" value={piece.stair.baseboardHeight} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, baseboardHeight: Number(e.target.value)}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
+                              <NumericInput min="0" value={piece.stair.baseboardHeight} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, baseboardHeight: value}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
                             </label>
                           </div>
 
@@ -2117,11 +2118,11 @@ export const QuoteEditor: React.FC = () => {
                           </div>
                           <div className="space-y-1">
                             <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Quantidade</label>
-                            <input 
-                              type="number" 
+                            <NumericInput
                               min="1"
                               value={piece.sculptedSink.quantity}
-                              onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, quantity: Math.max(1, Number(e.target.value)) } })}
+                              onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, quantity: value } })}
+                              decimals={0}
                               className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none"
                             />
                           </div>
@@ -2141,28 +2142,25 @@ export const QuoteEditor: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="space-y-1">
                             <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura Cuba ({piece.sculptedSink.unit})</label>
-                            <input 
-                              type="number" 
+                            <NumericInput
                               value={piece.sculptedSink.width}
-                              onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, width: Number(e.target.value) } })}
+                              onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, width: value } })}
                               className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none"
                             />
                           </div>
                           <div className="space-y-1">
                             <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Profundidade Cuba ({piece.sculptedSink.unit})</label>
-                            <input 
-                              type="number" 
+                            <NumericInput
                               value={piece.sculptedSink.depth}
-                              onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, depth: Number(e.target.value) } })}
+                              onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, depth: value } })}
                               className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none"
                             />
                           </div>
                           <div className="space-y-1">
                             <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Altura Interna ({piece.sculptedSink.unit})</label>
-                            <input 
-                              type="number" 
+                            <NumericInput
                               value={piece.sculptedSink.height}
-                              onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, height: Number(e.target.value) } })}
+                              onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, height: value } })}
                               className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none"
                             />
                           </div>
@@ -2253,11 +2251,11 @@ export const QuoteEditor: React.FC = () => {
                           </div>
                           <div className="space-y-1">
                             <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura ({piece.wetAreaRecess.unit})</label>
-                            <input type="number" value={piece.wetAreaRecess.width} onChange={(e) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, width: Number(e.target.value) } })} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none" />
+                            <NumericInput value={piece.wetAreaRecess.width} onValueChange={(value) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, width: value } })} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none" />
                           </div>
                           <div className="space-y-1">
                             <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Profundidade ({piece.wetAreaRecess.unit})</label>
-                            <input type="number" value={piece.wetAreaRecess.depth} onChange={(e) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, depth: Number(e.target.value) } })} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none" />
+                            <NumericInput value={piece.wetAreaRecess.depth} onValueChange={(value) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, depth: value } })} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none" />
                           </div>
                           <div className="space-y-1">
                             <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Unidade</label>
@@ -2363,12 +2361,11 @@ export const QuoteEditor: React.FC = () => {
                           </div>
                           <div className="space-y-1 sm:w-16">
                             <span className="text-[10px] text-slate-400 font-bold uppercase">{sideDimensionLabel(side.type)}</span>
-                            <input 
-                              type="number" 
+                            <NumericInput
                               value={side.height}
-                              onChange={(e) => {
+                              onValueChange={(value) => {
                                 const newSides = [...piece.sides];
-                                newSides[sIdx].height = Number(e.target.value);
+                                newSides[sIdx].height = value;
                                 updatePiece(piece.id, { sides: newSides });
                               }}
                               className="w-full bg-white border border-slate-200 rounded-lg text-xs p-1 text-center"

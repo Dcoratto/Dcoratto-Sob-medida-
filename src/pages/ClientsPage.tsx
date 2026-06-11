@@ -4,7 +4,7 @@ import {Banknote, CheckCircle2, ClipboardList, Edit2, FileText, FileUp, Info, Ma
 import {db} from '../lib/firestore';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Client, CondominiumRule, Employee, EmployeeAssignment, EmployeeEvaluation, FixtureCatalogItem, FixtureCategory, FixtureInfo, InventoryItem, LegacyClientPiece, LegacyPaymentInstallment, LegacyPaymentStatus, Material, ProductionStep, Quote, QuotePiece, QuoteStatus} from '../types';
-import {cn, formatArea, formatCentimeters, formatCurrency, formatCurrencyInput, parseCurrencyInput, repairText} from '../lib/utils';
+import {cn, formatArea, formatCentimeters, formatCurrency, repairText} from '../lib/utils';
 import {applyQuoteInventoryByStatusTransition, isApprovedOrBeyond, syncQuoteReservation} from '../lib/inventoryReservations';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
@@ -18,6 +18,7 @@ import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {validateClientPayload} from '../lib/businessRules';
+import {CurrencyInput} from '../components/inputs/NumericInput';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -2425,9 +2426,9 @@ export const ClientsPage: React.FC = () => {
                             </div>
                             <div className="space-y-1.5">
                               <label className="text-slate-500 font-medium text-sm">Valor da peça</label>
-                              <input
-                                value={canViewClientValues ? formatCurrencyInput(piece.value || 0) : hiddenClientValueLabel}
-                                onChange={(e) => updateLegacyPiece(piece.id, {value: parseCurrencyInput(e.target.value)})}
+                              <CurrencyInput
+                                value={canViewClientValues ? piece.value || 0 : hiddenClientValueLabel}
+                                onValueChange={(value) => updateLegacyPiece(piece.id, {value})}
                                 placeholder="R$ 0,00"
                                 disabled={!canViewClientValues}
                                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium disabled:cursor-not-allowed disabled:bg-slate-100"
@@ -2488,9 +2489,9 @@ export const ClientsPage: React.FC = () => {
                               <FormField label="Nome da parcela" value={payment.label} onChange={(value) => updateLegacyPayment(payment.id, {label: value})} />
                               <div className="space-y-1.5">
                                 <label className="text-slate-500 font-medium text-sm">Valor</label>
-                                <input
-                                  value={formatCurrencyInput(payment.amount || 0)}
-                                  onChange={(e) => updateLegacyPayment(payment.id, {amount: parseCurrencyInput(e.target.value)})}
+                                <CurrencyInput
+                                  value={payment.amount || 0}
+                                  onValueChange={(value) => updateLegacyPayment(payment.id, {amount: value})}
                                   placeholder="R$ 0,00"
                                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                                 />

@@ -10,6 +10,7 @@ import { CondominiumRule, SupplierContact } from '../types';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
+import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
 
 export const SettingsPage: React.FC = () => {
   const { settings: currentSettings, loading } = useSettings();
@@ -488,19 +489,18 @@ export const SettingsPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-slate-500 font-medium">Mao de obra (m linear)</label>
-                <input
-                  type="number"
+                <CurrencyInput
                   value={settings.laborRatePerLinearMeter}
-                  onChange={(e) => setSettings({ ...settings, laborRatePerLinearMeter: Number(e.target.value) })}
+                  onValueChange={(value) => setSettings({ ...settings, laborRatePerLinearMeter: value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-slate-500 font-medium">Validade Padrao (dias)</label>
-                <input
-                  type="number"
+                <NumericInput
                   value={settings.defaultValidity}
-                  onChange={(e) => setSettings({ ...settings, defaultValidity: Number(e.target.value) })}
+                  onValueChange={(value) => setSettings({ ...settings, defaultValidity: value })}
+                  decimals={0}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                 />
               </div>
@@ -509,28 +509,25 @@ export const SettingsPage: React.FC = () => {
             <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Altura Frontao</label>
-                <input
-                  type="number"
+                <NumericInput
                   value={settings.defaultFrontonHeight}
-                  onChange={(e) => setSettings({ ...settings, defaultFrontonHeight: Number(e.target.value) })}
+                  onValueChange={(value) => setSettings({ ...settings, defaultFrontonHeight: value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-semibold"
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Altura Saia</label>
-                <input
-                  type="number"
+                <NumericInput
                   value={settings.defaultSkirtHeight}
-                  onChange={(e) => setSettings({ ...settings, defaultSkirtHeight: Number(e.target.value) })}
+                  onValueChange={(value) => setSettings({ ...settings, defaultSkirtHeight: value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-semibold"
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Altura Virada</label>
-                <input
-                  type="number"
+                <NumericInput
                   value={settings.defaultTurnHeight}
-                  onChange={(e) => setSettings({ ...settings, defaultTurnHeight: Number(e.target.value) })}
+                  onValueChange={(value) => setSettings({ ...settings, defaultTurnHeight: value })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-semibold"
                 />
               </div>
@@ -541,73 +538,65 @@ export const SettingsPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase">Cooktop</span>
-                  <input
-                    type="number"
+                  <CurrencyInput
                     value={settings.cutoutPrices.cooktop}
-                    onChange={(e) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, cooktop: Number(e.target.value) } })}
+                    onValueChange={(value) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, cooktop: value } })}
                     className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
                   />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase">Cuba Embutir</span>
-                  <input
-                    type="number"
+                  <CurrencyInput
                     value={settings.cutoutPrices.sinkUnder}
-                    onChange={(e) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, sinkUnder: Number(e.target.value) } })}
+                    onValueChange={(value) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, sinkUnder: value } })}
                     className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
                   />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase">Cuba Sobrepor</span>
-                  <input
-                    type="number"
+                  <CurrencyInput
                     value={settings.cutoutPrices.sinkOver}
-                    onChange={(e) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, sinkOver: Number(e.target.value) } })}
+                    onValueChange={(value) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, sinkOver: value } })}
                     className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
                   />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase">Furacao Torneira</span>
-                  <input
-                    type="number"
+                  <CurrencyInput
                     value={settings.cutoutPrices.faucetHole || 0}
-                    onChange={(e) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, faucetHole: Number(e.target.value) } })}
+                    onValueChange={(value) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, faucetHole: value } })}
                     className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
                   />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase">Lixeira Embutir</span>
-                  <input
-                    type="number"
+                  <CurrencyInput
                     value={settings.cutoutPrices.trashBinCutout || 0}
-                    onChange={(e) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, trashBinCutout: Number(e.target.value) } })}
+                    onValueChange={(value) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, trashBinCutout: value } })}
                     className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
                   />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase">Torre de Tomada</span>
-                  <input
-                    type="number"
+                  <CurrencyInput
                     value={settings.cutoutPrices.popUpTowerCutout || 0}
-                    onChange={(e) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, popUpTowerCutout: Number(e.target.value) } })}
+                    onValueChange={(value) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, popUpTowerCutout: value } })}
                     className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
                   />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase">Rebaixo Americano</span>
-                  <input
-                    type="number"
+                  <CurrencyInput
                     value={settings.cutoutPrices.wetAreaAmericanRecess || 0}
-                    onChange={(e) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, wetAreaAmericanRecess: Number(e.target.value) } })}
+                    onValueChange={(value) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, wetAreaAmericanRecess: value } })}
                     className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
                   />
                 </div>
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-400 uppercase">Rebaixo Italiano</span>
-                  <input
-                    type="number"
+                  <CurrencyInput
                     value={settings.cutoutPrices.wetAreaItalianRecess || 0}
-                    onChange={(e) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, wetAreaItalianRecess: Number(e.target.value) } })}
+                    onValueChange={(value) => setSettings({ ...settings, cutoutPrices: { ...settings.cutoutPrices, wetAreaItalianRecess: value } })}
                     className="w-full bg-slate-50 border border-slate-100 rounded-lg px-3 py-2 outline-none focus:bg-white transition-all"
                   />
                 </div>
@@ -629,19 +618,17 @@ export const SettingsPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-slate-500 font-medium text-xs">Pia Simples (R$)</label>
-                <input
-                  type="number"
+                <CurrencyInput
                   value={settings.sculptedSinkRates?.simple || 0}
-                  onChange={(e) => setSettings({ ...settings, sculptedSinkRates: { ...settings.sculptedSinkRates, simple: Number(e.target.value) } })}
+                  onValueChange={(value) => setSettings({ ...settings, sculptedSinkRates: { ...settings.sculptedSinkRates, simple: value } })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-slate-500 font-medium text-xs">Com Rampa (R$)</label>
-                <input
-                  type="number"
+                <CurrencyInput
                   value={settings.sculptedSinkRates?.ramp || 0}
-                  onChange={(e) => setSettings({ ...settings, sculptedSinkRates: { ...settings.sculptedSinkRates, ramp: Number(e.target.value) } })}
+                  onValueChange={(value) => setSettings({ ...settings, sculptedSinkRates: { ...settings.sculptedSinkRates, ramp: value } })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                 />
               </div>
@@ -649,29 +636,26 @@ export const SettingsPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <label className="text-slate-500 font-medium text-xs">Valvula Oculta (R$)</label>
-                <input
-                  type="number"
+                <CurrencyInput
                   value={settings.sculptedSinkRates?.hiddenValve || 0}
-                  onChange={(e) => setSettings({ ...settings, sculptedSinkRates: { ...settings.sculptedSinkRates, hiddenValve: Number(e.target.value) } })}
+                  onValueChange={(value) => setSettings({ ...settings, sculptedSinkRates: { ...settings.sculptedSinkRates, hiddenValve: value } })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                 />
               </div>
               <div className="space-y-1.5">
                 <label className="text-slate-500 font-medium text-xs">Cuba Extra (R$)</label>
-                <input
-                  type="number"
+                <CurrencyInput
                   value={settings.sculptedSinkRates?.extraSink || 0}
-                  onChange={(e) => setSettings({ ...settings, sculptedSinkRates: { ...settings.sculptedSinkRates, extraSink: Number(e.target.value) } })}
+                  onValueChange={(value) => setSettings({ ...settings, sculptedSinkRates: { ...settings.sculptedSinkRates, extraSink: value } })}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                 />
               </div>
             </div>
             <div className="space-y-1.5">
               <label className="text-slate-500 font-medium text-xs">Risco/Perda (%)</label>
-              <input
-                type="number"
+              <NumericInput
                 value={settings.sculptedSinkRates?.riskPercentage || 0}
-                onChange={(e) => setSettings({ ...settings, sculptedSinkRates: { ...settings.sculptedSinkRates, riskPercentage: Number(e.target.value) } })}
+                onValueChange={(value) => setSettings({ ...settings, sculptedSinkRates: { ...settings.sculptedSinkRates, riskPercentage: value } })}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
               />
             </div>
@@ -719,15 +703,14 @@ export const SettingsPage: React.FC = () => {
                 </div>
                 <div className="w-32 space-y-1.5">
                   <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Ajuste (%)</label>
-                  <input
-                    type="number"
+                  <NumericInput
                     value={method.adjustment}
-                    onChange={(e) => {
+                    onValueChange={(value) => {
                       setSettings({
                         ...settings,
                         paymentMethods: settings.paymentMethods.map((currentMethod, methodIndex) => (
                           methodIndex === idx
-                            ? {...currentMethod, adjustment: Number(e.target.value)}
+                            ? {...currentMethod, adjustment: value}
                             : currentMethod
                         )),
                       });

@@ -20,7 +20,7 @@ export function formatNumber(value: number, decimals = 3) {
 }
 
 export function roundNumber(value: number | string, decimals = 3) {
-  const parsed = typeof value === 'number' ? value : Number(String(value).replace(',', '.'));
+  const parsed = typeof value === 'number' ? value : parseFlexibleNumberInput(value);
   if (!Number.isFinite(parsed)) return 0;
   const factor = 10 ** decimals;
   return Math.round(parsed * factor) / factor;
@@ -48,40 +48,48 @@ export function formatMeasureInput(value: number | string, decimals = 3) {
 }
 
 export function parseMeasureInput(value: string) {
-  const normalized = String(value || '')
-    .trim()
-    .replace(/\s+/g, '')
-    .replace(/\./g, '')
-    .replace(',', '.');
-  const parsed = Number(normalized);
-  return Number.isFinite(parsed) ? parsed : 0;
+  return parseFlexibleNumberInput(value);
 }
 
 export function parseCurrencyInput(value: string) {
-  const text = String(value || '').trim();
-  if (!text) return 0;
-
-  const cleaned = text.replace(/[^\d,.-]/g, '');
-  const hasComma = cleaned.includes(',');
-
-  if (hasComma) {
-    const normalized = cleaned.replace(/\./g, '').replace(',', '.');
-    const parsed = Number(normalized);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-
-  const dotParts = cleaned.split('.');
-  if (dotParts.length === 2 && dotParts[1].length <= 2) {
-    const parsed = Number(cleaned);
-    return Number.isFinite(parsed) ? parsed : 0;
-  }
-
-  const parsed = Number(cleaned.replace(/\./g, ''));
-  return Number.isFinite(parsed) ? parsed : 0;
+  return parseFlexibleNumberInput(value);
 }
 
 export function formatCurrencyInput(value: string | number) {
   return formatCurrency(parseCurrencyInput(String(value || '0')));
+}
+
+export function parseFlexibleNumberInput(value: string | number | null | undefined) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+
+  const text = String(value ?? '')
+    .trim()
+    .replace(/\s+/g, '')
+    .replace(/^R\$/i, '')
+    .replace(/[^\d,.-]/g, '');
+
+  if (!text || text === '-' || text === ',' || text === '.') return 0;
+
+  const lastComma = text.lastIndexOf(',');
+  const lastDot = text.lastIndexOf('.');
+  const decimalSeparator = lastComma > lastDot ? ',' : lastDot > lastComma ? '.' : '';
+  let normalized = text;
+
+  if (decimalSeparator) {
+    const integerPart = text.slice(0, text.lastIndexOf(decimalSeparator)).replace(/[.,]/g, '');
+    const decimalPart = text.slice(text.lastIndexOf(decimalSeparator) + 1);
+    const treatAsThousandsOnly = decimalSeparator === '.'
+      && lastComma === -1
+      && decimalPart.length === 3
+      && /^\d{1,3}(?:\.\d{3})+$/.test(text);
+
+    normalized = treatAsThousandsOnly
+      ? text.replace(/\./g, '')
+      : `${integerPart || '0'}.${decimalPart.replace(/[.,]/g, '')}`;
+  }
+
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 const TEXT_REPAIR_REPLACEMENTS: Array<[string, string]> = [

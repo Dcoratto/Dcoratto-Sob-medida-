@@ -23,6 +23,7 @@ import {cn, formatArea, formatCentimeters, formatMeasureInput, formatMeters, par
 import {roundNumber} from '../lib/utils';
 import {DrawingCutout, FixtureCatalogItem, PieceSide} from '../types';
 import {imageVariantUrl} from '../lib/storage';
+import {NumericInput} from './inputs/NumericInput';
 
 type DrawTool = 'select' | 'line' | 'move-point' | 'pan' | 'cutout';
 type CutoutType = 'cuba' | 'cooktop' | 'torneira' | 'lixeira' | 'torre_tomada';
@@ -1465,13 +1466,12 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                       </div>
                       <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">
                         Qtd
-                        <input
-                          type="number"
+                        <NumericInput
                           min={1}
                           value={quantity}
-                          onChange={(event) => {
+                          onValueChange={(value) => {
                             recordHistory();
-                            const nextQuantity = Math.max(1, Number(event.target.value));
+                            const nextQuantity = Math.max(1, value || 1);
                             setComplementos((current) => current.map((item) => item.side === side.key ?{
                               ...item,
                               quantity: nextQuantity,
@@ -1509,11 +1509,10 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                             </span>
                             <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                               Altura (cm)
-                              <input
-                                type="number"
+                              <NumericInput
                                 min={0}
                                 value={item.height || 0}
-                                onChange={(event) => updateComplementHeight(side.key, item.type as ComplementType, Number(event.target.value))}
+                                onValueChange={(value) => updateComplementHeight(side.key, item.type as ComplementType, value)}
                                 className="w-16 rounded-lg border border-slate-200 bg-white px-2 py-1 text-center font-mono text-xs text-slate-700"
                               />
                             </label>
@@ -1665,13 +1664,12 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                         </div>
                       </td>
                       <td className="px-3 py-2">
-                        <input
-                          type="number"
+                        <NumericInput
                           min={1}
                           value={quantity}
-                          onChange={(event) => {
+                          onValueChange={(value) => {
                             recordHistory();
-                            const nextQuantity = Math.max(1, Number(event.target.value));
+                            const nextQuantity = Math.max(1, value || 1);
                             setComplementos((current) => current.map((item) => item.side === side.key ?{
                               ...item,
                               quantity: nextQuantity,

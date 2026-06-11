@@ -305,6 +305,41 @@ const mapDataToDb = (table: string, data: Record<string, unknown>) => {
   return mapped;
 };
 
+const missingSchemaColumnFromError = (error: unknown) => {
+  const message = typeof error === 'object' && error !== null && 'message' in error
+    ? String((error as {message?: unknown}).message || '')
+    : String(error || '');
+
+  const quotedColumn = message.match(/'([^']+)'\s+column/i)?.[1];
+  if (quotedColumn) return quotedColumn;
+
+  const unquotedColumn = message.match(/column\s+"?([a-zA-Z0-9_]+)"?\s+(?:of relation|does not exist)/i)?.[1];
+  return unquotedColumn || '';
+};
+
+const executeSchemaAwareWrite = async (
+  table: string,
+  payload: Record<string, unknown>,
+  operation: (nextPayload: Record<string, unknown>) => PromiseLike<{error: unknown}>,
+) => {
+  const nextPayload = {...payload};
+  const ignoredColumns = new Set<string>();
+
+  for (;;) {
+    const {error} = await withSupabaseRetry(() => operation(nextPayload));
+    if (!error) return;
+
+    const missingColumn = missingSchemaColumnFromError(error);
+    if (!missingColumn || ignoredColumns.has(missingColumn) || !(missingColumn in nextPayload)) {
+      throw error;
+    }
+
+    ignoredColumns.add(missingColumn);
+    delete nextPayload[missingColumn];
+    console.warn(`Supabase schema cache for ${getTableConfig(table).table} is missing column "${missingColumn}". Retrying without this optional field.`);
+  }
+};
+
 const applyManagedTimestamps = (
   table: string,
   data: Record<string, unknown>,
@@ -707,8 +742,9 @@ export const setDoc = async (reference: DocumentReference, data: object, options
 
   payload = applyManagedTimestamps(reference.table, payload, {merge: options?.merge, existingData: currentData});
   const mapped = mapDataToDb(reference.table, payload);
-  const {error} = await withSupabaseRetry(() => supabase.from(getTableConfig(reference.table).table).upsert({id: reference.id, ...mapped}, {onConflict: 'id'}));
-  if (error) throw error;
+  await executeSchemaAwareWrite(reference.table, {id: reference.id, ...mapped}, (nextPayload) =>
+    supabase.from(getTableConfig(reference.table).table).upsert(nextPayload, {onConflict: 'id'}),
+  );
   notifyTableListeners(reference.table);
 };
 
@@ -725,8 +761,9 @@ export const updateDoc = async (reference: DocumentReference, data: object) => {
     {merge: true, existingData: currentData},
   );
   const mapped = mapDataToDb(reference.table, payload);
-  const {error} = await withSupabaseRetry(() => supabase.from(getTableConfig(reference.table).table).update(mapped).eq('id', reference.id));
-  if (error) throw error;
+  await executeSchemaAwareWrite(reference.table, mapped, (nextPayload) =>
+    supabase.from(getTableConfig(reference.table).table).update(nextPayload).eq('id', reference.id),
+  );
   notifyTableListeners(reference.table);
 };
 

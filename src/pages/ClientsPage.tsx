@@ -19,6 +19,7 @@ import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {validateClientPayload} from '../lib/businessRules';
 import {CurrencyInput} from '../components/inputs/NumericInput';
+import {ClientNavigationButtons} from '../components/ClientNavigationButtons';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -1711,6 +1712,7 @@ export const ClientsPage: React.FC = () => {
                     <h3 className="mb-4 font-display text-xl font-bold text-slate-900">Endereço e observações</h3>
                     <div className="space-y-3 text-sm text-slate-600">
                       <DetailRow label="Endereço" value={selectedClient.address || '-'} multiline />
+                      <ClientNavigationButtons client={selectedClient} />
                       <DetailRow label="Cidade" value={selectedClient.city || '-'} />
                       <DetailRow label="Bairro" value={selectedClient.neighborhood || '-'} />
                       <DetailRow label="CEP" value={selectedClient.zipCode || '-'} />

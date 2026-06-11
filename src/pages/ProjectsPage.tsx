@@ -6,12 +6,15 @@ import {db} from '../lib/firestore';
 import {Client, Employee, ProductionStep, Quote, QuotePiece} from '../types';
 import {cn, formatArea, formatCentimeters, formatCurrency} from '../lib/utils';
 import {getClientDisplayStatus, normalizeQuoteStatus, quoteStatusColor, shouldAppearInProjects} from '../lib/quoteStatus';
+import {ClientNavigationButtons} from '../components/ClientNavigationButtons';
 
 const normalize = (value: unknown) =>
   String(value || '')
     .toLowerCase()
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
+
+const fallbackText = 'Não informado';
 
 type ProjectRow = {
   id: string;
@@ -153,38 +156,48 @@ export const ProjectsPage: React.FC = () => {
     }));
   }, [trackingModalProject]);
 
-  const formatClientAddress = (client?: Client) => {
-    if (!client) return 'Cliente não encontrado no cadastro.';
+  const getClientAddressDetails = (client?: Client) => {
+    if (!client) {
+      return [{label: 'Endereço', value: 'Cliente não encontrado no cadastro.'}];
+    }
+
+    const addressTypeLabel = client.addressType === 'apartamento'
+      ? 'Apartamento'
+      : client.addressType === 'condominio'
+        ? 'Condomínio'
+        : 'Casa';
+
     return [
-      client.streetAddress || client.address,
-      client.neighborhood,
-      client.city,
-      client.zipCode,
-      client.condominiumName ? `Condomínio: ${client.condominiumName}` : '',
-      client.block ? `Quadra/Bloco: ${client.block}` : '',
-      client.lot ? `Lote: ${client.lot}` : '',
-      client.tower ? `Torre: ${client.tower}` : '',
-      client.apartmentNumber ? `Apto: ${client.apartmentNumber}` : '',
-    ].filter(Boolean).join(' · ');
+      {label: 'Tipo de endereço', value: addressTypeLabel},
+      {label: 'Endereço', value: client.streetAddress || client.address || fallbackText},
+      {label: 'Bairro', value: client.neighborhood || fallbackText},
+      {label: 'Cidade', value: client.city || fallbackText},
+      {label: 'CEP', value: client.zipCode || fallbackText},
+      {label: 'Condomínio', value: client.condominiumName || fallbackText},
+      {label: 'Quadra / Bloco', value: client.block || fallbackText},
+      {label: 'Lote', value: client.lot || fallbackText},
+      {label: 'Torre', value: client.tower || fallbackText},
+      {label: 'Apartamento', value: client.apartmentNumber || fallbackText},
+    ];
   };
 
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Projetos</h1>
-        <p className="text-slate-500 mt-1">Acompanhamento sincronizado com os status dos cards dos clientes.</p>
+        <p className="mt-1 text-slate-500">Acompanhamento sincronizado com os status dos cards dos clientes.</p>
       </header>
 
-      <section className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden p-2">
-        <div className="p-4 border-b border-slate-50">
+      <section className="overflow-hidden rounded-[32px] border border-slate-100 bg-white p-2 shadow-sm">
+        <div className="border-b border-slate-50 p-4">
           <div className="relative max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Buscar projeto por cliente, ambiente ou status..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-12 pr-4 outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
             />
           </div>
         </div>
@@ -193,11 +206,11 @@ export const ProjectsPage: React.FC = () => {
           <table className="w-full text-left">
             <thead>
               <tr className="border-b border-slate-50">
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Cliente / Projeto</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Área</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Valor</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Ação</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-400">Cliente / Projeto</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-400">Área</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-400">Valor</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-400">Status</th>
+                <th className="px-6 py-4 text-xs font-bold uppercase tracking-widest text-slate-400">Ação</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -207,7 +220,7 @@ export const ProjectsPage: React.FC = () => {
                 <tr><td colSpan={5} className="px-6 py-10 text-center text-slate-400">Nenhum projeto encontrado.</td></tr>
               ) : (
                 projects.map((project) => (
-                  <tr key={project.id} className="hover:bg-slate-50/50 transition-colors">
+                  <tr key={project.id} className="transition-colors hover:bg-slate-50/50">
                     <td className="px-6 py-4">
                       <button
                         type="button"
@@ -216,7 +229,7 @@ export const ProjectsPage: React.FC = () => {
                       >
                         {project.clientName}
                       </button>
-                      <div className="text-xs text-brand-primary font-medium">{project.environment}</div>
+                      <div className="text-xs font-medium text-brand-primary">{project.environment}</div>
                     </td>
                     <td className="px-6 py-4 font-mono text-slate-700">
                       {project.legacy ? 'Projeto legado' : formatArea(project.totalArea)}
@@ -238,7 +251,7 @@ export const ProjectsPage: React.FC = () => {
                         onClick={() => setTrackingModalProject(project)}
                         className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold uppercase tracking-widest text-white"
                       >
-                        <ClipboardCheck className="w-4 h-4" />
+                        <ClipboardCheck className="h-4 w-4" />
                         Acompanhar
                       </button>
                     </td>
@@ -316,9 +329,25 @@ export const ProjectsPage: React.FC = () => {
             </div>
             <div className="space-y-3 text-sm">
               <InfoRow icon={User} label="Nome" value={clientModalProject.client?.name || clientModalProject.clientName} />
-              <InfoRow icon={Phone} label="Telefone" value={clientModalProject.client?.phone || 'Não informado'} />
-              <InfoRow icon={Mail} label="E-mail" value={clientModalProject.client?.email || 'Não informado'} />
-              <InfoRow icon={MapPin} label="Endereço" value={formatClientAddress(clientModalProject.client)} />
+              <InfoRow icon={Phone} label="Telefone" value={clientModalProject.client?.phone || fallbackText} />
+              <InfoRow icon={Mail} label="E-mail" value={clientModalProject.client?.email || fallbackText} />
+              <div className="rounded-2xl bg-slate-50 p-4">
+                <div className="flex gap-3">
+                  <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary" />
+                  <div className="w-full">
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Endereço</div>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {getClientAddressDetails(clientModalProject.client).map((item) => (
+                        <div key={item.label} className="rounded-xl bg-white/80 px-3 py-2">
+                          <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{item.label}</div>
+                          <div className="mt-1 font-semibold text-slate-800">{item.value}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <ClientNavigationButtons client={clientModalProject.client} className="mt-3" />
+                  </div>
+                </div>
+              </div>
               {clientModalProject.client?.notes && (
                 <div className="rounded-2xl bg-slate-50 p-4">
                   <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Observações</div>

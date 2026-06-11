@@ -368,7 +368,11 @@ export const CalendarPage: React.FC = () => {
   const selectedEventDaysLeft = selectedEvent ?daysLeftFromToday(selectedEvent.date) : null;
   const subscriptionHttpsUrl = useMemo(() => {
     if (!appUid || !subscriptionToken || typeof window === 'undefined') return '';
-    return `${window.location.origin}/calendar/${encodeURIComponent(appUid)}/${encodeURIComponent(subscriptionToken)}.ics`;
+    const params = new URLSearchParams({
+      uid: appUid,
+      token: subscriptionToken,
+    });
+    return `${window.location.origin}/api/calendar-feed?${params.toString()}`;
   }, [appUid, subscriptionToken]);
   const subscriptionWebcalUrl = useMemo(() => {
     if (!subscriptionHttpsUrl) return '';

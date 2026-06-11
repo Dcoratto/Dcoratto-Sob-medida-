@@ -40,12 +40,26 @@ const quoteStage = (quote?: Quote): ClientStage => {
   return 'pre';
 };
 
+const statusToStage = (status: QuoteStatus | 'Sem projeto'): ClientStage => {
+  if (status === 'Sem projeto') return 'none';
+  if (status === 'Finalizado') return 'done';
+  if (['ConferÃªncia Final', 'Entrega'].includes(status)) return 'ready';
+  if (['Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'ProduÃ§Ã£o Finalizada'].includes(status)) return 'production';
+  if (['OrÃ§amento Aprovado', 'MediÃ§Ã£o', 'Projeto'].includes(status)) return 'approved';
+  return 'pre';
+};
+
 const toDate = (value: any): Date | null => {
   if (!value) return null;
   if (value instanceof Date) return value;
   if (typeof value.toDate === 'function') return value.toDate();
+  if (typeof value === 'string') {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
   return null;
 };
+const quoteTime = (quote?: Quote) => toDate(quote?.createdAt)?.getTime() || 0;
 const parseDateKey = (value?: string): Date | null => {
   if (!value || !value.includes('-')) return null;
   const [year, month, day] = value.split('-').map(Number);
@@ -224,9 +238,10 @@ export const Dashboard: React.FC = () => {
   };
 
   const latestQuoteByClient = useMemo(() => {
-    const sorted = [...quotes].sort((a, b) => (toDate(b.createdAt)?.getTime() || 0) - (toDate(a.createdAt)?.getTime() || 0));
-    return sorted.reduce<Record<string, Quote>>((acc, quote) => {
-      if (quote.clientId && !acc[quote.clientId]) acc[quote.clientId] = quote;
+    return quotes.reduce<Record<string, Quote>>((acc, quote) => {
+      if (!quote.clientId) return acc;
+      const current = acc[quote.clientId];
+      if (!current || quoteTime(quote) >= quoteTime(current)) acc[quote.clientId] = quote;
       return acc;
     }, {});
   }, [quotes]);
@@ -243,7 +258,7 @@ export const Dashboard: React.FC = () => {
   const stageCounts = useMemo(() => {
     const base: Record<ClientStage, number> = {pre: 0, approved: 0, production: 0, ready: 0, done: 0, none: 0};
     clients.forEach((client) => {
-      base[quoteStage(latestQuoteByClient[client.id])] += 1;
+      base[statusToStage(getClientDisplayStatus(client, latestQuoteByClient[client.id]))] += 1;
     });
     return base;
   }, [clients, latestQuoteByClient]);

@@ -1,11 +1,11 @@
 import React, {useEffect, useMemo, useState} from 'react';
 import {collection, onSnapshot, orderBy, query, selectFields} from '../lib/firestore';
 import {useNavigate} from 'react-router-dom';
-import {ClipboardCheck, Search} from 'lucide-react';
+import {ClipboardCheck, Mail, MapPin, Phone, Search, User, X} from 'lucide-react';
 import {db} from '../lib/firestore';
-import {Client, Employee, ProductionStep, Quote} from '../types';
-import {cn, formatArea, formatCurrency} from '../lib/utils';
-import {getClientDisplayStatus, quoteStatusColor, shouldAppearInProjects} from '../lib/quoteStatus';
+import {Client, Employee, ProductionStep, Quote, QuotePiece} from '../types';
+import {cn, formatArea, formatCentimeters, formatCurrency} from '../lib/utils';
+import {getClientDisplayStatus, normalizeQuoteStatus, quoteStatusColor, shouldAppearInProjects} from '../lib/quoteStatus';
 
 const normalize = (value: unknown) =>
   String(value || '')
@@ -15,12 +15,15 @@ const normalize = (value: unknown) =>
 
 type ProjectRow = {
   id: string;
+  clientId: string;
   clientName: string;
   environment: string;
   totalArea: number;
   totalPrice: number;
   status: string;
   legacy: boolean;
+  quote?: Quote;
+  client?: Client;
   employeeAssignments?: Quote['employeeAssignments'];
 };
 
@@ -39,11 +42,13 @@ export const ProjectsPage: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [clientModalProject, setClientModalProject] = useState<ProjectRow | null>(null);
+  const [trackingModalProject, setTrackingModalProject] = useState<ProjectRow | null>(null);
 
   useEffect(() => {
     const unsubQuotes = onSnapshot(query(
       collection(db, 'quotes'),
-      selectFields('clientId', 'clientName', 'environment', 'totalArea', 'totalPrice', 'status', 'employeeAssignments', 'createdAt'),
+      selectFields('clientId', 'clientName', 'environment', 'totalArea', 'totalPrice', 'status', 'pieces', 'employeeAssignments', 'createdAt'),
       orderBy('createdAt', 'desc'),
     ), (snapshot) => {
       setQuotes(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Quote)));
@@ -51,7 +56,7 @@ export const ProjectsPage: React.FC = () => {
     });
     const unsubClients = onSnapshot(query(
       collection(db, 'clients'),
-      selectFields('name', 'manualQuoteStatus', 'manualStage', 'legacyProjectMode', 'legacyManualQuote'),
+      selectFields('name', 'phone', 'email', 'address', 'streetAddress', 'city', 'zipCode', 'neighborhood', 'addressType', 'condominiumName', 'block', 'lot', 'tower', 'apartmentNumber', 'notes', 'manualQuoteStatus', 'manualStage', 'legacyProjectMode', 'legacyManualQuote'),
     ), (snapshot) => {
       setClients(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Client)));
     });
@@ -78,16 +83,20 @@ export const ProjectsPage: React.FC = () => {
   }, [quotes]);
 
   const projects = useMemo(() => {
+    const clientById = new Map(clients.map((client) => [client.id, client]));
     const quoteRows: ProjectRow[] = quotes
       .filter((quote) => shouldAppearInProjects(quote.status))
       .map((quote) => ({
         id: quote.id,
+        clientId: quote.clientId,
         clientName: quote.clientName,
         environment: quote.environment || 'Sem ambiente',
         totalArea: quote.totalArea || 0,
         totalPrice: quote.totalPrice || 0,
         status: quote.status,
         legacy: false,
+        quote,
+        client: clientById.get(quote.clientId),
         employeeAssignments: quote.employeeAssignments || [],
       }));
 
@@ -95,12 +104,14 @@ export const ProjectsPage: React.FC = () => {
       .filter((client) => !latestQuoteByClient.has(client.id))
       .map((client) => ({
         id: `legacy-${client.id}`,
+        clientId: client.id,
         clientName: client.name,
         environment: client.legacyProjectMode === 'orcamento_existente' ? 'Orçamento existente' : 'Projeto antigo',
         totalArea: 0,
         totalPrice: client.legacyManualQuote?.totalPrice || 0,
         status: getClientDisplayStatus(client),
         legacy: true,
+        client,
       }))
       .filter((item) => shouldAppearInProjects(item.status));
 
@@ -114,6 +125,48 @@ export const ProjectsPage: React.FC = () => {
   })), [projects]);
 
   const employeeNameById = useMemo(() => new Map(employees.map((employee) => [employee.id, employee.name])), [employees]);
+
+  const trackingPieces = useMemo(() => {
+    if (!trackingModalProject) return [];
+    if (trackingModalProject.legacy) {
+      return (trackingModalProject.client?.legacyManualQuote?.pieces || []).map((piece) => ({
+        id: piece.id,
+        name: piece.name,
+        status: normalizeQuoteStatus(piece.status || trackingModalProject.status),
+        area: 0,
+        notes: (piece.items || []).join(', '),
+        value: piece.value || 0,
+        dimensions: '',
+      }));
+    }
+
+    return (trackingModalProject.quote?.pieces || []).map((piece: QuotePiece) => ({
+      id: piece.id,
+      name: piece.name,
+      status: normalizeQuoteStatus(piece.pieceStatus || trackingModalProject.quote?.status || trackingModalProject.status),
+      area: piece.totalArea || piece.manualArea || piece.area || 0,
+      notes: piece.notes || '',
+      value: piece.manualPrice || 0,
+      dimensions: piece.unit === 'cm'
+        ? `${formatCentimeters(piece.length || 0)} x ${formatCentimeters(piece.width || 0)}`
+        : `${piece.length || 0}m x ${piece.width || 0}m`,
+    }));
+  }, [trackingModalProject]);
+
+  const formatClientAddress = (client?: Client) => {
+    if (!client) return 'Cliente não encontrado no cadastro.';
+    return [
+      client.streetAddress || client.address,
+      client.neighborhood,
+      client.city,
+      client.zipCode,
+      client.condominiumName ? `Condomínio: ${client.condominiumName}` : '',
+      client.block ? `Quadra/Bloco: ${client.block}` : '',
+      client.lot ? `Lote: ${client.lot}` : '',
+      client.tower ? `Torre: ${client.tower}` : '',
+      client.apartmentNumber ? `Apto: ${client.apartmentNumber}` : '',
+    ].filter(Boolean).join(' · ');
+  };
 
   return (
     <div className="space-y-6">
@@ -156,7 +209,13 @@ export const ProjectsPage: React.FC = () => {
                 projects.map((project) => (
                   <tr key={project.id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="font-semibold text-slate-900">{project.clientName}</div>
+                      <button
+                        type="button"
+                        onClick={() => setClientModalProject(project)}
+                        className="font-semibold text-slate-900 underline-offset-4 hover:text-brand-primary hover:underline"
+                      >
+                        {project.clientName}
+                      </button>
                       <div className="text-xs text-brand-primary font-medium">{project.environment}</div>
                     </td>
                     <td className="px-6 py-4 font-mono text-slate-700">
@@ -176,7 +235,7 @@ export const ProjectsPage: React.FC = () => {
                     <td className="px-6 py-4">
                       <button
                         type="button"
-                        onClick={() => navigate('/clients')}
+                        onClick={() => setTrackingModalProject(project)}
                         className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold uppercase tracking-widest text-white"
                       >
                         <ClipboardCheck className="w-4 h-4" />
@@ -241,7 +300,84 @@ export const ProjectsPage: React.FC = () => {
           ))}
         </div>
       </section>
+
+      {clientModalProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-[32px] bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-brand-primary">Dados do cliente</p>
+                <h2 className="mt-1 font-display text-2xl font-bold text-slate-900">{clientModalProject.clientName}</h2>
+                <p className="mt-1 text-sm text-slate-500">{clientModalProject.environment}</p>
+              </div>
+              <button type="button" onClick={() => setClientModalProject(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="space-y-3 text-sm">
+              <InfoRow icon={User} label="Nome" value={clientModalProject.client?.name || clientModalProject.clientName} />
+              <InfoRow icon={Phone} label="Telefone" value={clientModalProject.client?.phone || 'Não informado'} />
+              <InfoRow icon={Mail} label="E-mail" value={clientModalProject.client?.email || 'Não informado'} />
+              <InfoRow icon={MapPin} label="Endereço" value={formatClientAddress(clientModalProject.client)} />
+              {clientModalProject.client?.notes && (
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Observações</div>
+                  <div className="mt-1 text-slate-700">{clientModalProject.client.notes}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {trackingModalProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-3xl rounded-[32px] bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-widest text-brand-primary">Acompanhamento do projeto</p>
+                <h2 className="mt-1 font-display text-2xl font-bold text-slate-900">{trackingModalProject.clientName}</h2>
+                <p className="mt-1 text-sm text-slate-500">{trackingModalProject.environment}</p>
+              </div>
+              <button type="button" onClick={() => setTrackingModalProject(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="max-h-[65vh] space-y-3 overflow-y-auto pr-1">
+              {trackingPieces.length === 0 ? (
+                <div className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-semibold text-slate-400">
+                  Nenhuma peça cadastrada neste projeto.
+                </div>
+              ) : trackingPieces.map((piece) => (
+                <div key={piece.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="font-bold text-slate-900">{piece.name}</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {[piece.dimensions, piece.area ? formatArea(piece.area) : '', piece.notes].filter(Boolean).join(' · ') || 'Sem detalhes adicionais'}
+                      </div>
+                    </div>
+                    <span className={cn('inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase', quoteStatusColor(piece.status))}>
+                      {piece.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
+const InfoRow = ({icon: Icon, label, value}: {icon: React.ComponentType<{className?: string}>; label: string; value: string}) => (
+  <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
+    <Icon className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary" />
+    <div>
+      <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{label}</div>
+      <div className="mt-1 font-semibold text-slate-800">{value}</div>
+    </div>
+  </div>
+);

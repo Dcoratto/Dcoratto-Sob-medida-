@@ -1,7 +1,6 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
 import {GlobalSearch} from './GlobalSearch';
-import {Logo} from './Logo';
 
 export const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   return (
@@ -10,7 +9,6 @@ export const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       <main className="flex-1 min-w-0">
         <div className="sticky top-0 z-20 border-b border-slate-200/80 bg-[#FBFBFD]/95 px-3 py-3 backdrop-blur sm:px-4 md:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-4">
-            <Logo className="hidden shrink-0 lg:flex" />
             <GlobalSearch />
           </div>
         </div>

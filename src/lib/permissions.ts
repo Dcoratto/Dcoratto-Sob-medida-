@@ -166,7 +166,7 @@ export const canEvaluateEmployees = (user?: AccessUser | AuthIdentity | null) =>
 
 export const roleLabel = (role?: AccessRole) => {
   if (role === 'coordenador') return 'Coordenador';
-  if (role === 'liberacao') return 'Liberação';
+  if (role === 'liberacao') return MODULE_LABELS.liberacao;
   if (role === 'administrativo') return 'Administrativo';
   return 'Vendedor';
 };

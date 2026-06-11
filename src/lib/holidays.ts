@@ -1,3 +1,5 @@
+import {repairText, repairTextDeep} from './utils';
+
 const pad = (value: number) => String(value).padStart(2, '0');
 const keyFromDate = (date: Date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
@@ -7,7 +9,7 @@ const normalize = (value: unknown) =>
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '');
 
-const cityHolidayByMd: Record<string, Record<string, string>> = {
+const cityHolidayByMd: Record<string, Record<string, string>> = repairTextDeep({
   'sao paulo': {'01-25': 'Aniversário de São Paulo'},
   'aruja': {'06-08': 'Aniversário de Arujá'},
   'mogi das cruzes': {'09-01': 'Aniversário de Mogi das Cruzes'},
@@ -23,7 +25,7 @@ const cityHolidayByMd: Record<string, Record<string, string>> = {
   'salesopolis': {'11-30': 'Aniversário de Salesópolis'},
   'salesópolis': {'11-30': 'Aniversário de Salesópolis'},
   'santa isabel': {'07-10': 'Aniversário de Santa Isabel'},
-};
+});
 
 const addDays = (date: Date, days: number) => {
   const output = new Date(date);
@@ -52,7 +54,7 @@ const easterSunday = (year: number) => {
 export const getHolidayMapForYear = (year: number) => {
   const map: Record<string, string> = {};
   const add = (date: Date, label: string) => {
-    map[keyFromDate(date)] = label;
+    map[keyFromDate(date)] = repairText(label);
   };
 
   add(new Date(year, 0, 1), 'Confraternização Universal');

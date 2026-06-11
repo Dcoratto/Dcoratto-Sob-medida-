@@ -1,4 +1,5 @@
 import {AccessRole, AccessUser, PermissionMap} from '../types';
+import {repairTextDeep} from './utils';
 
 type AuthIdentity = {email?: string | null};
 
@@ -92,7 +93,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<AccessRole, PermissionMap> = {
 
 export const ACCESS_ROLES: AccessRole[] = ['vendedor', 'coordenador', 'liberacao', 'administrativo'];
 
-export const MODULE_LABELS: Record<PermissionModule, string> = {
+export const MODULE_LABELS: Record<PermissionModule, string> = repairTextDeep({
   dashboard: 'Dashboard',
   orcamento: 'Orçamento',
   historico: 'Histórico',
@@ -105,9 +106,9 @@ export const MODULE_LABELS: Record<PermissionModule, string> = {
   projeto: 'Projeto',
   producao: 'Produção',
   liberacao: 'Liberação',
-};
+});
 
-export const ACTION_LABELS: Record<string, string> = {
+export const ACTION_LABELS: Record<string, string> = repairTextDeep({
   visualizar: 'Visualizar',
   criar: 'Criar',
   editar: 'Editar',
@@ -129,7 +130,7 @@ export const ACTION_LABELS: Record<string, string> = {
   conferirMedidas: 'Conferir medidas',
   finalizarProducao: 'Finalizar produção',
   reprovar: 'Reprovar',
-};
+});
 
 export const getDefaultPermissions = (role: AccessRole = 'vendedor') => clonePermissions(DEFAULT_ROLE_PERMISSIONS[role] || DEFAULT_ROLE_PERMISSIONS.vendedor);
 

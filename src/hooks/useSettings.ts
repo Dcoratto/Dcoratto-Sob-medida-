@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import {doc, onSnapshot} from '../lib/firestore';
 import {db} from '../lib/firestore';
-import {repairText} from '../lib/utils';
+import {repairText, repairTextDeep} from '../lib/utils';
 import {Settings, SupplierContact} from '../types';
 
 const normalizeSupplier = (supplier: string | SupplierContact): SupplierContact =>
@@ -21,7 +21,7 @@ const sanitizeList = (values: string[] | undefined, fallback: string[]) => {
   return sanitized.length ? Array.from(new Set(sanitized)) : fallback;
 };
 
-const DEFAULT_PAYMENT_METHODS = [
+const DEFAULT_PAYMENT_METHODS = repairTextDeep([
   {name: 'À vista (Dinheiro/Pix)', adjustment: -5},
   {name: 'Cartão de Débito', adjustment: 0},
   {name: 'CRÉDITO 1X', adjustment: 2.5},
@@ -36,14 +36,14 @@ const DEFAULT_PAYMENT_METHODS = [
   {name: 'CRÉDITO 10X', adjustment: 14.2},
   {name: 'CRÉDITO 11X', adjustment: 15.6},
   {name: 'CRÉDITO 12X', adjustment: 17},
-];
+]);
 
-const LEGACY_PAYMENT_METHODS = [
+const LEGACY_PAYMENT_METHODS = repairTextDeep([
   {name: 'À vista (Dinheiro/Pix)', adjustment: -5},
   {name: 'Cartão de Débito', adjustment: 0},
   {name: 'Cartão de Crédito 1x', adjustment: 3},
   {name: 'Parcelado 10x', adjustment: 15},
-];
+]);
 
 const normalizePaymentMethods = (methods: {name: string; adjustment: number}[] | undefined) =>
   (methods || [])
@@ -60,7 +60,7 @@ const samePaymentMethods = (first: {name: string; adjustment: number}[], second:
     && Number(method.adjustment) === Number(second[index]?.adjustment)
   ));
 
-export const DEFAULT_SETTINGS: Settings = {
+export const DEFAULT_SETTINGS: Settings = repairTextDeep({
   companyName: "D'Coratto Sob Medida",
   phone: '(00) 00000-0000',
   email: 'contato@dcoratto.com.br',
@@ -102,7 +102,7 @@ export const DEFAULT_SETTINGS: Settings = {
   },
   patioLayout: {},
   patioSize: {width: 100, height: 100},
-};
+});
 
 export const useSettings = () => {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);

@@ -21,11 +21,40 @@ export const QuotesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  const scope = new URLSearchParams(location.search).get('scope') || 'all';
+  const scopeParam = new URLSearchParams(location.search).get('scope');
+  const scope = location.pathname === '/history' ? 'history' : (scopeParam || 'all');
+  const isHistoryScope = scope === 'history';
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
   const openPremiumProposal = (quoteId: string) => {
     const proposalUrl = window.location.origin + '/quotes/proposal/' + quoteId;
     window.open(proposalUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const isClosedSale = (status?: string) => {
+    const normalized = normalizeText(status || '');
+    if (
+      normalized.includes('pre') ||
+      normalized.includes('orcamento') ||
+      normalized.includes('aguardando') ||
+      normalized.includes('medido') ||
+      normalized.includes('enviado') ||
+      normalized.includes('recusado') ||
+      normalized.includes('cancelado')
+    ) {
+      return false;
+    }
+
+    return (
+      normalized.includes('aprovado') ||
+      normalized.includes('corte') ||
+      normalized.includes('montagem') ||
+      normalized.includes('producao') ||
+      normalized.includes('acabamento') ||
+      normalized.includes('conferencia') ||
+      normalized.includes('entrega') ||
+      normalized.includes('finalizado') ||
+      normalized.includes('concluido')
+    );
   };
 
   useEffect(() => {
@@ -45,7 +74,11 @@ export const QuotesPage: React.FC = () => {
   const filteredQuotes = quotes.filter((quote) => {
     const normalizedStatus = normalizeText(normalizeQuoteStatus(quote.status));
     const isOpenScope = ['orcamento', 'orcamento aprovado', 'medicao', 'projeto', 'projeto aprovado', 'corte', 'acabamento', 'montagem', 'producao finalizada', 'conferencia final', 'entrega'].includes(normalizedStatus);
-    const matchesScope = scope === 'open' ?isOpenScope : true;
+    const matchesScope = scope === 'open'
+      ? isOpenScope
+      : isHistoryScope
+        ? isClosedSale(quote.status)
+        : true;
 
     const searchable = [
       quote.clientName,
@@ -183,10 +216,10 @@ export const QuotesPage: React.FC = () => {
     <div className="space-y-6">
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">{LABELS.quotes.plural}</h1>
-          <p className="text-slate-500 mt-1">{LABELS.quotes.pageDescription}</p>
+          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">{isHistoryScope ? 'Histórico' : LABELS.quotes.plural}</h1>
+          <p className="text-slate-500 mt-1">{isHistoryScope ? 'Acompanhe as vendas fechadas e os orçamentos já convertidos.' : LABELS.quotes.pageDescription}</p>
         </div>
-        {hasPermission('orcamento', 'criar') && (
+        {!isHistoryScope && hasPermission('orcamento', 'criar') && (
           <button
             type="button"
             onClick={() => navigate('/quotes/new')}
@@ -208,6 +241,18 @@ export const QuotesPage: React.FC = () => {
               className="text-xs font-bold uppercase tracking-widest text-amber-700 hover:underline"
             >
               Limpar filtro
+            </button>
+          </div>
+        )}
+        {isHistoryScope && (
+          <div className="mx-4 mt-4 mb-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center justify-between gap-3">
+            <div className="text-xs font-bold uppercase tracking-widest text-emerald-800">Filtro ativo: Histórico de vendas fechadas</div>
+            <button
+              type="button"
+              onClick={() => navigate('/quotes')}
+              className="text-xs font-bold uppercase tracking-widest text-emerald-700 hover:underline"
+            >
+              Ver todos
             </button>
           </div>
         )}

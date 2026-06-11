@@ -849,7 +849,7 @@ export const ClientsPage: React.FC = () => {
       } else if (code === 'GEMINI_TEMPORARIAMENTE_INDISPONIVEL') {
         window.alert('A leitura por IA está temporariamente indisponível. Tente novamente em alguns instantes.');
       } else {
-        window.alert('Não consegui importar esse orçamento existente. Verifique se o PDF tem a tabela com "DESCRIÇÃƒO AMBIENTE/PRODUTO", "VALOR" e a linha "GRANITOS E MARMORES".');
+        window.alert('Não consegui importar esse orçamento existente. Verifique se o PDF tem a tabela com "DESCRIÇÃO AMBIENTE/PRODUTO", "VALOR" e a linha "GRANITOS E MARMORES".');
       }
     } finally {
       setImportingLegacyQuotePdf(false);

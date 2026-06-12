@@ -1478,7 +1478,7 @@ export const ClientsPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
+        <div className="grid grid-cols-1 gap-3 p-3 sm:gap-4 sm:p-4 md:grid-cols-2 lg:grid-cols-3">
           {loading ?(
             <div className="col-span-full py-20 text-center text-slate-400">Carregando clientes...</div>
           ) : filteredClients.length === 0 ?(
@@ -1504,23 +1504,23 @@ export const ClientsPage: React.FC = () => {
                 <div
                   key={client.id}
                   onClick={() => openClientDetail(client, 'quote')}
-                  className="group relative cursor-pointer rounded-[24px] border border-slate-100 bg-slate-50 p-6 text-left transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50">
+                  className="group relative cursor-pointer rounded-[22px] border border-slate-100 bg-slate-50 p-4 text-left transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 sm:rounded-[24px] sm:p-6">
                   <div className={cn('absolute top-4 right-4 w-3 h-3 rounded-full ring-4 ring-white', statusDotClass)} title={displayStatus} />
-                  <div className="mb-4 flex items-start justify-between gap-4 pr-6">
-                    <div className="flex min-w-0 items-center gap-4">
-                      <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-brand-primary border border-slate-100">
+                  <div className="mb-4 flex flex-col gap-3 pr-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:pr-6">
+                    <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-white text-brand-primary shadow-sm sm:h-12 sm:w-12">
                         <User className="w-6 h-6" />
                       </div>
-                      <div className="min-w-0">
-                        <h3 className="font-display font-bold text-slate-900 transition-colors group-hover:text-brand-primary truncate">{client.name}</h3>
-                        <div className="mt-0.5 flex items-center gap-1.5 text-xs font-medium text-slate-400">
-                          <Phone className="w-3 h-3" />
-                          {client.phone}
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-display text-base font-bold leading-snug text-slate-900 transition-colors group-hover:text-brand-primary break-words sm:text-[17px]">{client.name}</h3>
+                        <div className="mt-1 flex min-w-0 items-center gap-1.5 text-xs font-medium text-slate-400">
+                          <Phone className="h-3 w-3 shrink-0" />
+                          <span className="break-words">{client.phone}</span>
                         </div>
-                        {client.email && <div className="mt-0.5 text-xs text-slate-400 truncate">{client.email}</div>}
+                        {client.email && <div className="mt-0.5 break-all text-xs text-slate-400 sm:truncate">{client.email}</div>}
                       </div>
                     </div>
-                    <div className="flex max-w-[52%] shrink-0 flex-wrap justify-end gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
+                    <div className="flex shrink-0 flex-wrap gap-1 opacity-100 transition-opacity sm:max-w-[52%] sm:justify-end sm:opacity-0 sm:group-hover:opacity-100">
                       <button type="button" title="Dados do cliente" onClick={(event) => { event.stopPropagation(); openClientDetail(client, 'client'); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
                         <Info className="h-4 w-4" />
                       </button>
@@ -1652,11 +1652,11 @@ export const ClientsPage: React.FC = () => {
       </div>
 
       {detailModal && selectedClient && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white w-full max-w-6xl max-h-[92vh] rounded-[36px] shadow-2xl overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-slate-100 flex items-center justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-display font-bold text-slate-900">{selectedClient.name}</h2>
+        <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-slate-900/60 p-2 backdrop-blur-md sm:items-center sm:p-4">
+          <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-6xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl sm:max-h-[92vh] sm:rounded-[36px]">
+            <div className="flex flex-col gap-4 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+              <div className="min-w-0">
+                <h2 className="font-display text-xl font-bold leading-tight text-slate-900 break-words sm:text-2xl">{selectedClient.name}</h2>
                 <p className="text-sm text-slate-400">
                   {detailModal === 'client' && 'Dados completos do cliente.'}
                   {detailModal === 'quote' && 'Itens, peças, materiais e informações técnicas do orçamento.'}
@@ -1673,7 +1673,7 @@ export const ClientsPage: React.FC = () => {
                   </div>
                 )}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex shrink-0 items-center justify-end gap-2">
                 {canEditClientData && (
                   <button
                     type="button"
@@ -1681,23 +1681,23 @@ export const ClientsPage: React.FC = () => {
                       setDetailModal(null);
                       handleEdit(selectedClient);
                     }}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-100"
+                    className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-600 transition-all hover:bg-slate-100"
                   >
                     <Edit2 className="h-4 w-4" />
                     Editar
                   </button>
                 )}
-                <button type="button" onClick={() => setDetailModal(null)} className="p-3 bg-slate-50 hover:bg-slate-100 rounded-full transition-all text-slate-400">
+                <button type="button" onClick={() => setDetailModal(null)} className="rounded-full bg-slate-50 p-3 text-slate-400 transition-all hover:bg-slate-100">
                   <X className="w-6 h-6" />
                 </button>
               </div>
             </div>
 
-            <div className="overflow-auto p-6 space-y-6">
+            <div className="min-w-0 flex-1 space-y-4 overflow-y-auto overflow-x-hidden p-3 sm:space-y-6 sm:p-6">
               {detailModal === 'client' ?(
                 <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                  <div className="rounded-3xl border border-slate-100 p-5">
-                    <h3 className="mb-4 font-display text-xl font-bold text-slate-900">Contato</h3>
+                  <div className="rounded-2xl border border-slate-100 p-4 sm:rounded-3xl sm:p-5">
+                    <h3 className="mb-4 font-display text-lg font-bold text-slate-900 sm:text-xl">Contato</h3>
                     <div className="space-y-3 text-sm text-slate-600">
                       <DetailRow label="Nome" value={selectedClient.name} />
                       <DetailRow label="Telefone" value={selectedClient.phone || '-'} />
@@ -1708,8 +1708,8 @@ export const ClientsPage: React.FC = () => {
                       <DetailRow label="Nascimento" value={selectedClient.birthDate || '-'} />
                     </div>
                   </div>
-                  <div className="rounded-3xl border border-slate-100 p-5">
-                    <h3 className="mb-4 font-display text-xl font-bold text-slate-900">Endereço e observações</h3>
+                  <div className="rounded-2xl border border-slate-100 p-4 sm:rounded-3xl sm:p-5">
+                    <h3 className="mb-4 font-display text-lg font-bold text-slate-900 sm:text-xl">Endereço e observações</h3>
                     <div className="space-y-3 text-sm text-slate-600">
                       <DetailRow label="Endereço" value={selectedClient.address || '-'} multiline />
                       <ClientNavigationButtons client={selectedClient} />
@@ -2574,18 +2574,18 @@ const GoogleDriveIcon = ({className = 'h-4 w-4'}: {className?: string}) => (
 );
 
 const DetailRow = ({label, value, multiline = false}: {label: string; value: string; multiline?: boolean}) => (
-  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+  <div className="min-w-0 rounded-2xl bg-slate-50 px-3 py-3 sm:px-4">
     <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</div>
-    <div className={cn('mt-1 text-sm font-semibold text-slate-700', multiline && 'whitespace-pre-wrap leading-relaxed')}>
+    <div className={cn('mt-1 text-sm font-semibold text-slate-700 break-words', multiline && 'whitespace-pre-wrap leading-relaxed')}>
       {value}
     </div>
   </div>
 );
 
 const SummaryBox = ({label, value, highlight = false}: {label: string; value: string; highlight?: boolean}) => (
-  <div className={cn('rounded-3xl p-5', highlight ?'bg-brand-primary/10' : 'bg-slate-50')}>
+  <div className={cn('min-w-0 rounded-2xl p-4 sm:rounded-3xl sm:p-5', highlight ?'bg-brand-primary/10' : 'bg-slate-50')}>
     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{label}</div>
-    <div className={cn('mt-2 text-lg font-display font-bold', highlight ?'text-brand-primary' : 'text-slate-900')}>
+    <div className={cn('mt-2 font-display text-base font-bold break-words sm:text-lg', highlight ?'text-brand-primary' : 'text-slate-900')}>
       {value}
     </div>
   </div>

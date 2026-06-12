@@ -315,32 +315,32 @@ export const ProjectsPage: React.FC = () => {
       </section>
 
       {clientModalProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-[32px] bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
+        <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-slate-950/45 p-2 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl sm:max-h-[92vh] sm:rounded-[32px]">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-4 sm:border-b-0 sm:p-6 sm:pb-2">
+              <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-widest text-brand-primary">Dados do cliente</p>
-                <h2 className="mt-1 font-display text-2xl font-bold text-slate-900">{clientModalProject.clientName}</h2>
-                <p className="mt-1 text-sm text-slate-500">{clientModalProject.environment}</p>
+                <h2 className="mt-1 font-display text-xl font-bold leading-tight text-slate-900 break-words sm:text-2xl">{clientModalProject.clientName}</h2>
+                <p className="mt-1 text-sm text-slate-500 break-words">{clientModalProject.environment}</p>
               </div>
               <button type="button" onClick={() => setClientModalProject(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="space-y-3 text-sm">
+            <div className="min-w-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden p-4 text-sm sm:p-6 sm:pt-3">
               <InfoRow icon={User} label="Nome" value={clientModalProject.client?.name || clientModalProject.clientName} />
               <InfoRow icon={Phone} label="Telefone" value={clientModalProject.client?.phone || fallbackText} />
               <InfoRow icon={Mail} label="E-mail" value={clientModalProject.client?.email || fallbackText} />
               <div className="rounded-2xl bg-slate-50 p-4">
                 <div className="flex gap-3">
                   <MapPin className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary" />
-                  <div className="w-full">
+                  <div className="min-w-0 w-full">
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Endereço</div>
                     <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       {getClientAddressDetails(clientModalProject.client).map((item) => (
-                        <div key={item.label} className="rounded-xl bg-white/80 px-3 py-2">
+                        <div key={item.label} className="min-w-0 rounded-xl bg-white/80 px-3 py-2">
                           <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{item.label}</div>
-                          <div className="mt-1 font-semibold text-slate-800">{item.value}</div>
+                          <div className="mt-1 font-semibold text-slate-800 break-words">{item.value}</div>
                         </div>
                       ))}
                     </div>
@@ -360,20 +360,20 @@ export const ProjectsPage: React.FC = () => {
       )}
 
       {trackingModalProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-3xl rounded-[32px] bg-white p-6 shadow-2xl">
-            <div className="mb-5 flex items-start justify-between gap-4">
-              <div>
+        <div className="fixed inset-0 z-50 flex items-stretch justify-center bg-slate-950/45 p-2 backdrop-blur-sm sm:items-center sm:p-4">
+          <div className="flex max-h-[calc(100dvh-1rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[24px] bg-white shadow-2xl sm:max-h-[92vh] sm:rounded-[32px]">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-4 sm:border-b-0 sm:p-6 sm:pb-2">
+              <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-widest text-brand-primary">Acompanhamento do projeto</p>
-                <h2 className="mt-1 font-display text-2xl font-bold text-slate-900">{trackingModalProject.clientName}</h2>
-                <p className="mt-1 text-sm text-slate-500">{trackingModalProject.environment}</p>
+                <h2 className="mt-1 font-display text-xl font-bold leading-tight text-slate-900 break-words sm:text-2xl">{trackingModalProject.clientName}</h2>
+                <p className="mt-1 text-sm text-slate-500 break-words">{trackingModalProject.environment}</p>
               </div>
               <button type="button" onClick={() => setTrackingModalProject(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100">
                 <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="max-h-[65vh] space-y-3 overflow-y-auto pr-1">
+            <div className="min-w-0 flex-1 space-y-3 overflow-y-auto overflow-x-hidden p-4 sm:p-6 sm:pt-3">
               {trackingPieces.length === 0 ? (
                 <div className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-semibold text-slate-400">
                   Nenhuma peça cadastrada neste projeto.
@@ -381,9 +381,9 @@ export const ProjectsPage: React.FC = () => {
               ) : trackingPieces.map((piece) => (
                 <div key={piece.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
+                    <div className="min-w-0">
                       <div className="font-bold text-slate-900">{piece.name}</div>
-                      <div className="mt-1 text-xs text-slate-500">
+                      <div className="mt-1 text-xs text-slate-500 break-words">
                         {[piece.dimensions, piece.area ? formatArea(piece.area) : '', piece.notes].filter(Boolean).join(' · ') || 'Sem detalhes adicionais'}
                       </div>
                     </div>
@@ -402,11 +402,11 @@ export const ProjectsPage: React.FC = () => {
 };
 
 const InfoRow = ({icon: Icon, label, value}: {icon: React.ComponentType<{className?: string}>; label: string; value: string}) => (
-  <div className="flex gap-3 rounded-2xl bg-slate-50 p-4">
+  <div className="flex min-w-0 gap-3 rounded-2xl bg-slate-50 p-4">
     <Icon className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary" />
-    <div>
+    <div className="min-w-0">
       <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{label}</div>
-      <div className="mt-1 font-semibold text-slate-800">{value}</div>
+      <div className="mt-1 font-semibold text-slate-800 break-words">{value}</div>
     </div>
   </div>
 );

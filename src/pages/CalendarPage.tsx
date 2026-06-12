@@ -220,6 +220,12 @@ export const CalendarPage: React.FC = () => {
     }
   }, [profile?.calendarFeedToken]);
 
+  const sortedClients = useMemo(() => (
+    [...clients].sort((a, b) =>
+      fixCorruptedText(a.name || '').localeCompare(fixCorruptedText(b.name || ''), 'pt-BR', {sensitivity: 'base'}),
+    )
+  ), [clients]);
+
   const today = useMemo(() => {
     const now = new Date();
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -791,7 +797,7 @@ export const CalendarPage: React.FC = () => {
                 <label className="text-xs font-bold uppercase tracking-widest text-slate-500">Cliente vinculado (opcional)</label>
                 <select value={newEventClientId} onChange={(event) => setNewEventClientId(event.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm outline-none focus:border-brand-primary">
                   <option value="">Sem cliente vinculado</option>
-                  {clients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
+                  {sortedClients.map((client) => <option key={client.id} value={client.id}>{client.name}</option>)}
                 </select>
               </div>
 

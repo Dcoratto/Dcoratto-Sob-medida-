@@ -68,6 +68,10 @@ export const DEFAULT_SETTINGS: Settings = repairTextDeep({
   defaultValidity: 15,
   defaultNotes: 'Orçamento sujeito à confirmação de medidas no local.',
   laborRatePerLinearMeter: 120,
+  laborMinimumByRegion: {
+    altoTiete: 200,
+    saoPaulo: 280,
+  },
   defaultFrontonHeight: 10,
   defaultSkirtHeight: 4,
   defaultTurnHeight: 2,
@@ -120,6 +124,10 @@ export const useSettings = () => {
           email: repairText(data.email || DEFAULT_SETTINGS.email),
           address: repairText(data.address || DEFAULT_SETTINGS.address),
           defaultNotes: repairText(data.defaultNotes || DEFAULT_SETTINGS.defaultNotes),
+          laborMinimumByRegion: {
+            ...DEFAULT_SETTINGS.laborMinimumByRegion,
+            ...(data.laborMinimumByRegion || {}),
+          },
           cutoutPrices: {
             ...DEFAULT_SETTINGS.cutoutPrices,
             ...(data.cutoutPrices || {}),

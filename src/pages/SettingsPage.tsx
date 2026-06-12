@@ -106,6 +106,10 @@ export const SettingsPage: React.FC = () => {
     const sanitizedPaymentMethods = sourceSettings.paymentMethods
       .map((method) => ({name: method.name.trim(), adjustment: Number(method.adjustment) || 0}))
       .filter((method) => method.name);
+    const laborMinimumByRegion = {
+      altoTiete: Math.max(0, Number(sourceSettings.laborMinimumByRegion?.altoTiete || 0)),
+      saoPaulo: Math.max(0, Number(sourceSettings.laborMinimumByRegion?.saoPaulo || 0)),
+    };
     const sanitizedSuppliers = sourceSettings.materialCatalog.suppliers
       .map((supplier) => ({
         id: supplier.id?.trim() || `${supplier.name.trim()}-${supplier.whatsapp?.trim() || supplier.city?.trim() || 'supplier'}`,
@@ -120,6 +124,7 @@ export const SettingsPage: React.FC = () => {
 
     return {
       ...sourceSettings,
+      laborMinimumByRegion,
       paymentMethods: sanitizedPaymentMethods.length ? sanitizedPaymentMethods : DEFAULT_SETTINGS.paymentMethods,
       materialCatalog: {
         ...sourceSettings.materialCatalog,
@@ -502,6 +507,37 @@ export const SettingsPage: React.FC = () => {
                   onValueChange={(value) => setSettings({ ...settings, defaultValidity: value })}
                   decimals={0}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Mínimo mão de obra Alto Tietê</label>
+                <CurrencyInput
+                  value={settings.laborMinimumByRegion?.altoTiete || 0}
+                  onValueChange={(value) => setSettings({
+                    ...settings,
+                    laborMinimumByRegion: {
+                      ...settings.laborMinimumByRegion,
+                      altoTiete: value,
+                    },
+                  })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Mínimo mão de obra São Paulo</label>
+                <CurrencyInput
+                  value={settings.laborMinimumByRegion?.saoPaulo || 0}
+                  onValueChange={(value) => setSettings({
+                    ...settings,
+                    laborMinimumByRegion: {
+                      ...settings.laborMinimumByRegion,
+                      saoPaulo: value,
+                    },
+                  })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                 />
               </div>
             </div>

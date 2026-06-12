@@ -1,4 +1,5 @@
 import { QuotePiece, QuoteCutouts, Settings, Material, SculptedSink } from '../types';
+import {getRegionalLaborMinimum} from '../lib/laborRegion';
 
 const MATERIAL_LOSS_PERCENTAGE = 10;
 
@@ -133,13 +134,14 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
     };
   };
 
-  const calculateLabor = (pieces: QuotePiece[]) => {
+  const calculateLabor = (pieces: QuotePiece[], clientLocation?: {city?: string; address?: string}) => {
+    const regionalLaborMinimum = getRegionalLaborMinimum(settings, clientLocation || {});
     return pieces.reduce((acc, p) => {
       // Labor per linear meter * largest side
       const largestDim = p.stair?.active ?Math.max(p.stair.stepWidth || 0, (p.stair.stepCount || 0) * (p.stair.treadDepth || 0)) : p.largestSide || Math.max(p.width, p.length);
       const unit = p.stair?.active ?p.stair.unit : p.unit;
       const largestSideM = largestDim / (unit === 'cm' ?100 : 1);
-      return acc + (settings.laborRatePerLinearMeter * largestSideM);
+      return acc + Math.max(settings.laborRatePerLinearMeter * largestSideM, regionalLaborMinimum);
     }, 0);
   };
 
@@ -156,7 +158,12 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
     return total;
   };
 
-  const calculateTotal = (pieces: QuotePiece[], cutouts: QuoteCutouts, paymentMethodAdjustment: number) => {
+  const calculateTotal = (
+    pieces: QuotePiece[],
+    cutouts: QuoteCutouts,
+    paymentMethodAdjustment: number,
+    clientLocation?: {city?: string; address?: string},
+  ) => {
     const totals = pieces.map(p => calculatePieceArea(p));
     const sinkAdditionalValue = totals.reduce((acc, t) => acc + (t.sinkAdditionalValue || 0), 0);
     
@@ -168,7 +175,7 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
       const pieceMaterial = materialForPiece?.(piece);
       return acc + (totals[index].lossArea || 0) * (pieceMaterial?.pricePerM2 || 0);
     }, 0);
-    const laborCost = calculateLabor(pieces);
+    const laborCost = calculateLabor(pieces, clientLocation);
     
     // Drawing cutouts update the quote cutout counters when the drawing is saved.
     // Charging only from the counters avoids duplicating the same recorte.

@@ -374,6 +374,10 @@ export const QuoteEditor: React.FC = () => {
       pieces,
       quoteCutouts: cutouts,
       settings,
+      clientLocation: {
+        city: selectedClient?.city,
+        address: selectedClient?.address,
+      },
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
       includeLabor: quotePricingMode !== 'cost',
@@ -384,7 +388,7 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, materialId, pieceManualPriceInputs, pieces, quotePricingMode, settings],
+    [calculatePieceArea, cutouts, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings],
   );
   const stonesCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.stoneBaseValue, 0);
   const materialLossCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
@@ -936,6 +940,10 @@ export const QuoteEditor: React.FC = () => {
       quoteCutouts: cutouts,
       totalQuotePrice: totalPrice,
       settings,
+      clientLocation: {
+        city: selectedClient?.city,
+        address: selectedClient?.address,
+      },
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
       includeLabor: quotePricingMode !== 'cost',
@@ -946,7 +954,7 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, materialId, pieceManualPriceInputs, pieces, quotePricingMode, settings, totalPrice],
+    [calculatePieceArea, cutouts, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, totalPrice],
   );
   const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
     cooktop: 'cooktop',
@@ -1110,6 +1118,7 @@ export const QuoteEditor: React.FC = () => {
       clientName: selectedClient?.name || '',
       phone: selectedClient?.phone || '',
       address: selectedClient?.address || '',
+      city: selectedClient?.city || '',
       environment,
       responsible,
       responsibleUserUid: appUid || '',

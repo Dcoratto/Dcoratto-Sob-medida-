@@ -1,4 +1,5 @@
 import {Settings, Quote, QuotePiece} from '../types';
+import {getRegionalLaborMinimum} from './laborRegion';
 
 type QuoteCutoutState = {
   cooktop: number;
@@ -99,13 +100,18 @@ export const buildPieceCutoutSummary = ({
   };
 };
 
-export const calculatePieceLaborValue = (piece: QuotePiece, laborRatePerLinearMeter: number) => {
+export const calculatePieceLaborValue = (
+  piece: QuotePiece,
+  laborRatePerLinearMeter: number,
+  regionalMinimum = 0,
+) => {
   const largestDim = piece.stair?.active
     ? Math.max(piece.stair.stepWidth || 0, (piece.stair.stepCount || 0) * (piece.stair.treadDepth || 0))
     : piece.largestSide || Math.max(piece.width, piece.length);
   const unit = piece.stair?.active ? piece.stair.unit : piece.unit;
   const largestSideM = largestDim / (unit === 'cm' ? 100 : 1);
-  return roundCurrency(laborRatePerLinearMeter * largestSideM);
+  const calculatedLabor = roundCurrency(laborRatePerLinearMeter * largestSideM);
+  return roundCurrency(Math.max(calculatedLabor, regionalMinimum));
 };
 
 export const buildPiecePricingBreakdowns = ({
@@ -118,6 +124,7 @@ export const buildPiecePricingBreakdowns = ({
   includeLabor = true,
   includeMaterialLoss = true,
   resolveManualPiecePrice,
+  clientLocation,
 }: {
   pieces: QuotePiece[];
   quoteCutouts: Quote['cutouts'];
@@ -128,7 +135,9 @@ export const buildPiecePricingBreakdowns = ({
   includeLabor?: boolean;
   includeMaterialLoss?: boolean;
   resolveManualPiecePrice?: (piece: QuotePiece) => number | undefined;
+  clientLocation?: {city?: string; address?: string};
 }) => {
+  const regionalLaborMinimum = getRegionalLaborMinimum(settings, clientLocation || {});
   const breakdowns = pieces.map((piece) => {
     const totals = calculatePieceArea(piece);
     const cutoutSummary = buildPieceCutoutSummary({piece, pieces, quoteCutouts, settings});
@@ -136,7 +145,9 @@ export const buildPiecePricingBreakdowns = ({
     const stoneBaseValue = roundCurrency((totals.totalArea || 0) * materialPricePerM2);
     const materialLossValue = includeMaterialLoss ? roundCurrency((totals.lossArea || 0) * materialPricePerM2) : 0;
     const stoneWithLossValue = roundCurrency(stoneBaseValue + materialLossValue);
-    const laborValue = includeLabor ? calculatePieceLaborValue(piece, settings.laborRatePerLinearMeter) : 0;
+    const laborValue = includeLabor
+      ? calculatePieceLaborValue(piece, settings.laborRatePerLinearMeter, regionalLaborMinimum)
+      : 0;
     const sinkAdditionalValue = roundCurrency(totals.sinkAdditionalValue || 0);
     const automaticPieceSubtotalValue = roundCurrency(stoneWithLossValue + laborValue + cutoutSummary.totalValue + sinkAdditionalValue);
     const manualPiecePrice = resolveManualPiecePrice?.(piece);

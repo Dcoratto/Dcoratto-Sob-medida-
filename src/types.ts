@@ -75,6 +75,10 @@ export interface Settings {
   defaultValidity: number;
   defaultNotes: string;
   laborRatePerLinearMeter: number;
+  laborMinimumByRegion: {
+    altoTiete: number;
+    saoPaulo: number;
+  };
   defaultFrontonHeight: number;
   defaultSkirtHeight: number;
   defaultTurnHeight: number;
@@ -468,6 +472,7 @@ export interface Quote {
   clientName: string;
   phone: string;
   address: string;
+  city?: string;
   environment: string;
   responsible: string;
   responsibleUserUid?: string;

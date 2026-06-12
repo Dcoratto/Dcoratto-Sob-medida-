@@ -181,6 +181,10 @@ export const PremiumProposalPage: React.FC = () => {
       quoteCutouts: quote?.cutouts || {cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0},
       totalQuotePrice: quote?.totalPrice || 0,
       settings,
+      clientLocation: {
+        city: quote?.city,
+        address: quote?.address,
+      },
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialForPiece(piece)?.pricePerM2 || 0,
       includeLabor: quote?.pricingMode !== 'cost',
@@ -190,7 +194,7 @@ export const PremiumProposalPage: React.FC = () => {
           ? Number(piece.manualPrice)
           : undefined,
     }).map((item) => item.pieceFinalValue);
-  }, [calculatePieceArea, materialForPiece, quote?.cutouts, quote?.pieces, quote?.pricingMode, quote?.totalPrice, settings]);
+  }, [calculatePieceArea, materialForPiece, quote?.address, quote?.city, quote?.cutouts, quote?.pieces, quote?.pricingMode, quote?.totalPrice, settings]);
 
   useEffect(() => {
     if (!navItems.length) return;

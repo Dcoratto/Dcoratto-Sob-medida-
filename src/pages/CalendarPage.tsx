@@ -62,6 +62,19 @@ const toDate = (value: any) => {
 const keyOf = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 const toInputDate = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
+const getCalendarSubscriptionBaseUrl = () => {
+  if (typeof window === 'undefined') return '';
+
+  const url = new URL(window.location.origin);
+  const isLocalhost = ['localhost', '127.0.0.1'].includes(url.hostname);
+
+  if (!isLocalhost) {
+    url.protocol = 'https:';
+  }
+
+  return url.origin;
+};
+
 const parseDateKey = (value?: string) => {
   if (!value || !value.includes('-')) return null;
   const [year, month, day] = value.split('-').map(Number);
@@ -373,16 +386,14 @@ export const CalendarPage: React.FC = () => {
   const selectedClient = selectedEvent?.clientId ? clients.find((item) => item.id === selectedEvent.clientId) : null;
   const selectedEventDaysLeft = selectedEvent ?daysLeftFromToday(selectedEvent.date) : null;
   const subscriptionHttpsUrl = useMemo(() => {
-    if (!appUid || !subscriptionToken || typeof window === 'undefined') return '';
-    const params = new URLSearchParams({
-      uid: appUid,
-      token: subscriptionToken,
-    });
-    return `${window.location.origin}/api/calendar-feed?${params.toString()}`;
+    if (!appUid || !subscriptionToken) return '';
+    const baseUrl = getCalendarSubscriptionBaseUrl();
+    if (!baseUrl) return '';
+    return `${baseUrl}/calendar/${encodeURIComponent(appUid)}/${encodeURIComponent(subscriptionToken)}.ics`;
   }, [appUid, subscriptionToken]);
   const subscriptionWebcalUrl = useMemo(() => {
     if (!subscriptionHttpsUrl) return '';
-    return subscriptionHttpsUrl.replace(/^https?/, 'webcal');
+    return subscriptionHttpsUrl.replace(/^https:/, 'webcal:');
   }, [subscriptionHttpsUrl]);
   const googleCalendarSubscribeUrl = useMemo(() => {
     if (!subscriptionHttpsUrl) return '';
@@ -838,7 +849,7 @@ export const CalendarPage: React.FC = () => {
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Assinar cronograma</div>
                 <h3 className="mt-1 text-xl font-display font-bold text-slate-900">Sincronizar com iPhone e Android</h3>
-                <p className="mt-2 text-sm text-slate-500">Depois de assinar uma vez, o calendário do aparelho passa a acompanhar seu cronograma por link.</p>
+                <p className="mt-2 text-sm text-slate-500">Escolha uma das opções abaixo. Depois de assinar uma vez, o calendário do aparelho passa a acompanhar seu cronograma automaticamente.</p>
               </div>
               <button type="button" onClick={() => setShowSubscribeModal(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
             </div>
@@ -853,7 +864,7 @@ export const CalendarPage: React.FC = () => {
               >
                 <div>
                   <div className="text-sm font-bold text-slate-900">Assinar no iPhone</div>
-                  <div className="text-xs text-slate-500">Abre o app Calendário com o link de assinatura.</div>
+                  <div className="text-xs text-slate-500">Abre o app Calendário da Apple já com o feed de assinatura.</div>
                 </div>
                 <ExternalLink className="w-4 h-4 text-slate-400" />
               </a>
@@ -869,14 +880,15 @@ export const CalendarPage: React.FC = () => {
               >
                 <div>
                   <div className="text-sm font-bold text-slate-900">Abrir no Google Calendar</div>
-                  <div className="text-xs text-slate-500">No Android, o Google pode exigir adicionar o link pelo navegador antes de sincronizar no app.</div>
+                  <div className="text-xs text-slate-500">Ideal para Android. Se o app não concluir sozinho, use o link HTTPS logo abaixo.</div>
                 </div>
                 <ExternalLink className="w-4 h-4 text-slate-400" />
               </a>
 
               <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Link de assinatura</div>
+                <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Link HTTPS de assinatura</div>
                 <div className="mt-2 break-all text-sm font-semibold text-slate-700">{subscriptionHttpsUrl || 'Link indisponível no momento.'}</div>
+                <div className="mt-2 text-xs text-slate-500">Use este link se quiser colar manualmente no Google Calendar, Safari, Chrome ou outro calendário compatível.</div>
                 <button
                   type="button"
                   onClick={handleCopySubscriptionLink}
@@ -884,7 +896,7 @@ export const CalendarPage: React.FC = () => {
                   className="mt-3 inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:opacity-60"
                 >
                   <Copy className="w-4 h-4" />
-                  Copiar link
+                  Copiar link HTTPS
                 </button>
               </div>
 
@@ -893,7 +905,7 @@ export const CalendarPage: React.FC = () => {
               </div>
 
               <div className="rounded-2xl bg-blue-50 px-4 py-3 text-xs font-semibold text-blue-900">
-                Observação sobre Android: o app Google Calendar nem sempre aceita uma nova assinatura direto no celular. Se ele não adicionar sozinho, abra o Google Calendar no navegador ou use o link copiado para concluir a assinatura.
+                Dica: se o iPhone ou o Google Calendar não aceitarem a assinatura direta, copie o link HTTPS e conclua manualmente no navegador ou em outro app de calendário compatível.
               </div>
 
               {subscribeError && (

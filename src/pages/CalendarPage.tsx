@@ -63,9 +63,13 @@ const keyOf = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 
 const toInputDate = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 const getCalendarSubscriptionBaseUrl = () => {
-  if (typeof window === 'undefined') return '';
+  const env = ((import.meta as ImportMeta & {env?: Record<string, string | undefined>}).env || {}) as Record<string, string | undefined>;
+  const configuredAppUrl = String(env.VITE_APP_URL || '').trim();
+  const fallbackOrigin = typeof window !== 'undefined' ? window.location.origin : '';
+  const sourceUrl = configuredAppUrl || fallbackOrigin;
+  if (!sourceUrl) return '';
 
-  const url = new URL(window.location.origin);
+  const url = new URL(sourceUrl);
   const isLocalhost = ['localhost', '127.0.0.1'].includes(url.hostname);
 
   if (!isLocalhost) {

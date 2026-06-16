@@ -6,6 +6,7 @@ import {Client, CondominiumRule, Quote} from '../types';
 import {cn, repairText} from '../lib/utils';
 import {getHolidayInfo} from '../lib/holidays';
 import {useAuth} from '../contexts/AuthContext';
+import {ClientNavigationButtons} from '../components/ClientNavigationButtons';
 
 type EventType = 'medicao' | 'entrega' | 'manual' | 'pedido';
 
@@ -767,6 +768,7 @@ export const CalendarPage: React.FC = () => {
                   <div className="rounded-2xl bg-slate-50 px-4 py-3">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-400"><MapPin className="w-4 h-4" />Endereço completo</div>
                     <div className="mt-1 text-sm font-semibold text-slate-800">{clientFullAddress(selectedClient)}</div>
+                    <ClientNavigationButtons client={selectedClient} className="mt-3" />
                   </div>
                   <div className="rounded-2xl bg-slate-50 px-4 py-3">
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Detalhes do cadastro</div>

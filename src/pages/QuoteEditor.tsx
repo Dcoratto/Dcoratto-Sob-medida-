@@ -819,7 +819,7 @@ export const QuoteEditor: React.FC = () => {
     baseboardHeight: 10,
   });
 
-  const addPiece = (asStair = false) => {
+  const buildNewPiece = (asStair = false, overrides: Partial<QuotePiece> = {}): QuotePiece => {
     const newPiece: QuotePiece = {
       id: Math.random().toString(36).substr(2, 9),
       name: asStair ?`Escada ${pieces.filter((piece) => piece.stair?.active).length + 1}` : `${LABELS.pieces.singular} ${pieces.length + 1}`,
@@ -843,8 +843,14 @@ export const QuoteEditor: React.FC = () => {
         calculatedArea: 0,
         calculatedValue: 0
       },
-      stair: asStair ?defaultStairConfig() : {active: false, unit: 'cm', stepCount: 0, stepWidth: 0, treadDepth: 0, riserHeight: 0, landingCount: 0, landingWidth: 0, landingDepth: 0, leftBaseboard: false, rightBaseboard: false, baseboardHeight: 10}
+      stair: asStair ?defaultStairConfig() : {active: false, unit: 'cm', stepCount: 0, stepWidth: 0, treadDepth: 0, riserHeight: 0, landingCount: 0, landingWidth: 0, landingDepth: 0, leftBaseboard: false, rightBaseboard: false, baseboardHeight: 10},
+      ...overrides,
     };
+    return ensurePieceWorkflowStatus(newPiece, status);
+  };
+
+  const addPiece = (asStair = false) => {
+    const newPiece = buildNewPiece(asStair);
     setPieces([...pieces, newPiece]);
   };
 
@@ -899,6 +905,60 @@ export const QuoteEditor: React.FC = () => {
       if (piece.id !== id) return piece;
       return ensurePieceWorkflowStatus({...piece, ...data}, status);
     }));
+  };
+
+  const applyDrawingToPiece = (
+    pieceId: string,
+    drawingData: {
+      json: string;
+      area: number;
+      previewUrl: string;
+      sides: PieceSide[];
+      largestSide: number;
+      smallestSide: number;
+      cutouts: QuotePiece['cutouts'];
+    },
+  ) => {
+    const currentPiece = pieces.find((piece) => piece.id === pieceId);
+    const fixturePatch = fixturePatchFromDrawingCutouts(drawingData.cutouts);
+    applyCutoutDiff(currentPiece?.cutouts, drawingData.cutouts);
+    const dimensionCandidates = [Number(drawingData.largestSide || 0), Number(drawingData.smallestSide || 0)].filter((value) => value > 0);
+    const major = dimensionCandidates.length ? Math.max(...dimensionCandidates) : 0;
+    const minor = dimensionCandidates.length ? Math.min(...dimensionCandidates) : 0;
+    updatePiece(pieceId, {
+      drawingJson: drawingData.json,
+      manualArea: drawingData.area,
+      previewUrl: drawingData.previewUrl,
+      sides: drawingData.sides,
+      largestSide: drawingData.largestSide,
+      smallestSide: drawingData.smallestSide,
+      length: major || currentPiece?.length || 0,
+      width: minor || currentPiece?.width || major || 0,
+      cutouts: drawingData.cutouts,
+      selectedFixtureIds: {
+        ...currentPiece?.selectedFixtureIds,
+        ...fixturePatch.selectedFixtureIds,
+      },
+      purchasedFixtures: {
+        ...currentPiece?.purchasedFixtures,
+        ...fixturePatch.purchasedFixtures,
+      },
+    });
+  };
+
+  const saveDrawingAndContinue = (
+    sourcePieceId: string,
+    drawingData: {
+      json: string;
+      area: number;
+      previewUrl: string;
+      sides: PieceSide[];
+      largestSide: number;
+      smallestSide: number;
+      cutouts: QuotePiece['cutouts'];
+    },
+  ) => {
+    applyDrawingToPiece(sourcePieceId, drawingData);
   };
 
   const calculateWetAreaRecessArea = (piece: QuotePiece) => {
@@ -2479,7 +2539,15 @@ export const QuoteEditor: React.FC = () => {
                 <h3 className="text-2xl font-display font-bold text-slate-900">Desenho Técnico</h3>
                 <p className="text-slate-400 text-sm">Peça: {pieces.find(p => p.id === showDrawing)?.name}</p>
               </div>
-              <div className="flex items-center gap-3 self-start sm:self-auto">
+              <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+                <button
+                  id={`save-continue-drawing-${showDrawing}`}
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-brand-primary/20 bg-brand-primary/5 px-4 py-3 text-sm font-bold text-brand-primary transition-all hover:bg-brand-primary/10 sm:px-5"
+                >
+                  <Plus className="w-4 h-4" />
+                  Salvar e continuar
+                </button>
                 <button
                   id={`save-drawing-${showDrawing}`}
                   type="button"
@@ -2502,35 +2570,31 @@ export const QuoteEditor: React.FC = () => {
                 initialSides={pieces.find(p => p.id === showDrawing)?.sides}
                 initialCutouts={pieces.find(p => p.id === showDrawing)?.cutouts}
                 saveButtonId={`save-drawing-${showDrawing}`}
+                saveAndContinueButtonId={`save-continue-drawing-${showDrawing}`}
                 fixtureCatalog={fixtureCatalog}
                 settings={settings}
                 onSave={({ json, area, previewUrl, sides, largestSide, smallestSide, cutouts: drawingCutouts }) => {
-                    const currentPiece = pieces.find((piece) => piece.id === showDrawing);
-                    const fixturePatch = fixturePatchFromDrawingCutouts(drawingCutouts);
-                    applyCutoutDiff(currentPiece?.cutouts, drawingCutouts);
-                    const dimensionCandidates = [Number(largestSide || 0), Number(smallestSide || 0)].filter((value) => value > 0);
-                    const major = dimensionCandidates.length ? Math.max(...dimensionCandidates) : 0;
-                    const minor = dimensionCandidates.length ? Math.min(...dimensionCandidates) : 0;
-                    updatePiece(showDrawing, { 
-                      drawingJson: json, 
-                      manualArea: area, 
-                      previewUrl, 
-                      sides, 
-                      largestSide, 
-                      smallestSide,
-                      length: major || currentPiece?.length || 0,
-                      width: minor || currentPiece?.width || major || 0,
-                      cutouts: drawingCutouts,
-                      selectedFixtureIds: {
-                        ...currentPiece?.selectedFixtureIds,
-                      ...fixturePatch.selectedFixtureIds,
-                    },
-                    purchasedFixtures: {
-                      ...currentPiece?.purchasedFixtures,
-                      ...fixturePatch.purchasedFixtures,
-                    },
+                  applyDrawingToPiece(showDrawing, {
+                    json,
+                    area,
+                    previewUrl,
+                    sides,
+                    largestSide,
+                    smallestSide,
+                    cutouts: drawingCutouts,
                   });
                   setShowDrawing(null);
+                }}
+                onSaveAndContinue={({ json, area, previewUrl, sides, largestSide, smallestSide, cutouts: drawingCutouts }) => {
+                  saveDrawingAndContinue(showDrawing, {
+                    json,
+                    area,
+                    previewUrl,
+                    sides,
+                    largestSide,
+                    smallestSide,
+                    cutouts: drawingCutouts,
+                  });
                 }}
                 onCancel={() => setShowDrawing(null)}
                 className="h-full"

@@ -40,11 +40,19 @@ interface TechnicalSide {
   lengthM: number;
   start: Point;
   end: Point;
+  geometryId: string;
+  sideIndex: number;
+}
+
+interface GeometryShape {
+  id: string;
+  points: Point[];
 }
 
 interface SavedDrawing {
   points: Point[];
   closed: boolean;
+  geometries?: GeometryShape[];
   sides: PieceSide[];
   cutouts: DrawingCutout[];
   area: number;
@@ -54,8 +62,8 @@ interface SavedDrawing {
 }
 
 interface DrawingHistoryState {
+  geometries: GeometryShape[];
   points: Point[];
-  closed: boolean;
   sides: PieceSide[];
   cutouts: DrawingCutout[];
   drawingActive: boolean;
@@ -72,6 +80,15 @@ interface DrawingCanvasProps {
     smallestSide: number;
     cutouts: DrawingCutout[];
   }) => void;
+  onSaveAndContinue?: (data: {
+    json: string;
+    area: number;
+    previewUrl: string;
+    sides: PieceSide[];
+    largestSide: number;
+    smallestSide: number;
+    cutouts: DrawingCutout[];
+  }) => void;
   onCancel?: () => void;
   initialJson?: string;
   initialSides?: PieceSide[];
@@ -79,6 +96,7 @@ interface DrawingCanvasProps {
   fixtureCatalog?: FixtureCatalogItem[];
   className?: string;
   saveButtonId?: string;
+  saveAndContinueButtonId?: string;
   settings?: {
     defaultFrontonHeight?: number;
     defaultSkirtHeight?: number;
@@ -191,6 +209,11 @@ const hasCrossingLines = (points: Point[]) => {
 
 const makeSideKey = (index: number) => `side:${index}`;
 
+const makeGeometryId = () =>
+  typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : Math.random().toString(36).slice(2, 11);
+
 const defaultHeightFor = (type: ComplementType, settings?: DrawingCanvasProps['settings']) => {
   if (type === 'frontao') return settings?.defaultFrontonHeight ?? 10;
   if (type === 'saia') return settings?.defaultSkirtHeight ?? 4;
@@ -205,6 +228,7 @@ const formatEditableMeasureValue = (value: number) => {
 
 export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   onSave,
+  onSaveAndContinue,
   onCancel,
   initialJson,
   initialSides,
@@ -212,6 +236,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   fixtureCatalog = [],
   className,
   saveButtonId,
+  saveAndContinueButtonId,
   settings,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -224,6 +249,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const pinchZoomRef = useRef<number | null>(null);
 
   const [drawPoints, setDrawPoints] = useState<Point[]>([]);
+  const [geometries, setGeometries] = useState<GeometryShape[]>([]);
   const [previewPoint, setPreviewPoint] = useState<Point | null>(null);
   const [ortho, setOrtho] = useState(true);
   const [snap, setSnap] = useState(true);
@@ -238,7 +264,6 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   const [panStart, setPanStart] = useState<Point | null>(null);
   const [wasDragging, setWasDragging] = useState(false);
   const [zoom, setZoom] = useState(120);
-  const [closed, setClosed] = useState(false);
   const [currentMeasure, setCurrentMeasure] = useState('');
   const [lastPiece, setLastPiece] = useState<SavedDrawing | null>(null);
   const [complementos, setComplementos] = useState<PieceSide[]>(initialSides || EMPTY_SIDES);
@@ -277,21 +302,28 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     };
   }, [panX, panY, scale]);
 
+  const allGeometryPoints = useMemo(() => geometries.flatMap((geometry) => geometry.points), [geometries]);
+
   const technicalSides = useMemo<TechnicalSide[]>(() => {
-    if (drawPoints.length < 2) return [];
-    const count = closed ?drawPoints.length : drawPoints.length - 1;
-    return Array.from({length: count}, (_, index) => {
-      const start = drawPoints[index];
-      const end = drawPoints[(index + 1) % drawPoints.length];
-      return {
-        key: makeSideKey(index),
-        name: alphabetName(index),
-        lengthM: distance(start, end),
-        start,
-        end,
-      };
+    let globalIndex = 0;
+    return geometries.flatMap((geometry) => {
+      if (geometry.points.length < 2) return [];
+      return geometry.points.map((start, sideIndex) => {
+        const end = geometry.points[(sideIndex + 1) % geometry.points.length];
+        const side: TechnicalSide = {
+          key: `${geometry.id}:${makeSideKey(sideIndex)}`,
+          name: alphabetName(globalIndex),
+          lengthM: distance(start, end),
+          start,
+          end,
+          geometryId: geometry.id,
+          sideIndex,
+        };
+        globalIndex += 1;
+        return side;
+      });
     });
-  }, [closed, drawPoints]);
+  }, [geometries]);
 
   useEffect(() => {
     setSideLengthInputs((current) => {
@@ -304,7 +336,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     });
   }, [activeSideLengthInput, technicalSides]);
 
-  const area = useMemo(() => closed ?polygonArea(drawPoints) : 0, [closed, drawPoints]);
+  const area = useMemo(() => geometries.reduce((sum, geometry) => sum + polygonArea(geometry.points), 0), [geometries]);
   const majorSideM = useMemo(() => Math.max(0, ...technicalSides.map((side) => side.lengthM)), [technicalSides]);
   const minorSideM = useMemo(() => {
     if (!technicalSides.length) return 0;
@@ -339,7 +371,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   );
   const totalArea = area + additionalArea;
   const editableSideLabels = useMemo(() => {
-    const screenPoints = drawPoints.map(worldToScreen);
+    const screenPoints = allGeometryPoints.map(worldToScreen);
     const center = screenPoints.length
       ?{
         x: screenPoints.reduce((sum, point) => sum + point.x, 0) / screenPoints.length,
@@ -364,20 +396,20 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         y: mid.y + normal.y * direction * offset,
       };
     });
-  }, [drawPoints, technicalSides, worldToScreen]);
+  }, [allGeometryPoints, technicalSides, worldToScreen]);
 
   const currentHistoryState = useCallback((): DrawingHistoryState => ({
+    geometries,
     points: drawPoints,
-    closed,
     sides: complementos,
     cutouts,
     drawingActive,
     drawTool,
-  }), [closed, complementos, cutouts, drawPoints, drawTool, drawingActive]);
+  }), [complementos, cutouts, drawPoints, drawTool, drawingActive, geometries]);
 
   const restoreHistoryState = useCallback((state: DrawingHistoryState) => {
+    setGeometries(state.geometries);
     setDrawPoints(state.points);
-    setClosed(state.closed);
     setComplementos(state.sides);
     setCutouts(state.cutouts);
     setDrawingActive(state.drawingActive);
@@ -428,8 +460,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     undoStackRef.current = [];
     redoStackRef.current = [];
     if (!initialJson) {
+      setGeometries([]);
       setDrawPoints([]);
-      setClosed(false);
       setCutouts(initialCutouts || EMPTY_CUTOUTS);
       setComplementos(initialSides || EMPTY_SIDES);
       return;
@@ -437,23 +469,30 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
     try {
       const parsed = JSON.parse(initialJson) as Partial<SavedDrawing> & {closed?: boolean};
-      setDrawPoints(parsed.points || []);
-      setClosed(Boolean(parsed.closed || (parsed.points && parsed.points.length > 2)));
+      const parsedGeometries = Array.isArray(parsed.geometries) && parsed.geometries.length > 0
+        ? parsed.geometries.map((geometry, index) => ({
+          id: geometry.id || `loaded-${index}`,
+          points: geometry.points || [],
+        })).filter((geometry) => geometry.points.length >= 3)
+        : parsed.points && parsed.points.length >= 3
+          ?[{id: 'loaded-0', points: parsed.points}]
+          : [];
+      setGeometries(parsedGeometries);
+      setDrawPoints([]);
       setCutouts(parsed.cutouts || initialCutouts || EMPTY_CUTOUTS);
       setComplementos(parsed.sides || initialSides || EMPTY_SIDES);
       setLastPiece(parsed as SavedDrawing);
     } catch {
+      setGeometries([]);
       setDrawPoints([]);
-      setClosed(false);
       setCutouts(initialCutouts || EMPTY_CUTOUTS);
       setComplementos(initialSides || EMPTY_SIDES);
     }
   }, [initialJson, resetTransientState]);
 
   useEffect(() => {
-    if (!closed) return;
     setComplementos((current) => current.filter((item) => technicalSides.some((side) => side.key === item.side)));
-  }, [closed, technicalSides]);
+  }, [technicalSides]);
 
   useEffect(() => {
     setSelectedFixtureId('');
@@ -510,7 +549,6 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     setPreviewPoint(null);
     setDrawingActive(true);
     setCurrentMeasure(formatMeters(0));
-    setClosed(false);
   }, [recordHistory]);
 
   const closeGeometry = useCallback(() => {
@@ -520,10 +558,14 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       return;
     }
     recordHistory();
-    setClosed(true);
+    const points = sanitizePolygonPoints(drawPoints);
+    if (points.length < 3) return;
+    setGeometries((current) => [...current, {id: makeGeometryId(), points}]);
+    setDrawPoints([]);
     setDrawingActive(false);
     setPreviewPoint(null);
-    setDrawTool('select');
+    setCurrentMeasure('');
+    setDrawTool('line');
   }, [drawPoints, recordHistory]);
 
   const handleCanvasMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -596,7 +638,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       return;
     }
 
-    if (drawTool === 'line' && drawPoints.length > 0 && !closed) {
+    if (drawTool === 'line' && drawPoints.length > 0) {
       setPreviewPoint(world);
       const last = drawPoints[drawPoints.length - 1];
       setCurrentMeasure(formatMeters(distance(last, world)));
@@ -717,7 +759,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       return;
     }
 
-    if (drawTool === 'line' && drawPoints.length > 0 && !closed) {
+    if (drawTool === 'line' && drawPoints.length > 0) {
       setPreviewPoint(world);
       const last = drawPoints[drawPoints.length - 1];
       setCurrentMeasure(formatMeters(distance(last, world)));
@@ -727,7 +769,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   };
 
   useEffect(() => {
-    if (drawTool !== 'line' || drawPoints.length === 0 || closed) {
+    if (drawTool !== 'line' || drawPoints.length === 0) {
       if (!previewPoint) setCurrentMeasure('');
       return;
     }
@@ -735,7 +777,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     if (!target) return;
     const last = drawPoints[drawPoints.length - 1];
     setCurrentMeasure(formatMeters(distance(last, target)));
-  }, [closed, drawPoints, drawTool, previewPoint]);
+  }, [drawPoints, drawTool, previewPoint]);
 
   const stopDrag = () => {
     setPanStart(null);
@@ -786,7 +828,6 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       setRedoPoints((redo) => [...redo, removed]);
       return current.slice(0, -1);
     });
-    setClosed(false);
     setPreviewPoint(null);
   }, []);
 
@@ -802,11 +843,11 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
   const clearDrawing = () => {
     recordHistory();
+    setGeometries([]);
     setDrawPoints([]);
     setPreviewPoint(null);
     setCutouts([]);
     setComplementos([]);
-    setClosed(false);
     setRedoPoints([]);
     setLastPiece(null);
     setDrawingActive(false);
@@ -815,16 +856,17 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
   const centerDrawing = () => {
     const canvas = canvasRef.current;
-    if (!canvas || drawPoints.length === 0) {
+    const pointsToFrame = [...allGeometryPoints, ...drawPoints];
+    if (!canvas || pointsToFrame.length === 0) {
       setPanX(0);
       setPanY(0);
       setZoom(120);
       return;
     }
-    const minX = Math.min(...drawPoints.map((point) => point.x));
-    const maxX = Math.max(...drawPoints.map((point) => point.x));
-    const minY = Math.min(...drawPoints.map((point) => point.y));
-    const maxY = Math.max(...drawPoints.map((point) => point.y));
+    const minX = Math.min(...pointsToFrame.map((point) => point.x));
+    const maxX = Math.max(...pointsToFrame.map((point) => point.x));
+    const minY = Math.min(...pointsToFrame.map((point) => point.y));
+    const maxY = Math.max(...pointsToFrame.map((point) => point.y));
     const width = Math.max(maxX - minX, 0.1);
     const height = Math.max(maxY - minY, 0.1);
     const nextZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, Math.min((canvas.width - 160) / (width * BASE_SCALE), (canvas.height - 160) / (height * BASE_SCALE)) * 100));
@@ -842,14 +884,12 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       ilha: [{x: 0, y: 0}, {x: 2.0, y: 0}, {x: 2.0, y: 0.9}, {x: 0, y: 0.9}],
       soleira: [{x: 0, y: 0}, {x: 1.2, y: 0}, {x: 1.2, y: 0.18}, {x: 0, y: 0.18}],
     };
-    setDrawPoints(templates[template]);
-    setClosed(true);
+    setGeometries((current) => [...current, {id: makeGeometryId(), points: templates[template]}]);
+    setDrawPoints([]);
     setPreviewPoint(null);
     setRedoPoints([]);
-    setCutouts([]);
-    setComplementos([]);
     setDrawingActive(false);
-    setDrawTool('select');
+    setDrawTool('line');
     requestAnimationFrame(centerDrawing);
   };
 
@@ -895,13 +935,18 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
 
   const removeSegment = (index: number) => {
     recordHistory();
-    if (drawPoints.length <= 2) {
-      setDrawPoints([]);
-      setClosed(false);
-      return;
-    }
-    setDrawPoints((current) => current.filter((_, pointIndex) => pointIndex !== (index + 1) % current.length));
-    setClosed(false);
+    const side = technicalSides[index];
+    if (!side) return;
+    setGeometries((current) => current.flatMap((geometry) => {
+      if (geometry.id !== side.geometryId) return [geometry];
+      if (geometry.points.length <= 3) {
+        return [];
+      }
+      return [{
+        ...geometry,
+        points: geometry.points.filter((_, pointIndex) => pointIndex !== (side.sideIndex + 1) % geometry.points.length),
+      }];
+    }));
   };
 
   const editSideLength = (index: number, lengthM: number) => {
@@ -913,7 +958,14 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     const ux = (side.end.x - side.start.x) / currentLength;
     const uy = (side.end.y - side.start.y) / currentLength;
     const newEnd = {x: side.start.x + ux * lengthM, y: side.start.y + uy * lengthM};
-    setDrawPoints((current) => current.map((point, pointIndex) => pointIndex === (index + 1) % current.length ?newEnd : point));
+    setGeometries((current) => current.map((geometry) => (
+      geometry.id === side.geometryId
+        ?{
+          ...geometry,
+          points: geometry.points.map((point, pointIndex) => pointIndex === (side.sideIndex + 1) % geometry.points.length ?newEnd : point),
+        }
+        : geometry
+    )));
   };
 
   const handleSideLengthFocus = (sideKey: string, value: number) => {
@@ -933,16 +985,16 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   };
 
   const generatePreview = useCallback(() => {
-    if (drawPoints.length === 0) return '';
+    if (allGeometryPoints.length === 0) return '';
     const canvas = document.createElement('canvas');
     canvas.width = 700;
     canvas.height = 500;
     const ctx = canvas.getContext('2d');
     if (!ctx) return '';
-    const minX = Math.min(...drawPoints.map((point) => point.x));
-    const maxX = Math.max(...drawPoints.map((point) => point.x));
-    const minY = Math.min(...drawPoints.map((point) => point.y));
-    const maxY = Math.max(...drawPoints.map((point) => point.y));
+    const minX = Math.min(...allGeometryPoints.map((point) => point.x));
+    const maxX = Math.max(...allGeometryPoints.map((point) => point.x));
+    const minY = Math.min(...allGeometryPoints.map((point) => point.y));
+    const maxY = Math.max(...allGeometryPoints.map((point) => point.y));
     const width = Math.max(maxX - minX, 0.1);
     const height = Math.max(maxY - minY, 0.1);
     const s = Math.min(560 / width, 360 / height);
@@ -953,15 +1005,18 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     ctx.save();
     ctx.translate(ox, oy);
     ctx.scale(s, s);
-    ctx.beginPath();
-    ctx.moveTo(drawPoints[0].x, drawPoints[0].y);
-    drawPoints.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
-    if (closed) ctx.closePath();
-    ctx.fillStyle = 'rgba(142, 105, 62, 0.14)';
-    ctx.strokeStyle = '#8e693e';
-    ctx.lineWidth = 0.025;
-    if (closed) ctx.fill();
-    ctx.stroke();
+    geometries.forEach((geometry) => {
+      if (geometry.points.length === 0) return;
+      ctx.beginPath();
+      ctx.moveTo(geometry.points[0].x, geometry.points[0].y);
+      geometry.points.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(142, 105, 62, 0.14)';
+      ctx.strokeStyle = '#8e693e';
+      ctx.lineWidth = 0.025;
+      ctx.fill();
+      ctx.stroke();
+    });
     cutouts.forEach((cutout) => {
       ctx.save();
       ctx.strokeStyle = '#334155';
@@ -980,14 +1035,15 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     });
     ctx.restore();
     return canvas.toDataURL('image/webp', 0.92);
-  }, [closed, cutouts, drawPoints]);
+  }, [allGeometryPoints, cutouts, geometries]);
 
-  const saveDrawing = () => {
-    if (!closed || drawPoints.length < 3) return;
+  const buildSavePayload = useCallback(() => {
+    if (geometries.length === 0) return null;
     const previewUrl = generatePreview();
     const payload: SavedDrawing = {
-      points: drawPoints,
-      closed,
+      points: geometries[0]?.points || [],
+      closed: true,
+      geometries,
       sides: complementos,
       cutouts,
       area,
@@ -995,16 +1051,32 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       minorSide: minorSideM,
       previewImage: previewUrl,
     };
-    setLastPiece(payload);
-    onSave?.({
-      json: JSON.stringify(payload),
-      area,
-      previewUrl,
-      sides: complementos,
-      largestSide: majorSideM * 100,
-      smallestSide: minorSideM * 100,
-      cutouts,
-    });
+    return {
+      savedDrawing: payload,
+      result: {
+        json: JSON.stringify(payload),
+        area,
+        previewUrl,
+        sides: complementos,
+        largestSide: majorSideM * 100,
+        smallestSide: minorSideM * 100,
+        cutouts,
+      },
+    };
+  }, [area, complementos, cutouts, generatePreview, geometries, majorSideM, minorSideM]);
+
+  const saveDrawing = () => {
+    const payload = buildSavePayload();
+    if (!payload) return;
+    setLastPiece(payload.savedDrawing);
+    onSave?.(payload.result);
+  };
+
+  const saveDrawingAndContinue = () => {
+    const payload = buildSavePayload();
+    if (!payload) return;
+    setLastPiece(payload.savedDrawing);
+    onSaveAndContinue?.(payload.result);
   };
 
   useEffect(() => {
@@ -1015,6 +1087,15 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     button.addEventListener('click', handler);
     return () => button.removeEventListener('click', handler);
   }, [saveButtonId, saveDrawing]);
+
+  useEffect(() => {
+    if (!saveAndContinueButtonId) return;
+    const button = document.getElementById(saveAndContinueButtonId);
+    if (!button) return;
+    const handler = () => saveDrawingAndContinue();
+    button.addEventListener('click', handler);
+    return () => button.removeEventListener('click', handler);
+  }, [saveAndContinueButtonId, saveDrawingAndContinue]);
 
   useEffect(() => {
     const handleKey = (event: KeyboardEvent) => {
@@ -1036,11 +1117,11 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         setMeasureBuffer('');
         setDrawTool('select');
       }
-      if (!isTextEditing && drawTool === 'line' && drawPoints.length > 0 && !closed && /^[0-9,.]$/.test(event.key)) {
+      if (!isTextEditing && drawTool === 'line' && drawPoints.length > 0 && /^[0-9,.]$/.test(event.key)) {
         event.preventDefault();
         setMeasureBuffer((current) => `${current}${event.key}`);
       }
-      if (!isTextEditing && drawTool === 'line' && drawPoints.length > 0 && !closed && event.key === 'Backspace') {
+      if (!isTextEditing && drawTool === 'line' && drawPoints.length > 0 && event.key === 'Backspace') {
         event.preventDefault();
         setMeasureBuffer((current) => current.slice(0, -1));
       }
@@ -1055,7 +1136,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [closed, drawPoints.length, drawTool, handleMeasureSubmit, measureBuffer, redoLastAction, undoLastAction]);
+  }, [drawPoints.length, drawTool, handleMeasureSubmit, measureBuffer, redoLastAction, undoLastAction]);
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current;
@@ -1102,16 +1183,27 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     drawGrid(small, '#eee7dc', 0.7);
     drawGrid(major, '#dfd2bf', 1);
 
+    geometries.forEach((geometry) => {
+      const geometryScreenPoints = geometry.points.map(worldToScreen);
+      if (geometryScreenPoints.length === 0) return;
+      ctx.beginPath();
+      ctx.moveTo(geometryScreenPoints[0].x, geometryScreenPoints[0].y);
+      geometryScreenPoints.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(142, 105, 62, 0.14)';
+      ctx.fill();
+      ctx.strokeStyle = '#8e693e';
+      ctx.lineWidth = 3;
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    });
+
     const screenPoints = drawPoints.map(worldToScreen);
     if (screenPoints.length > 0) {
       ctx.beginPath();
       ctx.moveTo(screenPoints[0].x, screenPoints[0].y);
       screenPoints.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
-      if (closed) ctx.closePath();
-      if (closed) {
-        ctx.fillStyle = 'rgba(142, 105, 62, 0.14)';
-        ctx.fill();
-      }
       ctx.strokeStyle = '#8e693e';
       ctx.lineWidth = 3;
       ctx.lineJoin = 'round';
@@ -1119,7 +1211,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       ctx.stroke();
     }
 
-    if (previewPoint && drawPoints.length > 0 && drawTool === 'line' && !closed) {
+    if (previewPoint && drawPoints.length > 0 && drawTool === 'line') {
       const from = worldToScreen(drawPoints[drawPoints.length - 1]);
       const to = worldToScreen(previewPoint);
       ctx.save();
@@ -1159,8 +1251,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       ctx.restore();
     });
 
-    const center = screenPoints.length
-      ?{x: screenPoints.reduce((sum, point) => sum + point.x, 0) / screenPoints.length, y: screenPoints.reduce((sum, point) => sum + point.y, 0) / screenPoints.length}
+    const allScreenPoints = allGeometryPoints.map(worldToScreen);
+    const center = allScreenPoints.length
+      ?{x: allScreenPoints.reduce((sum, point) => sum + point.x, 0) / allScreenPoints.length, y: allScreenPoints.reduce((sum, point) => sum + point.y, 0) / allScreenPoints.length}
       : {x: rect.width / 2, y: rect.height / 2};
 
     technicalSides.forEach((side, index) => {
@@ -1224,7 +1317,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       ctx.lineWidth = 1.5;
       ctx.stroke();
     });
-  }, [closed, cutouts, drawPoints, drawTool, hoverGuide, panX, panY, previewPoint, scale, technicalSides, worldToScreen]);
+  }, [allGeometryPoints, cutouts, drawPoints, drawTool, geometries, hoverGuide, panX, panY, previewPoint, scale, technicalSides, worldToScreen]);
 
   useEffect(() => {
     draw();
@@ -1237,7 +1330,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     <div className={cn('flex h-full flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-white', className)}>
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 bg-white p-3">
         <ToolButton icon={MousePointer2} label="Selecionar" active={drawTool === 'select'} onClick={() => setDrawTool('select')} />
-        <ToolButton icon={Pencil} label="Linha" active={drawTool === 'line'} onClick={() => { setDrawTool('line'); setDrawingActive(drawPoints.length > 0 && !closed); }} />
+        <ToolButton icon={Pencil} label="Linha" active={drawTool === 'line'} onClick={() => { setDrawTool('line'); setDrawingActive(drawPoints.length > 0); }} />
         <ToolButton icon={Move3D} label="Mover ponto" active={drawTool === 'move-point'} onClick={() => setDrawTool('move-point')} />
         <ToolButton icon={Hand} label="Pan" active={drawTool === 'pan'} onClick={() => setDrawTool('pan')} />
         <ToolButton icon={Scissors} label="Adicionar recorte" active={drawTool === 'cutout'} onClick={activateCutoutTool} />
@@ -1579,7 +1672,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             </div>
           </div>
         )}
-        {closed && editableSideLabels.map(({side, index, x, y}) => (
+        {editableSideLabels.map(({side, index, x, y}) => (
           <div
             key={side.key}
             className="absolute z-10 flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-lg border border-amber-100 bg-white/95 px-2 py-1 shadow-sm"
@@ -1729,7 +1822,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
               </div>
           </div>
           <div className="space-y-2">
-            <button type="button" onClick={saveDrawing} disabled={!closed || drawPoints.length < 3} className="w-full rounded-2xl bg-brand-primary py-4 font-bold text-white shadow-lg shadow-brand-primary/20 disabled:opacity-50">
+            <button type="button" onClick={saveDrawing} disabled={geometries.length === 0} className="w-full rounded-2xl bg-brand-primary py-4 font-bold text-white shadow-lg shadow-brand-primary/20 disabled:opacity-50">
               Adicionar ao orçamento
             </button>
             <button type="button" onClick={onCancel} className="w-full rounded-2xl bg-white py-3 text-sm font-bold text-slate-500 hover:bg-slate-100">

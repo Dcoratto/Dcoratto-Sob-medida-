@@ -22,6 +22,12 @@ type QuickQuotePdfData = {
 };
 
 const safeText = (value?: string) => value?.trim() || '-';
+const logoSource = (settings: Settings) =>
+  settings.originalUrl?.trim() ||
+  settings.mediumUrl?.trim() ||
+  settings.thumbnailUrl?.trim() ||
+  settings.logoUrl?.trim() ||
+  '';
 
 const detectImageFormat = (src?: string) => {
   const value = String(src || '');
@@ -31,10 +37,29 @@ const detectImageFormat = (src?: string) => {
   return 'PNG';
 };
 
+const toDataUrl = async (src?: string) => {
+  const value = String(src || '').trim();
+  if (!value) return '';
+  if (value.startsWith('data:image/')) return value;
+  try {
+    const response = await fetch(value);
+    const blob = await response.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return '';
+  }
+};
+
 export const generateQuickQuotePDF = async (data: QuickQuotePdfData, settings: Settings) => {
   const [{jsPDF}] = await Promise.all([
     import('jspdf'),
   ]);
+  const companyLogo = await toDataUrl(logoSource(settings));
 
   const doc = new jsPDF({unit: 'mm', format: 'a4'});
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -51,9 +76,19 @@ export const generateQuickQuotePDF = async (data: QuickQuotePdfData, settings: S
   doc.setFillColor(gold[0], gold[1], gold[2]);
   doc.roundedRect(margin, 12, pageWidth - margin * 2, 30, 8, 8, 'F');
   doc.setTextColor(255, 255, 255);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(19);
-  doc.text(settings.companyName || "D'Coratto Sob Medida", margin + 6, 25);
+  if (companyLogo) {
+    try {
+      doc.addImage(companyLogo, detectImageFormat(companyLogo), margin + 6, 17, 52, 14, undefined, 'FAST');
+    } catch {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(19);
+      doc.text(settings.companyName || "D'Coratto Sob Medida", margin + 6, 25);
+    }
+  } else {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(19);
+    doc.text(settings.companyName || "D'Coratto Sob Medida", margin + 6, 25);
+  }
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
   doc.text([safeText(settings.phone), safeText(settings.email)].filter((item) => item !== '-').join('  •  ') || '-', margin + 6, 32);

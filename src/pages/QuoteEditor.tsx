@@ -9,7 +9,7 @@ import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
   ChevronDown, ChevronUp, Calculator,
   MapPin, Phone, User,
-  Layers, PenTool
+  Layers, PenTool, FileText
 } from 'lucide-react';
 import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, parseCurrencyInput, parseMeasureInput, roundNumber } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,6 +29,7 @@ import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {LABELS} from '../constants/labels';
 import {imageVariantUrl} from '../lib/storage';
 import {NumericInput} from '../components/inputs/NumericInput';
+import {generateQuickQuotePDF} from '../lib/quickQuotePdfGenerator';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 
@@ -1276,6 +1277,41 @@ export const QuoteEditor: React.FC = () => {
     }
   };
 
+  const handleQuickQuotePdf = async () => {
+    if (!pieces.length) {
+      window.alert('Adicione pelo menos uma peça antes de gerar o orçamento rápido.');
+      return;
+    }
+
+    try {
+      await generateQuickQuotePDF({
+        clientName: selectedClient?.name || clientSearch || 'Cliente',
+        clientPhone: selectedClient?.phone || '',
+        environment,
+        quoteDate: new Date(),
+        totalArea,
+        totalPrice,
+        pieces: pieces.map((piece, index) => {
+          const pieceTotals = pieceAreaDetails[index]?.totals;
+          const material = materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey);
+          const pricing = piecePricingBreakdowns[index];
+          return {
+            name: piece.name || `${LABELS.pieces.singular} ${index + 1}`,
+            materialName: material?.name || 'Sem material',
+            area: pieceTotals?.totalArea || piece.totalArea || piece.manualArea || piece.area || 0,
+            price: pricing?.pieceFinalValue || 0,
+            length: piece.length || piece.largestSide || 0,
+            width: piece.width || piece.smallestSide || 0,
+            previewUrl: piece.previewUrl || piece.proposalImageUrl || '',
+          };
+        }),
+      }, settings);
+    } catch (error) {
+      console.error('Erro ao gerar orçamento rápido em PDF', error);
+      window.alert('Não foi possível gerar o PDF do orçamento rápido agora.');
+    }
+  };
+
   if (settingsLoading) return <div>Carregando...</div>;
 
   return (
@@ -1322,6 +1358,15 @@ export const QuoteEditor: React.FC = () => {
             <div className="text-4xl font-display font-bold mb-2">
               {formatCurrency(totalPrice)}
             </div>
+            <button
+              type="button"
+              onClick={handleQuickQuotePdf}
+              disabled={!pieces.length}
+              className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/12 px-4 py-3 text-sm font-bold text-white transition-all hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FileText className="w-4 h-4" />
+              Orçamento rápido PDF
+            </button>
             <div className="space-y-2 text-sm font-medium text-white/75">
               <div className="flex justify-between gap-3"><span>Área final total</span><strong>{formatArea(totalArea)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pedras</span><strong>{formatCurrency(stonesCost)}</strong></div>

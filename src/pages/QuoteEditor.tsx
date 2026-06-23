@@ -158,6 +158,7 @@ export const QuoteEditor: React.FC = () => {
   const [statusHistory, setStatusHistory] = useState<QuoteStatusHistory[]>([]);
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
   const [quotePricingMode, setQuotePricingMode] = useState<'sale' | 'cost'>('sale');
+  const [includeMaterialLoss, setIncludeMaterialLoss] = useState(true);
   const quoteDraftHydratedRef = useRef(false);
   const quoteDraftKey = `quote-editor-draft:${appUid || 'anonymous'}:${id || 'new'}`;
 
@@ -382,14 +383,14 @@ export const QuoteEditor: React.FC = () => {
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
       includeLabor: quotePricingMode !== 'cost',
-      includeMaterialLoss: quotePricingMode !== 'cost',
+      includeMaterialLoss,
       resolveManualPiecePrice: (piece) => {
         if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
         const parsed = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings],
+    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings],
   );
   const stonesCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.stoneBaseValue, 0);
   const materialLossCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
@@ -552,6 +553,7 @@ export const QuoteEditor: React.FC = () => {
       const draftPieces = Array.isArray(draft.pieces) ? draft.pieces as QuotePiece[] : [];
       setPieces(draftPieces);
       setQuotePricingMode((draft.pricingMode as 'sale' | 'cost') || 'sale');
+      setIncludeMaterialLoss(typeof draft.includeMaterialLoss === 'boolean' ? draft.includeMaterialLoss : ((draft.pricingMode as 'sale' | 'cost') || 'sale') !== 'cost');
       setMaterialCustomPriceInputs((draft.materialCustomPriceInputs as Record<string, string>) || inputValuesFromMaterialOverrides(draft.materialPriceOverrides as QuoteMaterialPriceOverride[]));
       setPieceManualPriceInputs((draft.pieceManualPriceInputs as Record<string, string>) || inputValuesFromPieceManualPrices(draftPieces));
       setCutouts((draft.cutouts as QuoteCutoutState) || { cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
@@ -587,6 +589,7 @@ export const QuoteEditor: React.FC = () => {
           setStatus(normalizeQuoteStatus(data.status));
           setOriginalStatus(normalizeQuoteStatus(data.status));
           setQuotePricingMode(data.pricingMode || 'sale');
+          setIncludeMaterialLoss(typeof data.includeMaterialLoss === 'boolean' ? data.includeMaterialLoss : (data.pricingMode || 'sale') !== 'cost');
           const loadedPieces = (data.pieces || []).map((piece) => ensurePieceWorkflowStatus({
             ...piece,
             materialId: piece.materialId || data.materialId || '',
@@ -685,6 +688,7 @@ export const QuoteEditor: React.FC = () => {
       deliveryDate,
       validityDays,
       pricingMode: quotePricingMode,
+      includeMaterialLoss,
       commercialNotes,
       status,
       originalStatus,
@@ -697,7 +701,7 @@ export const QuoteEditor: React.FC = () => {
       pieceMaterialSearch,
     });
     if (savedAt) setQuoteDraftSavedAt(savedAt);
-  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, pieceManualPriceInputs, pieceMaterialSearch, pieces, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
+  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, includeMaterialLoss, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, pieceManualPriceInputs, pieceMaterialSearch, pieces, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
 
   const clearQuoteDraftState = () => {
     clearDraft(quoteDraftKey);
@@ -1008,14 +1012,14 @@ export const QuoteEditor: React.FC = () => {
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
       includeLabor: quotePricingMode !== 'cost',
-      includeMaterialLoss: quotePricingMode !== 'cost',
+      includeMaterialLoss,
       resolveManualPiecePrice: (piece) => {
         if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
         const parsed = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, totalPrice],
+    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, totalPrice],
   );
   const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
     cooktop: 'cooktop',
@@ -1200,6 +1204,7 @@ export const QuoteEditor: React.FC = () => {
       totalArea: normalizedTotalArea,
       totalPrice: normalizedTotalPrice,
       pricingMode: quotePricingMode,
+      includeMaterialLoss,
       pieces: piecesWithStatus,
       cutouts,
       materialPriceOverrides,
@@ -1370,7 +1375,10 @@ export const QuoteEditor: React.FC = () => {
             <div className="space-y-2 text-sm font-medium text-white/75">
               <div className="flex justify-between gap-3"><span>Área final total</span><strong>{formatArea(totalArea)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pedras</span><strong>{formatCurrency(stonesCost)}</strong></div>
-              <div className="flex justify-between gap-3"><span>Perda material (10%)</span><strong>{formatCurrency(materialLossCost)}</strong></div>
+              <div className="flex justify-between gap-3">
+                <span>{includeMaterialLoss ? 'Perda material (10%)' : 'Perda material desativada'}</span>
+                <strong>{formatCurrency(materialLossCost)}</strong>
+              </div>
               <div className="flex justify-between gap-3"><span>Mão de obra</span><strong>{formatCurrency(laborCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Recortes</span><strong>{formatCurrency(cutoutsCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pia esculpida</span><strong>{formatCurrency(sculptedLaborCost)}</strong></div>
@@ -1574,6 +1582,31 @@ export const QuoteEditor: React.FC = () => {
                 >
                   Preço de custo
                 </button>
+              </div>
+              <div className="rounded-2xl bg-white p-3">
+                <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">Perda de material</div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={() => setIncludeMaterialLoss(true)}
+                    className={cn(
+                      'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
+                      includeMaterialLoss ? 'bg-brand-primary text-white shadow-sm' : 'bg-slate-50 text-slate-600',
+                    )}
+                  >
+                    Com 10% de perda
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIncludeMaterialLoss(false)}
+                    className={cn(
+                      'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
+                      !includeMaterialLoss ? 'bg-brand-primary text-white shadow-sm' : 'bg-slate-50 text-slate-600',
+                    )}
+                  >
+                    Sem 10% de perda
+                  </button>
+                </div>
               </div>
             </div>
 

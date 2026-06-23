@@ -495,6 +495,7 @@ export interface Quote {
   totalArea: number;
   totalPrice: number;
   pricingMode?: 'sale' | 'cost';
+  includeMaterialLoss?: boolean;
   pieces: QuotePiece[];
   cutouts: QuoteCutouts;
   materialPriceOverrides?: QuoteMaterialPriceOverride[];

@@ -17,11 +17,17 @@ export const validateClientPayload = (payload: {
   condominiumId?: string | null;
   block?: string;
   lot?: string;
+  requireLotAddress?: boolean;
 }) => {
   if (!String(payload.name || '').trim()) return 'Informe o nome do cliente.';
   if (!String(payload.phone || '').trim()) return 'Informe o telefone do cliente.';
   if (!String(payload.city || '').trim()) return 'Informe a cidade do cliente.';
-  if (payload.addressType === 'condominio' && payload.condominiumId && (!String(payload.block || '').trim() || !String(payload.lot || '').trim())) {
+  if (
+    payload.addressType === 'condominio'
+    && payload.condominiumId
+    && payload.requireLotAddress
+    && (!String(payload.block || '').trim() || !String(payload.lot || '').trim())
+  ) {
     return 'Preencha quadra e lote para clientes vinculados a condomínio em modo lote.';
   }
   return null;

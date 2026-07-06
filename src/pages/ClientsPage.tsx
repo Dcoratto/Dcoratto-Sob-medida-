@@ -603,7 +603,7 @@ export const ClientsPage: React.FC = () => {
     const normalizedCondominiumId = selectedCondominium?.id || null;
     const selectedCondoAddressMode = selectedCondominium?.addressMode || 'street';
     const includeStreet = addressType !== 'condominio' || selectedCondoAddressMode === 'street';
-    const includeLot = addressType === 'condominio' && selectedCondoAddressMode === 'lot';
+    const includeLot = addressType === 'condominio' && (selectedCondoAddressMode === 'lot' || Boolean(block.trim() || lot.trim()));
     const fullAddress = [
       includeStreet ?address : '',
       neighborhood  ? `Bairro ${neighborhood}` : '',
@@ -674,6 +674,7 @@ export const ClientsPage: React.FC = () => {
       condominiumId: normalizedCondominiumId,
       block,
       lot,
+      requireLotAddress: selectedCondoAddressMode === 'lot',
     });
     if (validationError) {
       window.alert(validationError);
@@ -1395,7 +1396,7 @@ export const ClientsPage: React.FC = () => {
   const selectedCondominiumForForm = condominiumId ?condominiums.find((item) => item.id === condominiumId) : null;
   const condominiumAddressMode = selectedCondominiumForForm?.addressMode || 'street';
   const needsStreetAddress = addressType !== 'condominio' || condominiumAddressMode === 'street';
-  const needsLotAddress = addressType === 'condominio' && condominiumAddressMode === 'lot';
+  const needsLotAddress = addressType === 'condominio';
   const openDriveFolder = (url?: string) => {
     if (!url) return;
     window.open(url, '_blank', 'noopener,noreferrer');

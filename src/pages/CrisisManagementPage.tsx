@@ -1,6 +1,8 @@
 import React from 'react';
+import {useSearchParams} from 'react-router-dom';
 import {
   AlertCircle,
+  CalendarDays,
   Check,
   CheckCircle2,
   Clock3,
@@ -28,7 +30,9 @@ import {
   listCrisisHistory,
   listCrisisTaskPhotos,
   listCrisisTasks,
+  removeCrisisTaskSchedule,
   reopenCrisisTask,
+  scheduleCrisisTask,
   searchClientsForCrisis,
   softDeleteCrisisPhoto,
   softDeleteCrisisTask,
@@ -56,6 +60,35 @@ const formatShortDate = (value?: string | null) => {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
   return date.toLocaleDateString('pt-BR');
+};
+
+const formatTaskSchedule = (task?: Pick<CrisisTask, 'scheduledFor' | 'scheduleStartTime' | 'scheduleEndTime'> | null) => {
+  if (!task?.scheduledFor) return '';
+  const dateLabel = formatShortDate(task.scheduledFor as string);
+  if (!task.scheduleStartTime) return `Agendada para ${dateLabel}`;
+  if (!task.scheduleEndTime || task.scheduleEndTime === task.scheduleStartTime) {
+    return `Agendada para ${dateLabel} às ${task.scheduleStartTime}`;
+  }
+  return `Agendada para ${dateLabel} às ${task.scheduleStartTime} até ${task.scheduleEndTime}`;
+};
+
+const isTaskOverdue = (task: Pick<CrisisTask, 'status' | 'scheduledFor' | 'scheduleEndTime' | 'scheduleStartTime'>) => {
+  if (task.status === 'completed' || !task.scheduledFor) return false;
+  const scheduleDate = new Date(task.scheduledFor as string);
+  if (Number.isNaN(scheduleDate.getTime())) return false;
+
+  const dueAt = new Date(scheduleDate);
+  if (task.scheduleEndTime) {
+    const [hours, minutes] = task.scheduleEndTime.split(':').map(Number);
+    dueAt.setHours(Number.isFinite(hours) ? hours : 23, Number.isFinite(minutes) ? minutes : 59, 0, 0);
+  } else if (task.scheduleStartTime) {
+    const [hours, minutes] = task.scheduleStartTime.split(':').map(Number);
+    dueAt.setHours(Number.isFinite(hours) ? hours : 23, Number.isFinite(minutes) ? minutes : 59, 0, 0);
+  } else {
+    dueAt.setHours(23, 59, 59, 999);
+  }
+
+  return dueAt.getTime() < Date.now();
 };
 
 const statusMeta = {
@@ -95,6 +128,7 @@ const EmptyState: React.FC<{title: string; body: string; action?: React.ReactNod
 );
 
 export const CrisisManagementPage: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const {accessUser, profile, user, hasPermission} = useAuth();
   const canEdit = hasPermission('cliente', 'editarDados');
   const canUpload = hasPermission('cliente', 'anexarArquivos');
@@ -141,6 +175,15 @@ export const CrisisManagementPage: React.FC = () => {
   const [taskDescription, setTaskDescription] = React.useState('');
   const [savingTask, setSavingTask] = React.useState(false);
 
+  const [showScheduleModal, setShowScheduleModal] = React.useState(false);
+  const [scheduleTask, setScheduleTask] = React.useState<CrisisTask | null>(null);
+  const [scheduleDate, setScheduleDate] = React.useState('');
+  const [scheduleStartTime, setScheduleStartTime] = React.useState('');
+  const [scheduleEndTime, setScheduleEndTime] = React.useState('');
+  const [scheduleNote, setScheduleNote] = React.useState('');
+  const [savingSchedule, setSavingSchedule] = React.useState(false);
+  const [removingSchedule, setRemovingSchedule] = React.useState(false);
+
   const [showUploadModal, setShowUploadModal] = React.useState(false);
   const [uploadTask, setUploadTask] = React.useState<CrisisTask | null>(null);
   const [uploadCaptureKind, setUploadCaptureKind] = React.useState<'before' | 'after' | 'evidence'>('evidence');
@@ -151,6 +194,9 @@ export const CrisisManagementPage: React.FC = () => {
 
   const [lightboxPhoto, setLightboxPhoto] = React.useState<CrisisTaskPhoto | null>(null);
   const [lightboxScale, setLightboxScale] = React.useState(1);
+
+  const requestedCaseId = searchParams.get('case') || '';
+  const requestedTaskId = searchParams.get('task') || '';
 
   const selectedTask = React.useMemo(
     () => tasks.find((task) => task.id === selectedTaskId) || null,
@@ -203,14 +249,17 @@ export const CrisisManagementPage: React.FC = () => {
       ]);
       setSelectedCase(caseItem);
       setTasks(taskItems);
-      setSelectedTaskId((current) => current && taskItems.some((task) => task.id === current) ? current : (taskItems[0]?.id || ''));
+      setSelectedTaskId((current) => {
+        if (requestedTaskId && taskItems.some((task) => task.id === requestedTaskId)) return requestedTaskId;
+        return current && taskItems.some((task) => task.id === current) ? current : (taskItems[0]?.id || '');
+      });
       setCases((current) => current.map((item) => item.id === caseItem.id ? caseItem : item));
     } catch (error) {
       setFeedback({type: 'error', message: (error as Error).message || 'Nao foi possivel carregar as pendencias.'});
     } finally {
       setTasksLoading(false);
     }
-  }, []);
+  }, [requestedTaskId]);
 
   const refreshPhotos = React.useCallback(async (taskId: string, page = 0, append = false) => {
     if (!taskId) {
@@ -272,6 +321,12 @@ export const CrisisManagementPage: React.FC = () => {
   }, [refreshCases, caseSearch]);
 
   React.useEffect(() => {
+    if (requestedCaseId && requestedCaseId !== selectedCaseId) {
+      setSelectedCaseId(requestedCaseId);
+    }
+  }, [requestedCaseId, selectedCaseId]);
+
+  React.useEffect(() => {
     if (!selectedCaseId) return;
     void refreshSelectedCase(selectedCaseId);
   }, [refreshSelectedCase, selectedCaseId]);
@@ -314,6 +369,24 @@ export const CrisisManagementPage: React.FC = () => {
     setTaskDescription('');
   };
 
+  const openScheduleModal = (task: CrisisTask) => {
+    setScheduleTask(task);
+    setScheduleDate(task.scheduledFor ? new Date(task.scheduledFor as string).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10));
+    setScheduleStartTime(task.scheduleStartTime || '');
+    setScheduleEndTime(task.scheduleEndTime || '');
+    setScheduleNote(task.scheduleNote || '');
+    setShowScheduleModal(true);
+  };
+
+  const closeScheduleModal = () => {
+    setShowScheduleModal(false);
+    setScheduleTask(null);
+    setScheduleDate('');
+    setScheduleStartTime('');
+    setScheduleEndTime('');
+    setScheduleNote('');
+  };
+
   const handleSaveTask = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedCaseId) return;
@@ -337,6 +410,55 @@ export const CrisisManagementPage: React.FC = () => {
       setFeedback({type: 'error', message: (error as Error).message || 'Nao foi possivel salvar a pendencia.'});
     } finally {
       setSavingTask(false);
+    }
+  };
+
+  const handleSaveSchedule = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!selectedCase || !scheduleTask) return;
+    if (!scheduleDate) {
+      setFeedback({type: 'error', message: 'Informe a data da pendencia.'});
+      return;
+    }
+    if (scheduleStartTime && scheduleEndTime && scheduleEndTime <= scheduleStartTime) {
+      setFeedback({type: 'error', message: 'O horario final deve ser posterior ao horario inicial.'});
+      return;
+    }
+
+    const hadSchedule = Boolean(scheduleTask.scheduledFor);
+    setSavingSchedule(true);
+    try {
+      await scheduleCrisisTask(scheduleTask.id, {
+        scheduleDate,
+        startTime: scheduleStartTime || undefined,
+        endTime: scheduleEndTime || undefined,
+        note: scheduleNote || undefined,
+      }, actor);
+      setFeedback({type: 'success', message: hadSchedule ? 'Data da pendencia atualizada.' : 'Pendencia agendada com sucesso.'});
+      closeScheduleModal();
+      await refreshSelectedCase(selectedCase.id);
+      await refreshHistory(selectedCase.id, scheduleTask.id, 0, false);
+    } catch (error) {
+      setFeedback({type: 'error', message: (error as Error).message || 'Nao foi possivel salvar a data. Tente novamente.'});
+    } finally {
+      setSavingSchedule(false);
+    }
+  };
+
+  const handleRemoveSchedule = async () => {
+    if (!selectedCase || !scheduleTask?.scheduledFor) return;
+    if (!window.confirm('Remover o agendamento desta pendencia?')) return;
+    setRemovingSchedule(true);
+    try {
+      await removeCrisisTaskSchedule(scheduleTask.id, actor);
+      setFeedback({type: 'success', message: 'Agendamento removido com sucesso.'});
+      closeScheduleModal();
+      await refreshSelectedCase(selectedCase.id);
+      await refreshHistory(selectedCase.id, scheduleTask.id, 0, false);
+    } catch (error) {
+      setFeedback({type: 'error', message: (error as Error).message || 'Nao foi possivel remover o agendamento.'});
+    } finally {
+      setRemovingSchedule(false);
     }
   };
 
@@ -435,6 +557,9 @@ export const CrisisManagementPage: React.FC = () => {
   const handleDeleteTask = async (task: CrisisTask) => {
     if (!selectedCase || !window.confirm(`Remover a pendencia "${task.title}"?`)) return;
     try {
+      if (task.scheduledFor) {
+        await removeCrisisTaskSchedule(task.id, actor);
+      }
       await softDeleteCrisisTask(task.id, selectedCase.id, actor);
       setFeedback({type: 'success', message: 'Pendencia removida.'});
       await refreshSelectedCase(selectedCase.id);
@@ -654,6 +779,7 @@ export const CrisisManagementPage: React.FC = () => {
                           className={cn(
                             'rounded-[26px] border p-4 transition-all',
                             selectedTaskId === task.id ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-100 bg-white hover:border-slate-200',
+                            requestedTaskId === task.id && 'ring-2 ring-brand-primary/20',
                           )}
                         >
                           <div className="flex items-start gap-3">
@@ -684,6 +810,16 @@ export const CrisisManagementPage: React.FC = () => {
                                 <span>Por {task.createdByName || 'Usuario'}</span>
                                 {task.completedAt ? <span>Concluida em {formatDateTime(task.completedAt as string)}</span> : null}
                               </div>
+                              {task.scheduledFor ? (
+                                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                                  <span className="font-semibold text-slate-500">{formatTaskSchedule(task)}</span>
+                                  {isTaskOverdue(task) ? (
+                                    <span className="rounded-full bg-red-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-red-600">
+                                      ATRASADA
+                                    </span>
+                                  ) : null}
+                                </div>
+                              ) : null}
                             </button>
 
                             <div className="flex items-center gap-2">
@@ -695,6 +831,17 @@ export const CrisisManagementPage: React.FC = () => {
                                   title="Adicionar foto"
                                 >
                                   <ImagePlus className="h-4 w-4" />
+                                </button>
+                              ) : null}
+                              {canEdit ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openScheduleModal(task)}
+                                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-100 text-slate-500 transition-all hover:bg-slate-200"
+                                  title={task.scheduledFor ? 'Alterar data da pendência' : 'Definir data da pendência'}
+                                  aria-label="Definir data da pendência"
+                                >
+                                  <CalendarDays className="h-4 w-4" />
                                 </button>
                               ) : null}
                               {canEdit ? (
@@ -950,6 +1097,106 @@ export const CrisisManagementPage: React.FC = () => {
                 {savingTask ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 Salvar pendencia
               </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {showScheduleModal && scheduleTask && selectedCase ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-xl rounded-[32px] bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
+              <div>
+                <h3 className="text-2xl font-display font-bold text-slate-900">Data da pendencia</h3>
+                <p className="text-sm text-slate-400">Agende esta pendencia no calendario interno.</p>
+              </div>
+              <button type="button" onClick={closeScheduleModal} disabled={savingSchedule || removingSchedule} className="rounded-2xl bg-slate-100 p-2 text-slate-500 disabled:opacity-60">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveSchedule} className="space-y-4">
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium text-slate-500">Cliente</span>
+                <input value={selectedCase.client?.name || 'Cliente'} readOnly className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-700 outline-none" />
+              </label>
+
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium text-slate-500">Pendencia</span>
+                <input value={scheduleTask.title} readOnly className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-700 outline-none" />
+              </label>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <label className="block space-y-1.5 sm:col-span-1">
+                  <span className="text-sm font-medium text-slate-500">Data</span>
+                  <input
+                    type="date"
+                    value={scheduleDate}
+                    onChange={(event) => setScheduleDate(event.target.value)}
+                    required
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-700 outline-none"
+                  />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-sm font-medium text-slate-500">Horario inicial</span>
+                  <input
+                    type="time"
+                    value={scheduleStartTime}
+                    onChange={(event) => setScheduleStartTime(event.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-700 outline-none"
+                  />
+                </label>
+                <label className="block space-y-1.5">
+                  <span className="text-sm font-medium text-slate-500">Horario final</span>
+                  <input
+                    type="time"
+                    value={scheduleEndTime}
+                    onChange={(event) => setScheduleEndTime(event.target.value)}
+                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-700 outline-none"
+                  />
+                </label>
+              </div>
+
+              <label className="block space-y-1.5">
+                <span className="text-sm font-medium text-slate-500">Observacao</span>
+                <textarea
+                  value={scheduleNote}
+                  onChange={(event) => setScheduleNote(event.target.value)}
+                  rows={4}
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium text-slate-700 outline-none"
+                />
+              </label>
+
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={closeScheduleModal}
+                    className="inline-flex items-center justify-center rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 transition-all hover:bg-slate-200"
+                    disabled={savingSchedule || removingSchedule}
+                  >
+                    Cancelar
+                  </button>
+                  {scheduleTask.scheduledFor ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleRemoveSchedule()}
+                      className="inline-flex items-center justify-center rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600 transition-all hover:bg-red-100"
+                      disabled={savingSchedule || removingSchedule}
+                    >
+                      {removingSchedule ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Remover agendamento'}
+                    </button>
+                  ) : null}
+                </div>
+                <button
+                  type="submit"
+                  disabled={savingSchedule || removingSchedule}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white disabled:opacity-60"
+                >
+                  {savingSchedule ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
+                  Salvar data
+                </button>
+              </div>
             </form>
           </div>
         </div>

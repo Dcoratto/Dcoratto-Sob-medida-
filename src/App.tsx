@@ -15,6 +15,7 @@ import {
   loadCrisisManagementPage,
   loadClientsPage,
   loadDashboardPage,
+  loadInstallationPage,
   loadInventoryPage,
   loadLoginPage,
   loadMaterialsPage,
@@ -33,6 +34,7 @@ const QuotesPage = lazy(() => loadQuotesPage().then((module) => ({default: modul
 const QuoteEditor = lazy(() => loadQuoteEditorPage().then((module) => ({default: module.QuoteEditor})));
 const ClientsPage = lazy(() => loadClientsPage().then((module) => ({default: module.ClientsPage})));
 const CrisisManagementPage = lazy(() => loadCrisisManagementPage().then((module) => ({default: module.CrisisManagementPage})));
+const InstallationPage = lazy(() => loadInstallationPage().then((module) => ({default: module.InstallationPage})));
 const InventoryPage = lazy(() => loadInventoryPage().then((module) => ({default: module.InventoryPage})));
 const MaterialsPage = lazy(() => loadMaterialsPage().then((module) => ({default: module.MaterialsPage})));
 const AdminPage = lazy(() => loadAdminPage().then((module) => ({default: module.AdminPage})));
@@ -122,6 +124,7 @@ export default function App() {
             <Route path="/calendar" element={<ProtectedRoute permission={['medicao', 'visualizar']}><CalendarPage /></ProtectedRoute>} />
             <Route path="/clients" element={<ProtectedRoute permission={['cliente', 'visualizar']}><ClientsPage /></ProtectedRoute>} />
             <Route path="/crisis" element={<ProtectedRoute permission={['cliente', 'visualizar']}><CrisisManagementPage /></ProtectedRoute>} />
+            <Route path="/installation" element={<ProtectedRoute permission={['projeto', 'visualizar']}><InstallationPage /></ProtectedRoute>} />
             <Route path="/history" element={<ProtectedRoute permission={['historico', 'visualizar']}><QuotesPage /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute permission={['relatorios', 'visualizar']}><ReportsPage /></ProtectedRoute>} />
             <Route path="/materials" element={<ProtectedRoute permission={['materiais', 'visualizar']}><MaterialsPage /></ProtectedRoute>} />

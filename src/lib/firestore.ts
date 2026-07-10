@@ -425,6 +425,10 @@ const notifyTableListeners = (table: string) => {
   listenersByTable.get(table)?.forEach((listener) => listener());
 };
 
+export const invalidateCollectionSnapshots = (collectionName: string) => {
+  notifyTableListeners(collectionName);
+};
+
 const registerTableListener = (table: string, listener: () => void) => {
   const current = listenersByTable.get(table) || new Set<() => void>();
   current.add(listener);

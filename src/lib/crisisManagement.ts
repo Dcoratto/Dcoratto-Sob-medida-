@@ -1,4 +1,5 @@
 import {supabase} from './supabase';
+import {invalidateCollectionSnapshots} from './firestore';
 import {Client, CrisisClientCase, CrisisHistoryEvent, CrisisTask, CrisisTaskPhoto} from '../types';
 
 type Actor = {
@@ -64,6 +65,14 @@ const mapTask = (row: any): CrisisTask => ({
   description: row.description || '',
   status: row.status,
   sortOrder: Number(row.sort_order || 0),
+  scheduledFor: row.scheduled_for || null,
+  scheduleStartTime: row.schedule_start_time || '',
+  scheduleEndTime: row.schedule_end_time || '',
+  scheduleNote: row.schedule_note || '',
+  scheduledCalendarEventId: row.scheduled_calendar_event_id || '',
+  scheduleUpdatedAt: row.schedule_updated_at || null,
+  scheduleUpdatedByUid: row.schedule_updated_by_uid || '',
+  scheduleUpdatedByName: row.schedule_updated_by_name || '',
   createdByUid: row.created_by_uid || '',
   createdByName: row.created_by_name || '',
   completedAt: row.completed_at || null,
@@ -222,7 +231,7 @@ export const getCrisisCase = async (crisisClientId: string) => {
 export const listCrisisTasks = async (crisisClientId: string) => {
   const rows = ensureSuccess(await supabase
     .from('crisis_tasks')
-    .select('id, empresa_id, crisis_client_id, title, description, status, sort_order, created_by_uid, created_by_name, completed_at, completed_by_uid, completed_by_name, reopened_at, reopened_by_uid, reopened_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
+    .select('id, empresa_id, crisis_client_id, title, description, status, sort_order, scheduled_for, schedule_start_time, schedule_end_time, schedule_note, scheduled_calendar_event_id, schedule_updated_at, schedule_updated_by_uid, schedule_updated_by_name, created_by_uid, created_by_name, completed_at, completed_by_uid, completed_by_name, reopened_at, reopened_by_uid, reopened_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
     .eq('crisis_client_id', crisisClientId)
     .is('deleted_at', null)
     .order('status', {ascending: true})
@@ -253,7 +262,7 @@ export const createCrisisTask = async (
   const inserted = ensureSuccess(await supabase
     .from('crisis_tasks')
     .insert(payload)
-    .select('id, empresa_id, crisis_client_id, title, description, status, sort_order, created_by_uid, created_by_name, completed_at, completed_by_uid, completed_by_name, reopened_at, reopened_by_uid, reopened_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
+    .select('id, empresa_id, crisis_client_id, title, description, status, sort_order, scheduled_for, schedule_start_time, schedule_end_time, schedule_note, scheduled_calendar_event_id, schedule_updated_at, schedule_updated_by_uid, schedule_updated_by_name, created_by_uid, created_by_name, completed_at, completed_by_uid, completed_by_name, reopened_at, reopened_by_uid, reopened_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
     .single());
 
   await addCrisisHistoryEvent({
@@ -280,8 +289,27 @@ export const updateCrisisTask = async (
       description: values.description?.trim() || '',
     })
     .eq('id', taskId)
-    .select('id, empresa_id, crisis_client_id, title, description, status, sort_order, created_by_uid, created_by_name, completed_at, completed_by_uid, completed_by_name, reopened_at, reopened_by_uid, reopened_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
+    .select('id, empresa_id, crisis_client_id, title, description, status, sort_order, scheduled_for, schedule_start_time, schedule_end_time, schedule_note, scheduled_calendar_event_id, schedule_updated_at, schedule_updated_by_uid, schedule_updated_by_name, created_by_uid, created_by_name, completed_at, completed_by_uid, completed_by_name, reopened_at, reopened_by_uid, reopened_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
     .single());
+
+  if (updated.scheduled_calendar_event_id) {
+    const caseRow = ensureSuccess(await supabase
+      .from('crisis_clients')
+      .select('client_id, clients(name)')
+      .eq('id', crisisClientId)
+      .single()) as {client_id?: string; clients?: {name?: string} | {name?: string}[]};
+
+    const linkedClient = Array.isArray(caseRow.clients) ? caseRow.clients[0] : caseRow.clients;
+    ensureSuccess(await supabase
+      .from('calendar_events')
+      .update({
+        title: `Gestao de Crise — ${linkedClient?.name || 'Cliente'} — ${values.title.trim()}`,
+      })
+      .eq('id', updated.scheduled_calendar_event_id)
+      .eq('crisis_task_id', taskId));
+
+    invalidateCollectionSnapshots('calendarEvents');
+  }
 
   await addCrisisHistoryEvent({
     crisisClientId,
@@ -304,7 +332,7 @@ export const completeCrisisTask = async (taskId: string, crisisClientId: string,
       completed_by_name: actor.name,
     })
     .eq('id', taskId)
-    .select('id, empresa_id, crisis_client_id, title, description, status, sort_order, created_by_uid, created_by_name, completed_at, completed_by_uid, completed_by_name, reopened_at, reopened_by_uid, reopened_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
+    .select('id, empresa_id, crisis_client_id, title, description, status, sort_order, scheduled_for, schedule_start_time, schedule_end_time, schedule_note, scheduled_calendar_event_id, schedule_updated_at, schedule_updated_by_uid, schedule_updated_by_name, created_by_uid, created_by_name, completed_at, completed_by_uid, completed_by_name, reopened_at, reopened_by_uid, reopened_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
     .single());
 
   await addCrisisHistoryEvent({
@@ -331,7 +359,7 @@ export const reopenCrisisTask = async (taskId: string, crisisClientId: string, a
       completed_by_name: null,
     })
     .eq('id', taskId)
-    .select('id, empresa_id, crisis_client_id, title, description, status, sort_order, created_by_uid, created_by_name, completed_at, completed_by_uid, completed_by_name, reopened_at, reopened_by_uid, reopened_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
+    .select('id, empresa_id, crisis_client_id, title, description, status, sort_order, scheduled_for, schedule_start_time, schedule_end_time, schedule_note, scheduled_calendar_event_id, schedule_updated_at, schedule_updated_by_uid, schedule_updated_by_name, created_by_uid, created_by_name, completed_at, completed_by_uid, completed_by_name, reopened_at, reopened_by_uid, reopened_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
     .single());
 
   await addCrisisHistoryEvent({
@@ -365,6 +393,41 @@ export const softDeleteCrisisTask = async (taskId: string, crisisClientId: strin
     message: `${actor.name} removeu a tarefa "${updated.title}"`,
     actor,
   });
+};
+
+export const scheduleCrisisTask = async (
+  taskId: string,
+  values: {
+    scheduleDate: string;
+    startTime?: string;
+    endTime?: string;
+    note?: string;
+  },
+  actor: Actor,
+) => {
+  const result = ensureSuccess(await supabase.rpc('upsert_crisis_task_schedule', {
+    p_task_id: taskId,
+    p_schedule_date: values.scheduleDate,
+    p_start_time: values.startTime || null,
+    p_end_time: values.endTime || null,
+    p_schedule_note: values.note || null,
+    p_actor_uid: actor.uid,
+    p_actor_name: actor.name,
+  }));
+
+  invalidateCollectionSnapshots('calendarEvents');
+  return result;
+};
+
+export const removeCrisisTaskSchedule = async (taskId: string, actor: Actor) => {
+  const result = ensureSuccess(await supabase.rpc('remove_crisis_task_schedule', {
+    p_task_id: taskId,
+    p_actor_uid: actor.uid,
+    p_actor_name: actor.name,
+  }));
+
+  invalidateCollectionSnapshots('calendarEvents');
+  return result;
 };
 
 export const listCrisisTaskPhotos = async (

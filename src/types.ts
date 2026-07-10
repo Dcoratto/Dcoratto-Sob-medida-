@@ -223,6 +223,14 @@ export interface CrisisTask {
   description?: string;
   status: CrisisTaskStatus;
   sortOrder?: number;
+  scheduledFor?: any;
+  scheduleStartTime?: string;
+  scheduleEndTime?: string;
+  scheduleNote?: string;
+  scheduledCalendarEventId?: string;
+  scheduleUpdatedAt?: any;
+  scheduleUpdatedByUid?: string;
+  scheduleUpdatedByName?: string;
   createdByUid?: string;
   createdByName?: string;
   completedAt?: any;
@@ -264,6 +272,89 @@ export interface CrisisHistoryEvent {
   empresaId?: string;
   crisisClientId: string;
   crisisTaskId?: string;
+  eventType: string;
+  message: string;
+  metadata?: Record<string, unknown>;
+  userUid?: string;
+  userName?: string;
+  createdAt?: any;
+}
+
+export type InstallationStatus = 'pending' | 'in_progress' | 'completed';
+
+export interface Installation {
+  id: string;
+  empresaId?: string;
+  clientId: string;
+  quoteId: string;
+  installerEmployeeId?: string;
+  installationDate: any;
+  notes?: string;
+  status: InstallationStatus;
+  totalItems: number;
+  completedItems: number;
+  completionPercent: number;
+  finalizedAt?: any;
+  finalizedByUid?: string;
+  finalizedByName?: string;
+  createdByUid?: string;
+  createdByName?: string;
+  createdAt?: any;
+  updatedAt?: any;
+  deletedAt?: any;
+  deletedByUid?: string;
+  deletedByName?: string;
+}
+
+export interface InstallationChecklistItem {
+  id: string;
+  empresaId?: string;
+  installationId: string;
+  templateKey: string;
+  groupKey: string;
+  groupLabel: string;
+  title: string;
+  sortOrder: number;
+  required: boolean;
+  checked: boolean;
+  observation?: string;
+  photoCount: number;
+  checkedAt?: any;
+  checkedByUid?: string;
+  checkedByName?: string;
+  uncheckedAt?: any;
+  uncheckedByUid?: string;
+  uncheckedByName?: string;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+export interface InstallationChecklistPhoto {
+  id: string;
+  empresaId?: string;
+  installationId: string;
+  checklistItemId: string;
+  bucketId: string;
+  filePath: string;
+  fileName: string;
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
+  sizeBytes: number;
+  width?: number;
+  height?: number;
+  createdByUid?: string;
+  createdByName?: string;
+  createdAt?: any;
+  updatedAt?: any;
+  deletedAt?: any;
+  deletedByUid?: string;
+  deletedByName?: string;
+}
+
+export interface InstallationHistoryEvent {
+  id: string;
+  empresaId?: string;
+  installationId: string;
+  checklistItemId?: string;
   eventType: string;
   message: string;
   metadata?: Record<string, unknown>;

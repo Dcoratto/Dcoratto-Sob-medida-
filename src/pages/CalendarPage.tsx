@@ -1,4 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react';
+import {useNavigate} from 'react-router-dom';
 import {addDoc, collection, deleteDoc, doc, onSnapshot, query, selectFields, Timestamp, updateDoc} from '../lib/firestore';
 import {AlertTriangle, CalendarPlus, ChevronLeft, ChevronRight, Copy, ExternalLink, MapPin, Phone, Plus, X} from 'lucide-react';
 import {db} from '../lib/firestore';
@@ -24,10 +25,16 @@ interface CalendarEvent {
   title?: string;
   description?: string;
   eventTime?: string;
+  eventEndTime?: string;
+  allDay?: boolean;
   createdByName?: string;
   supplier?: string;
   materialName?: string;
   purchaseGroupId?: string;
+  sourceType?: string;
+  scheduleNote?: string;
+  crisisTaskId?: string;
+  crisisClientId?: string;
 }
 
 interface ManualCalendarEvent {
@@ -40,6 +47,8 @@ interface ManualCalendarEvent {
   clientName?: string;
   city?: string;
   eventTime?: string;
+  endTime?: string;
+  allDay?: boolean;
   createdByUid?: string;
   createdByName?: string;
   sourceType?: string;
@@ -47,6 +56,9 @@ interface ManualCalendarEvent {
   supplier?: string;
   materialName?: string;
   purchaseGroupId?: string;
+  scheduleNote?: string;
+  crisisTaskId?: string;
+  crisisClientId?: string;
 }
 
 const altoTieteCities = ['São Paulo', 'Arujá', 'Mogi das Cruzes', 'Suzano', 'Poá', 'Itaquaquecetuba', 'Ferraz de Vasconcelos', 'Guarulhos', 'Biritiba Mirim', 'Salesópolis', 'Santa Isabel'];
@@ -111,11 +123,20 @@ const startOfMonthGrid = (date: Date) => {
 };
 
 const eventLabel = (type: EventType) => type === 'entrega' ? 'Entrega' : type === 'medicao' ? 'Medição' : type === 'pedido' ? 'Pedido' : 'Evento';
-const eventTimeLabel = (date: Date, eventTime?: string) => eventTime || date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+const eventTimeLabel = (date: Date, eventTime?: string, eventEndTime?: string, allDay?: boolean) => {
+  if (allDay) return 'Dia inteiro';
+  if (eventTime && eventEndTime) return `${eventTime} - ${eventEndTime}`;
+  return eventTime || date.toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'});
+};
 const calendarEventTitle = (event: CalendarEvent) => {
   if (event.type === 'manual' || event.type === 'pedido') return [fixCorruptedText(event.title || 'Evento'), fixCorruptedText(event.clientName)].filter(Boolean).join(' · ');
   return `${eventLabel(event.type)} · ${fixCorruptedText(event.clientName || event.title || 'Cliente')}`;
 };
+const crisisTaskTitleFromEvent = (event: CalendarEvent) => {
+  const parts = String(event.title || '').split(' — ');
+  return parts.length >= 3 ? parts.slice(2).join(' — ') : fixCorruptedText(event.title || 'Pendência');
+};
+
 const countdownLabel = (daysLeft: number) => {
   if (daysLeft < 0) return 'Evento já ocorreu';
   if (daysLeft === 0) return 'Hoje';
@@ -153,6 +174,7 @@ const createCalendarFeedToken = () => {
 };
 
 export const CalendarPage: React.FC = () => {
+  const navigate = useNavigate();
   const {user, profile, appUid} = useAuth();
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -218,7 +240,7 @@ export const CalendarPage: React.FC = () => {
     const unsubManualEvents = onSnapshot(
       query(
         collection(db, 'calendarEvents'),
-        selectFields('title', 'description', 'date', 'dateKey', 'clientId', 'clientName', 'city', 'eventTime', 'createdByUid', 'createdByName', 'sourceType', 'status', 'supplier', 'materialName', 'purchaseGroupId'),
+        selectFields('title', 'description', 'date', 'dateKey', 'clientId', 'clientName', 'city', 'eventTime', 'endTime', 'allDay', 'createdByUid', 'createdByName', 'sourceType', 'status', 'supplier', 'materialName', 'purchaseGroupId', 'scheduleNote', 'crisisTaskId', 'crisisClientId'),
       ),
       (s) => setManualEvents(s.docs.map((d) => ({id: d.id, ...d.data()} as ManualCalendarEvent))),
       (error) => console.error('Erro ao carregar eventos manuais', error),
@@ -304,10 +326,16 @@ export const CalendarPage: React.FC = () => {
         city: manualEvent.city,
         status: manualEvent.status || (isPurchaseDelivery ? 'Pedido de compra' : 'Evento manual'),
         eventTime: manualEvent.eventTime,
+        eventEndTime: manualEvent.endTime,
+        allDay: Boolean(manualEvent.allDay),
         createdByName: manualEvent.createdByName,
         supplier: manualEvent.supplier,
         materialName: manualEvent.materialName,
         purchaseGroupId: manualEvent.purchaseGroupId,
+        sourceType: manualEvent.sourceType,
+        scheduleNote: manualEvent.scheduleNote,
+        crisisTaskId: manualEvent.crisisTaskId,
+        crisisClientId: manualEvent.crisisClientId,
       });
     });
 
@@ -596,7 +624,7 @@ export const CalendarPage: React.FC = () => {
                 onClick={() => setSelectedEvent(event)}
                 className={cn('block w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-white/70', level === 'maximo' ? 'text-rose-900' : 'text-amber-800')}
               >
-                {level === 'maximo' ? 'ALERTA MÁXIMO' : 'ALERTA DE PRAZO'}: {fixCorruptedText(event.clientName || event.title)} em {event.date.toLocaleDateString('pt-BR')} às {eventTimeLabel(event.date, event.eventTime)} ({daysLeft === 0 ? 'hoje' : `faltam ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`})
+                {level === 'maximo' ? 'ALERTA MÁXIMO' : 'ALERTA DE PRAZO'}: {fixCorruptedText(event.clientName || event.title)} em {event.date.toLocaleDateString('pt-BR')} às {eventTimeLabel(event.date, event.eventTime, event.eventEndTime, event.allDay)} ({daysLeft === 0 ? 'hoje' : `faltam ${daysLeft} dia${daysLeft > 1 ? 's' : ''}`})
               </button>
             ))}
           </div>
@@ -663,7 +691,7 @@ export const CalendarPage: React.FC = () => {
                     >
                       <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{eventLabel(ev.type)}</div>
                       <div className="mt-1 text-sm font-bold text-slate-900">{calendarEventTitle(ev)}</div>
-                      <div className="mt-1 text-xs font-semibold text-slate-500">{eventTimeLabel(ev.date, ev.eventTime)}</div>
+                      <div className="mt-1 text-xs font-semibold text-slate-500">{eventTimeLabel(ev.date, ev.eventTime, ev.eventEndTime, ev.allDay)}</div>
                       <div className="mt-1 text-xs font-bold text-brand-primary/80">{countdownLabel(daysLeftFromToday(ev.date))}</div>
                     </button>
                   ))}
@@ -703,7 +731,7 @@ export const CalendarPage: React.FC = () => {
                   {dayEvents.slice(0, 3).map((ev) => (
                     <button key={ev.id} type="button" onClick={() => setSelectedEvent(ev)} className="w-full rounded-lg px-2 py-1.5 text-left text-[11px] font-semibold bg-slate-50 text-slate-600 hover:bg-slate-100">
                       {calendarEventTitle(ev)}
-                      <div className="text-[10px] font-semibold opacity-80">{eventTimeLabel(ev.date, ev.eventTime)}</div>
+                      <div className="text-[10px] font-semibold opacity-80">{eventTimeLabel(ev.date, ev.eventTime, ev.eventEndTime, ev.allDay)}</div>
                       <div className="text-[10px] font-bold text-brand-primary/80">{countdownLabel(daysLeftFromToday(ev.date))}</div>
                     </button>
                   ))}
@@ -720,7 +748,7 @@ export const CalendarPage: React.FC = () => {
               <div>
                 <div className="text-xs font-bold uppercase tracking-widest text-slate-400">{eventLabel(selectedEvent.type)}</div>
                 <h3 className="mt-1 text-xl font-display font-bold text-slate-900">{calendarEventTitle(selectedEvent)}</h3>
-                <div className="mt-1 text-sm font-semibold text-slate-500">{selectedEvent.date.toLocaleDateString('pt-BR')} · {eventTimeLabel(selectedEvent.date, selectedEvent.eventTime)} · {fixCorruptedText(selectedEvent.status || 'Sem status')}</div>
+                <div className="mt-1 text-sm font-semibold text-slate-500">{selectedEvent.date.toLocaleDateString('pt-BR')} · {eventTimeLabel(selectedEvent.date, selectedEvent.eventTime, selectedEvent.eventEndTime, selectedEvent.allDay)} · {fixCorruptedText(selectedEvent.status || 'Sem status')}</div>
               </div>
               <button type="button" onClick={() => setSelectedEvent(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100"><X className="w-5 h-5" /></button>
             </div>
@@ -735,10 +763,27 @@ export const CalendarPage: React.FC = () => {
                 </div>
               )}
 
-              {(selectedEvent.type === 'manual' || selectedEvent.type === 'pedido') && (
+              {(selectedEvent.type === 'manual' || selectedEvent.type === 'pedido') && selectedEvent.sourceType !== 'gestao-crise' && (
                 <>
                   <div className="rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">{fixCorruptedText(selectedEvent.description?.trim() || 'Sem descrição.')}</div>
                   <div className="rounded-2xl bg-slate-50 px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-500">Criado por: <span className="text-slate-700">{fixCorruptedText(selectedEvent.createdByName || 'Não informado')}</span></div>
+                </>
+              )}
+
+              {selectedEvent.sourceType === 'gestao-crise' && (
+                <>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Origem</div>
+                    <div className="mt-1 text-sm font-semibold text-slate-800">Gestao de Crise</div>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Pendencia</div>
+                    <div className="mt-1 text-sm font-semibold text-slate-800">{crisisTaskTitleFromEvent(selectedEvent)}</div>
+                  </div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                    <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Observacao</div>
+                    <div className="mt-1 text-sm font-semibold text-slate-800">{fixCorruptedText(selectedEvent.scheduleNote || selectedEvent.description || 'Sem observação.')}</div>
+                  </div>
                 </>
               )}
 
@@ -788,7 +833,17 @@ export const CalendarPage: React.FC = () => {
                 </>
               )}
 
-              {selectedEvent.type === 'manual' && (
+              {selectedEvent.sourceType === 'gestao-crise' && selectedEvent.crisisClientId && selectedEvent.crisisTaskId && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/crisis?case=${encodeURIComponent(selectedEvent.crisisClientId || '')}&task=${encodeURIComponent(selectedEvent.crisisTaskId || '')}`)}
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                >
+                  Abrir pendencia
+                </button>
+              )}
+
+              {selectedEvent.type === 'manual' && selectedEvent.sourceType !== 'gestao-crise' && (
                 <>
                   <button type="button" onClick={openEditModal} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">Editar evento</button>
                   <button type="button" onClick={handleDeleteEvent} disabled={isDeletingEvent} className="w-full rounded-xl bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-70">{isDeletingEvent ? 'Excluindo...' : 'Excluir evento'}</button>

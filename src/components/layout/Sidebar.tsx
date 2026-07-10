@@ -3,6 +3,7 @@ import {NavLink} from 'react-router-dom';
 import {
   BarChart3,
   CalendarDays,
+  ClipboardList,
   Database,
   FileText,
   FolderKanban,
@@ -34,6 +35,7 @@ export const Sidebar: React.FC = () => {
     hasPermission('orcamento', 'visualizar') ?{icon: FileText, label: 'Orçamentos', path: '/quotes'} : null,
     hasPermission('projeto', 'visualizar') ?{icon: FolderKanban, label: 'Projetos', path: '/projects'} : null,
     hasPermission('cliente', 'visualizar') ?{icon: Users, label: 'Clientes', path: '/clients'} : null,
+    hasPermission('cliente', 'visualizar') ?{icon: ClipboardList, label: 'Gestao de Crise', path: '/crisis'} : null,
     hasPermission('medicao', 'visualizar') ?{icon: CalendarDays, label: 'Calendário', path: '/calendar'} : null,
     hasPermission('historico', 'visualizar') ?{icon: History, label: 'Histórico', path: '/history'} : null,
     hasPermission('relatorios', 'visualizar') ?{icon: BarChart3, label: 'Relatórios', path: '/reports'} : null,

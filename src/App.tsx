@@ -12,6 +12,7 @@ import {
   loadAdminPage,
   loadAuthCallbackPage,
   loadCalendarPage,
+  loadCrisisManagementPage,
   loadClientsPage,
   loadDashboardPage,
   loadInventoryPage,
@@ -31,6 +32,7 @@ const Dashboard = lazy(() => loadDashboardPage().then((module) => ({default: mod
 const QuotesPage = lazy(() => loadQuotesPage().then((module) => ({default: module.QuotesPage})));
 const QuoteEditor = lazy(() => loadQuoteEditorPage().then((module) => ({default: module.QuoteEditor})));
 const ClientsPage = lazy(() => loadClientsPage().then((module) => ({default: module.ClientsPage})));
+const CrisisManagementPage = lazy(() => loadCrisisManagementPage().then((module) => ({default: module.CrisisManagementPage})));
 const InventoryPage = lazy(() => loadInventoryPage().then((module) => ({default: module.InventoryPage})));
 const MaterialsPage = lazy(() => loadMaterialsPage().then((module) => ({default: module.MaterialsPage})));
 const AdminPage = lazy(() => loadAdminPage().then((module) => ({default: module.AdminPage})));
@@ -119,6 +121,7 @@ export default function App() {
             <Route path="/projects" element={<ProtectedRoute permission={['projeto', 'visualizar']}><ProjectsPage /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute permission={['medicao', 'visualizar']}><CalendarPage /></ProtectedRoute>} />
             <Route path="/clients" element={<ProtectedRoute permission={['cliente', 'visualizar']}><ClientsPage /></ProtectedRoute>} />
+            <Route path="/crisis" element={<ProtectedRoute permission={['cliente', 'visualizar']}><CrisisManagementPage /></ProtectedRoute>} />
             <Route path="/history" element={<ProtectedRoute permission={['historico', 'visualizar']}><QuotesPage /></ProtectedRoute>} />
             <Route path="/reports" element={<ProtectedRoute permission={['relatorios', 'visualizar']}><ReportsPage /></ProtectedRoute>} />
             <Route path="/materials" element={<ProtectedRoute permission={['materiais', 'visualizar']}><MaterialsPage /></ProtectedRoute>} />

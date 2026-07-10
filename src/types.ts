@@ -194,6 +194,84 @@ export interface Client {
   apartmentNumber?: string;
 }
 
+export type CrisisVisualStatus = 'pending' | 'in_progress' | 'completed' | 'empty';
+export type CrisisTaskStatus = 'pending' | 'completed';
+export type CrisisPhotoKind = 'before' | 'after' | 'evidence';
+
+export interface CrisisClientCase {
+  id: string;
+  empresaId?: string;
+  clientId: string;
+  taskCount: number;
+  completedTaskCount: number;
+  completionPercent: number;
+  visualStatus: CrisisVisualStatus;
+  createdByUid?: string;
+  createdByName?: string;
+  createdAt?: any;
+  updatedAt?: any;
+  deletedAt?: any;
+  deletedByUid?: string;
+  deletedByName?: string;
+}
+
+export interface CrisisTask {
+  id: string;
+  empresaId?: string;
+  crisisClientId: string;
+  title: string;
+  description?: string;
+  status: CrisisTaskStatus;
+  sortOrder?: number;
+  createdByUid?: string;
+  createdByName?: string;
+  completedAt?: any;
+  completedByUid?: string;
+  completedByName?: string;
+  reopenedAt?: any;
+  reopenedByUid?: string;
+  reopenedByName?: string;
+  createdAt?: any;
+  updatedAt?: any;
+  deletedAt?: any;
+  deletedByUid?: string;
+  deletedByName?: string;
+}
+
+export interface CrisisTaskPhoto {
+  id: string;
+  empresaId?: string;
+  crisisTaskId: string;
+  bucketId: string;
+  filePath: string;
+  fileName: string;
+  mimeType: 'image/jpeg' | 'image/png' | 'image/webp';
+  sizeBytes: number;
+  width?: number;
+  height?: number;
+  captureKind?: CrisisPhotoKind;
+  createdByUid?: string;
+  createdByName?: string;
+  createdAt?: any;
+  updatedAt?: any;
+  deletedAt?: any;
+  deletedByUid?: string;
+  deletedByName?: string;
+}
+
+export interface CrisisHistoryEvent {
+  id: string;
+  empresaId?: string;
+  crisisClientId: string;
+  crisisTaskId?: string;
+  eventType: string;
+  message: string;
+  metadata?: Record<string, unknown>;
+  userUid?: string;
+  userName?: string;
+  createdAt?: any;
+}
+
 export interface LegacyClientPiece {
   id: string;
   name: string;

@@ -828,7 +828,7 @@ export const InstallationPage: React.FC = () => {
                   <input
                     value={projectSearch}
                     onChange={(event) => setProjectSearch(event.target.value)}
-                    placeholder="Cliente, ambiente ou status"
+                    placeholder="Cliente, ambiente ou endereco"
                     className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none"
                   />
                 </div>

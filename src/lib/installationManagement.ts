@@ -255,32 +255,77 @@ export const listInstallations = async (
 };
 
 export const searchProjectOptionsForInstallation = async (search = '', limit = 20): Promise<InstallationProjectOption[]> => {
-  let request = supabase
-    .from('quotes')
-    .select('id, client_id, client_name, environment, status')
-    .order('created_at', {ascending: false})
-    .limit(limit);
+  const normalizedSearch = search.trim();
+  let clientsRequest = supabase
+    .from('clients')
+    .select('id, name, address, city, phone')
+    .order('name', {ascending: true})
+    .limit(Math.max(limit * 3, 60));
 
-  if (search.trim()) {
-    request = request.or(`client_name.ilike.%${search.trim()}%,environment.ilike.%${search.trim()}%,status.ilike.%${search.trim()}%`);
+  if (normalizedSearch) {
+    clientsRequest = clientsRequest.or(
+      `name.ilike.%${normalizedSearch}%,address.ilike.%${normalizedSearch}%,city.ilike.%${normalizedSearch}%,phone.ilike.%${normalizedSearch}%`,
+    );
   }
 
-  const quotes = ensureSuccess(await request);
-  const clientIds = Array.from(new Set(quotes.map((row: any) => row.client_id).filter(Boolean)));
-  const clientsById = new Map<string, Pick<Client, 'id' | 'address'>>();
-  if (clientIds.length) {
-    ensureSuccess(await supabase.from('clients').select('id, address').in('id', clientIds))
-      .forEach((row: any) => clientsById.set(row.id, {id: row.id, address: row.address || ''}));
-  }
+  const clients = ensureSuccess(await clientsRequest);
+  const clientIds = clients.map((row: any) => row.id).filter(Boolean);
+  if (clientIds.length === 0) return [];
 
-  return quotes.map((row: any) => ({
-    quoteId: row.id,
-    clientId: row.client_id,
-    clientName: row.client_name || '',
-    environment: row.environment || 'Sem ambiente',
-    status: row.status || '',
-    address: clientsById.get(row.client_id)?.address || '',
-  }));
+  const [quotes, activeInstallations] = await Promise.all([
+    ensureSuccess(await supabase
+      .from('quotes')
+      .select('id, client_id, client_name, environment, status, created_at')
+      .in('client_id', clientIds)
+      .order('created_at', {ascending: false})),
+    ensureSuccess(await supabase
+      .from('installations')
+      .select('quote_id')
+      .in('client_id', clientIds)
+      .is('deleted_at', null)),
+  ]);
+
+  const usedQuoteIds = new Set(
+    activeInstallations
+      .map((row: any) => row.quote_id)
+      .filter(Boolean),
+  );
+
+  const quotesByClientId = new Map<string, any[]>();
+  quotes.forEach((row: any) => {
+    if (!row.client_id || usedQuoteIds.has(row.id)) return;
+    const current = quotesByClientId.get(row.client_id) || [];
+    current.push(row);
+    quotesByClientId.set(row.client_id, current);
+  });
+
+  const filteredClients = clients
+    .map((client: any) => {
+      const availableQuotes = quotesByClientId.get(client.id) || [];
+      if (availableQuotes.length === 0) return null;
+
+      let selectedQuote = availableQuotes[0];
+      if (normalizedSearch) {
+        const matchedQuote = availableQuotes.find((quote) =>
+          [quote.client_name, quote.environment, quote.status]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(normalizedSearch.toLowerCase())),
+        );
+        selectedQuote = matchedQuote || availableQuotes[0];
+      }
+
+      return {
+        quoteId: selectedQuote.id,
+        clientId: client.id,
+        clientName: client.name || selectedQuote.client_name || '',
+        environment: selectedQuote.environment || 'Sem ambiente',
+        status: selectedQuote.status || '',
+        address: client.address || '',
+      } satisfies InstallationProjectOption;
+    })
+    .filter(Boolean) as InstallationProjectOption[];
+
+  return filteredClients.slice(0, limit);
 };
 
 export const listInstallerEmployees = async () => {

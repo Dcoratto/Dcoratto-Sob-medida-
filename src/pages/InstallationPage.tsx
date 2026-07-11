@@ -356,9 +356,13 @@ export const InstallationPage: React.FC = () => {
 
   const handleCreateInstallation = async (event: React.FormEvent) => {
     event.preventDefault();
-    const selectedProject = projectOptions.find((item) => item.quoteId === selectedProjectId);
+    const selectedProject = projectOptions.find((item) => item.optionId === selectedProjectId);
     if (!selectedProject) {
-      setFeedback({type: 'error', message: 'Selecione uma obra existente para criar a instalacao.'});
+      setFeedback({type: 'error', message: 'Selecione um cliente para criar a instalacao.'});
+      return;
+    }
+    if (!selectedProject.quoteId || !selectedProject.hasAvailableQuote) {
+      setFeedback({type: 'error', message: 'Este cliente ainda nao possui obra disponivel para vinculacao na instalacao.'});
       return;
     }
     setCreatingInstallation(true);
@@ -836,24 +840,34 @@ export const InstallationPage: React.FC = () => {
 
               <div className="max-h-[28vh] space-y-3 overflow-y-auto pr-1">
                 {loadingProjects ? (
-                  <div className="rounded-2xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">Buscando obras...</div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">Buscando clientes...</div>
                 ) : projectOptions.length === 0 ? (
-                  <div className="rounded-2xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">Nenhuma obra disponível.</div>
+                  <div className="rounded-2xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">Nenhum cliente encontrado.</div>
                 ) : projectOptions.map((project) => (
                   <button
-                    key={project.quoteId}
+                    key={project.optionId}
                     type="button"
-                    onClick={() => setSelectedProjectId(project.quoteId)}
+                    onClick={() => setSelectedProjectId(project.optionId)}
                     className={cn(
                       'w-full rounded-[24px] border p-4 text-left transition-all',
-                      selectedProjectId === project.quoteId ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-100 bg-white hover:border-slate-200',
+                      selectedProjectId === project.optionId ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-100 bg-white hover:border-slate-200',
+                      !project.hasAvailableQuote && 'opacity-80',
                     )}
                   >
                     <div className="font-bold text-slate-900">{project.clientName}</div>
                     <div className="mt-1 text-sm text-slate-500">{project.environment}</div>
                     <div className="mt-1 text-xs text-slate-400">{project.address || 'Endereço não informado'}</div>
-                    <div className="mt-2 inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600">
-                      {project.status}
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {project.status ? (
+                        <div className="inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-slate-600">
+                          {project.status}
+                        </div>
+                      ) : null}
+                      {!project.hasAvailableQuote ? (
+                        <div className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+                          Sem obra disponivel
+                        </div>
+                      ) : null}
                     </div>
                   </button>
                 ))}

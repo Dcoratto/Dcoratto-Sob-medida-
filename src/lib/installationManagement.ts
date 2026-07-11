@@ -22,12 +22,14 @@ export type InstallationListItem = Installation & {
 };
 
 export type InstallationProjectOption = {
-  quoteId: string;
+  optionId: string;
+  quoteId?: string;
   clientId: string;
   clientName: string;
   environment: string;
   status: string;
   address: string;
+  hasAvailableQuote: boolean;
 };
 
 type PaginatedResult<T> = {
@@ -302,25 +304,25 @@ export const searchProjectOptionsForInstallation = async (search = '', limit = 2
   const filteredClients = clients
     .map((client: any) => {
       const availableQuotes = quotesByClientId.get(client.id) || [];
-      if (availableQuotes.length === 0) return null;
-
-      let selectedQuote = availableQuotes[0];
-      if (normalizedSearch) {
+      let selectedQuote = availableQuotes[0] || null;
+      if (normalizedSearch && availableQuotes.length > 0) {
         const matchedQuote = availableQuotes.find((quote) =>
           [quote.client_name, quote.environment, quote.status]
             .filter(Boolean)
             .some((value) => String(value).toLowerCase().includes(normalizedSearch.toLowerCase())),
         );
-        selectedQuote = matchedQuote || availableQuotes[0];
+        selectedQuote = matchedQuote || availableQuotes[0] || null;
       }
 
       return {
-        quoteId: selectedQuote.id,
+        optionId: selectedQuote?.id || `client:${client.id}`,
+        quoteId: selectedQuote?.id || undefined,
         clientId: client.id,
-        clientName: client.name || selectedQuote.client_name || '',
-        environment: selectedQuote.environment || 'Sem ambiente',
-        status: selectedQuote.status || '',
+        clientName: client.name || selectedQuote?.client_name || '',
+        environment: selectedQuote?.environment || 'Sem obra vinculada',
+        status: selectedQuote?.status || '',
         address: client.address || '',
+        hasAvailableQuote: Boolean(selectedQuote?.id),
       } satisfies InstallationProjectOption;
     })
     .filter(Boolean) as InstallationProjectOption[];

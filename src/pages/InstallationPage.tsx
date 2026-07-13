@@ -361,10 +361,6 @@ export const InstallationPage: React.FC = () => {
       setFeedback({type: 'error', message: 'Selecione um cliente para criar a instalacao.'});
       return;
     }
-    if (!selectedProject.quoteId || !selectedProject.hasAvailableQuote) {
-      setFeedback({type: 'error', message: 'Este cliente ainda nao possui obra disponivel para vinculacao na instalacao.'});
-      return;
-    }
     setCreatingInstallation(true);
     try {
       const installationId = await createInstallation({
@@ -851,7 +847,6 @@ export const InstallationPage: React.FC = () => {
                     className={cn(
                       'w-full rounded-[24px] border p-4 text-left transition-all',
                       selectedProjectId === project.optionId ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-100 bg-white hover:border-slate-200',
-                      !project.hasAvailableQuote && 'opacity-80',
                     )}
                   >
                     <div className="font-bold text-slate-900">{project.clientName}</div>
@@ -863,9 +858,9 @@ export const InstallationPage: React.FC = () => {
                           {project.status}
                         </div>
                       ) : null}
-                      {!project.hasAvailableQuote ? (
+                      {!project.quoteId ? (
                         <div className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">
-                          Sem obra disponivel
+                          Sem obra vinculada
                         </div>
                       ) : null}
                     </div>

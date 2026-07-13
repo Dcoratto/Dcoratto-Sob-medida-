@@ -286,7 +286,7 @@ export interface Installation {
   id: string;
   empresaId?: string;
   clientId: string;
-  quoteId: string;
+  quoteId?: string;
   installerEmployeeId?: string;
   installationDate: any;
   notes?: string;

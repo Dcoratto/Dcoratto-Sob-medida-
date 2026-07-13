@@ -29,7 +29,6 @@ export type InstallationProjectOption = {
   environment: string;
   status: string;
   address: string;
-  hasAvailableQuote: boolean;
 };
 
 type PaginatedResult<T> = {
@@ -59,7 +58,7 @@ const mapInstallation = (row: any): Installation => ({
   id: row.id,
   empresaId: row.empresa_id,
   clientId: row.client_id,
-  quoteId: row.quote_id,
+  quoteId: row.quote_id || undefined,
   installerEmployeeId: row.installer_employee_id || '',
   installationDate: row.installation_date || '',
   notes: row.notes || '',
@@ -274,28 +273,15 @@ export const searchProjectOptionsForInstallation = async (search = '', limit = 2
   const clientIds = clients.map((row: any) => row.id).filter(Boolean);
   if (clientIds.length === 0) return [];
 
-  const [quotes, activeInstallations] = await Promise.all([
-    ensureSuccess(await supabase
-      .from('quotes')
-      .select('id, client_id, client_name, environment, status, created_at')
-      .in('client_id', clientIds)
-      .order('created_at', {ascending: false})),
-    ensureSuccess(await supabase
-      .from('installations')
-      .select('quote_id')
-      .in('client_id', clientIds)
-      .is('deleted_at', null)),
-  ]);
-
-  const usedQuoteIds = new Set(
-    activeInstallations
-      .map((row: any) => row.quote_id)
-      .filter(Boolean),
-  );
+  const quotes = ensureSuccess(await supabase
+    .from('quotes')
+    .select('id, client_id, client_name, environment, status, created_at')
+    .in('client_id', clientIds)
+    .order('created_at', {ascending: false}));
 
   const quotesByClientId = new Map<string, any[]>();
   quotes.forEach((row: any) => {
-    if (!row.client_id || usedQuoteIds.has(row.id)) return;
+    if (!row.client_id) return;
     const current = quotesByClientId.get(row.client_id) || [];
     current.push(row);
     quotesByClientId.set(row.client_id, current);
@@ -315,14 +301,13 @@ export const searchProjectOptionsForInstallation = async (search = '', limit = 2
       }
 
       return {
-        optionId: selectedQuote?.id || `client:${client.id}`,
+        optionId: client.id,
         quoteId: selectedQuote?.id || undefined,
         clientId: client.id,
         clientName: client.name || selectedQuote?.client_name || '',
         environment: selectedQuote?.environment || 'Sem obra vinculada',
         status: selectedQuote?.status || '',
         address: client.address || '',
-        hasAvailableQuote: Boolean(selectedQuote?.id),
       } satisfies InstallationProjectOption;
     })
     .filter(Boolean) as InstallationProjectOption[];
@@ -344,7 +329,7 @@ export const listInstallerEmployees = async () => {
 export const createInstallation = async (
   payload: {
     clientId: string;
-    quoteId: string;
+    quoteId?: string;
     installerEmployeeId?: string;
     installationDate: string;
     notes?: string;
@@ -353,7 +338,7 @@ export const createInstallation = async (
 ) => {
   const result = await supabase.rpc('create_installation_with_checklist', {
     p_client_id: payload.clientId,
-    p_quote_id: payload.quoteId,
+    p_quote_id: payload.quoteId || null,
     p_installation_date: new Date(`${payload.installationDate}T12:00:00`).toISOString(),
     p_installer_employee_id: payload.installerEmployeeId || null,
     p_notes: payload.notes || null,
@@ -376,7 +361,9 @@ export const getInstallationDetail = async (installationId: string) => {
   const installation = mapInstallation(row);
   const [clientRow, quoteRow, employeeRow] = await Promise.all([
     supabase.from('clients').select('id, name, phone, address, city, notes').eq('id', installation.clientId).single(),
-    supabase.from('quotes').select('id, environment, status, total_price, commercial_notes').eq('id', installation.quoteId).single(),
+    installation.quoteId
+      ? supabase.from('quotes').select('id, environment, status, total_price, commercial_notes').eq('id', installation.quoteId).single()
+      : Promise.resolve({data: null, error: null}),
     installation.installerEmployeeId
       ? supabase.from('employees').select('id, name, role').eq('id', installation.installerEmployeeId).single()
       : Promise.resolve({data: null, error: null}),

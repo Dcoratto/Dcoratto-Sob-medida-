@@ -145,6 +145,7 @@ export const CrisisManagementPage: React.FC = () => {
   const [caseSearch, setCaseSearch] = React.useState('');
   const [selectedCaseId, setSelectedCaseId] = React.useState('');
   const [selectedCase, setSelectedCase] = React.useState<CrisisCaseListItem | null>(null);
+  const selectedCaseIdRef = React.useRef('');
 
   const [tasksLoading, setTasksLoading] = React.useState(false);
   const [tasks, setTasks] = React.useState<CrisisTask[]>([]);
@@ -155,6 +156,7 @@ export const CrisisManagementPage: React.FC = () => {
   const [photosPage, setPhotosPage] = React.useState(0);
   const [photosLoading, setPhotosLoading] = React.useState(false);
   const [photoUrls, setPhotoUrls] = React.useState<Record<string, string>>({});
+  const photoUrlsRef = React.useRef<Record<string, string>>({});
 
   const [historyItems, setHistoryItems] = React.useState<CrisisHistoryEvent[]>([]);
   const [historyTotal, setHistoryTotal] = React.useState(0);
@@ -213,6 +215,14 @@ export const CrisisManagementPage: React.FC = () => {
     [cases],
   );
 
+  React.useEffect(() => {
+    selectedCaseIdRef.current = selectedCaseId;
+  }, [selectedCaseId]);
+
+  React.useEffect(() => {
+    photoUrlsRef.current = photoUrls;
+  }, [photoUrls]);
+
   const refreshCases = React.useCallback(async (page = 0, append = false, search = caseSearch) => {
     setLoadingCases(true);
     try {
@@ -221,8 +231,9 @@ export const CrisisManagementPage: React.FC = () => {
       setCasesPage(page);
       setCases((current) => append ? [...current, ...result.items.filter((item) => !current.some((entry) => entry.id === item.id))] : result.items);
 
-      const fallbackCaseId = selectedCaseId && result.items.some((item) => item.id === selectedCaseId)
-        ? selectedCaseId
+      const currentSelectedCaseId = selectedCaseIdRef.current;
+      const fallbackCaseId = currentSelectedCaseId && result.items.some((item) => item.id === currentSelectedCaseId)
+        ? currentSelectedCaseId
         : result.items[0]?.id || '';
       if (fallbackCaseId) {
         setSelectedCaseId(fallbackCaseId);
@@ -237,7 +248,7 @@ export const CrisisManagementPage: React.FC = () => {
     } finally {
       setLoadingCases(false);
     }
-  }, [caseSearch, selectedCaseId]);
+  }, [caseSearch]);
 
   const refreshSelectedCase = React.useCallback(async (caseId: string) => {
     if (!caseId) return;
@@ -270,16 +281,17 @@ export const CrisisManagementPage: React.FC = () => {
     setPhotosLoading(true);
     try {
       const result = await listCrisisTaskPhotos(taskId, page, PHOTOS_PAGE_SIZE);
-      const nextItems = append ? [...photos.filter((photo) => photo.crisisTaskId !== taskId), ...photos.filter((photo) => photo.crisisTaskId === taskId), ...result.items] : [
-        ...photos.filter((photo) => photo.crisisTaskId !== taskId),
-        ...result.items,
-      ];
-      const deduped = Array.from(new Map(nextItems.map((photo) => [photo.id, photo])).values());
-      setPhotos(deduped);
+      setPhotos((current) => {
+        const nextItems = append ? [...current.filter((photo) => photo.crisisTaskId !== taskId), ...current.filter((photo) => photo.crisisTaskId === taskId), ...result.items] : [
+          ...current.filter((photo) => photo.crisisTaskId !== taskId),
+          ...result.items,
+        ];
+        return Array.from(new Map(nextItems.map((photo) => [photo.id, photo])).values());
+      });
       setPhotosTotal(result.total);
       setPhotosPage(page);
 
-      const missing = result.items.filter((photo) => !photoUrls[photo.id]);
+      const missing = result.items.filter((photo) => !photoUrlsRef.current[photo.id]);
       if (missing.length) {
         const urls = await Promise.all(missing.map(async (photo) => ({id: photo.id, url: await createSignedCrisisPhotoUrl(photo.filePath)})));
         setPhotoUrls((current) => {
@@ -295,7 +307,7 @@ export const CrisisManagementPage: React.FC = () => {
     } finally {
       setPhotosLoading(false);
     }
-  }, [photoUrls, photos]);
+  }, []);
 
   const refreshHistory = React.useCallback(async (caseId: string, taskId?: string, page = 0, append = false) => {
     if (!caseId) {

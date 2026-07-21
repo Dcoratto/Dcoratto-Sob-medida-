@@ -45,6 +45,22 @@ app.get('/calendar/:uid/:token.ics', (req, res) => {
   calendarFeedHandler(req, res);
 });
 
+const sendNoCacheFile = (res, fileName) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.sendFile(path.join(distDir, fileName));
+};
+
+app.get(['/sw.js', '/manifest.webmanifest', '/', '/index.html'], (req, res) => {
+  const fileName = req.path === '/sw.js'
+    ? 'sw.js'
+    : req.path === '/manifest.webmanifest'
+      ? 'manifest.webmanifest'
+      : 'index.html';
+  sendNoCacheFile(res, fileName);
+});
+
 app.use(express.static(distDir, {
   extensions: ['html'],
   maxAge: '1h',

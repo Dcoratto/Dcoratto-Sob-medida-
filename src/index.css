@@ -20,6 +20,9 @@
   body {
     @apply font-sans bg-bg-light text-slate-900;
     overflow-x: hidden;
+    min-height: 100svh;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
   }
 
   input,

@@ -112,7 +112,7 @@ export const Sidebar: React.FC = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white/95 px-3 py-3 backdrop-blur lg:hidden">
+      <header className="sticky top-0 z-40 flex items-center justify-between border-b border-slate-200 bg-white/95 px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] backdrop-blur lg:hidden">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
@@ -138,7 +138,7 @@ export const Sidebar: React.FC = () => {
             aria-label="Fechar menu"
             onClick={closeMobileMenu}
           />
-          <aside className="relative z-10 flex h-full w-[min(84vw,320px)] flex-col bg-white px-4 py-4 shadow-2xl">
+          <aside className="relative z-10 flex h-full w-[min(84vw,320px)] flex-col bg-white px-4 py-4 pl-[max(1rem,env(safe-area-inset-left))] pt-[max(1rem,env(safe-area-inset-top))] shadow-2xl">
             <div className="mb-4 flex items-center justify-between gap-3 px-2">
               <Logo />
               <button
@@ -162,8 +162,8 @@ export const Sidebar: React.FC = () => {
         {renderNavigation(false)}
       </aside>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-2 backdrop-blur lg:hidden">
-        <div className="grid grid-cols-5 gap-1 pb-[max(0px,env(safe-area-inset-bottom))]">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
+        <div className="grid grid-cols-5 gap-1">
           {mobileQuickItems.map((item) => (
             <NavLink
               key={`mobile-${item.path}`}

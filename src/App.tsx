@@ -7,6 +7,7 @@ import React, {Suspense, lazy, useEffect} from 'react';
 import {BrowserRouter, Navigate, Route, Routes, useNavigate} from 'react-router-dom';
 import {AuthProvider, useAuth} from './contexts/AuthContext';
 import {Shell} from './components/layout/Shell';
+import {PwaLifecycle} from './components/PwaLifecycle';
 import {PermissionModule} from './lib/permissions';
 import {
   loadAdminPage,
@@ -110,6 +111,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <LegacyHashRedirect />
+        <PwaLifecycle />
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
             <Route path="/login" element={<Login />} />

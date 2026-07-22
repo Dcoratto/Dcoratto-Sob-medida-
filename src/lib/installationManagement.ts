@@ -255,23 +255,66 @@ export const listInstallations = async (
   };
 };
 
-export const searchProjectOptionsForInstallation = async (search = '', limit = 20): Promise<InstallationProjectOption[]> => {
+export const searchProjectOptionsForInstallation = async (
+  search = '',
+  page = 0,
+  pageSize = 20,
+): Promise<PaginatedResult<InstallationProjectOption>> => {
   const normalizedSearch = search.trim();
-  let clientsRequest = supabase
-    .from('clients')
-    .select('id, name, address, city, phone')
-    .order('name', {ascending: true})
-    .limit(Math.max(limit * 3, 60));
+  const from = page * pageSize;
+  const to = from + pageSize - 1;
 
-  if (normalizedSearch) {
-    clientsRequest = clientsRequest.or(
-      `name.ilike.%${normalizedSearch}%,address.ilike.%${normalizedSearch}%,city.ilike.%${normalizedSearch}%,phone.ilike.%${normalizedSearch}%`,
-    );
+  let clients: any[] = [];
+  let total = 0;
+
+  if (!normalizedSearch) {
+    const clientsResult = await supabase
+      .from('clients')
+      .select('id, name, address, city, phone', {count: 'exact'})
+      .order('name', {ascending: true})
+      .range(from, to);
+
+    clients = ensureSuccess(clientsResult);
+    total = clientsResult.count || 0;
+  } else {
+    const [clientRows, quoteRows] = await Promise.all([
+      ensureSuccess(await supabase
+        .from('clients')
+        .select('id, name, address, city, phone')
+        .or(`name.ilike.%${normalizedSearch}%,address.ilike.%${normalizedSearch}%,city.ilike.%${normalizedSearch}%,phone.ilike.%${normalizedSearch}%`)
+        .limit(200)),
+      ensureSuccess(await supabase
+        .from('quotes')
+        .select('id, client_id, client_name, environment, status, created_at')
+        .or(`client_name.ilike.%${normalizedSearch}%,environment.ilike.%${normalizedSearch}%,status.ilike.%${normalizedSearch}%`)
+        .order('created_at', {ascending: false})
+        .limit(200)),
+    ]);
+
+    const clientsById = new Map<string, any>();
+    clientRows.forEach((row: any) => {
+      if (!row.id) return;
+      clientsById.set(row.id, row);
+    });
+
+    const quoteClientIds = Array.from(new Set(quoteRows.map((row: any) => row.client_id).filter(Boolean)));
+    if (quoteClientIds.length) {
+      ensureSuccess(await supabase
+        .from('clients')
+        .select('id, name, address, city, phone')
+        .in('id', quoteClientIds))
+        .forEach((row: any) => clientsById.set(row.id, row));
+    }
+
+    const allClients = Array.from(clientsById.values())
+      .sort((left, right) => String(left.name || '').localeCompare(String(right.name || ''), 'pt-BR'));
+
+    total = allClients.length;
+    clients = allClients.slice(from, to + 1);
   }
 
-  const clients = ensureSuccess(await clientsRequest);
   const clientIds = clients.map((row: any) => row.id).filter(Boolean);
-  if (clientIds.length === 0) return [];
+  if (clientIds.length === 0) return {items: [], total};
 
   const quotes = ensureSuccess(await supabase
     .from('quotes')
@@ -287,7 +330,7 @@ export const searchProjectOptionsForInstallation = async (search = '', limit = 2
     quotesByClientId.set(row.client_id, current);
   });
 
-  const filteredClients = clients
+  const items = clients
     .map((client: any) => {
       const availableQuotes = quotesByClientId.get(client.id) || [];
       let selectedQuote = availableQuotes[0] || null;
@@ -312,7 +355,7 @@ export const searchProjectOptionsForInstallation = async (search = '', limit = 2
     })
     .filter(Boolean) as InstallationProjectOption[];
 
-  return filteredClients.slice(0, limit);
+  return {items, total};
 };
 
 export const listInstallerEmployees = async () => {

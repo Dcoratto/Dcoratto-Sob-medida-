@@ -141,6 +141,8 @@ export const InstallationPage: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = React.useState(false);
   const [projectSearch, setProjectSearch] = React.useState('');
   const [projectOptions, setProjectOptions] = React.useState<InstallationProjectOption[]>([]);
+  const [projectOptionsTotal, setProjectOptionsTotal] = React.useState(0);
+  const [projectPage, setProjectPage] = React.useState(0);
   const [loadingProjects, setLoadingProjects] = React.useState(false);
   const [installerOptions, setInstallerOptions] = React.useState<Pick<Employee, 'id' | 'name' | 'role'>[]>([]);
   const [selectedProjectId, setSelectedProjectId] = React.useState('');
@@ -307,24 +309,30 @@ export const InstallationPage: React.FC = () => {
     void loadHistory(selectedInstallationId, selectedItemId, 0, false);
   }, [loadHistory, loadPhotos, selectedInstallationId, selectedItemId]);
 
+  const loadProjectOptions = React.useCallback(async (page = 0, append = false) => {
+    setLoadingProjects(true);
+    try {
+      const [projectsResult, installers] = await Promise.all([
+        searchProjectOptionsForInstallation(projectSearch, page, 20),
+        listInstallerEmployees(),
+      ]);
+      setProjectPage(page);
+      setProjectOptionsTotal(projectsResult.total);
+      setProjectOptions((current) => append
+        ? [...current, ...projectsResult.items.filter((item) => !current.some((entry) => entry.optionId === item.optionId))]
+        : projectsResult.items);
+      setInstallerOptions(installers);
+    } catch (error) {
+      setFeedback({type: 'error', message: (error as Error).message || 'Nao foi possivel preparar o cadastro de instalacao.'});
+    } finally {
+      setLoadingProjects(false);
+    }
+  }, [projectSearch]);
+
   React.useEffect(() => {
     if (!showCreateModal) return;
-    void (async () => {
-      setLoadingProjects(true);
-      try {
-        const [projects, installers] = await Promise.all([
-          searchProjectOptionsForInstallation(projectSearch, 20),
-          listInstallerEmployees(),
-        ]);
-        setProjectOptions(projects);
-        setInstallerOptions(installers);
-      } catch (error) {
-        setFeedback({type: 'error', message: (error as Error).message || 'Nao foi possivel preparar o cadastro de instalacao.'});
-      } finally {
-        setLoadingProjects(false);
-      }
-    })();
-  }, [projectSearch, showCreateModal]);
+    void loadProjectOptions(0, false);
+  }, [loadProjectOptions, showCreateModal]);
 
   const handleToggleItem = async (item: InstallationChecklistItem) => {
     setSavingItemId(item.id);
@@ -822,12 +830,15 @@ export const InstallationPage: React.FC = () => {
 
             <form onSubmit={handleCreateInstallation} className="space-y-4">
               <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-slate-500">Buscar obra</span>
+                <span className="text-sm font-medium text-slate-500">Buscar cliente</span>
                 <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <Search className="h-4 w-4 text-slate-400" />
                   <input
                     value={projectSearch}
-                    onChange={(event) => setProjectSearch(event.target.value)}
+                    onChange={(event) => {
+                      setProjectSearch(event.target.value);
+                      setProjectPage(0);
+                    }}
                     placeholder="Cliente, ambiente ou endereco"
                     className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none"
                   />
@@ -867,6 +878,16 @@ export const InstallationPage: React.FC = () => {
                   </button>
                 ))}
               </div>
+              {projectOptions.length < projectOptionsTotal ? (
+                <button
+                  type="button"
+                  onClick={() => void loadProjectOptions(projectPage + 1, true)}
+                  disabled={loadingProjects}
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 disabled:opacity-60"
+                >
+                  Carregar mais clientes
+                </button>
+              ) : null}
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <label className="block space-y-1.5">

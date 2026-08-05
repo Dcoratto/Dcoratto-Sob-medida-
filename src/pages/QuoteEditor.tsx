@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, getDocs, setDoc, addDoc, collection, Timestamp, onSnapshot, query, where, limit, selectFields } from '../lib/firestore';
 import { db } from '../lib/firestore';
 import { useSettings } from '../hooks/useSettings';
-import { Client, CondominiumRule, DeliveryRegionRate, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuoteDeliveryDetails, QuoteMaterialPriceOverride, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
+import { Client, CondominiumRule, DeliveryRegionRate, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, LaborRegionRate, Material, PieceSide, Quote, QuoteDeliveryDetails, QuoteMaterialPriceOverride, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
 import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
@@ -31,6 +31,8 @@ import {imageVariantUrl} from '../lib/storage';
 import {NumericInput} from '../components/inputs/NumericInput';
 import {generateQuickQuotePDF} from '../lib/quickQuotePdfGenerator';
 import {buildCityRateDeliveryDetails, buildDeliveryRegionKey, normalizeDeliveryCity, normalizeDeliveryDistrict} from '../lib/deliveryCityRates';
+import {buildLaborRegionKey, normalizeLaborRegionCity, normalizeLaborRegionDistrict} from '../lib/laborRegionRates';
+import {getRegionalLaborMinimum} from '../lib/laborRegion';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 
@@ -191,8 +193,10 @@ export const QuoteEditor: React.FC = () => {
   const [deliveryCalculationStatus, setDeliveryCalculationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [deliveryCalculationError, setDeliveryCalculationError] = useState('');
   const [manualDeliveryFee, setManualDeliveryFee] = useState('');
+  const [regionalLaborMinimum, setRegionalLaborMinimum] = useState(0);
   const quoteDraftHydratedRef = useRef(false);
   const deliveryRateCacheRef = useRef<Record<string, DeliveryRegionRate | null>>({});
+  const laborRateCacheRef = useRef<Record<string, LaborRegionRate | null>>({});
   const quoteDraftKey = `quote-editor-draft:${appUid || 'anonymous'}:${id || 'new'}`;
 
   const materialVariantOptions = useMemo(() => {
@@ -386,6 +390,10 @@ export const QuoteEditor: React.FC = () => {
     () => buildDeliveryRegionKey(deliveryDestinationDistrict, deliveryDestinationCity),
     [deliveryDestinationCity, deliveryDestinationDistrict],
   );
+  const normalizedLaborRegionKey = useMemo(
+    () => buildLaborRegionKey(deliveryDestinationDistrict, deliveryDestinationCity),
+    [deliveryDestinationCity, deliveryDestinationDistrict],
+  );
   const { calculatePieceArea, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey));
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
   
@@ -420,6 +428,7 @@ export const QuoteEditor: React.FC = () => {
         city: selectedClient?.city,
         address: selectedClient?.address,
       },
+      regionalLaborMinimumOverride: regionalLaborMinimum,
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
       includeLabor: quotePricingMode !== 'cost',
@@ -430,7 +439,7 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings],
+    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, regionalLaborMinimum, selectedClient?.address, selectedClient?.city, settings],
   );
   const stonesCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.stoneBaseValue, 0);
   const materialLossCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
@@ -874,6 +883,74 @@ export const QuoteEditor: React.FC = () => {
     setDeliveryCalculationStatus('idle');
     setDeliveryCalculationError('');
   };
+
+  useEffect(() => {
+    if (loading || settingsLoading || !quoteDraftHydratedRef.current) return;
+
+    const legacyMinimum = getRegionalLaborMinimum(settings, {
+      city: selectedClient?.city,
+      address: selectedClient?.address,
+    });
+
+    if (!clientId || !selectedClient) {
+      setRegionalLaborMinimum(legacyMinimum);
+      return;
+    }
+
+    if (deliveryDestinationDistrict.length < 2 || deliveryDestinationCity.length < 2) {
+      setRegionalLaborMinimum(legacyMinimum);
+      return;
+    }
+
+    const regionCacheKey = normalizedLaborRegionKey;
+    let cancelled = false;
+
+    const applyLaborRegionRate = async () => {
+      const cachedRate = laborRateCacheRef.current[regionCacheKey];
+      if (cachedRate !== undefined) {
+        setRegionalLaborMinimum(cachedRate ? Math.max(0, Number(cachedRate.minimumLaborValue || 0)) : legacyMinimum);
+        return;
+      }
+
+      try {
+        const snapshot = await getDocs(query(
+          collection(db, 'laborRegionRates'),
+          where('districtNormalized', '==', normalizeLaborRegionDistrict(deliveryDestinationDistrict)),
+          where('cityNormalized', '==', normalizeLaborRegionCity(deliveryDestinationCity)),
+          where('active', '==', true),
+          limit(1),
+          selectFields('district', 'districtNormalized', 'city', 'cityNormalized', 'minimumLaborValue', 'active'),
+        ));
+
+        if (cancelled) return;
+
+        const rate = snapshot.docs[0]
+          ? ({id: snapshot.docs[0].id, ...snapshot.docs[0].data()} as LaborRegionRate)
+          : null;
+        laborRateCacheRef.current[regionCacheKey] = rate;
+        setRegionalLaborMinimum(rate ? Math.max(0, Number(rate.minimumLaborValue || 0)) : legacyMinimum);
+      } catch (error) {
+        if (cancelled) return;
+        console.error('Erro ao carregar minimo regional de mao de obra:', error);
+        setRegionalLaborMinimum(legacyMinimum);
+      }
+    };
+
+    void applyLaborRegionRate();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    clientId,
+    deliveryDestinationCity,
+    deliveryDestinationDistrict,
+    loading,
+    normalizedLaborRegionKey,
+    selectedClient,
+    settings,
+    settingsLoading,
+  ]);
   const clearQuoteDraftState = () => {
     clearDraft(quoteDraftKey);
     setQuoteDraftRecovered(false);
@@ -1182,6 +1259,7 @@ export const QuoteEditor: React.FC = () => {
         city: selectedClient?.city,
         address: selectedClient?.address,
       },
+      regionalLaborMinimumOverride: regionalLaborMinimum,
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
       includeLabor: quotePricingMode !== 'cost',
@@ -1192,7 +1270,7 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, deliveryFee, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, totalPrice],
+    [calculatePieceArea, cutouts, deliveryFee, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, regionalLaborMinimum, selectedClient?.address, selectedClient?.city, settings, totalPrice],
   );
   const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
     cooktop: 'cooktop',

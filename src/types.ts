@@ -132,6 +132,19 @@ export interface DeliveryRegionRate {
   updatedAt?: any;
 }
 
+export interface LaborRegionRate {
+  id: string;
+  empresaId?: string;
+  district: string;
+  districtNormalized: string;
+  city: string;
+  cityNormalized: string;
+  minimumLaborValue: number;
+  active: boolean;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
 export type QuoteDeliveryMode = 'automatic' | 'manual' | 'disabled' | 'region_rate';
 
 export interface QuoteDeliveryDetails {

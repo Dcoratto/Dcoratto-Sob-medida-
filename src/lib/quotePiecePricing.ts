@@ -141,6 +141,7 @@ export const buildPiecePricingBreakdowns = ({
   includeMaterialLoss = true,
   resolveManualPiecePrice,
   clientLocation,
+  regionalLaborMinimumOverride,
 }: {
   pieces: QuotePiece[];
   quoteCutouts: Quote['cutouts'];
@@ -152,8 +153,11 @@ export const buildPiecePricingBreakdowns = ({
   includeMaterialLoss?: boolean;
   resolveManualPiecePrice?: (piece: QuotePiece) => number | undefined;
   clientLocation?: {city?: string; address?: string};
+  regionalLaborMinimumOverride?: number;
 }) => {
-  const regionalLaborMinimum = getRegionalLaborMinimum(settings, clientLocation || {});
+  const regionalLaborMinimum = typeof regionalLaborMinimumOverride === 'number'
+    ? Math.max(0, regionalLaborMinimumOverride)
+    : getRegionalLaborMinimum(settings, clientLocation || {});
   const breakdowns = pieces.map((piece) => {
     const materialPricePerM2 = resolveMaterialPricePerM2(piece);
     const manualPiecePrice = resolveManualPiecePrice?.(piece);

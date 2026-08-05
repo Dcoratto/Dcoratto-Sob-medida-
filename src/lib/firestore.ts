@@ -106,6 +106,11 @@ const TABLE_CONFIG: Record<string, TableConfig> = {
     timestampFields: ['createdAt', 'updatedAt'],
     numericFields: ['deliveryFee'],
   },
+  laborRegionRates: {
+    table: 'labor_region_rates',
+    timestampFields: ['createdAt', 'updatedAt'],
+    numericFields: ['minimumLaborValue'],
+  },
   employees: {table: 'employees', timestampFields: ['createdAt', 'updatedAt']},
   fixtureCatalog: {
     table: 'fixture_catalog',

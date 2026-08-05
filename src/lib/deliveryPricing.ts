@@ -44,6 +44,6 @@ export const buildDeliveryDetails = ({
   fee: calculateDeliveryFee(distanceKm, config),
   originAddress: String(originAddress || '').trim().slice(0, 256),
   destinationAddress: String(destinationAddress || '').trim().slice(0, 256),
-  provider: mode === 'automatic' ? 'mapbox' : mode === 'manual' ? 'manual' : undefined,
+  provider: mode === 'automatic' ? 'openrouteservice' : mode === 'manual' ? 'manual' : undefined,
   calculatedAt: new Date().toISOString(),
 });

@@ -140,7 +140,7 @@ export interface QuoteDeliveryDetails {
   fee: number;
   originAddress: string;
   destinationAddress: string;
-  provider?: 'mapbox' | 'manual';
+  provider?: 'mapbox' | 'openrouteservice' | 'manual';
   calculatedAt?: string;
 }
 

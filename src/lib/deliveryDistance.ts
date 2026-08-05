@@ -3,7 +3,7 @@ import {supabase} from './supabase';
 export type DeliveryDistanceResult = {
   distanceKm: number;
   durationMinutes: number | null;
-  provider: 'mapbox';
+  provider: 'openrouteservice';
 };
 
 const friendlyError = (code: string) => {
@@ -45,6 +45,6 @@ export const requestDeliveryDistance = async (
   return {
     distanceKm: Math.round(distanceKm * 10) / 10,
     durationMinutes: Number.isFinite(durationMinutes) ? Math.max(0, Math.round(durationMinutes)) : null,
-    provider: 'mapbox',
+    provider: 'openrouteservice',
   };
 };

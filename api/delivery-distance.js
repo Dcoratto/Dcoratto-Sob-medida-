@@ -12,7 +12,7 @@ dotenv.config({path: path.resolve(__dirname, '../.env'), override: false, quiet:
 const normalizeEnv = (value) => String(value || '').trim().replace(/^"(.*)"$/s, '$1');
 const supabaseUrl = normalizeEnv(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL);
 const supabaseAnonKey = normalizeEnv(process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY);
-const mapboxAccessToken = normalizeEnv(process.env.MAPBOX_ACCESS_TOKEN);
+const orsApiKey = normalizeEnv(process.env.OPENROUTESERVICE_API_KEY || process.env.ORS_API_KEY);
 const requestWindows = new Map();
 
 const getAuthClient = () => {
@@ -53,14 +53,21 @@ const enforceRateLimit = (userId) => {
   return true;
 };
 
-const fetchJson = async (url) => {
+const fetchJson = async (url, options = {}) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8_000);
   try {
-    const response = await fetch(url, {signal: controller.signal});
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        Accept: 'application/json',
+        ...(options.headers || {}),
+      },
+      signal: controller.signal,
+    });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const error = new Error('MAP_PROVIDER_ERROR');
+      const error = new Error(String(data?.error?.message || data?.error || 'ROUTE_PROVIDER_ERROR'));
       error.status = response.status;
       throw error;
     }
@@ -71,27 +78,36 @@ const fetchJson = async (url) => {
 };
 
 const geocode = async (address) => {
-  const url = new URL('https://api.mapbox.com/search/geocode/v6/forward');
-  url.searchParams.set('q', address);
-  url.searchParams.set('country', 'br');
-  url.searchParams.set('language', 'pt');
-  url.searchParams.set('autocomplete', 'false');
-  url.searchParams.set('limit', '1');
-  url.searchParams.set('access_token', mapboxAccessToken);
-  const result = await fetchJson(url);
+  const url = new URL('https://api.openrouteservice.org/geocode/search');
+  url.searchParams.set('text', address);
+  url.searchParams.set('boundary.country', 'BR');
+  url.searchParams.set('lang', 'pt');
+  url.searchParams.set('size', '1');
+  const result = await fetchJson(url, {
+    headers: {
+      Authorization: orsApiKey,
+    },
+  });
   const coordinates = result?.features?.[0]?.geometry?.coordinates;
   if (!Array.isArray(coordinates) || coordinates.length < 2) throw new Error('ADDRESS_NOT_FOUND');
   return [Number(coordinates[0]), Number(coordinates[1])];
 };
 
 const routeDistance = async (originCoordinates, destinationCoordinates) => {
-  const coordinates = `${originCoordinates.join(',')};${destinationCoordinates.join(',')}`;
-  const url = new URL(`https://api.mapbox.com/directions/v5/mapbox/driving/${coordinates}`);
-  url.searchParams.set('overview', 'false');
-  url.searchParams.set('alternatives', 'false');
-  url.searchParams.set('access_token', mapboxAccessToken);
-  const result = await fetchJson(url);
-  const route = result?.routes?.[0];
+  const url = 'https://api.openrouteservice.org/v2/directions/driving-car/geojson';
+  const result = await fetchJson(url, {
+    method: 'POST',
+    headers: {
+      Authorization: orsApiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      coordinates: [originCoordinates, destinationCoordinates],
+      instructions: false,
+      geometry: false,
+    }),
+  });
+  const route = result?.features?.[0]?.properties?.summary;
   if (!route || !Number.isFinite(Number(route.distance))) throw new Error('ROUTE_NOT_FOUND');
   return {
     distanceKm: Math.round((Number(route.distance) / 1000) * 10) / 10,
@@ -107,7 +123,7 @@ export default async function deliveryDistanceHandler(req, res) {
     return;
   }
 
-  if (!authClient || !mapboxAccessToken) {
+  if (!authClient || !orsApiKey) {
     res.status(503).json({error: 'DELIVERY_SERVICE_NOT_CONFIGURED'});
     return;
   }
@@ -143,7 +159,7 @@ export default async function deliveryDistanceHandler(req, res) {
     ]);
     const result = await routeDistance(originCoordinates, destinationCoordinates);
     res.setHeader('Cache-Control', 'no-store');
-    res.status(200).json({...result, provider: 'mapbox'});
+    res.status(200).json({...result, provider: 'openrouteservice'});
   } catch (error) {
     const code = String(error?.message || 'DELIVERY_CALCULATION_FAILED');
     const clientCode = ['ADDRESS_NOT_FOUND', 'ROUTE_NOT_FOUND'].includes(code)

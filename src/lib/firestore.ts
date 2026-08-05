@@ -101,16 +101,6 @@ const TABLE_CONFIG: Record<string, TableConfig> = {
   },
   condominiums: {table: 'condominiums', timestampFields: ['createdAt', 'updatedAt']},
   dashboardNotes: {table: 'dashboard_notes', timestampFields: ['createdAt', 'updatedAt']},
-  deliveryRegionRates: {
-    table: 'delivery_region_rates',
-    timestampFields: ['createdAt', 'updatedAt'],
-    numericFields: ['deliveryFee'],
-  },
-  laborRegionRates: {
-    table: 'labor_region_rates',
-    timestampFields: ['createdAt', 'updatedAt'],
-    numericFields: ['minimumLaborValue'],
-  },
   employees: {table: 'employees', timestampFields: ['createdAt', 'updatedAt']},
   fixtureCatalog: {
     table: 'fixture_catalog',

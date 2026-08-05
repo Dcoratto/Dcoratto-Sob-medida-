@@ -168,3 +168,4 @@ export const useSettings = () => {
 
   return {settings, loading};
 };
+

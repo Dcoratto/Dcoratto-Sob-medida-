@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { doc, getDoc, getDocs, setDoc, addDoc, collection, Timestamp, onSnapshot, query, where, limit, selectFields } from '../lib/firestore';
+import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, selectFields } from '../lib/firestore';
 import { db } from '../lib/firestore';
 import { useSettings } from '../hooks/useSettings';
-import { Client, CondominiumRule, DeliveryRegionRate, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, LaborRegionRate, Material, PieceSide, Quote, QuoteDeliveryDetails, QuoteMaterialPriceOverride, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
+import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuoteMaterialPriceOverride, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
 import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
   ChevronDown, ChevronUp, Calculator,
   MapPin, Phone, User,
-  Layers, PenTool, FileText, AlertCircle, RefreshCw, Truck
+  Layers, PenTool, FileText
 } from 'lucide-react';
 import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, parseCurrencyInput, parseMeasureInput, roundNumber } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,37 +30,8 @@ import {LABELS} from '../constants/labels';
 import {imageVariantUrl} from '../lib/storage';
 import {NumericInput} from '../components/inputs/NumericInput';
 import {generateQuickQuotePDF} from '../lib/quickQuotePdfGenerator';
-import {buildCityRateDeliveryDetails, buildDeliveryRegionKey, normalizeDeliveryCity, normalizeDeliveryDistrict} from '../lib/deliveryCityRates';
-import {buildLaborRegionKey, normalizeLaborRegionCity, normalizeLaborRegionDistrict} from '../lib/laborRegionRates';
-import {getRegionalLaborMinimum} from '../lib/laborRegion';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
-
-const COMPLEXITY_OPTIONS = [
-  {percentage: 0 as const, label: 'Sem acréscimo', reason: ''},
-  {percentage: 1 as const, label: '1%', reason: 'Curvas'},
-  {percentage: 5 as const, label: '5%', reason: 'Recortes especiais'},
-  {percentage: 10 as const, label: '10%', reason: 'Ripado'},
-];
-
-const buildClientDeliveryRegion = (client?: Client) => ({
-  district: String(client?.neighborhood || '').trim().slice(0, 120),
-  city: String(client?.city || '').trim().slice(0, 120),
-});
-
-const deliveryDetailsMatchRegion = (
-  details: QuoteDeliveryDetails | undefined,
-  district: string,
-  city: string,
-  mode?: QuoteDeliveryDetails['mode'],
-  regionRateId?: string,
-) => Boolean(
-  details
-  && normalizeDeliveryDistrict(details.district) === normalizeDeliveryDistrict(district)
-  && normalizeDeliveryCity(details.city) === normalizeDeliveryCity(city)
-  && (!mode || details.mode === mode)
-  && (!regionRateId || details.regionRateId === regionRateId),
-);
 
 const MATERIAL_PRICE_MINIMUM_ERROR = 'O valor personalizado não pode ser menor que o valor mínimo definido para este material.';
 
@@ -141,7 +112,6 @@ export const QuoteEditor: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, profile, appUid } = useAuth();
-  const isAdminUser = profile?.role === 'admin';
   const { settings, loading: settingsLoading } = useSettings();
   
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -189,14 +159,7 @@ export const QuoteEditor: React.FC = () => {
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
   const [quotePricingMode, setQuotePricingMode] = useState<'sale' | 'cost'>('sale');
   const [includeMaterialLoss, setIncludeMaterialLoss] = useState(true);
-  const [deliveryDetails, setDeliveryDetails] = useState<QuoteDeliveryDetails>();
-  const [deliveryCalculationStatus, setDeliveryCalculationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [deliveryCalculationError, setDeliveryCalculationError] = useState('');
-  const [manualDeliveryFee, setManualDeliveryFee] = useState('');
-  const [regionalLaborMinimum, setRegionalLaborMinimum] = useState(0);
   const quoteDraftHydratedRef = useRef(false);
-  const deliveryRateCacheRef = useRef<Record<string, DeliveryRegionRate | null>>({});
-  const laborRateCacheRef = useRef<Record<string, LaborRegionRate | null>>({});
   const quoteDraftKey = `quote-editor-draft:${appUid || 'anonymous'}:${id || 'new'}`;
 
   const materialVariantOptions = useMemo(() => {
@@ -383,17 +346,6 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const selectedClient = clients.find(c => c.id === clientId);
-  const deliveryDestinationRegion = useMemo(() => buildClientDeliveryRegion(selectedClient), [selectedClient]);
-  const deliveryDestinationDistrict = deliveryDestinationRegion.district;
-  const deliveryDestinationCity = deliveryDestinationRegion.city;
-  const normalizedDeliveryRegionKey = useMemo(
-    () => buildDeliveryRegionKey(deliveryDestinationDistrict, deliveryDestinationCity),
-    [deliveryDestinationCity, deliveryDestinationDistrict],
-  );
-  const normalizedLaborRegionKey = useMemo(
-    () => buildLaborRegionKey(deliveryDestinationDistrict, deliveryDestinationCity),
-    [deliveryDestinationCity, deliveryDestinationDistrict],
-  );
   const { calculatePieceArea, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey));
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
   
@@ -428,7 +380,6 @@ export const QuoteEditor: React.FC = () => {
         city: selectedClient?.city,
         address: selectedClient?.address,
       },
-      regionalLaborMinimumOverride: regionalLaborMinimum,
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
       includeLabor: quotePricingMode !== 'cost',
@@ -439,17 +390,14 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, regionalLaborMinimum, selectedClient?.address, selectedClient?.city, settings],
+    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings],
   );
   const stonesCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.stoneBaseValue, 0);
   const materialLossCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
   const laborCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.laborValue, 0);
   const cutoutsCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.cutoutValue, 0);
   const sculptedLaborCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.sinkAdditionalValue, 0);
-  const complexityCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.complexityValue, 0);
-  const piecesSubtotalBeforeAdjustment = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.pieceValueWithComplexity, 0);
-  const deliveryFee = Math.max(0, Number(deliveryDetails?.fee || 0));
-  const subtotalBeforeAdjustment = piecesSubtotalBeforeAdjustment + deliveryFee;
+  const subtotalBeforeAdjustment = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.pieceSubtotalValue, 0);
   const normalizedEntryAmount = Math.min(Math.max(Number(entryAmount) || 0, 0), subtotalBeforeAdjustment);
   const financedAmount = Math.max(0, subtotalBeforeAdjustment - normalizedEntryAmount);
   const selectedPaymentAdjustment = paymentMode === 'entry' ? remainingMethodAdjustment : totalMethodAdjustment;
@@ -606,8 +554,6 @@ export const QuoteEditor: React.FC = () => {
       setPieces(draftPieces);
       setQuotePricingMode((draft.pricingMode as 'sale' | 'cost') || 'sale');
       setIncludeMaterialLoss(typeof draft.includeMaterialLoss === 'boolean' ? draft.includeMaterialLoss : ((draft.pricingMode as 'sale' | 'cost') || 'sale') !== 'cost');
-      setDeliveryDetails(draft.deliveryDetails as QuoteDeliveryDetails | undefined);
-      setManualDeliveryFee(String((draft.deliveryDetails as QuoteDeliveryDetails | undefined)?.fee ?? ''));
       setMaterialCustomPriceInputs((draft.materialCustomPriceInputs as Record<string, string>) || inputValuesFromMaterialOverrides(draft.materialPriceOverrides as QuoteMaterialPriceOverride[]));
       setPieceManualPriceInputs((draft.pieceManualPriceInputs as Record<string, string>) || inputValuesFromPieceManualPrices(draftPieces));
       setCutouts((draft.cutouts as QuoteCutoutState) || { cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
@@ -644,8 +590,6 @@ export const QuoteEditor: React.FC = () => {
           setOriginalStatus(normalizeQuoteStatus(data.status));
           setQuotePricingMode(data.pricingMode || 'sale');
           setIncludeMaterialLoss(typeof data.includeMaterialLoss === 'boolean' ? data.includeMaterialLoss : (data.pricingMode || 'sale') !== 'cost');
-          setDeliveryDetails(data.deliveryDetails);
-          setManualDeliveryFee(String(data.deliveryDetails?.fee ?? ''));
           const loadedPieces = (data.pieces || []).map((piece) => ensurePieceWorkflowStatus({
             ...piece,
             materialId: piece.materialId || data.materialId || '',
@@ -745,7 +689,6 @@ export const QuoteEditor: React.FC = () => {
       validityDays,
       pricingMode: quotePricingMode,
       includeMaterialLoss,
-      deliveryDetails,
       commercialNotes,
       status,
       originalStatus,
@@ -758,199 +701,8 @@ export const QuoteEditor: React.FC = () => {
       pieceMaterialSearch,
     });
     if (savedAt) setQuoteDraftSavedAt(savedAt);
-  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, deliveryDetails, employeeAssignments, entryAmount, environment, includeMaterialLoss, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, pieceManualPriceInputs, pieceMaterialSearch, pieces, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
+  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, includeMaterialLoss, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, pieceManualPriceInputs, pieceMaterialSearch, pieces, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
 
-  useEffect(() => {
-    if (loading || settingsLoading || !quoteDraftHydratedRef.current) return;
-
-    if (!clientId) {
-      setDeliveryDetails(undefined);
-      setDeliveryCalculationStatus('idle');
-      setDeliveryCalculationError('');
-      return;
-    }
-    if (!selectedClient) return;
-
-    if (deliveryDestinationDistrict.length < 2 || deliveryDestinationCity.length < 2) {
-      setDeliveryCalculationStatus('error');
-      setDeliveryCalculationError('O cliente selecionado precisa ter bairro e cidade cadastrados para calcular a taxa de entrega.');
-      return;
-    }
-
-    setDeliveryCalculationStatus('loading');
-    setDeliveryCalculationError('');
-    const regionCacheKey = normalizedDeliveryRegionKey;
-    let cancelled = false;
-
-    const applyRegionRate = async () => {
-      const cachedRate = deliveryRateCacheRef.current[regionCacheKey];
-      if (cachedRate !== undefined) {
-        if (cachedRate) {
-          if (!deliveryDetailsMatchRegion(deliveryDetails, cachedRate.district, cachedRate.city, 'region_rate', cachedRate.id) || Number(deliveryDetails?.fee || 0) !== Number(cachedRate.deliveryFee || 0)) {
-            setDeliveryDetails(buildCityRateDeliveryDetails({
-              district: cachedRate.district,
-              city: cachedRate.city,
-              fee: Number(cachedRate.deliveryFee || 0),
-              regionRateId: cachedRate.id,
-              mode: 'region_rate',
-            }));
-          }
-          setManualDeliveryFee(String(Number(cachedRate.deliveryFee || 0)));
-          setDeliveryCalculationStatus('success');
-          setDeliveryCalculationError('');
-          return;
-        }
-
-        setDeliveryCalculationStatus('error');
-        setDeliveryCalculationError('Nao existe uma taxa de entrega cadastrada para este bairro.');
-        return;
-      }
-
-      try {
-        const snapshot = await getDocs(query(
-          collection(db, 'deliveryRegionRates'),
-          where('districtNormalized', '==', normalizeDeliveryDistrict(deliveryDestinationDistrict)),
-          where('cityNormalized', '==', normalizeDeliveryCity(deliveryDestinationCity)),
-          where('active', '==', true),
-          limit(1),
-          selectFields('district', 'districtNormalized', 'city', 'cityNormalized', 'deliveryFee', 'active'),
-        ));
-
-        if (cancelled) return;
-
-        const rate = snapshot.docs[0]
-          ? ({id: snapshot.docs[0].id, ...snapshot.docs[0].data()} as DeliveryRegionRate)
-          : null;
-        deliveryRateCacheRef.current[regionCacheKey] = rate;
-
-        if (!rate) {
-          setDeliveryCalculationStatus('error');
-          setDeliveryCalculationError('Nao existe uma taxa de entrega cadastrada para este bairro.');
-          return;
-        }
-
-        setDeliveryDetails(buildCityRateDeliveryDetails({
-          district: rate.district,
-          city: rate.city,
-          fee: Number(rate.deliveryFee || 0),
-          regionRateId: rate.id,
-          mode: 'region_rate',
-        }));
-        setManualDeliveryFee(String(Number(rate.deliveryFee || 0)));
-        setDeliveryCalculationStatus('success');
-        setDeliveryCalculationError('');
-      } catch (error) {
-        if (cancelled) return;
-        setDeliveryCalculationStatus('error');
-        setDeliveryCalculationError(String(error instanceof Error ? error.message : 'Nao foi possivel carregar a taxa de entrega deste bairro agora.'));
-
-      }
-    };
-
-    void applyRegionRate();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    clientId,
-    deliveryDestinationCity,
-    deliveryDestinationDistrict,
-    deliveryDetails,
-    loading,
-    normalizedDeliveryRegionKey,
-    selectedClient,
-    settingsLoading,
-  ]);
-
-  const handleManualDeliveryFee = (fee: number, rawValue: string) => {
-    setManualDeliveryFee(rawValue);
-    if (!rawValue.trim() || !Number.isFinite(fee) || fee < 0 || fee > 10000000) return;
-    setDeliveryDetails(buildCityRateDeliveryDetails({
-      mode: 'manual',
-      district: deliveryDestinationDistrict,
-      city: deliveryDestinationCity,
-      fee,
-      appliedByUserId: appUid || '',
-      appliedByUserName: currentUserName,
-      source: 'manual',
-    }));
-  };
-
-  const retryDeliveryCalculation = () => {
-    delete deliveryRateCacheRef.current[normalizedDeliveryRegionKey];
-    setDeliveryDetails(undefined);
-    setDeliveryCalculationStatus('idle');
-    setDeliveryCalculationError('');
-  };
-
-  useEffect(() => {
-    if (loading || settingsLoading || !quoteDraftHydratedRef.current) return;
-
-    const legacyMinimum = getRegionalLaborMinimum(settings, {
-      city: selectedClient?.city,
-      address: selectedClient?.address,
-    });
-
-    if (!clientId || !selectedClient) {
-      setRegionalLaborMinimum(legacyMinimum);
-      return;
-    }
-
-    if (deliveryDestinationDistrict.length < 2 || deliveryDestinationCity.length < 2) {
-      setRegionalLaborMinimum(legacyMinimum);
-      return;
-    }
-
-    const regionCacheKey = normalizedLaborRegionKey;
-    let cancelled = false;
-
-    const applyLaborRegionRate = async () => {
-      const cachedRate = laborRateCacheRef.current[regionCacheKey];
-      if (cachedRate !== undefined) {
-        setRegionalLaborMinimum(cachedRate ? Math.max(0, Number(cachedRate.minimumLaborValue || 0)) : legacyMinimum);
-        return;
-      }
-
-      try {
-        const snapshot = await getDocs(query(
-          collection(db, 'laborRegionRates'),
-          where('districtNormalized', '==', normalizeLaborRegionDistrict(deliveryDestinationDistrict)),
-          where('cityNormalized', '==', normalizeLaborRegionCity(deliveryDestinationCity)),
-          where('active', '==', true),
-          limit(1),
-          selectFields('district', 'districtNormalized', 'city', 'cityNormalized', 'minimumLaborValue', 'active'),
-        ));
-
-        if (cancelled) return;
-
-        const rate = snapshot.docs[0]
-          ? ({id: snapshot.docs[0].id, ...snapshot.docs[0].data()} as LaborRegionRate)
-          : null;
-        laborRateCacheRef.current[regionCacheKey] = rate;
-        setRegionalLaborMinimum(rate ? Math.max(0, Number(rate.minimumLaborValue || 0)) : legacyMinimum);
-      } catch (error) {
-        if (cancelled) return;
-        console.error('Erro ao carregar minimo regional de mao de obra:', error);
-        setRegionalLaborMinimum(legacyMinimum);
-      }
-    };
-
-    void applyLaborRegionRate();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    clientId,
-    deliveryDestinationCity,
-    deliveryDestinationDistrict,
-    loading,
-    normalizedLaborRegionKey,
-    selectedClient,
-    settings,
-    settingsLoading,
-  ]);
   const clearQuoteDraftState = () => {
     clearDraft(quoteDraftKey);
     setQuoteDraftRecovered(false);
@@ -1078,8 +830,6 @@ export const QuoteEditor: React.FC = () => {
       name: asStair ?`Escada ${pieces.filter((piece) => piece.stair?.active).length + 1}` : `${LABELS.pieces.singular} ${pieces.length + 1}`,
       pieceStatus: status,
       pricingMode: 'automatic',
-      complexityPercentage: 0,
-      complexityReason: '',
       materialId: '',
       unit: 'cm',
       width: 0,
@@ -1253,13 +1003,12 @@ export const QuoteEditor: React.FC = () => {
     () => buildPiecePricingBreakdowns({
       pieces,
       quoteCutouts: cutouts,
-      totalQuotePrice: Math.max(0, totalPrice - deliveryFee),
+      totalQuotePrice: totalPrice,
       settings,
       clientLocation: {
         city: selectedClient?.city,
         address: selectedClient?.address,
       },
-      regionalLaborMinimumOverride: regionalLaborMinimum,
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
       includeLabor: quotePricingMode !== 'cost',
@@ -1270,7 +1019,7 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, deliveryFee, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, regionalLaborMinimum, selectedClient?.address, selectedClient?.city, settings, totalPrice],
+    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, totalPrice],
   );
   const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
     cooktop: 'cooktop',
@@ -1401,21 +1150,6 @@ export const QuoteEditor: React.FC = () => {
       alert(pieceManualPriceError);
       return;
     }
-    const deliveryReady = deliveryDetails
-      && deliveryDetails.mode !== 'disabled'
-      && deliveryDetailsMatchRegion(deliveryDetails, deliveryDestinationDistrict, deliveryDestinationCity)
-      && (
-        deliveryDetails.mode === 'region_rate'
-        || (isAdminUser && deliveryDetails.mode === 'manual')
-      );
-    if (!deliveryReady) {
-      alert(
-        isAdminUser
-          ? 'Defina uma taxa de entrega valida para o bairro e cidade do cliente antes de salvar.'
-          : 'Nao existe uma taxa de entrega cadastrada para este bairro. Solicite o cadastro antes de finalizar o orcamento.',
-      );
-      return;
-    }
     setSaving(true);
     const firstAssigned = employeeAssignments.find((item) => item.employeeId);
     const primaryMaterialId = pieces[0]?.materialId || materialId || '';
@@ -1426,10 +1160,6 @@ export const QuoteEditor: React.FC = () => {
       return ensurePieceWorkflowStatus({
         ...piece,
         pricingMode: piece.pricingMode || 'automatic',
-        complexityPercentage: [0, 1, 5, 10].includes(Number(piece.complexityPercentage))
-          ? piece.complexityPercentage || 0
-          : 0,
-        complexityReason: String(piece.complexityReason || '').trim().slice(0, 120),
         manualPrice:
           (piece.pricingMode || 'automatic') === 'manual' && parsedManualPrice.status === 'valid'
             ? Number(parsedManualPrice.value)
@@ -1447,12 +1177,7 @@ export const QuoteEditor: React.FC = () => {
         minimumSalePerM2: Number(row.minimumSalePerM2.toFixed(2)),
         updatedAt: Timestamp.now(),
       }));
-    const normalizedDeliveryDetails = deliveryDetails || buildCityRateDeliveryDetails({
-      mode: 'disabled',
-      district: deliveryDestinationDistrict,
-      city: deliveryDestinationCity,
-      fee: 0,
-    });
+    
     const quoteData: Partial<Quote> = {
       clientId,
       clientName: selectedClient?.name || '',
@@ -1480,7 +1205,6 @@ export const QuoteEditor: React.FC = () => {
       totalPrice: normalizedTotalPrice,
       pricingMode: quotePricingMode,
       includeMaterialLoss,
-      deliveryDetails: normalizedDeliveryDetails,
       pieces: piecesWithStatus,
       cutouts,
       materialPriceOverrides,
@@ -1572,9 +1296,6 @@ export const QuoteEditor: React.FC = () => {
         quoteDate: new Date(),
         totalArea,
         totalPrice,
-        deliveryFee,
-        deliveryDistrict: deliveryDetails?.district || deliveryDestinationDistrict,
-        deliveryCity: deliveryDetails?.city || deliveryDestinationCity,
         pieces: pieces.map((piece, index) => {
           const pieceTotals = pieceAreaDetails[index]?.totals;
           const material = materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey);
@@ -1584,10 +1305,6 @@ export const QuoteEditor: React.FC = () => {
             materialName: material?.name || 'Sem material',
             area: pieceTotals?.totalArea || piece.totalArea || piece.manualArea || piece.area || 0,
             price: pricing?.pieceFinalValue || 0,
-            basePrice: pricing?.pieceSubtotalValue || 0,
-            complexityPercentage: pricing?.complexityPercentage || 0,
-            complexityValue: pricing?.complexityValue || 0,
-            complexityReason: piece.complexityReason || '',
             length: piece.length || piece.largestSide || 0,
             width: piece.width || piece.smallestSide || 0,
             previewUrl: piece.previewUrl || piece.proposalImageUrl || '',
@@ -1637,8 +1354,8 @@ export const QuoteEditor: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-8">
         {/* Left Column: Basic Info */}
-        <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-6 lg:self-start">
-          <section className="overflow-hidden rounded-[32px] border border-[#d7c2a4]/25 bg-[#15110d] text-white shadow-[0_24px_70px_rgba(80,48,18,0.28)]">
+        <div className="lg:col-span-1 space-y-6">
+          <section className="bg-brand-primary p-8 rounded-[32px] text-white shadow-xl shadow-brand-primary/30">
             <div className="flex items-center gap-2 mb-4 opacity-80">
               <Calculator className="w-5 h-5" />
               <span className="text-[10px] font-bold uppercase tracking-widest">Resumo do Total</span>
@@ -1665,13 +1382,11 @@ export const QuoteEditor: React.FC = () => {
               <div className="flex justify-between gap-3"><span>Mão de obra</span><strong>{formatCurrency(laborCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Recortes</span><strong>{formatCurrency(cutoutsCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pia esculpida</span><strong>{formatCurrency(sculptedLaborCost)}</strong></div>
-              <div className="flex justify-between gap-3"><span>Complexidade</span><strong>{formatCurrency(complexityCost)}</strong></div>
-              <div className="flex justify-between gap-3"><span>Taxa de entrega</span><strong>{formatCurrency(deliveryFee)}</strong></div>
               <div className="flex justify-between gap-3 border-t border-white/15 pt-2"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong>{formatCurrency(adjustmentValue)}</strong></div>
               <div className="flex justify-between gap-3"><span>Negociação (-{normalizedNegotiationDiscountPercent}%)</span><strong>-{formatCurrency(negotiationDiscountValue)}</strong></div>
               <div className="flex justify-between gap-3"><span>RT (+{normalizedRtPercent}%)</span><strong>{formatCurrency(rtValue)}</strong></div>
             </div>
-            <div className="mt-4 space-y-2 rounded-[24px] border border-white/10 bg-white/6 p-3 text-xs text-white/80 lg:max-h-[420px] lg:overflow-auto lg:pr-1">
+            <div className="mt-4 space-y-2 rounded-2xl bg-white/10 p-3 text-xs text-white/80">
               {pieceAreaDetails.map(({piece, totals, material}, index) => (
                 (() => {
                   const pricing = piecePricingBreakdowns[index];
@@ -1681,15 +1396,12 @@ export const QuoteEditor: React.FC = () => {
                   const laborValue = pricing?.laborValue || 0;
                   const cutoutValue = pricing?.cutoutValue || 0;
                   const sinkAdditionalValue = pricing?.sinkAdditionalValue || 0;
-                  const complexityPercentage = pricing?.complexityPercentage || 0;
-                  const complexityValue = pricing?.complexityValue || 0;
-                  const pieceValueWithComplexity = pricing?.pieceValueWithComplexity || 0;
                   const pieceTotalValue = pricing?.pieceFinalValue || 0;
                   const allocatedAdjustmentValue = pricing?.allocatedQuoteAdjustmentValue || 0;
                   const cutoutCount = pricing?.cutoutCount || 0;
                   const cutoutRows = pricing?.cutoutRows || [];
                   return (
-                    <div key={piece.id} className="space-y-3 rounded-[20px] border border-white/10 bg-black/10 p-3">
+                    <div key={piece.id} className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="font-bold text-sm text-white">{piece.name}</div>
@@ -1718,15 +1430,6 @@ export const QuoteEditor: React.FC = () => {
                           <div className="text-[10px] font-bold uppercase tracking-wider text-white/55">Recortes</div>
                           <div className="mt-1 font-semibold text-white">{formatCurrency(cutoutValue)}</div>
                         </div>
-                        <div className="col-span-2 rounded-xl bg-white/6 p-2">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <div className="text-[10px] font-bold uppercase tracking-wider text-white/55">Complexidade {complexityPercentage > 0 ? `+${complexityPercentage}%` : ''}</div>
-                              <div className="mt-1 text-[11px] text-white/65">{piece.complexityReason || 'Sem acréscimo'}</div>
-                            </div>
-                            <div className="text-right font-semibold text-white">{formatCurrency(complexityValue)}</div>
-                          </div>
-                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-x-3 gap-y-1 opacity-80">
@@ -1736,7 +1439,6 @@ export const QuoteEditor: React.FC = () => {
                         <span>Perda: {formatArea(totals.lossArea || 0)}</span>
                         <span>Pedra com perda: {formatCurrency(stoneValue)}</span>
                         <span>Furos/recortes: {cutoutCount} un</span>
-                        <span className="col-span-2">Valor após complexidade: {formatCurrency(pieceValueWithComplexity)}</span>
                         {sinkAdditionalValue > 0 && (
                           <span className="col-span-2">Adicional pia esculpida: {formatCurrency(sinkAdditionalValue)}</span>
                         )}
@@ -1755,16 +1457,10 @@ export const QuoteEditor: React.FC = () => {
             </div>
           </section>
 
-          <section className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] space-y-5 sm:p-6">
-            <div className="space-y-1.5">
-              <h2 className="font-display text-xl font-semibold text-slate-800">Dados do orçamento</h2>
-              <p className="text-sm text-slate-500">Cliente, condições e ajustes gerais deste orçamento.</p>
-            </div>
+          <section className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
+            <h2 className="font-display font-bold text-xl text-slate-800">Dados do orçamento</h2>
 
-            <div className="rounded-3xl border border-slate-100 bg-slate-50/70 p-4 space-y-4">
-              <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Identificação</div>
-
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cliente</label>
               <div className="relative">
                 <input
@@ -1775,7 +1471,7 @@ export const QuoteEditor: React.FC = () => {
                     setClientId('');
                     setClientPickerOpen(true);
                   }}
-                  className="w-full bg-white border border-slate-100 rounded-2xl px-4 py-3 pr-10 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
                   placeholder="Pesquisar cliente..."
                 />
                 <button type="button" onClick={() => setClientPickerOpen((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
@@ -1817,76 +1513,52 @@ export const QuoteEditor: React.FC = () => {
                   </div>
                 )}
               </div>
-              {selectedClient && (
-                <div className="mt-3 space-y-2 rounded-2xl border border-slate-100 bg-white p-3 text-xs text-slate-500">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 shrink-0 text-brand-primary" />
-                    <span className="truncate font-semibold text-slate-700">{selectedClient.name}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 shrink-0 text-slate-400" />
-                    <span className="truncate">{selectedClient.phone || 'Telefone não informado'}</span>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                    <span className="min-w-0 break-words leading-relaxed">
-                      {[
-                        selectedClient.streetAddress || selectedClient.address,
-                        selectedClient.neighborhood,
-                        selectedClient.city,
-                        selectedClient.zipCode ? `CEP ${selectedClient.zipCode}` : '',
-                      ].filter(Boolean).join(' · ') || 'Endereço não informado'}
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ambiente</label>
               <input
                 value={environment}
                 onChange={(e) => setEnvironment(e.target.value)}
-                className="w-full bg-white border border-slate-100 rounded-2xl px-4 py-3 text-sm"
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
                 placeholder="Ex: Cozinha"
               />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Responsável</label>
               <input
                 value={responsible}
                 onChange={(e) => setResponsible(e.target.value)}
-                className="w-full bg-white border border-slate-100 rounded-2xl px-4 py-3 text-sm"
+                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
                 placeholder="Nome do responsável"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Prazo (dias)</label>
                 <NumericInput
                   value={deliveryDays}
                   onValueChange={(value) => setDeliveryDays(value)}
                   decimals={0}
-                  className="w-full bg-white border border-slate-100 rounded-2xl px-3 py-3 text-sm"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Validade (dias)</label>
                 <NumericInput
                   value={validityDays}
                   onValueChange={(value) => setValidityDays(value)}
                   decimals={0}
-                  className="w-full bg-white border border-slate-100 rounded-2xl px-3 py-3 text-sm"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
                 />
               </div>
             </div>
-            </div>
 
-            <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
+            <div className="space-y-2 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
               <div>
-                <h3 className="font-display text-lg font-semibold text-slate-800">Modo de preço</h3>
+                <h3 className="font-display text-lg font-bold text-slate-800">Modo de preço</h3>
                 <p className="text-xs text-slate-500">No preço de custo, a mão de obra da peça sai do cálculo do orçamento.</p>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -1894,8 +1566,8 @@ export const QuoteEditor: React.FC = () => {
                   type="button"
                   onClick={() => setQuotePricingMode('sale')}
                   className={cn(
-                    'rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition-all',
-                    quotePricingMode === 'sale' ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-white text-slate-600',
+                    'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
+                    quotePricingMode === 'sale' ? 'bg-brand-primary text-white shadow-sm' : 'bg-white text-slate-600',
                   )}
                 >
                   Preço de venda
@@ -1904,22 +1576,22 @@ export const QuoteEditor: React.FC = () => {
                   type="button"
                   onClick={() => setQuotePricingMode('cost')}
                   className={cn(
-                    'rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition-all',
-                    quotePricingMode === 'cost' ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-white text-slate-600',
+                    'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
+                    quotePricingMode === 'cost' ? 'bg-brand-primary text-white shadow-sm' : 'bg-white text-slate-600',
                   )}
                 >
                   Preço de custo
                 </button>
               </div>
-              <div className="rounded-2xl border border-slate-100 bg-white p-3">
+              <div className="rounded-2xl bg-white p-3">
                 <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">Perda de material</div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => setIncludeMaterialLoss(true)}
                     className={cn(
-                      'rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition-all',
-                      includeMaterialLoss ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-600',
+                      'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
+                      includeMaterialLoss ? 'bg-brand-primary text-white shadow-sm' : 'bg-slate-50 text-slate-600',
                     )}
                   >
                     Com 10% de perda
@@ -1928,8 +1600,8 @@ export const QuoteEditor: React.FC = () => {
                     type="button"
                     onClick={() => setIncludeMaterialLoss(false)}
                     className={cn(
-                      'rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition-all',
-                      !includeMaterialLoss ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-600',
+                      'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
+                      !includeMaterialLoss ? 'bg-brand-primary text-white shadow-sm' : 'bg-slate-50 text-slate-600',
                     )}
                   >
                     Sem 10% de perda
@@ -1938,184 +1610,11 @@ export const QuoteEditor: React.FC = () => {
               </div>
             </div>
 
-            <details open className="group rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-brand-primary shadow-sm">
-                    <Layers className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-display text-lg font-semibold text-slate-800">Complexidade da execução</h3>
-                    <p className="text-xs text-slate-500">Ajuste individual por peça.</p>
-                  </div>
-                </div>
-                <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
-              </summary>
-
-              <div className="mt-4 space-y-3 border-t border-slate-200/70 pt-4">
-                {pieces.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm font-semibold text-slate-400">
-                    Adicione uma peça para definir a complexidade.
-                  </div>
-                ) : pieces.map((piece) => {
-                  const percentage = Number(piece.complexityPercentage || 0);
-                  return (
-                    <div key={piece.id} className="space-y-3 rounded-2xl border border-slate-100 bg-white p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="truncate text-sm font-semibold text-slate-700">{piece.name}</span>
-                        <span className="shrink-0 rounded-full bg-brand-primary/10 px-2.5 py-1 text-[10px] font-semibold text-brand-primary">
-                          {percentage > 0 ? `+${percentage}%` : '0%'}
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-1.5">
-                        {COMPLEXITY_OPTIONS.map((option) => (
-                          <button
-                            key={option.percentage}
-                            type="button"
-                            onClick={() => updatePiece(piece.id, {
-                              complexityPercentage: option.percentage,
-                              complexityReason: option.reason,
-                            })}
-                            title={option.percentage === 0 ? option.label : option.reason}
-                            className={cn(
-                              'min-h-10 rounded-xl border px-2 text-xs font-semibold transition-all',
-                              percentage === option.percentage
-                                ? 'border-brand-primary bg-brand-primary text-white shadow-sm'
-                                : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-brand-primary/30',
-                            )}
-                          >
-                            {option.label}
-                          </button>
-                        ))}
-                      </div>
-                      {percentage > 0 && (
-                        <label className="block space-y-1">
-                          <span className="text-[10px] font-semibold uppercase text-slate-400">Motivo</span>
-                          <input
-                            type="text"
-                            maxLength={120}
-                            value={piece.complexityReason || ''}
-                            onChange={(event) => updatePiece(piece.id, {complexityReason: event.target.value})}
-                            placeholder="Ex: Curvas, ripado ou acabamento especial"
-                            className="w-full rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
-                          />
-                        </label>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </details>
-
-            <div className="space-y-4 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-brand-primary shadow-sm">
-                    <Truck className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-display text-lg font-semibold text-slate-800">Taxa de entrega</h3>
-                    <p className="text-xs text-slate-500">Bairro e cidade do cliente com taxa automatica aplicada pelo cadastro.</p>
-                  </div>
-                </div>
-                {normalizedDeliveryRegionKey && deliveryCalculationStatus !== 'loading' && (
-                  <button
-                    type="button"
-                    onClick={retryDeliveryCalculation}
-                    title="Recarregar taxa do bairro"
-                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-100 bg-white text-slate-500 transition-all hover:text-brand-primary"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-
-              {deliveryCalculationStatus === 'loading' ? (
-                <div className="flex min-h-24 items-center justify-center gap-3 rounded-2xl border border-slate-100 bg-white text-sm font-semibold text-slate-500">
-                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-brand-primary/20 border-t-brand-primary" />
-                  Buscando taxa do bairro...
-                </div>
-              ) : deliveryDetails && deliveryDetails.mode !== 'disabled' && deliveryCalculationStatus === 'success' ? (
-                <div className="space-y-3 rounded-2xl border border-green-100 bg-white p-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-xl bg-slate-50 p-3">
-                      <div className="text-[10px] font-semibold uppercase text-slate-400">Bairro</div>
-                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{deliveryDetails.district || deliveryDestinationDistrict || '-'}</div>
-                    </div>
-                    <div className="rounded-xl bg-slate-50 p-3">
-                      <div className="text-[10px] font-semibold uppercase text-slate-400">Cidade</div>
-                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{deliveryDetails.city || deliveryDestinationCity || '-'}</div>
-                    </div>
-                    <div className="rounded-xl bg-slate-50 p-3">
-                      <div className="text-[10px] font-semibold uppercase text-slate-400">Origem</div>
-                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{deliveryDetails.mode === 'manual' ? 'Taxa manual' : 'Cadastro do bairro'}</div>
-                    </div>
-                    <div className="rounded-xl bg-slate-50 p-3">
-                      <div className="text-[10px] font-semibold uppercase text-slate-400">Status</div>
-                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{deliveryDetails.mode === 'manual' ? 'Manual temporaria' : 'Taxa ativa'}</div>
-                    </div>
-                    <div className="rounded-xl bg-brand-primary/10 p-3">
-                      <div className="text-[10px] font-semibold uppercase text-brand-primary/70">Valor total</div>
-                      <div className="mt-1 font-mono text-sm font-semibold text-brand-primary">{formatCurrency(deliveryDetails.fee)}</div>
-                    </div>
-                  </div>
-                  {deliveryDetails.mode === 'manual' && (
-                    <label className="block space-y-1.5 border-t border-slate-100 pt-3">
-                      <span className="text-[10px] font-semibold uppercase text-slate-400">Taxa manual temporaria</span>
-                      <NumericInput
-                        value={manualDeliveryFee}
-                        onValueChange={handleManualDeliveryFee}
-                        min="0"
-                        max="10000000"
-                        decimals={2}
-                        className="w-full rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-sm outline-none"
-                      />
-                    </label>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-                  <div className="flex gap-2 text-sm font-medium text-amber-800">
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>{deliveryCalculationError || 'Selecione um cliente com bairro e cidade cadastrados.'}</span>
-                  </div>
-                  {isAdminUser ? (
-                    <>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => navigate('/admin')}
-                          className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-800 transition-all hover:bg-amber-50"
-                        >
-                          Cadastrar taxa
-                        </button>
-                      </div>
-                      <label className="block space-y-1.5">
-                        <span className="text-[10px] font-semibold uppercase text-amber-700">Taxa manual temporaria</span>
-                        <NumericInput
-                          value={manualDeliveryFee}
-                          onValueChange={handleManualDeliveryFee}
-                          min="0"
-                          max="10000000"
-                          decimals={2}
-                          className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-200"
-                        />
-                      </label>
-                    </>
-                  ) : (
-                    <div className="rounded-xl border border-amber-200 bg-white px-3 py-3 text-sm text-amber-800">
-                      Solicite a um administrador o cadastro da taxa para este bairro e cidade.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
             <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-display text-lg font-semibold text-slate-800">Materiais do orcamento</h3>
-                  <p className="text-xs text-slate-500">Precos personalizados ficam salvos apenas neste orcamento.</p>
+                  <h3 className="font-display text-lg font-bold text-slate-800">Materiais do orçamento</h3>
+                  <p className="text-xs text-slate-500">Preços personalizados ficam salvos apenas neste orçamento.</p>
                 </div>
                 {quoteMaterialPriceError && (
                   <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-bold uppercase text-red-600">Revisar</span>
@@ -2124,7 +1623,7 @@ export const QuoteEditor: React.FC = () => {
 
               {quoteMaterialPriceRows.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm font-semibold text-slate-400">
-                  Selecione materiais nas pecas para personalizar os valores deste orcamento.
+                  Selecione materiais nas peças para personalizar os valores deste orçamento.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -2138,27 +1637,27 @@ export const QuoteEditor: React.FC = () => {
                             <div className="font-bold text-slate-900">{row.name}</div>
                             <div className="text-[11px] font-semibold text-slate-400">{row.specs || row.pieceNames.join(', ') || 'Material selecionado'}</div>
                             {row.pieceNames.length > 0 && (
-                              <div className="mt-1 text-[11px] text-slate-500">Pecas: {row.pieceNames.join(', ')}</div>
+                              <div className="mt-1 text-[11px] text-slate-500">Peças: {row.pieceNames.join(', ')}</div>
                             )}
                           </div>
                           <span className={cn('inline-flex self-start rounded-full px-3 py-1 text-[10px] font-bold uppercase', row.error ? 'bg-red-50 text-red-600' : isValidCustom ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500')}>
-                            {row.error ? 'Invalido' : isValidCustom ? 'Valido' : 'Preco padrao'}
+                            {row.error ? 'Inválido' : isValidCustom ? 'Válido' : 'Preço padrão'}
                           </span>
                         </div>
 
                         <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                           <div className="rounded-xl bg-slate-50 p-3">
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Preco padrao</span>
-                            <strong className="font-mono text-slate-900">{formatCurrency(row.defaultPricePerM2)}/m?</strong>
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Preço padrão</span>
+                            <strong className="font-mono text-slate-900">{formatCurrency(row.defaultPricePerM2)}/m²</strong>
                           </div>
                           <div className="rounded-xl bg-slate-50 p-3">
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor minimo</span>
-                            <strong className="font-mono text-slate-900">{formatCurrency(row.minimumSalePerM2)}/m?</strong>
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor mínimo</span>
+                            <strong className="font-mono text-slate-900">{formatCurrency(row.minimumSalePerM2)}/m²</strong>
                           </div>
                         </div>
 
                         <label className="mt-3 block space-y-1">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Valor personalizado neste orcamento</span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Valor personalizado neste orçamento</span>
                           <input
                             type="text"
                             inputMode="decimal"
@@ -2173,10 +1672,10 @@ export const QuoteEditor: React.FC = () => {
                           />
                         </label>
                         <div className={cn('mt-2 text-[11px] font-semibold', row.error ? 'text-red-600' : 'text-slate-500')}>
-                          {row.error || 'Esse valor sera aplicado apenas neste orcamento.'}
+                          {row.error || 'Esse valor será aplicado apenas neste orçamento.'}
                         </div>
                         <div className="mt-2 text-[11px] text-slate-400">
-                          Valor em uso no calculo: <span className="font-mono font-bold text-slate-600">{formatCurrency(row.usedPricePerM2)}/m?</span>
+                          Valor em uso no cálculo: <span className="font-mono font-bold text-slate-600">{formatCurrency(row.usedPricePerM2)}/m²</span>
                         </div>
                       </div>
                     );
@@ -2185,19 +1684,16 @@ export const QuoteEditor: React.FC = () => {
               )}
             </div>
 
-            <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
-              <div>
-                <h3 className="font-display text-lg font-semibold text-slate-800">Pagamento</h3>
-                <p className="text-xs text-slate-500">Defina a condição principal e confira o ajuste aplicado no cálculo.</p>
-              </div>
-              <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-3">
+            <div className="space-y-1">
+              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pagamento</label>
+              <div className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
                 <div className="grid gap-2 sm:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => setPaymentMode('total')}
                     className={cn(
-                      'rounded-2xl border px-4 py-3 text-sm font-semibold transition-all',
-                      paymentMode === 'total' ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-600',
+                      'rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
+                      paymentMode === 'total' ? 'bg-brand-primary text-white' : 'bg-white text-slate-600',
                     )}
                   >
                     Valor total
@@ -2206,8 +1702,8 @@ export const QuoteEditor: React.FC = () => {
                     type="button"
                     onClick={() => setPaymentMode('entry')}
                     className={cn(
-                      'rounded-2xl border px-4 py-3 text-sm font-semibold transition-all',
-                      paymentMode === 'entry' ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-600',
+                      'rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
+                      paymentMode === 'entry' ? 'bg-brand-primary text-white' : 'bg-white text-slate-600',
                     )}
                   >
                     Entrada + restante
@@ -2215,11 +1711,11 @@ export const QuoteEditor: React.FC = () => {
                 </div>
 
                 {paymentMode === 'total' ? (
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <select
                       value={totalPaymentMethod}
                       onChange={(e) => setTotalPaymentMethod(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm"
+                      className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
                     >
                       <option value="">Selecionar forma de pagamento</option>
                       {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
@@ -2229,7 +1725,7 @@ export const QuoteEditor: React.FC = () => {
                   </div>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Entrada</label>
                       <input
                         type="number"
@@ -2238,15 +1734,15 @@ export const QuoteEditor: React.FC = () => {
                         value={entryAmount}
                         onChange={(e) => setEntryAmount(e.target.value)}
                         placeholder="0,00"
-                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm"
+                        className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
                       />
                     </div>
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Restante</label>
                       <select
                         value={remainingPaymentMethod}
                         onChange={(e) => setRemainingPaymentMethod(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm"
+                        className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
                       >
                         <option value="">Selecionar condição do restante</option>
                         {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
@@ -2258,7 +1754,7 @@ export const QuoteEditor: React.FC = () => {
                 )}
 
                 {(resolvedPaymentMethod || selectedPaymentAdjustment) && (
-                  <div className="rounded-2xl bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
+                  <div className="space-y-1 text-[11px] text-slate-500">
                     <div>Condição: {resolvedPaymentMethod || 'A definir'}</div>
                     <div>
                       Ajuste aplicado: {selectedPaymentAdjustment > 0 ? '+' : ''}{selectedPaymentAdjustment}% {paymentMode === 'entry' ? 'sobre o saldo restante' : 'sobre o valor total'}
@@ -2273,13 +1769,8 @@ export const QuoteEditor: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
-              <div>
-                <h3 className="font-display text-lg font-semibold text-slate-800">Ajustes finais</h3>
-                <p className="text-xs text-slate-500">Use desconto e RT para simular a negociação sem perder a leitura do total.</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5 rounded-2xl border border-slate-100 bg-white p-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Negociação (%)</label>
                 <input
                   type="number"
@@ -2287,12 +1778,12 @@ export const QuoteEditor: React.FC = () => {
                   step="0.01"
                   value={negotiationDiscountPercent}
                   onChange={(e) => setNegotiationDiscountPercent(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-3 py-3 text-sm"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
                   placeholder="Desconto"
                 />
                 <div className="text-[10px] font-semibold text-slate-400">Desconto no total</div>
               </div>
-              <div className="space-y-1.5 rounded-2xl border border-slate-100 bg-white p-3">
+              <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">RT (%)</label>
                 <input
                   type="number"
@@ -2300,12 +1791,11 @@ export const QuoteEditor: React.FC = () => {
                   step="0.01"
                   value={rtPercent}
                   onChange={(e) => setRtPercent(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-3 py-3 text-sm"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
                   placeholder="Acréscimo"
                 />
                 <div className="text-[10px] font-semibold text-slate-400">Acréscimo no total</div>
               </div>
-            </div>
             </div>
           </section>
         </div>
@@ -2703,7 +2193,7 @@ export const QuoteEditor: React.FC = () => {
 
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                       <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor da peça</div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor em uso</div>
                         <div className="mt-2 font-mono text-lg font-bold text-slate-900">
                           {formatCurrency(basePiecePricingBreakdowns[pIdx]?.pieceSubtotalValue || 0)}
                         </div>
@@ -2733,28 +2223,6 @@ export const QuoteEditor: React.FC = () => {
                           {pieceManualPriceErrors[piece.id] || ((piece.pricingMode || 'automatic') === 'manual'
                             ? 'Esse valor manual substitui o cálculo automático desta peça.'
                             : 'Ative o modo manual para digitar um valor personalizado para esta peça.')}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
-                      <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Complexidade</div>
-                        <div className="mt-2 font-mono text-base font-bold text-slate-900">
-                          +{basePiecePricingBreakdowns[pIdx]?.complexityPercentage || 0}%
-                        </div>
-                        <div className="mt-1 truncate text-[11px] text-slate-500">{piece.complexityReason || 'Sem acréscimo'}</div>
-                      </div>
-                      <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor adicional</div>
-                        <div className="mt-2 font-mono text-base font-bold text-slate-900">
-                          {formatCurrency(basePiecePricingBreakdowns[pIdx]?.complexityValue || 0)}
-                        </div>
-                      </div>
-                      <div className="rounded-2xl border border-brand-primary/20 bg-brand-primary/5 p-4">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-brand-primary/70">Valor final da peça</div>
-                        <div className="mt-2 font-mono text-base font-bold text-brand-primary">
-                          {formatCurrency(basePiecePricingBreakdowns[pIdx]?.pieceValueWithComplexity || 0)}
                         </div>
                       </div>
                     </div>

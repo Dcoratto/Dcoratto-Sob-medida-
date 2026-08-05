@@ -119,56 +119,6 @@ export interface Settings {
   patioSize?: {width: number; height: number};
 }
 
-export interface DeliveryRegionRate {
-  id: string;
-  empresaId?: string;
-  district: string;
-  districtNormalized: string;
-  city: string;
-  cityNormalized: string;
-  deliveryFee: number;
-  active: boolean;
-  createdAt?: any;
-  updatedAt?: any;
-}
-
-export interface LaborRegionRate {
-  id: string;
-  empresaId?: string;
-  district: string;
-  districtNormalized: string;
-  city: string;
-  cityNormalized: string;
-  minimumLaborValue: number;
-  active: boolean;
-  createdAt?: any;
-  updatedAt?: any;
-}
-
-export type QuoteDeliveryMode = 'automatic' | 'manual' | 'disabled' | 'region_rate';
-
-export interface QuoteDeliveryDetails {
-  mode: QuoteDeliveryMode;
-  fee: number;
-  district?: string;
-  districtNormalized?: string;
-  city?: string;
-  cityNormalized?: string;
-  regionRateId?: string;
-  source?: 'region_rate' | 'manual' | 'legacy_distance';
-  appliedByUserId?: string;
-  appliedByUserName?: string;
-  distanceKm?: number;
-  durationMinutes?: number | null;
-  ratePerKm?: number;
-  minimumFee?: number;
-  maximumFee?: number | null;
-  originAddress?: string;
-  destinationAddress?: string;
-  provider?: 'mapbox' | 'openrouteservice' | 'manual';
-  calculatedAt?: string;
-}
-
 export interface SupplierContact {
   id?: string;
   name: string;
@@ -582,8 +532,6 @@ export interface QuotePiece {
   pieceStatus?: QuoteStatus;
   pricingMode?: 'automatic' | 'manual';
   manualPrice?: number;
-  complexityPercentage?: 0 | 1 | 5 | 10;
-  complexityReason?: string;
   materialId: string;
   materialVariantKey?: string;
   materialLine?: string;
@@ -717,7 +665,6 @@ export interface Quote {
   totalPrice: number;
   pricingMode?: 'sale' | 'cost';
   includeMaterialLoss?: boolean;
-  deliveryDetails?: QuoteDeliveryDetails;
   pieces: QuotePiece[];
   cutouts: QuoteCutouts;
   materialPriceOverrides?: QuoteMaterialPriceOverride[];

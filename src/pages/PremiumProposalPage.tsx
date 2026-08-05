@@ -173,13 +173,13 @@ export const PremiumProposalPage: React.FC = () => {
     return foundIndex >= 0 ?foundIndex : 0;
   }, [activeSection, navItems]);
 
-  const piecePricingDetails = useMemo(() => {
+  const piecePrices = useMemo(() => {
     const pieces = quote?.pieces || [];
     if (!pieces.length) return [];
     return buildPiecePricingBreakdowns({
       pieces,
       quoteCutouts: quote?.cutouts || {cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0},
-      totalQuotePrice: Math.max(0, (quote?.totalPrice || 0) - Number(quote?.deliveryDetails?.fee || 0)),
+      totalQuotePrice: quote?.totalPrice || 0,
       settings,
       clientLocation: {
         city: quote?.city,
@@ -193,13 +193,8 @@ export const PremiumProposalPage: React.FC = () => {
         (piece.pricingMode || 'automatic') === 'manual' && Number.isFinite(Number(piece.manualPrice))
           ? Number(piece.manualPrice)
           : undefined,
-    });
-  }, [calculatePieceArea, materialForPiece, quote?.address, quote?.city, quote?.cutouts, quote?.deliveryDetails?.fee, quote?.pieces, quote?.pricingMode, quote?.totalPrice, settings]);
-  const piecePrices = useMemo(() => piecePricingDetails.map((item) => item.pieceFinalValue), [piecePricingDetails]);
-  const totalComplexityValue = useMemo(
-    () => piecePricingDetails.reduce((total, item) => total + item.complexityValue, 0),
-    [piecePricingDetails],
-  );
+    }).map((item) => item.pieceFinalValue);
+  }, [calculatePieceArea, materialForPiece, quote?.address, quote?.city, quote?.cutouts, quote?.pieces, quote?.pricingMode, quote?.totalPrice, settings]);
 
   useEffect(() => {
     if (!navItems.length) return;
@@ -388,10 +383,6 @@ export const PremiumProposalPage: React.FC = () => {
               piece={piece}
               index={index}
               piecePrice={piecePrices[index] || 0}
-              basePieceValue={piecePricingDetails[index]?.pieceSubtotalValue || 0}
-              complexityPercentage={piecePricingDetails[index]?.complexityPercentage || 0}
-              complexityValue={piecePricingDetails[index]?.complexityValue || 0}
-              complexityFinalValue={piecePricingDetails[index]?.pieceValueWithComplexity || 0}
               materialName={materials.find((material) => material.id === piece.materialId)?.name || selectedMaterial?.name || 'Material'}
               materialImageUrl={materialImage(materials.find((material) => material.id === piece.materialId) || selectedMaterial)}
               reverse={index % 2 === 1}
@@ -432,10 +423,6 @@ export const PremiumProposalPage: React.FC = () => {
               <SummaryItem label="Prazo" value={`${quote.deliveryDays || 0} dias úteis`} />
               <SummaryItem label="Ambientes" value={String(totalPieces)} />
               <SummaryItem label="Pedido" value={quoteNumber} />
-              <SummaryItem label="Complexidade" value={formatCurrency(totalComplexityValue)} />
-              <SummaryItem label="Bairro da entrega" value={safe(quote.deliveryDetails?.district || '')} />
-              <SummaryItem label="Cidade da entrega" value={safe(quote.deliveryDetails?.city || quote.city)} />
-              <SummaryItem label="Taxa de entrega" value={formatCurrency(quote.deliveryDetails?.fee || 0)} />
             </div>
             <div className="flex items-end justify-between border-t border-[#D4A853]/30 px-6 py-6">
               <span className="font-display text-xl font-bold text-[#D4A853]">Investimento total</span>
@@ -571,10 +558,6 @@ const PieceSection = ({
   piece,
   index,
   piecePrice,
-  basePieceValue,
-  complexityPercentage,
-  complexityValue,
-  complexityFinalValue,
   materialName,
   materialImageUrl,
   reverse,
@@ -585,10 +568,6 @@ const PieceSection = ({
   piece: QuotePiece;
   index: number;
   piecePrice: number;
-  basePieceValue: number;
-  complexityPercentage: number;
-  complexityValue: number;
-  complexityFinalValue: number;
   materialName: string;
   materialImageUrl?: string;
   reverse: boolean;
@@ -677,21 +656,6 @@ const PieceSection = ({
               <span className="col-span-2 text-right text-[#D4A853]">Status</span>
             </div>
             {rows.map((row, rowIndex) => <TableRow key={`${row.description}-${rowIndex}`} {...row} />)}
-            <div className="grid gap-3 border-t border-white/5 px-4 py-4 text-xs print:border-slate-100 sm:grid-cols-3">
-              <div>
-                <div className="text-white/35 print:text-slate-400">Valor da peça</div>
-                <div className="mt-1 font-mono font-semibold text-white/75 print:text-slate-700">{formatCurrency(basePieceValue)}</div>
-              </div>
-              <div>
-                <div className="text-white/35 print:text-slate-400">Complexidade +{complexityPercentage}%</div>
-                <div className="mt-1 font-mono font-semibold text-white/75 print:text-slate-700">{formatCurrency(complexityValue)}</div>
-                <div className="mt-1 text-[10px] text-white/30 print:text-slate-400">{piece.complexityReason || 'Sem acréscimo'}</div>
-              </div>
-              <div>
-                <div className="text-white/35 print:text-slate-400">Valor após complexidade</div>
-                <div className="mt-1 font-mono font-semibold text-[#D4A853]">{formatCurrency(complexityFinalValue)}</div>
-              </div>
-            </div>
             <div className="flex justify-between border-t border-[#D4A853]/20 bg-[#D4A853]/[0.05] px-4 py-4">
               <div>
                 <div className="text-sm font-semibold text-[#D4A853]">Total {piece.name}</div>

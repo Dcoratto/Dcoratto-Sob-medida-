@@ -3,16 +3,14 @@ import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, selectF
 import { db } from '../lib/firestore';
 import { useSettings, DEFAULT_SETTINGS } from '../hooks/useSettings';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, Plus, Trash2, Building, Phone, Mail, Calculator, CreditCard, Scissors, Pencil } from 'lucide-react';
+import { Save, Plus, Trash2, Building, Phone, Mail, MapPin, Calculator, CreditCard, Scissors, Pencil } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
-import { CondominiumRule, Settings, SupplierContact } from '../types';
+import { CondominiumRule, SupplierContact } from '../types';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
-import {DeliveryCityRatesSection} from '../components/settings/DeliveryCityRatesSection';
-import {LaborRegionRatesSection} from '../components/settings/LaborRegionRatesSection';
 
 export const SettingsPage: React.FC = () => {
   const { settings: currentSettings, loading } = useSettings();
@@ -123,6 +121,7 @@ export const SettingsPage: React.FC = () => {
       }))
       .filter((supplier) => supplier.name)
       .sort((a, b) => a.name.localeCompare(b.name));
+
     return {
       ...sourceSettings,
       laborMinimumByRegion,
@@ -482,9 +481,7 @@ export const SettingsPage: React.FC = () => {
           </div>
         </section>
 
-        <DeliveryCityRatesSection isAdmin={isAdmin} />
-        <LaborRegionRatesSection isAdmin={isAdmin} />
-
+        {/* Padrões Financeiros e Medidas */}
         <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-2">
           <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
             <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
@@ -510,6 +507,37 @@ export const SettingsPage: React.FC = () => {
                   onValueChange={(value) => setSettings({ ...settings, defaultValidity: value })}
                   decimals={0}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Mínimo mão de obra Alto Tietê</label>
+                <CurrencyInput
+                  value={settings.laborMinimumByRegion?.altoTiete || 0}
+                  onValueChange={(value) => setSettings({
+                    ...settings,
+                    laborMinimumByRegion: {
+                      ...settings.laborMinimumByRegion,
+                      altoTiete: value,
+                    },
+                  })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Mínimo mão de obra São Paulo</label>
+                <CurrencyInput
+                  value={settings.laborMinimumByRegion?.saoPaulo || 0}
+                  onValueChange={(value) => setSettings({
+                    ...settings,
+                    laborMinimumByRegion: {
+                      ...settings.laborMinimumByRegion,
+                      saoPaulo: value,
+                    },
+                  })}
+                  className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
                 />
               </div>
             </div>

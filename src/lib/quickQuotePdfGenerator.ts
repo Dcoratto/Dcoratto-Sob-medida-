@@ -6,10 +6,6 @@ type QuickQuotePiece = {
   materialName: string;
   area: number;
   price: number;
-  basePrice: number;
-  complexityPercentage: number;
-  complexityValue: number;
-  complexityReason?: string;
   length?: number;
   width?: number;
   previewUrl?: string;
@@ -22,9 +18,6 @@ type QuickQuotePdfData = {
   quoteDate?: Date;
   totalArea: number;
   totalPrice: number;
-  deliveryFee: number;
-  deliveryDistrict?: string;
-  deliveryCity?: string;
   pieces: QuickQuotePiece[];
 };
 
@@ -127,16 +120,7 @@ export const generateQuickQuotePDF = async (data: QuickQuotePdfData, settings: S
   doc.text(formatCurrency(data.totalPrice), margin + 5, cardY + 19);
   doc.text(formatArea(data.totalArea), margin + cardWidth + 13, cardY + 19);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
-  doc.setTextColor(muted[0], muted[1], muted[2]);
-  doc.text(
-    `Taxa de entrega: ${formatCurrency(data.deliveryFee)}${data.deliveryDistrict || data.deliveryCity ? ` - ${[safeText(data.deliveryDistrict), safeText(data.deliveryCity)].filter((item) => item !== '-').join(', ')}` : ''}`,
-    margin,
-    108,
-  );
-
-  let y = 118;
+  let y = 112;
   doc.setTextColor(ink[0], ink[1], ink[2]);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
@@ -144,13 +128,7 @@ export const generateQuickQuotePDF = async (data: QuickQuotePdfData, settings: S
   y += 7;
 
   data.pieces.forEach((piece, index) => {
-    const contentX = margin + 4 + 48 + 6;
-    const reasonLines = piece.complexityReason
-      ? doc.splitTextToSize(`Motivo: ${safeText(piece.complexityReason)}`, pageWidth - contentX - margin - 5)
-      : [];
-    const pieceCardHeight = Math.max(55, 51 + reasonLines.length * 4);
-
-    if (y + pieceCardHeight > 275) {
+    if (y > 242) {
       doc.addPage();
       doc.setFillColor(sand[0], sand[1], sand[2]);
       doc.rect(0, 0, pageWidth, pageHeight, 'F');
@@ -158,9 +136,9 @@ export const generateQuickQuotePDF = async (data: QuickQuotePdfData, settings: S
     }
 
     doc.setFillColor(255, 255, 255);
-    doc.roundedRect(margin, y, pageWidth - margin * 2, pieceCardHeight, 6, 6, 'F');
+    doc.roundedRect(margin, y, pageWidth - margin * 2, 48, 6, 6, 'F');
     doc.setDrawColor(232, 224, 214);
-    doc.roundedRect(margin, y, pageWidth - margin * 2, pieceCardHeight, 6, 6, 'S');
+    doc.roundedRect(margin, y, pageWidth - margin * 2, 48, 6, 6, 'S');
 
     const imageX = margin + 4;
     const imageY = y + 4;
@@ -185,6 +163,7 @@ export const generateQuickQuotePDF = async (data: QuickQuotePdfData, settings: S
       doc.text('Sem desenho', imageX + imageW / 2, imageY + imageH / 2, {align: 'center'});
     }
 
+    const contentX = imageX + imageW + 6;
     doc.setTextColor(ink[0], ink[1], ink[2]);
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
@@ -199,16 +178,6 @@ export const generateQuickQuotePDF = async (data: QuickQuotePdfData, settings: S
       y + 23,
     );
     doc.text(`Metragem: ${formatArea(piece.area)}`, contentX, y + 29);
-    doc.text(`Valor da peça: ${formatCurrency(piece.basePrice || 0)}`, contentX, y + 35);
-    doc.text(
-      `Complexidade: +${piece.complexityPercentage || 0}% (${formatCurrency(piece.complexityValue || 0)})`,
-      contentX,
-      y + 41,
-    );
-    if (reasonLines.length) {
-      doc.setFontSize(8);
-      doc.text(reasonLines, contentX, y + 47);
-    }
 
     doc.setTextColor(gold[0], gold[1], gold[2]);
     doc.setFont('helvetica', 'bold');
@@ -217,7 +186,7 @@ export const generateQuickQuotePDF = async (data: QuickQuotePdfData, settings: S
     doc.setFontSize(8);
     doc.text('Valor estimado da peça', pageWidth - margin - 5, y + 25, {align: 'right'});
 
-    y += pieceCardHeight + 7;
+    y += 55;
   });
 
   if (y > 248) {

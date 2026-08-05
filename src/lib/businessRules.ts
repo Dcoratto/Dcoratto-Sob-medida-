@@ -110,12 +110,6 @@ export const validateQuoteBeforeSave = ({
   if (pieces.some((piece) => !piece.name?.trim())) return 'Preencha o nome de todas as peças.';
 
   for (const piece of pieces) {
-    if (![0, 1, 5, 10].includes(Number(piece.complexityPercentage || 0))) {
-      return `A peça "${piece.name}" possui uma complexidade inválida.`;
-    }
-    if (String(piece.complexityReason || '').length > 120) {
-      return `O motivo da complexidade da peça "${piece.name}" deve ter no máximo 120 caracteres.`;
-    }
     if (piece.stair?.active) {
       const unitLimit = piece.stair.unit === 'cm' ? MAX_DIMENSION_CM : MAX_DIMENSION_M;
       const values = [

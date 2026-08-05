@@ -1637,8 +1637,8 @@ export const QuoteEditor: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-8">
         {/* Left Column: Basic Info */}
-        <div className="lg:col-span-1 space-y-6">
-          <section className="bg-brand-primary p-8 rounded-[32px] text-white shadow-xl shadow-brand-primary/30">
+        <div className="lg:col-span-1 space-y-6 lg:sticky lg:top-6 lg:self-start">
+          <section className="overflow-hidden rounded-[32px] border border-[#d7c2a4]/25 bg-[#15110d] text-white shadow-[0_24px_70px_rgba(80,48,18,0.28)]">
             <div className="flex items-center gap-2 mb-4 opacity-80">
               <Calculator className="w-5 h-5" />
               <span className="text-[10px] font-bold uppercase tracking-widest">Resumo do Total</span>
@@ -1671,7 +1671,7 @@ export const QuoteEditor: React.FC = () => {
               <div className="flex justify-between gap-3"><span>Negociação (-{normalizedNegotiationDiscountPercent}%)</span><strong>-{formatCurrency(negotiationDiscountValue)}</strong></div>
               <div className="flex justify-between gap-3"><span>RT (+{normalizedRtPercent}%)</span><strong>{formatCurrency(rtValue)}</strong></div>
             </div>
-            <div className="mt-4 space-y-2 rounded-2xl bg-white/10 p-3 text-xs text-white/80">
+            <div className="mt-4 space-y-2 rounded-[24px] border border-white/10 bg-white/6 p-3 text-xs text-white/80 lg:max-h-[420px] lg:overflow-auto lg:pr-1">
               {pieceAreaDetails.map(({piece, totals, material}, index) => (
                 (() => {
                   const pricing = piecePricingBreakdowns[index];
@@ -1689,7 +1689,7 @@ export const QuoteEditor: React.FC = () => {
                   const cutoutCount = pricing?.cutoutCount || 0;
                   const cutoutRows = pricing?.cutoutRows || [];
                   return (
-                    <div key={piece.id} className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <div key={piece.id} className="space-y-3 rounded-[20px] border border-white/10 bg-black/10 p-3">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="font-bold text-sm text-white">{piece.name}</div>
@@ -1755,7 +1755,7 @@ export const QuoteEditor: React.FC = () => {
             </div>
           </section>
 
-          <section className="bg-white p-5 rounded-[32px] border border-slate-100 shadow-sm space-y-5 sm:p-6">
+          <section className="rounded-[32px] border border-slate-200 bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)] space-y-5 sm:p-6">
             <div className="space-y-1.5">
               <h2 className="font-display text-xl font-semibold text-slate-800">Dados do orçamento</h2>
               <p className="text-sm text-slate-500">Cliente, condições e ajustes gerais deste orçamento.</p>

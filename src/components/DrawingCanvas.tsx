@@ -214,6 +214,45 @@ const makeGeometryId = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2, 11);
 
+const extractSideIndex = (sideKey?: string) => {
+  const match = String(sideKey || '').match(/side:(\d+)$/);
+  return match ? Number(match[1]) : -1;
+};
+
+const extractSideName = (sideLabel?: string) => {
+  const match = String(sideLabel || '').match(/^(Lado\s+[A-Z]+)/i);
+  return match ? match[1].trim().toLowerCase() : '';
+};
+
+const reconcileComplements = (current: PieceSide[], technicalSides: TechnicalSide[]) => {
+  if (!technicalSides.length) return EMPTY_SIDES;
+
+  return current.reduce<PieceSide[]>((acc, item) => {
+    const sideIndex = extractSideIndex(item.side);
+    const sideName = extractSideName(item.sideLabel);
+    const matchedSide = technicalSides.find((side) => side.key === item.side)
+      || technicalSides.find((side) => sideIndex >= 0 && extractSideIndex(side.key) === sideIndex)
+      || technicalSides.find((side) => sideName && side.name.trim().toLowerCase() === sideName);
+
+    if (!matchedSide) return acc;
+
+    const quantity = Math.max(1, Number(item.quantity || 1));
+    const height = Math.max(0, Number(item.height || 0));
+    const area = matchedSide.lengthM * (height / 100);
+
+    acc.push({
+      ...item,
+      side: matchedSide.key,
+      sideLabel: `${matchedSide.name} (${formatMeters(matchedSide.lengthM)})`,
+      length: matchedSide.lengthM * 100,
+      quantity,
+      area,
+      areaTotal: area * quantity,
+    });
+    return acc;
+  }, []);
+};
+
 const defaultHeightFor = (type: ComplementType, settings?: DrawingCanvasProps['settings']) => {
   if (type === 'frontao') return settings?.defaultFrontonHeight ?? 10;
   if (type === 'saia') return settings?.defaultSkirtHeight ?? 4;
@@ -491,7 +530,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   }, [initialJson, resetTransientState]);
 
   useEffect(() => {
-    setComplementos((current) => current.filter((item) => technicalSides.some((side) => side.key === item.side)));
+    setComplementos((current) => reconcileComplements(current, technicalSides));
   }, [technicalSides]);
 
   useEffect(() => {

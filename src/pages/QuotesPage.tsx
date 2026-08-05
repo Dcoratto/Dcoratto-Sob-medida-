@@ -3,7 +3,7 @@ import {addDoc, arrayUnion, collection, doc, getDoc, onSnapshot, orderBy, query,
 import {useLocation, useNavigate} from 'react-router-dom';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
-import {Copy, Edit2, FileText, Plus, Search, Trash2} from 'lucide-react';
+import {Copy, Edit2, Plus, Search, Trash2} from 'lucide-react';
 import {db} from '../lib/firestore';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {Quote, QuoteStatus} from '../types';
@@ -25,11 +25,6 @@ export const QuotesPage: React.FC = () => {
   const scope = location.pathname === '/history' ? 'history' : (scopeParam || 'all');
   const isHistoryScope = scope === 'history';
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
-  const openPremiumProposal = (quoteId: string) => {
-    const proposalUrl = window.location.origin + '/quotes/proposal/' + quoteId;
-    window.open(proposalUrl, '_blank', 'noopener,noreferrer');
-  };
-
   const isClosedSale = (status?: string) => {
     const normalized = normalizeText(status || '');
     if (
@@ -315,14 +310,6 @@ export const QuotesPage: React.FC = () => {
                     </td>
                     <td className="px-4 py-4 text-right sm:px-6">
                       <div className="flex items-center justify-end gap-1 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
-                        <button
-                          type="button"
-                          title="Abrir proposta premium"
-                          onClick={() => openPremiumProposal(quote.id)}
-                          className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/5 hover:text-brand-primary"
-                        >
-                          <FileText className="w-4 h-4" />
-                        </button>
                         {hasPermission('orcamento', 'editar') && (
                           <button type="button" title="Editar" onClick={() => navigate(`/quotes/edit/${quote.id}`)} className="rounded-lg p-2 text-slate-400 hover:bg-brand-primary/5 hover:text-brand-primary">
                             <Edit2 className="w-4 h-4" />

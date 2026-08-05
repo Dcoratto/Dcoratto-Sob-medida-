@@ -9,7 +9,6 @@ import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
   ChevronDown, ChevronUp, Calculator,
   MapPin, Phone, User,
-  Layers, PenTool, FileText
 } from 'lucide-react';
 import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, parseCurrencyInput, parseMeasureInput, roundNumber } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,7 +28,6 @@ import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {LABELS} from '../constants/labels';
 import {imageVariantUrl} from '../lib/storage';
 import {NumericInput} from '../components/inputs/NumericInput';
-import {generateQuickQuotePDF} from '../lib/quickQuotePdfGenerator';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 
@@ -1282,40 +1280,6 @@ export const QuoteEditor: React.FC = () => {
     }
   };
 
-  const handleQuickQuotePdf = async () => {
-    if (!pieces.length) {
-      window.alert('Adicione pelo menos uma peça antes de gerar o orçamento rápido.');
-      return;
-    }
-
-    try {
-      await generateQuickQuotePDF({
-        clientName: selectedClient?.name || clientSearch || 'Cliente',
-        clientPhone: selectedClient?.phone || '',
-        environment,
-        quoteDate: new Date(),
-        totalArea,
-        totalPrice,
-        pieces: pieces.map((piece, index) => {
-          const pieceTotals = pieceAreaDetails[index]?.totals;
-          const material = materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey);
-          const pricing = piecePricingBreakdowns[index];
-          return {
-            name: piece.name || `${LABELS.pieces.singular} ${index + 1}`,
-            materialName: material?.name || 'Sem material',
-            area: pieceTotals?.totalArea || piece.totalArea || piece.manualArea || piece.area || 0,
-            price: pricing?.pieceFinalValue || 0,
-            length: piece.length || piece.largestSide || 0,
-            width: piece.width || piece.smallestSide || 0,
-            previewUrl: piece.previewUrl || piece.proposalImageUrl || '',
-          };
-        }),
-      }, settings);
-    } catch (error) {
-      console.error('Erro ao gerar orçamento rápido em PDF', error);
-      window.alert('Não foi possível gerar o PDF do orçamento rápido agora.');
-    }
-  };
 
   if (settingsLoading) return <div>Carregando...</div>;
 
@@ -1363,15 +1327,6 @@ export const QuoteEditor: React.FC = () => {
             <div className="text-4xl font-display font-bold mb-2">
               {formatCurrency(totalPrice)}
             </div>
-            <button
-              type="button"
-              onClick={handleQuickQuotePdf}
-              disabled={!pieces.length}
-              className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/12 px-4 py-3 text-sm font-bold text-white transition-all hover:bg-white/18 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <FileText className="w-4 h-4" />
-              Orçamento rápido PDF
-            </button>
             <div className="space-y-2 text-sm font-medium text-white/75">
               <div className="flex justify-between gap-3"><span>Área final total</span><strong>{formatArea(totalArea)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pedras</span><strong>{formatCurrency(stonesCost)}</strong></div>
@@ -1385,75 +1340,6 @@ export const QuoteEditor: React.FC = () => {
               <div className="flex justify-between gap-3 border-t border-white/15 pt-2"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong>{formatCurrency(adjustmentValue)}</strong></div>
               <div className="flex justify-between gap-3"><span>Negociação (-{normalizedNegotiationDiscountPercent}%)</span><strong>-{formatCurrency(negotiationDiscountValue)}</strong></div>
               <div className="flex justify-between gap-3"><span>RT (+{normalizedRtPercent}%)</span><strong>{formatCurrency(rtValue)}</strong></div>
-            </div>
-            <div className="mt-4 space-y-2 rounded-2xl bg-white/10 p-3 text-xs text-white/80">
-              {pieceAreaDetails.map(({piece, totals, material}, index) => (
-                (() => {
-                  const pricing = piecePricingBreakdowns[index];
-                  const baseStoneValue = pricing?.stoneBaseValue || 0;
-                  const lossValue = pricing?.materialLossValue || 0;
-                  const stoneValue = pricing?.stoneWithLossValue || 0;
-                  const laborValue = pricing?.laborValue || 0;
-                  const cutoutValue = pricing?.cutoutValue || 0;
-                  const sinkAdditionalValue = pricing?.sinkAdditionalValue || 0;
-                  const pieceTotalValue = pricing?.pieceFinalValue || 0;
-                  const allocatedAdjustmentValue = pricing?.allocatedQuoteAdjustmentValue || 0;
-                  const cutoutCount = pricing?.cutoutCount || 0;
-                  const cutoutRows = pricing?.cutoutRows || [];
-                  return (
-                    <div key={piece.id} className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <div className="font-bold text-sm text-white">{piece.name}</div>
-                          <div className="text-[11px] text-white/65">{material?.name || 'Sem material'}</div>
-                        </div>
-                        <div className="text-right">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-white/60">Total da peça</div>
-                          <div className="font-bold text-sm text-white">{formatCurrency(pieceTotalValue)}</div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <div className="rounded-xl bg-white/6 p-2">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-white/55">Pedra base</div>
-                          <div className="mt-1 font-semibold text-white">{formatCurrency(baseStoneValue)}</div>
-                        </div>
-                        <div className="rounded-xl bg-amber-400/10 p-2">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-amber-100/80">Perda 10%</div>
-                          <div className="mt-1 font-semibold text-white">{formatCurrency(lossValue)}</div>
-                        </div>
-                        <div className="rounded-xl bg-white/6 p-2">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-white/55">Mão de obra</div>
-                          <div className="mt-1 font-semibold text-white">{formatCurrency(laborValue)}</div>
-                        </div>
-                        <div className="rounded-xl bg-white/6 p-2">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-white/55">Recortes</div>
-                          <div className="mt-1 font-semibold text-white">{formatCurrency(cutoutValue)}</div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-x-3 gap-y-1 opacity-80">
-                        <span>Bancada: {formatArea(totals.mainArea)}</span>
-                        <span>Cuba: {formatArea(totals.sinkArea || 0)}</span>
-                        <span>Adicionais: {formatArea(totals.sidesArea + totals.recessArea)}</span>
-                        <span>Perda: {formatArea(totals.lossArea || 0)}</span>
-                        <span>Pedra com perda: {formatCurrency(stoneValue)}</span>
-                        <span>Furos/recortes: {cutoutCount} un</span>
-                        {sinkAdditionalValue > 0 && (
-                          <span className="col-span-2">Adicional pia esculpida: {formatCurrency(sinkAdditionalValue)}</span>
-                        )}
-                        {allocatedAdjustmentValue !== 0 && (
-                          <span className="col-span-2">Rateio ajustes do orçamento: {allocatedAdjustmentValue > 0 ? '+' : ''}{formatCurrency(allocatedAdjustmentValue)}</span>
-                        )}
-                        {cutoutCount > 0 && (
-                          <span className="col-span-2">Detalhe recortes: {cutoutRows.map((item) => `${item.count} ${item.label}`).join(', ')}</span>
-                        )}
-                        <span className="col-span-2 border-t border-white/10 pt-2">Área final: {formatArea(totals.totalArea)}</span>
-                      </div>
-                    </div>
-                  );
-                })()
-              ))}
             </div>
           </section>
 

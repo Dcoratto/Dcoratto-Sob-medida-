@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, {Suspense, lazy, useEffect} from 'react';
-import {BrowserRouter, Navigate, Route, Routes, useNavigate} from 'react-router-dom';
+import React, {Suspense, lazy} from 'react';
+import {BrowserRouter, Navigate, Route, Routes} from 'react-router-dom';
 import {AuthProvider, useAuth} from './contexts/AuthContext';
 import {Shell} from './components/layout/Shell';
 import {PwaLifecycle} from './components/PwaLifecycle';
@@ -20,7 +20,6 @@ import {
   loadInventoryPage,
   loadLoginPage,
   loadMaterialsPage,
-  loadPremiumProposalPage,
   loadProfilePage,
   loadProjectsPage,
   loadQuoteEditorPage,
@@ -41,7 +40,6 @@ const MaterialsPage = lazy(() => loadMaterialsPage().then((module) => ({default:
 const AdminPage = lazy(() => loadAdminPage().then((module) => ({default: module.AdminPage})));
 const ProfilePage = lazy(() => loadProfilePage().then((module) => ({default: module.ProfilePage})));
 const ReportsPage = lazy(() => loadReportsPage().then((module) => ({default: module.ReportsPage})));
-const PremiumProposalPage = lazy(() => loadPremiumProposalPage().then((module) => ({default: module.PremiumProposalPage})));
 const ProjectsPage = lazy(() => loadProjectsPage().then((module) => ({default: module.ProjectsPage})));
 const CalendarPage = lazy(() => loadCalendarPage().then((module) => ({default: module.CalendarPage})));
 
@@ -89,28 +87,10 @@ const RouteLoadingFallback = () => (
   </div>
 );
 
-const LegacyHashRedirect = () => {
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const rawHash = window.location.hash || '';
-    const legacyPath = rawHash.startsWith('#/') ? rawHash.slice(1) : '';
-    if (!legacyPath.startsWith('/quotes/proposal/')) return;
-
-    window.history.replaceState({}, document.title, legacyPath);
-    navigate(legacyPath, {replace: true});
-  }, [navigate]);
-
-  return null;
-};
-
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <LegacyHashRedirect />
         <PwaLifecycle />
         <Suspense fallback={<RouteLoadingFallback />}>
           <Routes>
@@ -121,7 +101,6 @@ export default function App() {
             <Route path="/quotes" element={<ProtectedRoute permission={['orcamento', 'visualizar']}><QuotesPage /></ProtectedRoute>} />
             <Route path="/quotes/new" element={<ProtectedRoute permission={['orcamento', 'criar']}><QuoteEditor /></ProtectedRoute>} />
             <Route path="/quotes/edit/:id" element={<ProtectedRoute permission={['orcamento', 'editar']}><QuoteEditor /></ProtectedRoute>} />
-            <Route path="/quotes/proposal/:id" element={<ProtectedRoute shell={false} permission={['orcamento', 'visualizar']}><PremiumProposalPage /></ProtectedRoute>} />
             <Route path="/projects" element={<ProtectedRoute permission={['projeto', 'visualizar']}><ProjectsPage /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute permission={['medicao', 'visualizar']}><CalendarPage /></ProtectedRoute>} />
             <Route path="/clients" element={<ProtectedRoute permission={['cliente', 'visualizar']}><ClientsPage /></ProtectedRoute>} />

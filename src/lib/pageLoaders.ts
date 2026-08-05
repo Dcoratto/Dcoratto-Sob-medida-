@@ -11,13 +11,11 @@ export const loadMaterialsPage = () => import('../pages/MaterialsPage');
 export const loadAdminPage = () => import('../pages/AdminPage');
 export const loadProfilePage = () => import('../pages/ProfilePage');
 export const loadReportsPage = () => import('../pages/ReportsPage');
-export const loadPremiumProposalPage = () => import('../pages/PremiumProposalPage');
 export const loadProjectsPage = () => import('../pages/ProjectsPage');
 export const loadCalendarPage = () => import('../pages/CalendarPage');
 
 export const preloadRoute = (path: string) => {
   if (path === '/') return loadDashboardPage();
-  if (path.startsWith('/quotes/proposal/')) return loadPremiumProposalPage();
   if (path.startsWith('/quotes/new') || path.startsWith('/quotes/edit/')) return loadQuoteEditorPage();
   if (path.startsWith('/quotes') || path.startsWith('/history')) return loadQuotesPage();
   if (path.startsWith('/projects')) return loadProjectsPage();

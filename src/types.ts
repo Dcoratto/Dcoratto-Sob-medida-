@@ -551,7 +551,6 @@ export interface QuotePiece {
   notes: string;
   drawingJson?: string;
   previewUrl?: string;
-  proposalImageUrl?: string;
   cutouts?: DrawingCutout[];
   stair?: StairConfig;
   sculptedSink?: SculptedSink;

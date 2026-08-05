@@ -1457,10 +1457,16 @@ export const QuoteEditor: React.FC = () => {
             </div>
           </section>
 
-          <section className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm space-y-4">
-            <h2 className="font-display font-bold text-xl text-slate-800">Dados do orçamento</h2>
+          <section className="bg-white p-5 rounded-[32px] border border-slate-100 shadow-sm space-y-5 sm:p-6">
+            <div className="space-y-1.5">
+              <h2 className="font-display font-bold text-xl text-slate-800">Dados do orçamento</h2>
+              <p className="text-sm text-slate-500">Cliente, condições e ajustes gerais deste orçamento.</p>
+            </div>
 
-            <div className="space-y-1">
+            <div className="rounded-3xl border border-slate-100 bg-slate-50/70 p-4 space-y-4">
+              <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Identificação</div>
+
+            <div className="space-y-1.5">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cliente</label>
               <div className="relative">
                 <input
@@ -1471,7 +1477,7 @@ export const QuoteEditor: React.FC = () => {
                     setClientId('');
                     setClientPickerOpen(true);
                   }}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                  className="w-full bg-white border border-slate-100 rounded-2xl px-4 py-3 pr-10 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
                   placeholder="Pesquisar cliente..."
                 />
                 <button type="button" onClick={() => setClientPickerOpen((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
@@ -1515,48 +1521,49 @@ export const QuoteEditor: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ambiente</label>
               <input
                 value={environment}
                 onChange={(e) => setEnvironment(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+                className="w-full bg-white border border-slate-100 rounded-2xl px-4 py-3 text-sm"
                 placeholder="Ex: Cozinha"
               />
             </div>
 
-            <div className="space-y-1">
+            <div className="space-y-1.5">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Responsável</label>
               <input
                 value={responsible}
                 onChange={(e) => setResponsible(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+                className="w-full bg-white border border-slate-100 rounded-2xl px-4 py-3 text-sm"
                 placeholder="Nome do responsável"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Prazo (dias)</label>
                 <NumericInput
                   value={deliveryDays}
                   onValueChange={(value) => setDeliveryDays(value)}
                   decimals={0}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
+                  className="w-full bg-white border border-slate-100 rounded-2xl px-3 py-3 text-sm"
                 />
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Validade (dias)</label>
                 <NumericInput
                   value={validityDays}
                   onValueChange={(value) => setValidityDays(value)}
                   decimals={0}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
+                  className="w-full bg-white border border-slate-100 rounded-2xl px-3 py-3 text-sm"
                 />
               </div>
             </div>
+            </div>
 
-            <div className="space-y-2 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
+            <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
               <div>
                 <h3 className="font-display text-lg font-bold text-slate-800">Modo de preço</h3>
                 <p className="text-xs text-slate-500">No preço de custo, a mão de obra da peça sai do cálculo do orçamento.</p>
@@ -1566,8 +1573,8 @@ export const QuoteEditor: React.FC = () => {
                   type="button"
                   onClick={() => setQuotePricingMode('sale')}
                   className={cn(
-                    'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
-                    quotePricingMode === 'sale' ? 'bg-brand-primary text-white shadow-sm' : 'bg-white text-slate-600',
+                    'rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition-all',
+                    quotePricingMode === 'sale' ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-white text-slate-600',
                   )}
                 >
                   Preço de venda
@@ -1576,22 +1583,22 @@ export const QuoteEditor: React.FC = () => {
                   type="button"
                   onClick={() => setQuotePricingMode('cost')}
                   className={cn(
-                    'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
-                    quotePricingMode === 'cost' ? 'bg-brand-primary text-white shadow-sm' : 'bg-white text-slate-600',
+                    'rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition-all',
+                    quotePricingMode === 'cost' ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-white text-slate-600',
                   )}
                 >
                   Preço de custo
                 </button>
               </div>
-              <div className="rounded-2xl bg-white p-3">
+              <div className="rounded-2xl border border-slate-100 bg-white p-3">
                 <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">Perda de material</div>
                 <div className="grid gap-2 sm:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => setIncludeMaterialLoss(true)}
                     className={cn(
-                      'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
-                      includeMaterialLoss ? 'bg-brand-primary text-white shadow-sm' : 'bg-slate-50 text-slate-600',
+                      'rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition-all',
+                      includeMaterialLoss ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-600',
                     )}
                   >
                     Com 10% de perda
@@ -1600,8 +1607,8 @@ export const QuoteEditor: React.FC = () => {
                     type="button"
                     onClick={() => setIncludeMaterialLoss(false)}
                     className={cn(
-                      'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
-                      !includeMaterialLoss ? 'bg-brand-primary text-white shadow-sm' : 'bg-slate-50 text-slate-600',
+                      'rounded-2xl border px-4 py-3 text-left text-sm font-semibold transition-all',
+                      !includeMaterialLoss ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-600',
                     )}
                   >
                     Sem 10% de perda
@@ -1684,16 +1691,19 @@ export const QuoteEditor: React.FC = () => {
               )}
             </div>
 
-            <div className="space-y-1">
-              <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Pagamento</label>
-              <div className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50 p-3">
+            <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
+              <div>
+                <h3 className="font-display text-lg font-bold text-slate-800">Pagamento</h3>
+                <p className="text-xs text-slate-500">Defina a condição principal e confira o ajuste aplicado no cálculo.</p>
+              </div>
+              <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-3">
                 <div className="grid gap-2 sm:grid-cols-2">
                   <button
                     type="button"
                     onClick={() => setPaymentMode('total')}
                     className={cn(
-                      'rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
-                      paymentMode === 'total' ? 'bg-brand-primary text-white' : 'bg-white text-slate-600',
+                      'rounded-2xl border px-4 py-3 text-sm font-semibold transition-all',
+                      paymentMode === 'total' ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-600',
                     )}
                   >
                     Valor total
@@ -1702,8 +1712,8 @@ export const QuoteEditor: React.FC = () => {
                     type="button"
                     onClick={() => setPaymentMode('entry')}
                     className={cn(
-                      'rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
-                      paymentMode === 'entry' ? 'bg-brand-primary text-white' : 'bg-white text-slate-600',
+                      'rounded-2xl border px-4 py-3 text-sm font-semibold transition-all',
+                      paymentMode === 'entry' ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-600',
                     )}
                   >
                     Entrada + restante
@@ -1711,11 +1721,11 @@ export const QuoteEditor: React.FC = () => {
                 </div>
 
                 {paymentMode === 'total' ? (
-                  <div className="space-y-1">
+                  <div className="space-y-1.5">
                     <select
                       value={totalPaymentMethod}
                       onChange={(e) => setTotalPaymentMethod(e.target.value)}
-                      className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm"
                     >
                       <option value="">Selecionar forma de pagamento</option>
                       {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
@@ -1725,7 +1735,7 @@ export const QuoteEditor: React.FC = () => {
                   </div>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Entrada</label>
                       <input
                         type="number"
@@ -1734,15 +1744,15 @@ export const QuoteEditor: React.FC = () => {
                         value={entryAmount}
                         onChange={(e) => setEntryAmount(e.target.value)}
                         placeholder="0,00"
-                        className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm"
                       />
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Restante</label>
                       <select
                         value={remainingPaymentMethod}
                         onChange={(e) => setRemainingPaymentMethod(e.target.value)}
-                        className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-4 py-3 text-sm"
                       >
                         <option value="">Selecionar condição do restante</option>
                         {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
@@ -1754,7 +1764,7 @@ export const QuoteEditor: React.FC = () => {
                 )}
 
                 {(resolvedPaymentMethod || selectedPaymentAdjustment) && (
-                  <div className="space-y-1 text-[11px] text-slate-500">
+                  <div className="rounded-2xl bg-slate-50 px-3 py-2 text-[11px] text-slate-500">
                     <div>Condição: {resolvedPaymentMethod || 'A definir'}</div>
                     <div>
                       Ajuste aplicado: {selectedPaymentAdjustment > 0 ? '+' : ''}{selectedPaymentAdjustment}% {paymentMode === 'entry' ? 'sobre o saldo restante' : 'sobre o valor total'}
@@ -1769,8 +1779,13 @@ export const QuoteEditor: React.FC = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
+            <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
+              <div>
+                <h3 className="font-display text-lg font-bold text-slate-800">Ajustes finais</h3>
+                <p className="text-xs text-slate-500">Use desconto e RT para simular a negociação sem perder a leitura do total.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5 rounded-2xl border border-slate-100 bg-white p-3">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Negociação (%)</label>
                 <input
                   type="number"
@@ -1778,12 +1793,12 @@ export const QuoteEditor: React.FC = () => {
                   step="0.01"
                   value={negotiationDiscountPercent}
                   onChange={(e) => setNegotiationDiscountPercent(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-3 py-3 text-sm"
                   placeholder="Desconto"
                 />
                 <div className="text-[10px] font-semibold text-slate-400">Desconto no total</div>
               </div>
-              <div className="space-y-1">
+              <div className="space-y-1.5 rounded-2xl border border-slate-100 bg-white p-3">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">RT (%)</label>
                 <input
                   type="number"
@@ -1791,11 +1806,12 @@ export const QuoteEditor: React.FC = () => {
                   step="0.01"
                   value={rtPercent}
                   onChange={(e) => setRtPercent(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
+                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-3 py-3 text-sm"
                   placeholder="Acréscimo"
                 />
                 <div className="text-[10px] font-semibold text-slate-400">Acréscimo no total</div>
               </div>
+            </div>
             </div>
           </section>
         </div>

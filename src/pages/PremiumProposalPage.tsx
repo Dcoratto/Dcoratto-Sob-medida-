@@ -433,6 +433,8 @@ export const PremiumProposalPage: React.FC = () => {
               <SummaryItem label="Ambientes" value={String(totalPieces)} />
               <SummaryItem label="Pedido" value={quoteNumber} />
               <SummaryItem label="Complexidade" value={formatCurrency(totalComplexityValue)} />
+              <SummaryItem label="Bairro da entrega" value={safe(quote.deliveryDetails?.district || '')} />
+              <SummaryItem label="Cidade da entrega" value={safe(quote.deliveryDetails?.city || quote.city)} />
               <SummaryItem label="Taxa de entrega" value={formatCurrency(quote.deliveryDetails?.fee || 0)} />
             </div>
             <div className="flex items-end justify-between border-t border-[#D4A853]/30 px-6 py-6">

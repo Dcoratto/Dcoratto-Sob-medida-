@@ -23,7 +23,8 @@ type QuickQuotePdfData = {
   totalArea: number;
   totalPrice: number;
   deliveryFee: number;
-  deliveryDistanceKm: number;
+  deliveryDistrict?: string;
+  deliveryCity?: string;
   pieces: QuickQuotePiece[];
 };
 
@@ -130,7 +131,7 @@ export const generateQuickQuotePDF = async (data: QuickQuotePdfData, settings: S
   doc.setFontSize(9);
   doc.setTextColor(muted[0], muted[1], muted[2]);
   doc.text(
-    `Taxa de entrega: ${formatCurrency(data.deliveryFee)}${data.deliveryDistanceKm > 0 ? ` (${data.deliveryDistanceKm.toFixed(1).replace('.', ',')} km)` : ''}`,
+    `Taxa de entrega: ${formatCurrency(data.deliveryFee)}${data.deliveryDistrict || data.deliveryCity ? ` - ${[safeText(data.deliveryDistrict), safeText(data.deliveryCity)].filter((item) => item !== '-').join(', ')}` : ''}`,
     margin,
     108,
   );

@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, selectFields } from '../lib/firestore';
+import { doc, getDoc, getDocs, setDoc, addDoc, collection, Timestamp, onSnapshot, query, where, limit, selectFields } from '../lib/firestore';
 import { db } from '../lib/firestore';
 import { useSettings } from '../hooks/useSettings';
-import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuoteDeliveryDetails, QuoteMaterialPriceOverride, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
+import { Client, CondominiumRule, DeliveryRegionRate, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuoteDeliveryDetails, QuoteMaterialPriceOverride, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
 import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
   ChevronDown, ChevronUp, Calculator,
   MapPin, Phone, User,
-  Layers, PenTool, FileText, AlertCircle, Clock3, RefreshCw, Route, Truck
+  Layers, PenTool, FileText, AlertCircle, RefreshCw, Truck
 } from 'lucide-react';
 import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, parseCurrencyInput, parseMeasureInput, roundNumber } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,8 +30,7 @@ import {LABELS} from '../constants/labels';
 import {imageVariantUrl} from '../lib/storage';
 import {NumericInput} from '../components/inputs/NumericInput';
 import {generateQuickQuotePDF} from '../lib/quickQuotePdfGenerator';
-import {buildDeliveryDetails} from '../lib/deliveryPricing';
-import {requestDeliveryDistance} from '../lib/deliveryDistance';
+import {buildCityRateDeliveryDetails, buildDeliveryRegionKey, normalizeDeliveryCity, normalizeDeliveryDistrict} from '../lib/deliveryCityRates';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 
@@ -42,32 +41,23 @@ const COMPLEXITY_OPTIONS = [
   {percentage: 10 as const, label: '10%', reason: 'Ripado'},
 ];
 
-const buildClientDeliveryAddress = (client?: Client) => {
-  if (!client) return '';
-  const parts = [
-    client.streetAddress || client.address,
-    client.neighborhood,
-    client.city,
-    client.zipCode ? `CEP ${client.zipCode}` : '',
-    'Brasil',
-  ].map((part) => String(part || '').trim()).filter(Boolean);
-  return Array.from(new Set(parts)).join(', ').slice(0, 256);
-};
+const buildClientDeliveryRegion = (client?: Client) => ({
+  district: String(client?.neighborhood || '').trim().slice(0, 120),
+  city: String(client?.city || '').trim().slice(0, 120),
+});
 
-const deliveryDetailsMatchConfig = (
+const deliveryDetailsMatchRegion = (
   details: QuoteDeliveryDetails | undefined,
-  originAddress: string,
-  destinationAddress: string,
-  ratePerKm: number,
-  minimumFee: number,
-  maximumFee: number | null,
+  district: string,
+  city: string,
+  mode?: QuoteDeliveryDetails['mode'],
+  regionRateId?: string,
 ) => Boolean(
   details
-  && details.originAddress === originAddress
-  && details.destinationAddress === destinationAddress
-  && Number(details.ratePerKm) === Number(ratePerKm)
-  && Number(details.minimumFee) === Number(minimumFee)
-  && (details.maximumFee == null ? null : Number(details.maximumFee)) === (maximumFee == null ? null : Number(maximumFee)),
+  && normalizeDeliveryDistrict(details.district) === normalizeDeliveryDistrict(district)
+  && normalizeDeliveryCity(details.city) === normalizeDeliveryCity(city)
+  && (!mode || details.mode === mode)
+  && (!regionRateId || details.regionRateId === regionRateId),
 );
 
 const MATERIAL_PRICE_MINIMUM_ERROR = 'O valor personalizado não pode ser menor que o valor mínimo definido para este material.';
@@ -149,6 +139,7 @@ export const QuoteEditor: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, profile, appUid } = useAuth();
+  const isAdminUser = profile?.role === 'admin';
   const { settings, loading: settingsLoading } = useSettings();
   
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -199,8 +190,9 @@ export const QuoteEditor: React.FC = () => {
   const [deliveryDetails, setDeliveryDetails] = useState<QuoteDeliveryDetails>();
   const [deliveryCalculationStatus, setDeliveryCalculationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [deliveryCalculationError, setDeliveryCalculationError] = useState('');
-  const [manualDeliveryDistance, setManualDeliveryDistance] = useState('');
+  const [manualDeliveryFee, setManualDeliveryFee] = useState('');
   const quoteDraftHydratedRef = useRef(false);
+  const deliveryRateCacheRef = useRef<Record<string, DeliveryRegionRate | null>>({});
   const quoteDraftKey = `quote-editor-draft:${appUid || 'anonymous'}:${id || 'new'}`;
 
   const materialVariantOptions = useMemo(() => {
@@ -387,7 +379,13 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const selectedClient = clients.find(c => c.id === clientId);
-  const deliveryDestinationAddress = useMemo(() => buildClientDeliveryAddress(selectedClient), [selectedClient]);
+  const deliveryDestinationRegion = useMemo(() => buildClientDeliveryRegion(selectedClient), [selectedClient]);
+  const deliveryDestinationDistrict = deliveryDestinationRegion.district;
+  const deliveryDestinationCity = deliveryDestinationRegion.city;
+  const normalizedDeliveryRegionKey = useMemo(
+    () => buildDeliveryRegionKey(deliveryDestinationDistrict, deliveryDestinationCity),
+    [deliveryDestinationCity, deliveryDestinationDistrict],
+  );
   const { calculatePieceArea, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey));
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
   
@@ -600,7 +598,7 @@ export const QuoteEditor: React.FC = () => {
       setQuotePricingMode((draft.pricingMode as 'sale' | 'cost') || 'sale');
       setIncludeMaterialLoss(typeof draft.includeMaterialLoss === 'boolean' ? draft.includeMaterialLoss : ((draft.pricingMode as 'sale' | 'cost') || 'sale') !== 'cost');
       setDeliveryDetails(draft.deliveryDetails as QuoteDeliveryDetails | undefined);
-      setManualDeliveryDistance(String((draft.deliveryDetails as QuoteDeliveryDetails | undefined)?.distanceKm ?? ''));
+      setManualDeliveryFee(String((draft.deliveryDetails as QuoteDeliveryDetails | undefined)?.fee ?? ''));
       setMaterialCustomPriceInputs((draft.materialCustomPriceInputs as Record<string, string>) || inputValuesFromMaterialOverrides(draft.materialPriceOverrides as QuoteMaterialPriceOverride[]));
       setPieceManualPriceInputs((draft.pieceManualPriceInputs as Record<string, string>) || inputValuesFromPieceManualPrices(draftPieces));
       setCutouts((draft.cutouts as QuoteCutoutState) || { cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
@@ -638,7 +636,7 @@ export const QuoteEditor: React.FC = () => {
           setQuotePricingMode(data.pricingMode || 'sale');
           setIncludeMaterialLoss(typeof data.includeMaterialLoss === 'boolean' ? data.includeMaterialLoss : (data.pricingMode || 'sale') !== 'cost');
           setDeliveryDetails(data.deliveryDetails);
-          setManualDeliveryDistance(String(data.deliveryDetails?.distanceKm ?? ''));
+          setManualDeliveryFee(String(data.deliveryDetails?.fee ?? ''));
           const loadedPieces = (data.pieces || []).map((piece) => ensurePieceWorkflowStatus({
             ...piece,
             materialId: piece.materialId || data.materialId || '',
@@ -756,29 +754,6 @@ export const QuoteEditor: React.FC = () => {
   useEffect(() => {
     if (loading || settingsLoading || !quoteDraftHydratedRef.current) return;
 
-    const config = settings.deliveryConfig;
-    const originAddress = String(config.originAddress || '').trim();
-    const maximumFee = config.maximumFee == null ? null : Number(config.maximumFee);
-
-    if (!config.enabled) {
-      if (
-        deliveryDetails?.mode !== 'disabled'
-        || !deliveryDetailsMatchConfig(deliveryDetails, originAddress, deliveryDestinationAddress, config.ratePerKm, config.minimumFee, maximumFee)
-      ) {
-        setDeliveryDetails(buildDeliveryDetails({
-          mode: 'disabled',
-          distanceKm: 0,
-          durationMinutes: null,
-          originAddress,
-          destinationAddress: deliveryDestinationAddress,
-          config,
-        }));
-      }
-      setDeliveryCalculationStatus('idle');
-      setDeliveryCalculationError('');
-      return;
-    }
-
     if (!clientId) {
       setDeliveryDetails(undefined);
       setDeliveryCalculationStatus('idle');
@@ -787,109 +762,118 @@ export const QuoteEditor: React.FC = () => {
     }
     if (!selectedClient) return;
 
-    if (originAddress.length < 5 || deliveryDestinationAddress.length < 5) {
+    if (deliveryDestinationDistrict.length < 2 || deliveryDestinationCity.length < 2) {
       setDeliveryCalculationStatus('error');
-      setDeliveryCalculationError(
-        originAddress.length < 5
-          ? 'O endereço oficial da D\'Coratto precisa ser configurado no Administrativo.'
-          : 'O cliente selecionado não possui um endereço completo para calcular a entrega.',
-      );
+      setDeliveryCalculationError('O cliente selecionado precisa ter bairro e cidade cadastrados para calcular a taxa de entrega.');
       return;
     }
 
-    const matchesCurrentConfig = deliveryDetailsMatchConfig(
-      deliveryDetails,
-      originAddress,
-      deliveryDestinationAddress,
-      config.ratePerKm,
-      config.minimumFee,
-      maximumFee,
-    );
-
-    if (deliveryDetails?.mode === 'manual' && matchesCurrentConfig) {
-      setManualDeliveryDistance(String(deliveryDetails.distanceKm));
-      setDeliveryCalculationStatus('success');
-      setDeliveryCalculationError('');
-      return;
-    }
-
-    if (deliveryDetails?.mode === 'manual' && deliveryDetails.destinationAddress === deliveryDestinationAddress) {
-      setDeliveryDetails(buildDeliveryDetails({
-        mode: 'manual',
-        distanceKm: deliveryDetails.distanceKm,
-        durationMinutes: null,
-        originAddress,
-        destinationAddress: deliveryDestinationAddress,
-        config,
-      }));
-      return;
-    }
-
-    if (deliveryDetails?.mode === 'automatic' && matchesCurrentConfig) {
-      setManualDeliveryDistance(String(deliveryDetails.distanceKm));
-      setDeliveryCalculationStatus('success');
-      setDeliveryCalculationError('');
-      return;
-    }
-
-    const controller = new AbortController();
     setDeliveryCalculationStatus('loading');
     setDeliveryCalculationError('');
+    const regionCacheKey = normalizedDeliveryRegionKey;
+    let cancelled = false;
 
-    void requestDeliveryDistance(originAddress, deliveryDestinationAddress, controller.signal)
-      .then((result) => {
-        const nextDetails = buildDeliveryDetails({
-          mode: 'automatic',
-          distanceKm: result.distanceKm,
-          durationMinutes: result.durationMinutes,
-          originAddress,
-          destinationAddress: deliveryDestinationAddress,
-          config,
-        });
-        setDeliveryDetails(nextDetails);
-        setManualDeliveryDistance(String(nextDetails.distanceKm));
-        setDeliveryCalculationStatus('success');
-      })
-      .catch((error) => {
-        if (controller.signal.aborted) return;
+    const applyRegionRate = async () => {
+      const cachedRate = deliveryRateCacheRef.current[regionCacheKey];
+      if (cachedRate !== undefined) {
+        if (cachedRate) {
+          if (!deliveryDetailsMatchRegion(deliveryDetails, cachedRate.district, cachedRate.city, 'region_rate', cachedRate.id) || Number(deliveryDetails?.fee || 0) !== Number(cachedRate.deliveryFee || 0)) {
+            setDeliveryDetails(buildCityRateDeliveryDetails({
+              district: cachedRate.district,
+              city: cachedRate.city,
+              fee: Number(cachedRate.deliveryFee || 0),
+              regionRateId: cachedRate.id,
+              mode: 'region_rate',
+            }));
+          }
+          setManualDeliveryFee(String(Number(cachedRate.deliveryFee || 0)));
+          setDeliveryCalculationStatus('success');
+          setDeliveryCalculationError('');
+          return;
+        }
+
         setDeliveryCalculationStatus('error');
-        setDeliveryCalculationError(String(error?.message || 'Não foi possível calcular a entrega agora.'));
-      });
+        setDeliveryCalculationError('Nao existe uma taxa de entrega cadastrada para este bairro.');
+        return;
+      }
 
-    return () => controller.abort();
+      try {
+        const snapshot = await getDocs(query(
+          collection(db, 'deliveryRegionRates'),
+          where('districtNormalized', '==', normalizeDeliveryDistrict(deliveryDestinationDistrict)),
+          where('cityNormalized', '==', normalizeDeliveryCity(deliveryDestinationCity)),
+          where('active', '==', true),
+          limit(1),
+          selectFields('district', 'districtNormalized', 'city', 'cityNormalized', 'deliveryFee', 'active'),
+        ));
+
+        if (cancelled) return;
+
+        const rate = snapshot.docs[0]
+          ? ({id: snapshot.docs[0].id, ...snapshot.docs[0].data()} as DeliveryRegionRate)
+          : null;
+        deliveryRateCacheRef.current[regionCacheKey] = rate;
+
+        if (!rate) {
+          setDeliveryCalculationStatus('error');
+          setDeliveryCalculationError('Nao existe uma taxa de entrega cadastrada para este bairro.');
+          return;
+        }
+
+        setDeliveryDetails(buildCityRateDeliveryDetails({
+          district: rate.district,
+          city: rate.city,
+          fee: Number(rate.deliveryFee || 0),
+          regionRateId: rate.id,
+          mode: 'region_rate',
+        }));
+        setManualDeliveryFee(String(Number(rate.deliveryFee || 0)));
+        setDeliveryCalculationStatus('success');
+        setDeliveryCalculationError('');
+      } catch (error) {
+        if (cancelled) return;
+        setDeliveryCalculationStatus('error');
+        setDeliveryCalculationError(String(error instanceof Error ? error.message : 'Nao foi possivel carregar a taxa de entrega deste bairro agora.'));
+
+      }
+    };
+
+    void applyRegionRate();
+
+    return () => {
+      cancelled = true;
+    };
   }, [
     clientId,
-    deliveryDestinationAddress,
+    deliveryDestinationCity,
+    deliveryDestinationDistrict,
     deliveryDetails,
     loading,
+    normalizedDeliveryRegionKey,
     selectedClient,
-    settings.deliveryConfig.enabled,
-    settings.deliveryConfig.maximumFee,
-    settings.deliveryConfig.minimumFee,
-    settings.deliveryConfig.originAddress,
-    settings.deliveryConfig.ratePerKm,
     settingsLoading,
   ]);
 
-  const handleManualDeliveryDistance = (distanceKm: number, rawValue: string) => {
-    setManualDeliveryDistance(rawValue);
-    if (!rawValue.trim() || !Number.isFinite(distanceKm) || distanceKm < 0 || distanceKm > 10000) return;
-    setDeliveryDetails(buildDeliveryDetails({
+  const handleManualDeliveryFee = (fee: number, rawValue: string) => {
+    setManualDeliveryFee(rawValue);
+    if (!rawValue.trim() || !Number.isFinite(fee) || fee < 0 || fee > 10000000) return;
+    setDeliveryDetails(buildCityRateDeliveryDetails({
       mode: 'manual',
-      distanceKm,
-      durationMinutes: null,
-      originAddress: settings.deliveryConfig.originAddress,
-      destinationAddress: deliveryDestinationAddress,
-      config: settings.deliveryConfig,
+      district: deliveryDestinationDistrict,
+      city: deliveryDestinationCity,
+      fee,
+      appliedByUserId: appUid || '',
+      appliedByUserName: currentUserName,
+      source: 'manual',
     }));
   };
 
   const retryDeliveryCalculation = () => {
+    delete deliveryRateCacheRef.current[normalizedDeliveryRegionKey];
     setDeliveryDetails(undefined);
     setDeliveryCalculationStatus('idle');
     setDeliveryCalculationError('');
   };
-
   const clearQuoteDraftState = () => {
     clearDraft(quoteDraftKey);
     setQuoteDraftRecovered(false);
@@ -1339,21 +1323,20 @@ export const QuoteEditor: React.FC = () => {
       alert(pieceManualPriceError);
       return;
     }
-    if (settings.deliveryConfig.enabled) {
-      const deliveryReady = deliveryDetails
-        && deliveryDetails.mode !== 'disabled'
-        && deliveryDetailsMatchConfig(
-          deliveryDetails,
-          settings.deliveryConfig.originAddress.trim(),
-          deliveryDestinationAddress,
-          settings.deliveryConfig.ratePerKm,
-          settings.deliveryConfig.minimumFee,
-          settings.deliveryConfig.maximumFee,
-        );
-      if (!deliveryReady) {
-        alert('Calcule a distância da entrega ou informe a distância manualmente antes de salvar.');
-        return;
-      }
+    const deliveryReady = deliveryDetails
+      && deliveryDetails.mode !== 'disabled'
+      && deliveryDetailsMatchRegion(deliveryDetails, deliveryDestinationDistrict, deliveryDestinationCity)
+      && (
+        deliveryDetails.mode === 'region_rate'
+        || (isAdminUser && deliveryDetails.mode === 'manual')
+      );
+    if (!deliveryReady) {
+      alert(
+        isAdminUser
+          ? 'Defina uma taxa de entrega valida para o bairro e cidade do cliente antes de salvar.'
+          : 'Nao existe uma taxa de entrega cadastrada para este bairro. Solicite o cadastro antes de finalizar o orcamento.',
+      );
+      return;
     }
     setSaving(true);
     const firstAssigned = employeeAssignments.find((item) => item.employeeId);
@@ -1386,17 +1369,12 @@ export const QuoteEditor: React.FC = () => {
         minimumSalePerM2: Number(row.minimumSalePerM2.toFixed(2)),
         updatedAt: Timestamp.now(),
       }));
-    const normalizedDeliveryDetails = settings.deliveryConfig.enabled
-      ? deliveryDetails
-      : buildDeliveryDetails({
-        mode: 'disabled',
-        distanceKm: 0,
-        durationMinutes: null,
-        originAddress: settings.deliveryConfig.originAddress,
-        destinationAddress: deliveryDestinationAddress,
-        config: settings.deliveryConfig,
-      });
-    
+    const normalizedDeliveryDetails = deliveryDetails || buildCityRateDeliveryDetails({
+      mode: 'disabled',
+      district: deliveryDestinationDistrict,
+      city: deliveryDestinationCity,
+      fee: 0,
+    });
     const quoteData: Partial<Quote> = {
       clientId,
       clientName: selectedClient?.name || '',
@@ -1517,7 +1495,8 @@ export const QuoteEditor: React.FC = () => {
         totalArea,
         totalPrice,
         deliveryFee,
-        deliveryDistanceKm: deliveryDetails?.distanceKm || 0,
+        deliveryDistrict: deliveryDetails?.district || deliveryDestinationDistrict,
+        deliveryCity: deliveryDetails?.city || deliveryDestinationCity,
         pieces: pieces.map((piece, index) => {
           const pieceTotals = pieceAreaDetails[index]?.totals;
           const material = materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey);
@@ -1958,14 +1937,14 @@ export const QuoteEditor: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-display text-lg font-semibold text-slate-800">Taxa de entrega</h3>
-                    <p className="text-xs text-slate-500">Distância e valor da rota.</p>
+                    <p className="text-xs text-slate-500">Bairro e cidade do cliente com taxa automatica aplicada pelo cadastro.</p>
                   </div>
                 </div>
-                {settings.deliveryConfig.enabled && deliveryCalculationStatus !== 'loading' && (
+                {normalizedDeliveryRegionKey && deliveryCalculationStatus !== 'loading' && (
                   <button
                     type="button"
                     onClick={retryDeliveryCalculation}
-                    title="Recalcular entrega"
+                    title="Recarregar taxa do bairro"
                     className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-100 bg-white text-slate-500 transition-all hover:text-brand-primary"
                   >
                     <RefreshCw className="h-4 w-4" />
@@ -1973,29 +1952,29 @@ export const QuoteEditor: React.FC = () => {
                 )}
               </div>
 
-              {!settings.deliveryConfig.enabled ? (
-                <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 text-sm font-medium text-slate-500">
-                  Cobrança de entrega desativada.
-                </div>
-              ) : deliveryCalculationStatus === 'loading' ? (
+              {deliveryCalculationStatus === 'loading' ? (
                 <div className="flex min-h-24 items-center justify-center gap-3 rounded-2xl border border-slate-100 bg-white text-sm font-semibold text-slate-500">
                   <span className="h-5 w-5 animate-spin rounded-full border-2 border-brand-primary/20 border-t-brand-primary" />
-                  Calculando rota...
+                  Buscando taxa do bairro...
                 </div>
               ) : deliveryDetails && deliveryDetails.mode !== 'disabled' && deliveryCalculationStatus === 'success' ? (
                 <div className="space-y-3 rounded-2xl border border-green-100 bg-white p-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="rounded-xl bg-slate-50 p-3">
-                      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-slate-400"><Route className="h-3.5 w-3.5" /> Distância</div>
-                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{deliveryDetails.distanceKm.toFixed(1).replace('.', ',')} km</div>
+                      <div className="text-[10px] font-semibold uppercase text-slate-400">Bairro</div>
+                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{deliveryDetails.district || deliveryDestinationDistrict || '-'}</div>
                     </div>
                     <div className="rounded-xl bg-slate-50 p-3">
-                      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-slate-400"><Clock3 className="h-3.5 w-3.5" /> Tempo</div>
-                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{deliveryDetails.durationMinutes == null ? '-' : `${deliveryDetails.durationMinutes} min`}</div>
+                      <div className="text-[10px] font-semibold uppercase text-slate-400">Cidade</div>
+                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{deliveryDetails.city || deliveryDestinationCity || '-'}</div>
                     </div>
                     <div className="rounded-xl bg-slate-50 p-3">
-                      <div className="text-[10px] font-semibold uppercase text-slate-400">Valor por KM</div>
-                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{formatCurrency(deliveryDetails.ratePerKm)}</div>
+                      <div className="text-[10px] font-semibold uppercase text-slate-400">Origem</div>
+                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{deliveryDetails.mode === 'manual' ? 'Taxa manual' : 'Cadastro do bairro'}</div>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <div className="text-[10px] font-semibold uppercase text-slate-400">Status</div>
+                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{deliveryDetails.mode === 'manual' ? 'Manual temporaria' : 'Taxa ativa'}</div>
                     </div>
                     <div className="rounded-xl bg-brand-primary/10 p-3">
                       <div className="text-[10px] font-semibold uppercase text-brand-primary/70">Valor total</div>
@@ -2004,13 +1983,13 @@ export const QuoteEditor: React.FC = () => {
                   </div>
                   {deliveryDetails.mode === 'manual' && (
                     <label className="block space-y-1.5 border-t border-slate-100 pt-3">
-                      <span className="text-[10px] font-semibold uppercase text-slate-400">Distância manual (KM)</span>
+                      <span className="text-[10px] font-semibold uppercase text-slate-400">Taxa manual temporaria</span>
                       <NumericInput
-                        value={manualDeliveryDistance}
-                        onValueChange={handleManualDeliveryDistance}
+                        value={manualDeliveryFee}
+                        onValueChange={handleManualDeliveryFee}
                         min="0"
-                        max="10000"
-                        decimals={1}
+                        max="10000000"
+                        decimals={2}
                         className="w-full rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-sm outline-none"
                       />
                     </label>
@@ -2020,19 +1999,36 @@ export const QuoteEditor: React.FC = () => {
                 <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
                   <div className="flex gap-2 text-sm font-medium text-amber-800">
                     <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                    <span>{deliveryCalculationError || 'Selecione um cliente com endereço cadastrado.'}</span>
+                    <span>{deliveryCalculationError || 'Selecione um cliente com bairro e cidade cadastrados.'}</span>
                   </div>
-                  <label className="block space-y-1.5">
-                    <span className="text-[10px] font-semibold uppercase text-amber-700">Distância manual temporária (KM)</span>
-                    <NumericInput
-                      value={manualDeliveryDistance}
-                      onValueChange={handleManualDeliveryDistance}
-                      min="0"
-                      max="10000"
-                      decimals={1}
-                      className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-200"
-                    />
-                  </label>
+                  {isAdminUser ? (
+                    <>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => navigate('/admin')}
+                          className="rounded-xl border border-amber-300 bg-white px-3 py-2 text-xs font-semibold text-amber-800 transition-all hover:bg-amber-50"
+                        >
+                          Cadastrar taxa
+                        </button>
+                      </div>
+                      <label className="block space-y-1.5">
+                        <span className="text-[10px] font-semibold uppercase text-amber-700">Taxa manual temporaria</span>
+                        <NumericInput
+                          value={manualDeliveryFee}
+                          onValueChange={handleManualDeliveryFee}
+                          min="0"
+                          max="10000000"
+                          decimals={2}
+                          className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-200"
+                        />
+                      </label>
+                    </>
+                  ) : (
+                    <div className="rounded-xl border border-amber-200 bg-white px-3 py-3 text-sm text-amber-800">
+                      Solicite a um administrador o cadastro da taxa para este bairro e cidade.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -2040,8 +2036,8 @@ export const QuoteEditor: React.FC = () => {
             <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-display text-lg font-semibold text-slate-800">Materiais do orçamento</h3>
-                  <p className="text-xs text-slate-500">Preços personalizados ficam salvos apenas neste orçamento.</p>
+                  <h3 className="font-display text-lg font-semibold text-slate-800">Materiais do orcamento</h3>
+                  <p className="text-xs text-slate-500">Precos personalizados ficam salvos apenas neste orcamento.</p>
                 </div>
                 {quoteMaterialPriceError && (
                   <span className="rounded-full bg-red-50 px-3 py-1 text-[10px] font-bold uppercase text-red-600">Revisar</span>
@@ -2050,7 +2046,7 @@ export const QuoteEditor: React.FC = () => {
 
               {quoteMaterialPriceRows.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm font-semibold text-slate-400">
-                  Selecione materiais nas peças para personalizar os valores deste orçamento.
+                  Selecione materiais nas pecas para personalizar os valores deste orcamento.
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -2064,27 +2060,27 @@ export const QuoteEditor: React.FC = () => {
                             <div className="font-bold text-slate-900">{row.name}</div>
                             <div className="text-[11px] font-semibold text-slate-400">{row.specs || row.pieceNames.join(', ') || 'Material selecionado'}</div>
                             {row.pieceNames.length > 0 && (
-                              <div className="mt-1 text-[11px] text-slate-500">Peças: {row.pieceNames.join(', ')}</div>
+                              <div className="mt-1 text-[11px] text-slate-500">Pecas: {row.pieceNames.join(', ')}</div>
                             )}
                           </div>
                           <span className={cn('inline-flex self-start rounded-full px-3 py-1 text-[10px] font-bold uppercase', row.error ? 'bg-red-50 text-red-600' : isValidCustom ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500')}>
-                            {row.error ? 'Inválido' : isValidCustom ? 'Válido' : 'Preço padrão'}
+                            {row.error ? 'Invalido' : isValidCustom ? 'Valido' : 'Preco padrao'}
                           </span>
                         </div>
 
                         <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
                           <div className="rounded-xl bg-slate-50 p-3">
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Preço padrão</span>
-                            <strong className="font-mono text-slate-900">{formatCurrency(row.defaultPricePerM2)}/m²</strong>
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Preco padrao</span>
+                            <strong className="font-mono text-slate-900">{formatCurrency(row.defaultPricePerM2)}/m?</strong>
                           </div>
                           <div className="rounded-xl bg-slate-50 p-3">
-                            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor mínimo</span>
-                            <strong className="font-mono text-slate-900">{formatCurrency(row.minimumSalePerM2)}/m²</strong>
+                            <span className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor minimo</span>
+                            <strong className="font-mono text-slate-900">{formatCurrency(row.minimumSalePerM2)}/m?</strong>
                           </div>
                         </div>
 
                         <label className="mt-3 block space-y-1">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Valor personalizado neste orçamento</span>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Valor personalizado neste orcamento</span>
                           <input
                             type="text"
                             inputMode="decimal"
@@ -2099,10 +2095,10 @@ export const QuoteEditor: React.FC = () => {
                           />
                         </label>
                         <div className={cn('mt-2 text-[11px] font-semibold', row.error ? 'text-red-600' : 'text-slate-500')}>
-                          {row.error || 'Esse valor será aplicado apenas neste orçamento.'}
+                          {row.error || 'Esse valor sera aplicado apenas neste orcamento.'}
                         </div>
                         <div className="mt-2 text-[11px] text-slate-400">
-                          Valor em uso no cálculo: <span className="font-mono font-bold text-slate-600">{formatCurrency(row.usedPricePerM2)}/m²</span>
+                          Valor em uso no calculo: <span className="font-mono font-bold text-slate-600">{formatCurrency(row.usedPricePerM2)}/m?</span>
                         </div>
                       </div>
                     );

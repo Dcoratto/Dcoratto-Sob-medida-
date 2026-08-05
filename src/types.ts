@@ -72,7 +72,6 @@ export interface Settings {
   phone: string;
   email: string;
   address: string;
-  deliveryConfig: DeliveryConfig;
   defaultValidity: number;
   defaultNotes: string;
   laborRatePerLinearMeter: number;
@@ -120,26 +119,39 @@ export interface Settings {
   patioSize?: {width: number; height: number};
 }
 
-export interface DeliveryConfig {
-  enabled: boolean;
-  originAddress: string;
-  ratePerKm: number;
-  minimumFee: number;
-  maximumFee: number | null;
+export interface DeliveryRegionRate {
+  id: string;
+  empresaId?: string;
+  district: string;
+  districtNormalized: string;
+  city: string;
+  cityNormalized: string;
+  deliveryFee: number;
+  active: boolean;
+  createdAt?: any;
+  updatedAt?: any;
 }
 
-export type QuoteDeliveryMode = 'automatic' | 'manual' | 'disabled';
+export type QuoteDeliveryMode = 'automatic' | 'manual' | 'disabled' | 'region_rate';
 
 export interface QuoteDeliveryDetails {
   mode: QuoteDeliveryMode;
-  distanceKm: number;
-  durationMinutes: number | null;
-  ratePerKm: number;
-  minimumFee: number;
-  maximumFee: number | null;
   fee: number;
-  originAddress: string;
-  destinationAddress: string;
+  district?: string;
+  districtNormalized?: string;
+  city?: string;
+  cityNormalized?: string;
+  regionRateId?: string;
+  source?: 'region_rate' | 'manual' | 'legacy_distance';
+  appliedByUserId?: string;
+  appliedByUserName?: string;
+  distanceKm?: number;
+  durationMinutes?: number | null;
+  ratePerKm?: number;
+  minimumFee?: number;
+  maximumFee?: number | null;
+  originAddress?: string;
+  destinationAddress?: string;
   provider?: 'mapbox' | 'openrouteservice' | 'manual';
   calculatedAt?: string;
 }

@@ -26,6 +26,9 @@ export type PiecePricingBreakdown = {
   cutoutValue: number;
   sinkAdditionalValue: number;
   pieceSubtotalValue: number;
+  complexityPercentage: number;
+  complexityValue: number;
+  pieceValueWithComplexity: number;
   allocatedQuoteAdjustmentValue: number;
   pieceFinalValue: number;
   cutoutCount: number;
@@ -33,6 +36,19 @@ export type PiecePricingBreakdown = {
 };
 
 const roundCurrency = (value: number) => Math.round((Number(value) || 0) * 100) / 100;
+
+type BasePiecePricing = Pick<
+  PiecePricingBreakdown,
+  'stoneBaseValue' | 'materialLossValue' | 'stoneWithLossValue' | 'laborValue' | 'cutoutValue'
+  | 'sinkAdditionalValue' | 'pieceSubtotalValue' | 'cutoutCount' | 'cutoutRows'
+>;
+
+const basePiecePricingCache = new Map<string, {signature: string; value: BasePiecePricing}>();
+
+const trimBasePiecePricingCache = () => {
+  if (basePiecePricingCache.size <= 1000) return;
+  Array.from(basePiecePricingCache.keys()).slice(0, 200).forEach((key) => basePiecePricingCache.delete(key));
+};
 
 export const countPieceDrawingCutouts = (drawingCutouts?: QuotePiece['cutouts']): QuoteCutoutState => {
   const counts: QuoteCutoutState = {
@@ -139,44 +155,113 @@ export const buildPiecePricingBreakdowns = ({
 }) => {
   const regionalLaborMinimum = getRegionalLaborMinimum(settings, clientLocation || {});
   const breakdowns = pieces.map((piece) => {
-    const totals = calculatePieceArea(piece);
-    const cutoutSummary = buildPieceCutoutSummary({piece, pieces, quoteCutouts, settings});
     const materialPricePerM2 = resolveMaterialPricePerM2(piece);
-    const stoneBaseValue = roundCurrency((totals.totalArea || 0) * materialPricePerM2);
-    const materialLossValue = includeMaterialLoss ? roundCurrency((totals.lossArea || 0) * materialPricePerM2) : 0;
-    const stoneWithLossValue = roundCurrency(stoneBaseValue + materialLossValue);
-    const laborValue = includeLabor
-      ? calculatePieceLaborValue(piece, settings.laborRatePerLinearMeter, regionalLaborMinimum)
-      : 0;
-    const sinkAdditionalValue = roundCurrency(totals.sinkAdditionalValue || 0);
-    const automaticPieceSubtotalValue = roundCurrency(stoneWithLossValue + laborValue + cutoutSummary.totalValue + sinkAdditionalValue);
     const manualPiecePrice = resolveManualPiecePrice?.(piece);
-    const pieceSubtotalValue = typeof manualPiecePrice === 'number'
-      ? roundCurrency(Math.max(0, manualPiecePrice))
-      : automaticPieceSubtotalValue;
+    const signature = JSON.stringify({
+      piece: {
+        pricingMode: piece.pricingMode,
+        materialId: piece.materialId,
+        materialVariantKey: piece.materialVariantKey,
+        unit: piece.unit,
+        width: piece.width,
+        length: piece.length,
+        manualArea: piece.manualArea,
+        totalArea: piece.totalArea,
+        largestSide: piece.largestSide,
+        sides: piece.sides,
+        cutouts: piece.cutouts,
+        stair: piece.stair,
+        sculptedSink: piece.sculptedSink,
+        wetAreaRecess: piece.wetAreaRecess,
+      },
+      pieceCount: pieces.length,
+      quoteCutouts,
+      materialPricePerM2,
+      manualPiecePrice,
+      includeLabor,
+      includeMaterialLoss,
+      laborRatePerLinearMeter: settings.laborRatePerLinearMeter,
+      regionalLaborMinimum,
+      cutoutPrices: settings.cutoutPrices,
+      sculptedSinkRates: settings.sculptedSinkRates,
+    });
+    const cacheKey = piece.id || signature;
+    let basePricing = basePiecePricingCache.get(cacheKey);
+
+    if (!basePricing || basePricing.signature !== signature) {
+      const totals = calculatePieceArea(piece);
+      const cutoutSummary = buildPieceCutoutSummary({piece, pieces, quoteCutouts, settings});
+      const stoneBaseValue = roundCurrency((totals.totalArea || 0) * materialPricePerM2);
+      const materialLossValue = includeMaterialLoss ? roundCurrency((totals.lossArea || 0) * materialPricePerM2) : 0;
+      const stoneWithLossValue = roundCurrency(stoneBaseValue + materialLossValue);
+      const laborValue = includeLabor
+        ? calculatePieceLaborValue(piece, settings.laborRatePerLinearMeter, regionalLaborMinimum)
+        : 0;
+      const sinkAdditionalValue = roundCurrency(totals.sinkAdditionalValue || 0);
+      const automaticPieceSubtotalValue = roundCurrency(stoneWithLossValue + laborValue + cutoutSummary.totalValue + sinkAdditionalValue);
+      const pieceSubtotalValue = typeof manualPiecePrice === 'number'
+        ? roundCurrency(Math.max(0, manualPiecePrice))
+        : automaticPieceSubtotalValue;
+      basePricing = {
+        signature,
+        value: {
+          stoneBaseValue,
+          materialLossValue,
+          stoneWithLossValue,
+          laborValue,
+          cutoutValue: cutoutSummary.totalValue,
+          sinkAdditionalValue,
+          pieceSubtotalValue,
+          cutoutCount: cutoutSummary.totalCount,
+          cutoutRows: cutoutSummary.rows,
+        },
+      };
+      basePiecePricingCache.set(cacheKey, basePricing);
+      trimBasePiecePricingCache();
+    }
+
+    const {
+      stoneBaseValue,
+      materialLossValue,
+      stoneWithLossValue,
+      laborValue,
+      cutoutValue,
+      sinkAdditionalValue,
+      pieceSubtotalValue,
+      cutoutCount,
+      cutoutRows,
+    } = basePricing.value;
+    const complexityPercentage = [0, 1, 5, 10].includes(Number(piece.complexityPercentage))
+      ? Number(piece.complexityPercentage)
+      : 0;
+    const complexityValue = roundCurrency(pieceSubtotalValue * (complexityPercentage / 100));
+    const pieceValueWithComplexity = roundCurrency(pieceSubtotalValue + complexityValue);
 
     return {
       stoneBaseValue,
       materialLossValue,
       stoneWithLossValue,
       laborValue,
-      cutoutValue: cutoutSummary.totalValue,
+      cutoutValue,
       sinkAdditionalValue,
       pieceSubtotalValue,
+      complexityPercentage,
+      complexityValue,
+      pieceValueWithComplexity,
       allocatedQuoteAdjustmentValue: 0,
-      pieceFinalValue: pieceSubtotalValue,
-      cutoutCount: cutoutSummary.totalCount,
-      cutoutRows: cutoutSummary.rows,
+      pieceFinalValue: pieceValueWithComplexity,
+      cutoutCount,
+      cutoutRows,
     } satisfies PiecePricingBreakdown;
   });
 
-  const subtotalCents = breakdowns.reduce((sum, item) => sum + Math.round(item.pieceSubtotalValue * 100), 0);
+  const subtotalCents = breakdowns.reduce((sum, item) => sum + Math.round(item.pieceValueWithComplexity * 100), 0);
   const targetCents = Math.max(0, Math.round(Number(totalQuotePrice || 0) * 100));
   const diffCents = targetCents - subtotalCents;
 
   if (diffCents === 0 || !breakdowns.length) return breakdowns;
 
-  const weights = breakdowns.map((item) => item.pieceSubtotalValue);
+  const weights = breakdowns.map((item) => item.pieceValueWithComplexity);
   const weightsTotal = weights.reduce((sum, value) => sum + value, 0);
   let remainingCents = diffCents;
 
@@ -196,7 +281,7 @@ export const buildPiecePricingBreakdowns = ({
     return {
       ...item,
       allocatedQuoteAdjustmentValue,
-      pieceFinalValue: roundCurrency(item.pieceSubtotalValue + allocatedQuoteAdjustmentValue),
+      pieceFinalValue: roundCurrency(item.pieceValueWithComplexity + allocatedQuoteAdjustmentValue),
     };
   });
 };

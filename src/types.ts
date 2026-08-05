@@ -72,6 +72,7 @@ export interface Settings {
   phone: string;
   email: string;
   address: string;
+  deliveryConfig: DeliveryConfig;
   defaultValidity: number;
   defaultNotes: string;
   laborRatePerLinearMeter: number;
@@ -117,6 +118,30 @@ export interface Settings {
   };
   patioLayout?: Record<string, {x: number; y: number; rotation?: number}>;
   patioSize?: {width: number; height: number};
+}
+
+export interface DeliveryConfig {
+  enabled: boolean;
+  originAddress: string;
+  ratePerKm: number;
+  minimumFee: number;
+  maximumFee: number | null;
+}
+
+export type QuoteDeliveryMode = 'automatic' | 'manual' | 'disabled';
+
+export interface QuoteDeliveryDetails {
+  mode: QuoteDeliveryMode;
+  distanceKm: number;
+  durationMinutes: number | null;
+  ratePerKm: number;
+  minimumFee: number;
+  maximumFee: number | null;
+  fee: number;
+  originAddress: string;
+  destinationAddress: string;
+  provider?: 'mapbox' | 'manual';
+  calculatedAt?: string;
 }
 
 export interface SupplierContact {
@@ -532,6 +557,8 @@ export interface QuotePiece {
   pieceStatus?: QuoteStatus;
   pricingMode?: 'automatic' | 'manual';
   manualPrice?: number;
+  complexityPercentage?: 0 | 1 | 5 | 10;
+  complexityReason?: string;
   materialId: string;
   materialVariantKey?: string;
   materialLine?: string;
@@ -665,6 +692,7 @@ export interface Quote {
   totalPrice: number;
   pricingMode?: 'sale' | 'cost';
   includeMaterialLoss?: boolean;
+  deliveryDetails?: QuoteDeliveryDetails;
   pieces: QuotePiece[];
   cutouts: QuoteCutouts;
   materialPriceOverrides?: QuoteMaterialPriceOverride[];

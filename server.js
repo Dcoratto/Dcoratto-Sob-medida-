@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import {fileURLToPath} from 'url';
 import calendarFeedHandler from './api/calendar-feed.js';
+import deliveryDistanceHandler from './api/delivery-distance.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -21,7 +22,7 @@ app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', origin);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   }
 
   if (req.method === 'OPTIONS') {
@@ -38,6 +39,10 @@ app.get('/healthz', (_req, res) => {
 
 app.get('/api/calendar-feed', (req, res) => {
   calendarFeedHandler(req, res);
+});
+
+app.post('/api/delivery-distance', express.json({limit: '4kb'}), (req, res) => {
+  deliveryDistanceHandler(req, res);
 });
 
 app.get('/calendar/:uid/:token.ics', (req, res) => {

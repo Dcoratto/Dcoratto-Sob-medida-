@@ -3,14 +3,28 @@ import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, selectF
 import { db } from '../lib/firestore';
 import { useSettings, DEFAULT_SETTINGS } from '../hooks/useSettings';
 import { useAuth } from '../contexts/AuthContext';
-import { Save, Plus, Trash2, Building, Phone, Mail, MapPin, Calculator, CreditCard, Scissors, Pencil } from 'lucide-react';
+import { Save, Plus, Trash2, Building, Phone, Mail, MapPin, Calculator, CreditCard, Scissors, Pencil, Truck } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
-import { CondominiumRule, SupplierContact } from '../types';
+import { CondominiumRule, Settings, SupplierContact } from '../types';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
+
+const normalizeDeliveryConfig = (config: Settings['deliveryConfig']): Settings['deliveryConfig'] => {
+  const minimumFee = Math.min(10000000, Math.max(0, Number(config?.minimumFee || 0)));
+  const maximumFee = config?.maximumFee == null
+    ? null
+    : Math.min(10000000, Math.max(minimumFee, Number(config.maximumFee || 0)));
+  return {
+    enabled: Boolean(config?.enabled),
+    originAddress: String(config?.originAddress || '').trim().slice(0, 256),
+    ratePerKm: Math.min(10000, Math.max(0, Number(config?.ratePerKm || 0))),
+    minimumFee,
+    maximumFee,
+  };
+};
 
 export const SettingsPage: React.FC = () => {
   const { settings: currentSettings, loading } = useSettings();
@@ -121,9 +135,11 @@ export const SettingsPage: React.FC = () => {
       }))
       .filter((supplier) => supplier.name)
       .sort((a, b) => a.name.localeCompare(b.name));
+    const deliveryConfig = normalizeDeliveryConfig(sourceSettings.deliveryConfig);
 
     return {
       ...sourceSettings,
+      deliveryConfig,
       laborMinimumByRegion,
       paymentMethods: sanitizedPaymentMethods.length ? sanitizedPaymentMethods : DEFAULT_SETTINGS.paymentMethods,
       materialCatalog: {
@@ -153,6 +169,14 @@ export const SettingsPage: React.FC = () => {
     };
   };
 
+  const deliveryConfigError = (() => {
+    const config = normalizeDeliveryConfig(settings.deliveryConfig);
+    if (!config.enabled) return '';
+    if (config.originAddress.length < 5) return 'Informe o endereço oficial da D\'Coratto antes de ativar a cobrança.';
+    if (config.ratePerKm <= 0) return 'Informe um valor por KM maior que zero.';
+    return '';
+  })();
+
   useEffect(() => {
     if (!currentSettings) return;
 
@@ -169,6 +193,10 @@ export const SettingsPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!isAdmin) return;
+    if (deliveryConfigError) {
+      window.alert(deliveryConfigError);
+      return;
+    }
     setSaving(true);
     try {
       const nextSettings = buildPersistedSettings();
@@ -384,6 +412,7 @@ export const SettingsPage: React.FC = () => {
     const persistedSettings = buildPersistedSettings(settings);
     const serialized = JSON.stringify(persistedSettings);
     if (!serialized || serialized === lastPersistedSettingsRef.current) return;
+    if (deliveryConfigError) return;
 
     const timeoutId = window.setTimeout(async () => {
       setSaving(true);
@@ -400,7 +429,7 @@ export const SettingsPage: React.FC = () => {
     }, 700);
 
     return () => window.clearTimeout(timeoutId);
-  }, [isAdmin, loading, settings]);
+  }, [deliveryConfigError, isAdmin, loading, settings]);
 
   if (loading) return <div>Carregando...</div>;
 
@@ -482,6 +511,116 @@ export const SettingsPage: React.FC = () => {
         </section>
 
         {/* Padrões Financeiros e Medidas */}
+        <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-3">
+          <div className="flex flex-col gap-4 border-b border-slate-100 pb-5 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
+                <Truck className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-display text-lg font-semibold text-slate-800">Configurações de Entrega</h2>
+                <p className="mt-1 text-xs text-slate-500">Valores usados no cálculo automático de distância dos orçamentos.</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={settings.deliveryConfig.enabled}
+              disabled={!isAdmin}
+              onClick={() => {
+                if (!isAdmin) return;
+                if (!settings.deliveryConfig.enabled && settings.deliveryConfig.originAddress.trim().length < 5) {
+                  window.alert('Informe primeiro o endereço oficial da D\'Coratto.');
+                  return;
+                }
+                setSettings({
+                  ...settings,
+                  deliveryConfig: {...settings.deliveryConfig, enabled: !settings.deliveryConfig.enabled},
+                });
+              }}
+              className={cn(
+                'inline-flex min-h-11 items-center justify-center gap-3 rounded-2xl border px-4 text-sm font-semibold transition-all disabled:cursor-not-allowed disabled:opacity-60',
+                settings.deliveryConfig.enabled
+                  ? 'border-green-200 bg-green-50 text-green-700'
+                  : 'border-slate-200 bg-slate-50 text-slate-500',
+              )}
+            >
+              <span className={cn('h-2.5 w-2.5 rounded-full', settings.deliveryConfig.enabled ? 'bg-green-500' : 'bg-slate-300')} />
+              {settings.deliveryConfig.enabled ? 'Cobrança ativa' : 'Cobrança desativada'}
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <label className="space-y-1.5 lg:col-span-2">
+              <span className="text-sm font-medium text-slate-500">Endereço oficial da D'Coratto</span>
+              <div className="relative">
+                <MapPin className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="text"
+                  maxLength={256}
+                  disabled={!isAdmin}
+                  value={settings.deliveryConfig.originAddress}
+                  onChange={(event) => setSettings({
+                    ...settings,
+                    deliveryConfig: {...settings.deliveryConfig, originAddress: event.target.value},
+                  })}
+                  placeholder="Rua, número, bairro, cidade e CEP"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-11 pr-4 font-medium outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
+                />
+              </div>
+            </label>
+
+            <label className="space-y-1.5">
+              <span className="text-sm font-medium text-slate-500">Valor por KM</span>
+              <CurrencyInput
+                value={settings.deliveryConfig.ratePerKm}
+                disabled={!isAdmin}
+                onValueChange={(value) => setSettings({
+                  ...settings,
+                  deliveryConfig: {...settings.deliveryConfig, ratePerKm: Math.max(0, value)},
+                })}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
+              />
+            </label>
+
+            <label className="space-y-1.5">
+              <span className="text-sm font-medium text-slate-500">Valor mínimo</span>
+              <CurrencyInput
+                value={settings.deliveryConfig.minimumFee}
+                disabled={!isAdmin}
+                onValueChange={(value) => setSettings({
+                  ...settings,
+                  deliveryConfig: {...settings.deliveryConfig, minimumFee: Math.max(0, value)},
+                })}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
+              />
+            </label>
+
+            <label className="space-y-1.5">
+              <span className="text-sm font-medium text-slate-500">Valor máximo (opcional)</span>
+              <CurrencyInput
+                value={settings.deliveryConfig.maximumFee ?? ''}
+                disabled={!isAdmin}
+                onValueChange={(value, rawValue) => setSettings({
+                  ...settings,
+                  deliveryConfig: {
+                    ...settings.deliveryConfig,
+                    maximumFee: rawValue.trim() ? Math.max(0, value) : null,
+                  },
+                })}
+                placeholder="Sem limite"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 font-medium outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
+              />
+            </label>
+          </div>
+
+          {deliveryConfigError && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-700">
+              {deliveryConfigError}
+            </div>
+          )}
+        </section>
+
         <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-2">
           <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
             <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">

@@ -66,6 +66,13 @@ export const DEFAULT_SETTINGS: Settings = repairTextDeep({
   email: 'contato@dcoratto.com.br',
   address: 'Endereço da marmoraria',
   defaultValidity: 15,
+  deliveryConfig: {
+    enabled: false,
+    originAddress: '',
+    ratePerKm: 0,
+    minimumFee: 0,
+    maximumFee: null,
+  },
   defaultNotes: 'Orçamento sujeito à confirmação de medidas no local.',
   laborRatePerLinearMeter: 120,
   laborMinimumByRegion: {
@@ -124,6 +131,16 @@ export const useSettings = () => {
           email: repairText(data.email || DEFAULT_SETTINGS.email),
           address: repairText(data.address || DEFAULT_SETTINGS.address),
           defaultNotes: repairText(data.defaultNotes || DEFAULT_SETTINGS.defaultNotes),
+          deliveryConfig: {
+            ...DEFAULT_SETTINGS.deliveryConfig,
+            ...(data.deliveryConfig || {}),
+            originAddress: repairText(data.deliveryConfig?.originAddress || ''),
+            ratePerKm: Math.max(0, Number(data.deliveryConfig?.ratePerKm || 0)),
+            minimumFee: Math.max(0, Number(data.deliveryConfig?.minimumFee || 0)),
+            maximumFee: data.deliveryConfig?.maximumFee == null
+              ? null
+              : Math.max(0, Number(data.deliveryConfig.maximumFee || 0)),
+          },
           laborMinimumByRegion: {
             ...DEFAULT_SETTINGS.laborMinimumByRegion,
             ...(data.laborMinimumByRegion || {}),

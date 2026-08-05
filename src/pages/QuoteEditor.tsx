@@ -3,13 +3,13 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, selectFields } from '../lib/firestore';
 import { db } from '../lib/firestore';
 import { useSettings } from '../hooks/useSettings';
-import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuoteMaterialPriceOverride, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
+import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuoteDeliveryDetails, QuoteMaterialPriceOverride, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
 import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
   ChevronDown, ChevronUp, Calculator,
   MapPin, Phone, User,
-  Layers, PenTool, FileText
+  Layers, PenTool, FileText, AlertCircle, Clock3, RefreshCw, Route, Truck
 } from 'lucide-react';
 import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, parseCurrencyInput, parseMeasureInput, roundNumber } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
@@ -30,8 +30,45 @@ import {LABELS} from '../constants/labels';
 import {imageVariantUrl} from '../lib/storage';
 import {NumericInput} from '../components/inputs/NumericInput';
 import {generateQuickQuotePDF} from '../lib/quickQuotePdfGenerator';
+import {buildDeliveryDetails} from '../lib/deliveryPricing';
+import {requestDeliveryDistance} from '../lib/deliveryDistance';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
+
+const COMPLEXITY_OPTIONS = [
+  {percentage: 0 as const, label: 'Sem acréscimo', reason: ''},
+  {percentage: 1 as const, label: '1%', reason: 'Curvas'},
+  {percentage: 5 as const, label: '5%', reason: 'Recortes especiais'},
+  {percentage: 10 as const, label: '10%', reason: 'Ripado'},
+];
+
+const buildClientDeliveryAddress = (client?: Client) => {
+  if (!client) return '';
+  const parts = [
+    client.streetAddress || client.address,
+    client.neighborhood,
+    client.city,
+    client.zipCode ? `CEP ${client.zipCode}` : '',
+    'Brasil',
+  ].map((part) => String(part || '').trim()).filter(Boolean);
+  return Array.from(new Set(parts)).join(', ').slice(0, 256);
+};
+
+const deliveryDetailsMatchConfig = (
+  details: QuoteDeliveryDetails | undefined,
+  originAddress: string,
+  destinationAddress: string,
+  ratePerKm: number,
+  minimumFee: number,
+  maximumFee: number | null,
+) => Boolean(
+  details
+  && details.originAddress === originAddress
+  && details.destinationAddress === destinationAddress
+  && Number(details.ratePerKm) === Number(ratePerKm)
+  && Number(details.minimumFee) === Number(minimumFee)
+  && (details.maximumFee == null ? null : Number(details.maximumFee)) === (maximumFee == null ? null : Number(maximumFee)),
+);
 
 const MATERIAL_PRICE_MINIMUM_ERROR = 'O valor personalizado não pode ser menor que o valor mínimo definido para este material.';
 
@@ -159,6 +196,10 @@ export const QuoteEditor: React.FC = () => {
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
   const [quotePricingMode, setQuotePricingMode] = useState<'sale' | 'cost'>('sale');
   const [includeMaterialLoss, setIncludeMaterialLoss] = useState(true);
+  const [deliveryDetails, setDeliveryDetails] = useState<QuoteDeliveryDetails>();
+  const [deliveryCalculationStatus, setDeliveryCalculationStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [deliveryCalculationError, setDeliveryCalculationError] = useState('');
+  const [manualDeliveryDistance, setManualDeliveryDistance] = useState('');
   const quoteDraftHydratedRef = useRef(false);
   const quoteDraftKey = `quote-editor-draft:${appUid || 'anonymous'}:${id || 'new'}`;
 
@@ -346,6 +387,7 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const selectedClient = clients.find(c => c.id === clientId);
+  const deliveryDestinationAddress = useMemo(() => buildClientDeliveryAddress(selectedClient), [selectedClient]);
   const { calculatePieceArea, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey));
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
   
@@ -397,7 +439,10 @@ export const QuoteEditor: React.FC = () => {
   const laborCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.laborValue, 0);
   const cutoutsCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.cutoutValue, 0);
   const sculptedLaborCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.sinkAdditionalValue, 0);
-  const subtotalBeforeAdjustment = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.pieceSubtotalValue, 0);
+  const complexityCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.complexityValue, 0);
+  const piecesSubtotalBeforeAdjustment = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.pieceValueWithComplexity, 0);
+  const deliveryFee = Math.max(0, Number(deliveryDetails?.fee || 0));
+  const subtotalBeforeAdjustment = piecesSubtotalBeforeAdjustment + deliveryFee;
   const normalizedEntryAmount = Math.min(Math.max(Number(entryAmount) || 0, 0), subtotalBeforeAdjustment);
   const financedAmount = Math.max(0, subtotalBeforeAdjustment - normalizedEntryAmount);
   const selectedPaymentAdjustment = paymentMode === 'entry' ? remainingMethodAdjustment : totalMethodAdjustment;
@@ -554,6 +599,8 @@ export const QuoteEditor: React.FC = () => {
       setPieces(draftPieces);
       setQuotePricingMode((draft.pricingMode as 'sale' | 'cost') || 'sale');
       setIncludeMaterialLoss(typeof draft.includeMaterialLoss === 'boolean' ? draft.includeMaterialLoss : ((draft.pricingMode as 'sale' | 'cost') || 'sale') !== 'cost');
+      setDeliveryDetails(draft.deliveryDetails as QuoteDeliveryDetails | undefined);
+      setManualDeliveryDistance(String((draft.deliveryDetails as QuoteDeliveryDetails | undefined)?.distanceKm ?? ''));
       setMaterialCustomPriceInputs((draft.materialCustomPriceInputs as Record<string, string>) || inputValuesFromMaterialOverrides(draft.materialPriceOverrides as QuoteMaterialPriceOverride[]));
       setPieceManualPriceInputs((draft.pieceManualPriceInputs as Record<string, string>) || inputValuesFromPieceManualPrices(draftPieces));
       setCutouts((draft.cutouts as QuoteCutoutState) || { cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
@@ -590,6 +637,8 @@ export const QuoteEditor: React.FC = () => {
           setOriginalStatus(normalizeQuoteStatus(data.status));
           setQuotePricingMode(data.pricingMode || 'sale');
           setIncludeMaterialLoss(typeof data.includeMaterialLoss === 'boolean' ? data.includeMaterialLoss : (data.pricingMode || 'sale') !== 'cost');
+          setDeliveryDetails(data.deliveryDetails);
+          setManualDeliveryDistance(String(data.deliveryDetails?.distanceKm ?? ''));
           const loadedPieces = (data.pieces || []).map((piece) => ensurePieceWorkflowStatus({
             ...piece,
             materialId: piece.materialId || data.materialId || '',
@@ -689,6 +738,7 @@ export const QuoteEditor: React.FC = () => {
       validityDays,
       pricingMode: quotePricingMode,
       includeMaterialLoss,
+      deliveryDetails,
       commercialNotes,
       status,
       originalStatus,
@@ -701,7 +751,144 @@ export const QuoteEditor: React.FC = () => {
       pieceMaterialSearch,
     });
     if (savedAt) setQuoteDraftSavedAt(savedAt);
-  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, includeMaterialLoss, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, pieceManualPriceInputs, pieceMaterialSearch, pieces, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
+  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, deliveryDetails, employeeAssignments, entryAmount, environment, includeMaterialLoss, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, pieceManualPriceInputs, pieceMaterialSearch, pieces, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
+
+  useEffect(() => {
+    if (loading || settingsLoading || !quoteDraftHydratedRef.current) return;
+
+    const config = settings.deliveryConfig;
+    const originAddress = String(config.originAddress || '').trim();
+    const maximumFee = config.maximumFee == null ? null : Number(config.maximumFee);
+
+    if (!config.enabled) {
+      if (
+        deliveryDetails?.mode !== 'disabled'
+        || !deliveryDetailsMatchConfig(deliveryDetails, originAddress, deliveryDestinationAddress, config.ratePerKm, config.minimumFee, maximumFee)
+      ) {
+        setDeliveryDetails(buildDeliveryDetails({
+          mode: 'disabled',
+          distanceKm: 0,
+          durationMinutes: null,
+          originAddress,
+          destinationAddress: deliveryDestinationAddress,
+          config,
+        }));
+      }
+      setDeliveryCalculationStatus('idle');
+      setDeliveryCalculationError('');
+      return;
+    }
+
+    if (!clientId) {
+      setDeliveryDetails(undefined);
+      setDeliveryCalculationStatus('idle');
+      setDeliveryCalculationError('');
+      return;
+    }
+    if (!selectedClient) return;
+
+    if (originAddress.length < 5 || deliveryDestinationAddress.length < 5) {
+      setDeliveryCalculationStatus('error');
+      setDeliveryCalculationError(
+        originAddress.length < 5
+          ? 'O endereço oficial da D\'Coratto precisa ser configurado no Administrativo.'
+          : 'O cliente selecionado não possui um endereço completo para calcular a entrega.',
+      );
+      return;
+    }
+
+    const matchesCurrentConfig = deliveryDetailsMatchConfig(
+      deliveryDetails,
+      originAddress,
+      deliveryDestinationAddress,
+      config.ratePerKm,
+      config.minimumFee,
+      maximumFee,
+    );
+
+    if (deliveryDetails?.mode === 'manual' && matchesCurrentConfig) {
+      setManualDeliveryDistance(String(deliveryDetails.distanceKm));
+      setDeliveryCalculationStatus('success');
+      setDeliveryCalculationError('');
+      return;
+    }
+
+    if (deliveryDetails?.mode === 'manual' && deliveryDetails.destinationAddress === deliveryDestinationAddress) {
+      setDeliveryDetails(buildDeliveryDetails({
+        mode: 'manual',
+        distanceKm: deliveryDetails.distanceKm,
+        durationMinutes: null,
+        originAddress,
+        destinationAddress: deliveryDestinationAddress,
+        config,
+      }));
+      return;
+    }
+
+    if (deliveryDetails?.mode === 'automatic' && matchesCurrentConfig) {
+      setManualDeliveryDistance(String(deliveryDetails.distanceKm));
+      setDeliveryCalculationStatus('success');
+      setDeliveryCalculationError('');
+      return;
+    }
+
+    const controller = new AbortController();
+    setDeliveryCalculationStatus('loading');
+    setDeliveryCalculationError('');
+
+    void requestDeliveryDistance(originAddress, deliveryDestinationAddress, controller.signal)
+      .then((result) => {
+        const nextDetails = buildDeliveryDetails({
+          mode: 'automatic',
+          distanceKm: result.distanceKm,
+          durationMinutes: result.durationMinutes,
+          originAddress,
+          destinationAddress: deliveryDestinationAddress,
+          config,
+        });
+        setDeliveryDetails(nextDetails);
+        setManualDeliveryDistance(String(nextDetails.distanceKm));
+        setDeliveryCalculationStatus('success');
+      })
+      .catch((error) => {
+        if (controller.signal.aborted) return;
+        setDeliveryCalculationStatus('error');
+        setDeliveryCalculationError(String(error?.message || 'Não foi possível calcular a entrega agora.'));
+      });
+
+    return () => controller.abort();
+  }, [
+    clientId,
+    deliveryDestinationAddress,
+    deliveryDetails,
+    loading,
+    selectedClient,
+    settings.deliveryConfig.enabled,
+    settings.deliveryConfig.maximumFee,
+    settings.deliveryConfig.minimumFee,
+    settings.deliveryConfig.originAddress,
+    settings.deliveryConfig.ratePerKm,
+    settingsLoading,
+  ]);
+
+  const handleManualDeliveryDistance = (distanceKm: number, rawValue: string) => {
+    setManualDeliveryDistance(rawValue);
+    if (!rawValue.trim() || !Number.isFinite(distanceKm) || distanceKm < 0 || distanceKm > 10000) return;
+    setDeliveryDetails(buildDeliveryDetails({
+      mode: 'manual',
+      distanceKm,
+      durationMinutes: null,
+      originAddress: settings.deliveryConfig.originAddress,
+      destinationAddress: deliveryDestinationAddress,
+      config: settings.deliveryConfig,
+    }));
+  };
+
+  const retryDeliveryCalculation = () => {
+    setDeliveryDetails(undefined);
+    setDeliveryCalculationStatus('idle');
+    setDeliveryCalculationError('');
+  };
 
   const clearQuoteDraftState = () => {
     clearDraft(quoteDraftKey);
@@ -830,6 +1017,8 @@ export const QuoteEditor: React.FC = () => {
       name: asStair ?`Escada ${pieces.filter((piece) => piece.stair?.active).length + 1}` : `${LABELS.pieces.singular} ${pieces.length + 1}`,
       pieceStatus: status,
       pricingMode: 'automatic',
+      complexityPercentage: 0,
+      complexityReason: '',
       materialId: '',
       unit: 'cm',
       width: 0,
@@ -1003,7 +1192,7 @@ export const QuoteEditor: React.FC = () => {
     () => buildPiecePricingBreakdowns({
       pieces,
       quoteCutouts: cutouts,
-      totalQuotePrice: totalPrice,
+      totalQuotePrice: Math.max(0, totalPrice - deliveryFee),
       settings,
       clientLocation: {
         city: selectedClient?.city,
@@ -1019,7 +1208,7 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, totalPrice],
+    [calculatePieceArea, cutouts, deliveryFee, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, totalPrice],
   );
   const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
     cooktop: 'cooktop',
@@ -1150,6 +1339,22 @@ export const QuoteEditor: React.FC = () => {
       alert(pieceManualPriceError);
       return;
     }
+    if (settings.deliveryConfig.enabled) {
+      const deliveryReady = deliveryDetails
+        && deliveryDetails.mode !== 'disabled'
+        && deliveryDetailsMatchConfig(
+          deliveryDetails,
+          settings.deliveryConfig.originAddress.trim(),
+          deliveryDestinationAddress,
+          settings.deliveryConfig.ratePerKm,
+          settings.deliveryConfig.minimumFee,
+          settings.deliveryConfig.maximumFee,
+        );
+      if (!deliveryReady) {
+        alert('Calcule a distância da entrega ou informe a distância manualmente antes de salvar.');
+        return;
+      }
+    }
     setSaving(true);
     const firstAssigned = employeeAssignments.find((item) => item.employeeId);
     const primaryMaterialId = pieces[0]?.materialId || materialId || '';
@@ -1160,6 +1365,10 @@ export const QuoteEditor: React.FC = () => {
       return ensurePieceWorkflowStatus({
         ...piece,
         pricingMode: piece.pricingMode || 'automatic',
+        complexityPercentage: [0, 1, 5, 10].includes(Number(piece.complexityPercentage))
+          ? piece.complexityPercentage || 0
+          : 0,
+        complexityReason: String(piece.complexityReason || '').trim().slice(0, 120),
         manualPrice:
           (piece.pricingMode || 'automatic') === 'manual' && parsedManualPrice.status === 'valid'
             ? Number(parsedManualPrice.value)
@@ -1177,6 +1386,16 @@ export const QuoteEditor: React.FC = () => {
         minimumSalePerM2: Number(row.minimumSalePerM2.toFixed(2)),
         updatedAt: Timestamp.now(),
       }));
+    const normalizedDeliveryDetails = settings.deliveryConfig.enabled
+      ? deliveryDetails
+      : buildDeliveryDetails({
+        mode: 'disabled',
+        distanceKm: 0,
+        durationMinutes: null,
+        originAddress: settings.deliveryConfig.originAddress,
+        destinationAddress: deliveryDestinationAddress,
+        config: settings.deliveryConfig,
+      });
     
     const quoteData: Partial<Quote> = {
       clientId,
@@ -1205,6 +1424,7 @@ export const QuoteEditor: React.FC = () => {
       totalPrice: normalizedTotalPrice,
       pricingMode: quotePricingMode,
       includeMaterialLoss,
+      deliveryDetails: normalizedDeliveryDetails,
       pieces: piecesWithStatus,
       cutouts,
       materialPriceOverrides,
@@ -1296,6 +1516,8 @@ export const QuoteEditor: React.FC = () => {
         quoteDate: new Date(),
         totalArea,
         totalPrice,
+        deliveryFee,
+        deliveryDistanceKm: deliveryDetails?.distanceKm || 0,
         pieces: pieces.map((piece, index) => {
           const pieceTotals = pieceAreaDetails[index]?.totals;
           const material = materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey);
@@ -1305,6 +1527,10 @@ export const QuoteEditor: React.FC = () => {
             materialName: material?.name || 'Sem material',
             area: pieceTotals?.totalArea || piece.totalArea || piece.manualArea || piece.area || 0,
             price: pricing?.pieceFinalValue || 0,
+            basePrice: pricing?.pieceSubtotalValue || 0,
+            complexityPercentage: pricing?.complexityPercentage || 0,
+            complexityValue: pricing?.complexityValue || 0,
+            complexityReason: piece.complexityReason || '',
             length: piece.length || piece.largestSide || 0,
             width: piece.width || piece.smallestSide || 0,
             previewUrl: piece.previewUrl || piece.proposalImageUrl || '',
@@ -1382,6 +1608,8 @@ export const QuoteEditor: React.FC = () => {
               <div className="flex justify-between gap-3"><span>Mão de obra</span><strong>{formatCurrency(laborCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Recortes</span><strong>{formatCurrency(cutoutsCost)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pia esculpida</span><strong>{formatCurrency(sculptedLaborCost)}</strong></div>
+              <div className="flex justify-between gap-3"><span>Complexidade</span><strong>{formatCurrency(complexityCost)}</strong></div>
+              <div className="flex justify-between gap-3"><span>Taxa de entrega</span><strong>{formatCurrency(deliveryFee)}</strong></div>
               <div className="flex justify-between gap-3 border-t border-white/15 pt-2"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong>{formatCurrency(adjustmentValue)}</strong></div>
               <div className="flex justify-between gap-3"><span>Negociação (-{normalizedNegotiationDiscountPercent}%)</span><strong>-{formatCurrency(negotiationDiscountValue)}</strong></div>
               <div className="flex justify-between gap-3"><span>RT (+{normalizedRtPercent}%)</span><strong>{formatCurrency(rtValue)}</strong></div>
@@ -1396,6 +1624,9 @@ export const QuoteEditor: React.FC = () => {
                   const laborValue = pricing?.laborValue || 0;
                   const cutoutValue = pricing?.cutoutValue || 0;
                   const sinkAdditionalValue = pricing?.sinkAdditionalValue || 0;
+                  const complexityPercentage = pricing?.complexityPercentage || 0;
+                  const complexityValue = pricing?.complexityValue || 0;
+                  const pieceValueWithComplexity = pricing?.pieceValueWithComplexity || 0;
                   const pieceTotalValue = pricing?.pieceFinalValue || 0;
                   const allocatedAdjustmentValue = pricing?.allocatedQuoteAdjustmentValue || 0;
                   const cutoutCount = pricing?.cutoutCount || 0;
@@ -1430,6 +1661,15 @@ export const QuoteEditor: React.FC = () => {
                           <div className="text-[10px] font-bold uppercase tracking-wider text-white/55">Recortes</div>
                           <div className="mt-1 font-semibold text-white">{formatCurrency(cutoutValue)}</div>
                         </div>
+                        <div className="col-span-2 rounded-xl bg-white/6 p-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <div className="text-[10px] font-bold uppercase tracking-wider text-white/55">Complexidade {complexityPercentage > 0 ? `+${complexityPercentage}%` : ''}</div>
+                              <div className="mt-1 text-[11px] text-white/65">{piece.complexityReason || 'Sem acréscimo'}</div>
+                            </div>
+                            <div className="text-right font-semibold text-white">{formatCurrency(complexityValue)}</div>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-x-3 gap-y-1 opacity-80">
@@ -1439,6 +1679,7 @@ export const QuoteEditor: React.FC = () => {
                         <span>Perda: {formatArea(totals.lossArea || 0)}</span>
                         <span>Pedra com perda: {formatCurrency(stoneValue)}</span>
                         <span>Furos/recortes: {cutoutCount} un</span>
+                        <span className="col-span-2">Valor após complexidade: {formatCurrency(pieceValueWithComplexity)}</span>
                         {sinkAdditionalValue > 0 && (
                           <span className="col-span-2">Adicional pia esculpida: {formatCurrency(sinkAdditionalValue)}</span>
                         )}
@@ -1459,7 +1700,7 @@ export const QuoteEditor: React.FC = () => {
 
           <section className="bg-white p-5 rounded-[32px] border border-slate-100 shadow-sm space-y-5 sm:p-6">
             <div className="space-y-1.5">
-              <h2 className="font-display font-bold text-xl text-slate-800">Dados do orçamento</h2>
+              <h2 className="font-display text-xl font-semibold text-slate-800">Dados do orçamento</h2>
               <p className="text-sm text-slate-500">Cliente, condições e ajustes gerais deste orçamento.</p>
             </div>
 
@@ -1519,6 +1760,29 @@ export const QuoteEditor: React.FC = () => {
                   </div>
                 )}
               </div>
+              {selectedClient && (
+                <div className="mt-3 space-y-2 rounded-2xl border border-slate-100 bg-white p-3 text-xs text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 shrink-0 text-brand-primary" />
+                    <span className="truncate font-semibold text-slate-700">{selectedClient.name}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 shrink-0 text-slate-400" />
+                    <span className="truncate">{selectedClient.phone || 'Telefone não informado'}</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
+                    <span className="min-w-0 break-words leading-relaxed">
+                      {[
+                        selectedClient.streetAddress || selectedClient.address,
+                        selectedClient.neighborhood,
+                        selectedClient.city,
+                        selectedClient.zipCode ? `CEP ${selectedClient.zipCode}` : '',
+                      ].filter(Boolean).join(' · ') || 'Endereço não informado'}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -1565,7 +1829,7 @@ export const QuoteEditor: React.FC = () => {
 
             <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
               <div>
-                <h3 className="font-display text-lg font-bold text-slate-800">Modo de preço</h3>
+                <h3 className="font-display text-lg font-semibold text-slate-800">Modo de preço</h3>
                 <p className="text-xs text-slate-500">No preço de custo, a mão de obra da peça sai do cálculo do orçamento.</p>
               </div>
               <div className="grid gap-2 sm:grid-cols-2">
@@ -1617,10 +1881,166 @@ export const QuoteEditor: React.FC = () => {
               </div>
             </div>
 
+            <details open className="group rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-brand-primary shadow-sm">
+                    <Layers className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-lg font-semibold text-slate-800">Complexidade da execução</h3>
+                    <p className="text-xs text-slate-500">Ajuste individual por peça.</p>
+                  </div>
+                </div>
+                <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180" />
+              </summary>
+
+              <div className="mt-4 space-y-3 border-t border-slate-200/70 pt-4">
+                {pieces.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white p-4 text-sm font-semibold text-slate-400">
+                    Adicione uma peça para definir a complexidade.
+                  </div>
+                ) : pieces.map((piece) => {
+                  const percentage = Number(piece.complexityPercentage || 0);
+                  return (
+                    <div key={piece.id} className="space-y-3 rounded-2xl border border-slate-100 bg-white p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="truncate text-sm font-semibold text-slate-700">{piece.name}</span>
+                        <span className="shrink-0 rounded-full bg-brand-primary/10 px-2.5 py-1 text-[10px] font-semibold text-brand-primary">
+                          {percentage > 0 ? `+${percentage}%` : '0%'}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {COMPLEXITY_OPTIONS.map((option) => (
+                          <button
+                            key={option.percentage}
+                            type="button"
+                            onClick={() => updatePiece(piece.id, {
+                              complexityPercentage: option.percentage,
+                              complexityReason: option.reason,
+                            })}
+                            title={option.percentage === 0 ? option.label : option.reason}
+                            className={cn(
+                              'min-h-10 rounded-xl border px-2 text-xs font-semibold transition-all',
+                              percentage === option.percentage
+                                ? 'border-brand-primary bg-brand-primary text-white shadow-sm'
+                                : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-brand-primary/30',
+                            )}
+                          >
+                            {option.label}
+                          </button>
+                        ))}
+                      </div>
+                      {percentage > 0 && (
+                        <label className="block space-y-1">
+                          <span className="text-[10px] font-semibold uppercase text-slate-400">Motivo</span>
+                          <input
+                            type="text"
+                            maxLength={120}
+                            value={piece.complexityReason || ''}
+                            onChange={(event) => updatePiece(piece.id, {complexityReason: event.target.value})}
+                            placeholder="Ex: Curvas, ripado ou acabamento especial"
+                            className="w-full rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-sm outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </details>
+
+            <div className="space-y-4 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white text-brand-primary shadow-sm">
+                    <Truck className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-lg font-semibold text-slate-800">Taxa de entrega</h3>
+                    <p className="text-xs text-slate-500">Distância e valor da rota.</p>
+                  </div>
+                </div>
+                {settings.deliveryConfig.enabled && deliveryCalculationStatus !== 'loading' && (
+                  <button
+                    type="button"
+                    onClick={retryDeliveryCalculation}
+                    title="Recalcular entrega"
+                    className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-100 bg-white text-slate-500 transition-all hover:text-brand-primary"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
+              {!settings.deliveryConfig.enabled ? (
+                <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 text-sm font-medium text-slate-500">
+                  Cobrança de entrega desativada.
+                </div>
+              ) : deliveryCalculationStatus === 'loading' ? (
+                <div className="flex min-h-24 items-center justify-center gap-3 rounded-2xl border border-slate-100 bg-white text-sm font-semibold text-slate-500">
+                  <span className="h-5 w-5 animate-spin rounded-full border-2 border-brand-primary/20 border-t-brand-primary" />
+                  Calculando rota...
+                </div>
+              ) : deliveryDetails && deliveryDetails.mode !== 'disabled' && deliveryCalculationStatus === 'success' ? (
+                <div className="space-y-3 rounded-2xl border border-green-100 bg-white p-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-slate-400"><Route className="h-3.5 w-3.5" /> Distância</div>
+                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{deliveryDetails.distanceKm.toFixed(1).replace('.', ',')} km</div>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase text-slate-400"><Clock3 className="h-3.5 w-3.5" /> Tempo</div>
+                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{deliveryDetails.durationMinutes == null ? '-' : `${deliveryDetails.durationMinutes} min`}</div>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 p-3">
+                      <div className="text-[10px] font-semibold uppercase text-slate-400">Valor por KM</div>
+                      <div className="mt-1 font-mono text-sm font-semibold text-slate-800">{formatCurrency(deliveryDetails.ratePerKm)}</div>
+                    </div>
+                    <div className="rounded-xl bg-brand-primary/10 p-3">
+                      <div className="text-[10px] font-semibold uppercase text-brand-primary/70">Valor total</div>
+                      <div className="mt-1 font-mono text-sm font-semibold text-brand-primary">{formatCurrency(deliveryDetails.fee)}</div>
+                    </div>
+                  </div>
+                  {deliveryDetails.mode === 'manual' && (
+                    <label className="block space-y-1.5 border-t border-slate-100 pt-3">
+                      <span className="text-[10px] font-semibold uppercase text-slate-400">Distância manual (KM)</span>
+                      <NumericInput
+                        value={manualDeliveryDistance}
+                        onValueChange={handleManualDeliveryDistance}
+                        min="0"
+                        max="10000"
+                        decimals={1}
+                        className="w-full rounded-xl border border-slate-100 bg-slate-50 px-3 py-2.5 text-sm outline-none"
+                      />
+                    </label>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex gap-2 text-sm font-medium text-amber-800">
+                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                    <span>{deliveryCalculationError || 'Selecione um cliente com endereço cadastrado.'}</span>
+                  </div>
+                  <label className="block space-y-1.5">
+                    <span className="text-[10px] font-semibold uppercase text-amber-700">Distância manual temporária (KM)</span>
+                    <NumericInput
+                      value={manualDeliveryDistance}
+                      onValueChange={handleManualDeliveryDistance}
+                      min="0"
+                      max="10000"
+                      decimals={1}
+                      className="w-full rounded-xl border border-amber-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-amber-200"
+                    />
+                  </label>
+                </div>
+              )}
+            </div>
+
             <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-display text-lg font-bold text-slate-800">Materiais do orçamento</h3>
+                  <h3 className="font-display text-lg font-semibold text-slate-800">Materiais do orçamento</h3>
                   <p className="text-xs text-slate-500">Preços personalizados ficam salvos apenas neste orçamento.</p>
                 </div>
                 {quoteMaterialPriceError && (
@@ -1693,7 +2113,7 @@ export const QuoteEditor: React.FC = () => {
 
             <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
               <div>
-                <h3 className="font-display text-lg font-bold text-slate-800">Pagamento</h3>
+                <h3 className="font-display text-lg font-semibold text-slate-800">Pagamento</h3>
                 <p className="text-xs text-slate-500">Defina a condição principal e confira o ajuste aplicado no cálculo.</p>
               </div>
               <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-3">
@@ -1781,7 +2201,7 @@ export const QuoteEditor: React.FC = () => {
 
             <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
               <div>
-                <h3 className="font-display text-lg font-bold text-slate-800">Ajustes finais</h3>
+                <h3 className="font-display text-lg font-semibold text-slate-800">Ajustes finais</h3>
                 <p className="text-xs text-slate-500">Use desconto e RT para simular a negociação sem perder a leitura do total.</p>
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -2209,7 +2629,7 @@ export const QuoteEditor: React.FC = () => {
 
                     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
                       <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor em uso</div>
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor da peça</div>
                         <div className="mt-2 font-mono text-lg font-bold text-slate-900">
                           {formatCurrency(basePiecePricingBreakdowns[pIdx]?.pieceSubtotalValue || 0)}
                         </div>
@@ -2239,6 +2659,28 @@ export const QuoteEditor: React.FC = () => {
                           {pieceManualPriceErrors[piece.id] || ((piece.pricingMode || 'automatic') === 'manual'
                             ? 'Esse valor manual substitui o cálculo automático desta peça.'
                             : 'Ative o modo manual para digitar um valor personalizado para esta peça.')}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                      <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Complexidade</div>
+                        <div className="mt-2 font-mono text-base font-bold text-slate-900">
+                          +{basePiecePricingBreakdowns[pIdx]?.complexityPercentage || 0}%
+                        </div>
+                        <div className="mt-1 truncate text-[11px] text-slate-500">{piece.complexityReason || 'Sem acréscimo'}</div>
+                      </div>
+                      <div className="rounded-2xl border border-slate-100 bg-white p-4">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor adicional</div>
+                        <div className="mt-2 font-mono text-base font-bold text-slate-900">
+                          {formatCurrency(basePiecePricingBreakdowns[pIdx]?.complexityValue || 0)}
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-brand-primary/20 bg-brand-primary/5 p-4">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-brand-primary/70">Valor final da peça</div>
+                        <div className="mt-2 font-mono text-base font-bold text-brand-primary">
+                          {formatCurrency(basePiecePricingBreakdowns[pIdx]?.pieceValueWithComplexity || 0)}
                         </div>
                       </div>
                     </div>

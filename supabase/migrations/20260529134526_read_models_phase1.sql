@@ -71,11 +71,11 @@ as $$
     'quotes_open', (
       select count(*)
       from public.quotes
-      where status in ('Orçamento', 'Orçamento Aprovado', 'Medição', 'Projeto', 'Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'Produção Finalizada', 'Conferência Final', 'Entrega')
+      where status in ('OrÃ§amento', 'OrÃ§amento Aprovado', 'MediÃ§Ã£o', 'Projeto', 'Projeto Aprovado', 'Corte', 'Acabamento', 'Montagem', 'ProduÃ§Ã£o Finalizada', 'ConferÃªncia Final', 'Entrega')
     ),
     'clients_total', (select count(*) from public.clients),
     'materials_active', (select count(*) from public.materials where active is true),
-    'inventory_available', (select count(*) from public.inventory where status = 'Disponível'),
+    'inventory_available', (select count(*) from public.inventory where status = 'DisponÃ­vel'),
     'inventory_reserved', (select count(*) from public.inventory where status = 'Reservada'),
     'revenue_total', (select coalesce(sum(total_price), 0) from public.quotes),
     'updated_at', timezone('utc'::text, now())

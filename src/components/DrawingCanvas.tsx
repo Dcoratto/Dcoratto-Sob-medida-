@@ -516,15 +516,15 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         ? parsed.sides
         : initialSides || EMPTY_SIDES;
       setCutouts(parsed.cutouts || initialCutouts || EMPTY_CUTOUTS);
-      setComplementos(normalizeComplementSides(savedSides));
+      setComplementos(savedSides);
       setLastPiece(parsed as SavedDrawing);
     } catch {
       setGeometries([]);
       setDrawPoints([]);
       setCutouts(initialCutouts || EMPTY_CUTOUTS);
-      setComplementos(normalizeComplementSides(initialSides || EMPTY_SIDES));
+      setComplementos(initialSides || EMPTY_SIDES);
     }
-  }, [initialCutouts, initialJson, initialSides, normalizeComplementSides, resetTransientState]);
+  }, [initialCutouts, initialJson, initialSides, resetTransientState]);
 
   useEffect(() => {
     setComplementos((current) => normalizeComplementSides(current));

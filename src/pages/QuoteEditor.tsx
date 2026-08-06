@@ -476,7 +476,10 @@ export const QuoteEditor: React.FC = () => {
   const sculptedLaborCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.sinkAdditionalValue, 0);
   const deliveryResolution = resolveLocationAmount(settings.deliveryPricing, locationContext);
   const deliveryFee = Math.max(0, Number(deliveryResolution.amount) || 0);
-  const subtotalBeforeComplexity = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.pieceSubtotalValue, 0) + laborCost + deliveryFee;
+  const piecesSubtotal = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.pieceSubtotalValue, 0);
+  const externalLaborCost = usesLinearLaborPricing ? 0 : laborCost;
+  const productionSubtotal = piecesSubtotal + externalLaborCost;
+  const subtotalBeforeComplexity = productionSubtotal + deliveryFee;
   const complexityPercent = Number(resolvedComplexity?.percent || 0);
   const complexityValue = subtotalBeforeComplexity * (complexityPercent / 100);
   const subtotalBeforeAdjustment = subtotalBeforeComplexity + complexityValue;
@@ -1459,14 +1462,25 @@ export const QuoteEditor: React.FC = () => {
                 <span className="text-[10px] font-bold uppercase tracking-[0.24em]">Resumo Financeiro</span>
               </div>
               <div className="mt-4 text-4xl font-display font-bold">{formatCurrency(totalPrice)}</div>
+              <div className="mt-2 text-xs font-semibold text-white/65">Valor final do orçamento</div>
               <div className="mt-5 space-y-2 text-sm text-white/80">
-                <div className="flex items-center justify-between gap-3"><span>Subtotal</span><strong className="text-white">{formatCurrency(subtotalBeforeComplexity)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Entrega</span><strong className="text-white">{formatCurrency(deliveryFee)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Área final total</span><strong className="text-white">{formatArea(totalArea)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Pedra base</span><strong className="text-white">{formatCurrency(stonesCost)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Perda material</span><strong className="text-white">{formatCurrency(materialLossCost)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Recortes</span><strong className="text-white">{formatCurrency(cutoutsCost)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Pia esculpida</span><strong className="text-white">{formatCurrency(sculptedLaborCost)}</strong></div>
                 <div className="flex items-center justify-between gap-3"><span>Mão de obra</span><strong className="text-white">{formatCurrency(laborCost)}</strong></div>
+                <div className="flex items-center justify-between gap-3 border-t border-white/15 pt-2"><span>Subtotal produção</span><strong className="text-white">{formatCurrency(productionSubtotal)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Entrega</span><strong className="text-white">{formatCurrency(deliveryFee)}</strong></div>
                 <div className="flex items-center justify-between gap-3"><span>Complexidade ({complexityPercent}%)</span><strong className="text-white">{formatCurrency(complexityValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong className="text-white">{formatCurrency(adjustmentValue)}</strong></div>
                 <div className="flex items-center justify-between gap-3"><span>Comissão ({normalizedCommissionPercent}%)</span><strong className="text-white">{formatCurrency(commissionValue)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Descontos</span><strong className="text-white">-{formatCurrency(negotiationDiscountValue)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Acréscimos</span><strong className="text-white">{formatCurrency(rtValue + adjustmentValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Descontos ({normalizedNegotiationDiscountPercent}%)</span><strong className="text-white">-{formatCurrency(negotiationDiscountValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Acréscimos ({normalizedRtPercent}%)</span><strong className="text-white">{formatCurrency(rtValue)}</strong></div>
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-white/10 px-4 py-3 text-base">
+                  <span className="font-bold text-white">Total final</span>
+                  <strong className="font-display text-xl text-white">{formatCurrency(totalPrice)}</strong>
+                </div>
               </div>
             </section>
 

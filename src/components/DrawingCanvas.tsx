@@ -226,6 +226,13 @@ const formatEditableMeasureValue = (value: number) => {
   return normalized.replace(/,?0+$/g, '');
 };
 
+const legacySideIndex: Record<string, number> = {
+  top: 0,
+  right: 1,
+  bottom: 2,
+  left: 3,
+};
+
 export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
   onSave,
   onSaveAndContinue,
@@ -365,6 +372,32 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       .sort((a, b) => a.name.localeCompare(b.name)),
     [cutoutType, fixtureCatalog],
   );
+
+  const normalizeComplementSides = useCallback((sourceSides?: PieceSide[]) => {
+    const sides = Array.isArray(sourceSides) ? sourceSides : EMPTY_SIDES;
+    if (!technicalSides.length) return sides;
+
+    let changed = false;
+    const normalized = sides.map((item) => {
+      if (technicalSides.some((side) => side.key === item.side)) return item;
+      const targetSide = technicalSides[legacySideIndex[item.side] ?? 0];
+      if (!targetSide) return item;
+      changed = true;
+      const length = targetSide.lengthM * 100;
+      const quantity = item.quantity || 1;
+      const area = (length / 100) * ((item.height || 0) / 100);
+      return {
+        ...item,
+        side: targetSide.key,
+        sideLabel: `${targetSide.name} (${formatMeters(targetSide.lengthM)})`,
+        length,
+        area,
+        areaTotal: area * quantity,
+      };
+    }).filter((item) => technicalSides.some((side) => side.key === item.side));
+
+    return changed ? normalized : sides.filter((item) => technicalSides.some((side) => side.key === item.side));
+  }, [technicalSides]);
   const selectedFixture = useMemo(
     () => availableFixtures.find((item) => item.id === selectedFixtureId),
     [availableFixtures, selectedFixtureId],
@@ -479,20 +512,23 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           : [];
       setGeometries(parsedGeometries);
       setDrawPoints([]);
+      const savedSides = Array.isArray(parsed.sides) && parsed.sides.length > 0
+        ? parsed.sides
+        : initialSides || EMPTY_SIDES;
       setCutouts(parsed.cutouts || initialCutouts || EMPTY_CUTOUTS);
-      setComplementos(parsed.sides || initialSides || EMPTY_SIDES);
+      setComplementos(normalizeComplementSides(savedSides));
       setLastPiece(parsed as SavedDrawing);
     } catch {
       setGeometries([]);
       setDrawPoints([]);
       setCutouts(initialCutouts || EMPTY_CUTOUTS);
-      setComplementos(initialSides || EMPTY_SIDES);
+      setComplementos(normalizeComplementSides(initialSides || EMPTY_SIDES));
     }
-  }, [initialJson, resetTransientState]);
+  }, [initialCutouts, initialJson, initialSides, normalizeComplementSides, resetTransientState]);
 
   useEffect(() => {
-    setComplementos((current) => current.filter((item) => technicalSides.some((side) => side.key === item.side)));
-  }, [technicalSides]);
+    setComplementos((current) => normalizeComplementSides(current));
+  }, [normalizeComplementSides]);
 
   useEffect(() => {
     setSelectedFixtureId('');

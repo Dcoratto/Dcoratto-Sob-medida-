@@ -97,8 +97,8 @@ const SidebarAccordionSection = ({
   children,
 }: {
   sectionKey: QuoteSidebarSectionKey;
-  openSection: QuoteSidebarSectionKey;
-  onToggle: (section: QuoteSidebarSectionKey) => void;
+  openSection: QuoteSidebarSectionKey | null;
+  onToggle: (section: QuoteSidebarSectionKey | null) => void;
   icon: React.ComponentType<{className?: string}>;
   title: string;
   description: string;
@@ -109,7 +109,7 @@ const SidebarAccordionSection = ({
     <section className="overflow-hidden rounded-[28px] border border-slate-100 bg-white shadow-sm">
       <button
         type="button"
-        onClick={() => onToggle(sectionKey)}
+        onClick={() => onToggle(isOpen ? null : sectionKey)}
         className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
       >
         <div className="flex min-w-0 items-start gap-3">
@@ -191,7 +191,7 @@ export const QuoteEditor: React.FC = () => {
   const [entryAmount, setEntryAmount] = useState('');
   const [installmentCount, setInstallmentCount] = useState(1);
   const [paymentNotes, setPaymentNotes] = useState('');
-  const [sidebarSection, setSidebarSection] = useState<QuoteSidebarSectionKey>('client');
+  const [sidebarSection, setSidebarSection] = useState<QuoteSidebarSectionKey | null>(null);
   const [complexityKey, setComplexityKey] = useState(DEFAULT_QUOTE_COMPLEXITY_OPTIONS[0].key);
   const [commissionPercent, setCommissionPercent] = useState('');
   const [negotiationDiscountPercent, setNegotiationDiscountPercent] = useState('');

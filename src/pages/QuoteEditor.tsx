@@ -1442,60 +1442,6 @@ export const QuoteEditor: React.FC = () => {
               </div>
             </div>
 
-            <div className="space-y-2 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
-              <div>
-                <h3 className="font-display text-lg font-bold text-slate-800">Modo de preço</h3>
-                <p className="text-xs text-slate-500">No preço de custo, a mão de obra da peça sai do cálculo do orçamento.</p>
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onClick={() => setQuotePricingMode('sale')}
-                  className={cn(
-                    'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
-                    quotePricingMode === 'sale' ? 'bg-brand-primary text-white shadow-sm' : 'bg-white text-slate-600',
-                  )}
-                >
-                  Preço de venda
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuotePricingMode('cost')}
-                  className={cn(
-                    'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
-                    quotePricingMode === 'cost' ? 'bg-brand-primary text-white shadow-sm' : 'bg-white text-slate-600',
-                  )}
-                >
-                  Preço de custo
-                </button>
-              </div>
-              <div className="rounded-2xl bg-white p-3">
-                <div className="mb-2 text-[11px] font-bold uppercase tracking-wide text-slate-400">Perda de material</div>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => setIncludeMaterialLoss(true)}
-                    className={cn(
-                      'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
-                      includeMaterialLoss ? 'bg-brand-primary text-white shadow-sm' : 'bg-slate-50 text-slate-600',
-                    )}
-                  >
-                    Com 10% de perda
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIncludeMaterialLoss(false)}
-                    className={cn(
-                      'rounded-2xl px-4 py-3 text-left text-sm font-semibold transition-all',
-                      !includeMaterialLoss ? 'bg-brand-primary text-white shadow-sm' : 'bg-slate-50 text-slate-600',
-                    )}
-                  >
-                    Sem 10% de perda
-                  </button>
-                </div>
-              </div>
-            </div>
-
             <div className="space-y-3 rounded-3xl border border-slate-100 bg-slate-50/70 p-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
@@ -2572,4 +2518,3 @@ export const QuoteEditor: React.FC = () => {
 };
 
 const X = ({ className }: any) => <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>;
-

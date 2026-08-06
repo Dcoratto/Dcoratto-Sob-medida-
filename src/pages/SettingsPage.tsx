@@ -2,17 +2,63 @@ import React, { useState, useEffect } from 'react';
 import { addDoc, collection, deleteDoc, doc, onSnapshot, orderBy, query, selectFields, setDoc, updateDoc } from '../lib/firestore';
 import { db } from '../lib/firestore';
 import { useSettings, DEFAULT_SETTINGS } from '../hooks/useSettings';
+import {ensureCityRule, sanitizeLocationPricingConfig, sanitizeQuoteComplexityOptions} from '../lib/locationPricing';
 import { useAuth } from '../contexts/AuthContext';
 import { Save, Plus, Trash2, Building, Phone, Mail, MapPin, Calculator, CreditCard, Scissors, Pencil } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { motion } from 'motion/react';
-import { CondominiumRule, SupplierContact } from '../types';
+import { CondominiumRule, QuoteComplexityOption, QuoteLocationPricingConfig, SupplierContact } from '../types';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
 
-export const SettingsPage: React.FC = () => {
+export type SettingsAdminModule =
+  | 'all'
+  | 'company'
+  | 'production'
+  | 'payment'
+  | 'catalog'
+  | 'suppliers'
+  | 'condominiums';
+
+type SettingsPageProps = {
+  module?: SettingsAdminModule;
+  embedded?: boolean;
+};
+
+const settingsModuleCopy: Record<SettingsAdminModule, {title: string; description: string}> = {
+  all: {
+    title: 'Configurações',
+    description: 'Gerencie os dados da empresa e valores padrão do sistema.',
+  },
+  company: {
+    title: 'Dados da Empresa',
+    description: 'Informações institucionais usadas nos orçamentos e documentos.',
+  },
+  production: {
+    title: 'Mão de Obra e Produção',
+    description: 'Parâmetros de produção, medidas, recortes e serviços adicionais.',
+  },
+  payment: {
+    title: 'Formas de Pagamento',
+    description: 'Condições, ajustes e opções exibidas nos orçamentos.',
+  },
+  catalog: {
+    title: 'Catálogo de Chapas',
+    description: 'Opções de materiais, categorias, espessuras, acabamentos e cores.',
+  },
+  suppliers: {
+    title: 'Fornecedores',
+    description: 'Cadastros usados pelo catálogo de chapas e compras.',
+  },
+  condominiums: {
+    title: 'Condomínios e Regras',
+    description: 'Regras operacionais por condomínio, cidade e horários permitidos.',
+  },
+};
+
+export const SettingsPage: React.FC<SettingsPageProps> = ({module = 'all', embedded = false}) => {
   const { settings: currentSettings, loading } = useSettings();
   const { isAdmin } = useAuth();
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -42,6 +88,7 @@ export const SettingsPage: React.FC = () => {
   const condoDraftKey = `settings-condo-draft`;
   type MaterialCatalogListField = Exclude<keyof typeof settings.materialCatalog, 'suppliers'>;
   const createSupplierId = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  const showModule = (target: SettingsAdminModule) => module === 'all' || module === target;
 
   useEffect(() => {
     const unsubscribe = onSnapshot(query(
@@ -125,6 +172,9 @@ export const SettingsPage: React.FC = () => {
     return {
       ...sourceSettings,
       laborMinimumByRegion,
+      laborPricing: sanitizeLocationPricingConfig(sourceSettings.laborPricing, 'linear'),
+      deliveryPricing: sanitizeLocationPricingConfig(sourceSettings.deliveryPricing, 'location'),
+      quoteComplexityOptions: sanitizeQuoteComplexityOptions(sourceSettings.quoteComplexityOptions),
       paymentMethods: sanitizedPaymentMethods.length ? sanitizedPaymentMethods : DEFAULT_SETTINGS.paymentMethods,
       materialCatalog: {
         ...sourceSettings.materialCatalog,
@@ -151,6 +201,114 @@ export const SettingsPage: React.FC = () => {
         suppliers: sanitizedSuppliers,
       },
     };
+  };
+
+  const updateLocationPricing = (
+    field: 'laborPricing' | 'deliveryPricing',
+    updater: (current: QuoteLocationPricingConfig) => QuoteLocationPricingConfig,
+  ) => {
+    const nextSettings = {
+      ...settings,
+      [field]: updater(settings[field]),
+    };
+    setSettings(nextSettings);
+    return nextSettings;
+  };
+
+  const addLocationCityRule = (field: 'laborPricing' | 'deliveryPricing') => {
+    updateLocationPricing(field, (current) => ({
+      ...current,
+      cityRules: [
+        ...(current.cityRules || []),
+        ensureCityRule({city: '', amount: 0, districts: []}),
+      ],
+    }));
+  };
+
+  const updateLocationCityRule = (
+    field: 'laborPricing' | 'deliveryPricing',
+    index: number,
+    patch: Partial<QuoteLocationPricingConfig['cityRules'][number]>,
+  ) => {
+    updateLocationPricing(field, (current) => ({
+      ...current,
+      cityRules: (current.cityRules || []).map((cityRule, cityIndex) => cityIndex === index ? {...cityRule, ...patch} : cityRule),
+    }));
+  };
+
+  const removeLocationCityRule = (field: 'laborPricing' | 'deliveryPricing', index: number) => {
+    updateLocationPricing(field, (current) => ({
+      ...current,
+      cityRules: (current.cityRules || []).filter((_, cityIndex) => cityIndex !== index),
+    }));
+  };
+
+  const addLocationDistrictRule = (field: 'laborPricing' | 'deliveryPricing', cityIndex: number) => {
+    updateLocationPricing(field, (current) => ({
+      ...current,
+      cityRules: (current.cityRules || []).map((cityRule, currentCityIndex) => currentCityIndex === cityIndex ? {
+        ...cityRule,
+        districts: [
+          ...(cityRule.districts || []),
+          {id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, district: '', amount: 0, active: true},
+        ],
+      } : cityRule),
+    }));
+  };
+
+  const updateLocationDistrictRule = (
+    field: 'laborPricing' | 'deliveryPricing',
+    cityIndex: number,
+    districtIndex: number,
+    patch: Partial<QuoteLocationPricingConfig['cityRules'][number]['districts'][number]>,
+  ) => {
+    updateLocationPricing(field, (current) => ({
+      ...current,
+      cityRules: (current.cityRules || []).map((cityRule, currentCityIndex) => currentCityIndex === cityIndex ? {
+        ...cityRule,
+        districts: (cityRule.districts || []).map((districtRule, currentDistrictIndex) => currentDistrictIndex === districtIndex ? {...districtRule, ...patch} : districtRule),
+      } : cityRule),
+    }));
+  };
+
+  const removeLocationDistrictRule = (field: 'laborPricing' | 'deliveryPricing', cityIndex: number, districtIndex: number) => {
+    updateLocationPricing(field, (current) => ({
+      ...current,
+      cityRules: (current.cityRules || []).map((cityRule, currentCityIndex) => currentCityIndex === cityIndex ? {
+        ...cityRule,
+        districts: (cityRule.districts || []).filter((_, currentDistrictIndex) => currentDistrictIndex !== districtIndex),
+      } : cityRule),
+    }));
+  };
+
+  const addComplexityOption = () => {
+    setSettings({
+      ...settings,
+      quoteComplexityOptions: [
+        ...(settings.quoteComplexityOptions || []),
+        {
+          key: `opcao-${Date.now()}`,
+          label: 'Nova complexidade',
+          percent: 0,
+          active: true,
+          sortOrder: (settings.quoteComplexityOptions || []).length,
+        },
+      ],
+    });
+  };
+
+  const updateComplexityOption = (index: number, patch: Partial<QuoteComplexityOption>) => {
+    setSettings({
+      ...settings,
+      quoteComplexityOptions: (settings.quoteComplexityOptions || []).map((option, optionIndex) => optionIndex === index ? {...option, ...patch} : option),
+    });
+  };
+
+  const removeComplexityOption = (index: number) => {
+    setSettings({
+      ...settings,
+      quoteComplexityOptions: (settings.quoteComplexityOptions || []).filter((_, optionIndex) => optionIndex !== index),
+    });
   };
 
   useEffect(() => {
@@ -404,34 +562,46 @@ export const SettingsPage: React.FC = () => {
 
   if (loading) return <div>Carregando...</div>;
 
+  const moduleCopy = settingsModuleCopy[module];
+  const saveButton = (
+    <button
+      onClick={handleSave}
+      disabled={saving || !isAdmin}
+      className={cn(
+        "flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold transition-all shadow-lg active:scale-95 disabled:opacity-50",
+        success ?"bg-green-600 text-white shadow-green-200" : "bg-brand-primary text-white shadow-brand-primary/20"
+      )}
+    >
+      {saving ?(
+        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      ) : (
+        <>
+          <Save className="w-5 h-5" />
+          {success ?'Salvo!' : 'Salvar Alterações'}
+        </>
+      )}
+    </button>
+  );
+
   return (
     <div className="w-full space-y-6 pb-4">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Configurações</h1>
-          <p className="text-slate-500 mt-1">Gerencie os dados da empresa e valores padrão do sistema.</p>
+      {embedded ? (
+        <div className="flex justify-end">
+          {saveButton}
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving || !isAdmin}
-          className={cn(
-            "flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold transition-all shadow-lg active:scale-95 disabled:opacity-50",
-            success ?"bg-green-600 text-white shadow-green-200" : "bg-brand-primary text-white shadow-brand-primary/20"
-          )}
-        >
-          {saving ?(
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : (
-            <>
-              <Save className="w-5 h-5" />
-              {success ?'Salvo!' : 'Salvar Alterações'}
-            </>
-          )}
-        </button>
-      </header>
+      ) : (
+        <header className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">{moduleCopy.title}</h1>
+            <p className="text-slate-500 mt-1">{moduleCopy.description}</p>
+          </div>
+          {saveButton}
+        </header>
+      )}
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 text-sm">
+      <div className={cn("grid grid-cols-1 gap-6 text-sm", module === 'all' && "xl:grid-cols-3")}>
         {/* Empresa */}
+        {showModule('company') && (
         <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6">
           <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
             <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
@@ -480,8 +650,11 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
         </section>
+        )}
 
         {/* Padrões Financeiros e Medidas */}
+        {showModule('production') && (
+        <>
         <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-2">
           <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
             <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
@@ -641,6 +814,168 @@ export const SettingsPage: React.FC = () => {
           </div>
         </section>
 
+        <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-2">
+          <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
+            <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <h2 className="font-display font-bold text-lg text-slate-800">Precificação por localização</h2>
+          </div>
+
+          <div className="grid gap-6 xl:grid-cols-2">
+            {([
+              {
+                key: 'laborPricing' as const,
+                title: 'Mão de obra',
+                description: 'Defina modo linear legado, valor fixo ou regra por cidade e bairro.',
+              },
+              {
+                key: 'deliveryPricing' as const,
+                title: 'Taxa de entrega',
+                description: 'Aplicação automática por bairro, cidade e valor padrão.',
+              },
+            ]).map((section) => (
+              <div key={section.key} className="space-y-4 rounded-[24px] border border-slate-100 bg-slate-50/70 p-4">
+                <div>
+                  <h3 className="font-display font-bold text-base text-slate-800">{section.title}</h3>
+                  <p className="mt-1 text-xs text-slate-500">{section.description}</p>
+                </div>
+
+                {section.key === 'laborPricing' && (
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Modo</label>
+                    <select
+                      value={settings.laborPricing.mode || 'linear'}
+                      onChange={(e) => updateLocationPricing('laborPricing', (current) => ({...current, mode: e.target.value as QuoteLocationPricingConfig['mode']}))}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
+                    >
+                      <option value="linear">Linear legado</option>
+                      <option value="fixed">Valor fixo</option>
+                      <option value="location">Por localização</option>
+                    </select>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Valor padrão</label>
+                    <CurrencyInput
+                      value={settings[section.key].defaultAmount || 0}
+                      onValueChange={(value) => updateLocationPricing(section.key, (current) => ({...current, defaultAmount: value}))}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Valor fixo</label>
+                    <CurrencyInput
+                      value={settings[section.key].fixedAmount || 0}
+                      onValueChange={(value) => updateLocationPricing(section.key, (current) => ({...current, fixedAmount: value}))}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {(settings[section.key].cityRules || []).map((cityRule, cityIndex) => (
+                    <div key={cityRule.id || cityIndex} className="rounded-2xl border border-slate-100 bg-white p-4 space-y-3">
+                      <div className="flex items-center gap-3">
+                        <input
+                          value={cityRule.city}
+                          onChange={(e) => updateLocationCityRule(section.key, cityIndex, {city: e.target.value})}
+                          placeholder="Cidade"
+                          className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                        />
+                        <div className="w-40">
+                          <CurrencyInput
+                            value={cityRule.amount || 0}
+                            onValueChange={(value) => updateLocationCityRule(section.key, cityIndex, {amount: value})}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                          />
+                        </div>
+                        <button type="button" onClick={() => removeLocationCityRule(section.key, cityIndex)} className="p-2 text-slate-400 hover:text-red-500">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {(cityRule.districts || []).map((districtRule, districtIndex) => (
+                          <div key={districtRule.id || districtIndex} className="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-3">
+                            <input
+                              value={districtRule.district}
+                              onChange={(e) => updateLocationDistrictRule(section.key, cityIndex, districtIndex, {district: e.target.value})}
+                              placeholder="Bairro"
+                              className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                            />
+                            <div className="w-36">
+                              <CurrencyInput
+                                value={districtRule.amount || 0}
+                                onValueChange={(value) => updateLocationDistrictRule(section.key, cityIndex, districtIndex, {amount: value})}
+                                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                              />
+                            </div>
+                            <button type="button" onClick={() => removeLocationDistrictRule(section.key, cityIndex, districtIndex)} className="p-1.5 text-slate-400 hover:text-red-500">
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+
+                        <button type="button" onClick={() => addLocationDistrictRule(section.key, cityIndex)} className="inline-flex items-center gap-2 text-sm font-semibold text-brand-primary">
+                          <Plus className="w-4 h-4" /> Adicionar bairro
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+
+                  <button type="button" onClick={() => addLocationCityRule(section.key)} className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white">
+                    <Plus className="w-4 h-4" /> Adicionar cidade
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-4 space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h3 className="font-display font-bold text-base text-slate-800">Complexidade do orçamento</h3>
+                <p className="mt-1 text-xs text-slate-500">Percentuais usados no módulo de orçamento para recalcular o valor final.</p>
+              </div>
+              <button type="button" onClick={addComplexityOption} className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white">
+                <Plus className="w-4 h-4" /> Adicionar opção
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {(settings.quoteComplexityOptions || []).map((option, index) => (
+                <div key={option.key || index} className="grid gap-3 rounded-2xl border border-slate-100 bg-white p-4 md:grid-cols-[minmax(0,1.3fr)_140px_120px_44px]">
+                  <input
+                    value={option.label}
+                    onChange={(e) => updateComplexityOption(index, {label: e.target.value, key: e.target.value.trim().toLowerCase().replace(/\s+/g, '-') || option.key})}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                    placeholder="Nome"
+                  />
+                  <NumericInput
+                    value={option.percent || 0}
+                    onValueChange={(value) => updateComplexityOption(index, {percent: value})}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                  />
+                  <select
+                    value={option.active === false ? 'inactive' : 'active'}
+                    onChange={(e) => updateComplexityOption(index, {active: e.target.value === 'active'})}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                  >
+                    <option value="active">Ativo</option>
+                    <option value="inactive">Inativo</option>
+                  </select>
+                  <button type="button" onClick={() => removeComplexityOption(index)} className="p-2 text-slate-400 hover:text-red-500">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Mao de obra Pia Esculpida */}
         <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6">
           <div className="flex items-center gap-3 pb-4 border-b border-slate-50">
@@ -697,8 +1032,11 @@ export const SettingsPage: React.FC = () => {
             </div>
           </div>
         </section>
+        </>
+        )}
 
         {/* Formas de Pagamento */}
+        {showModule('payment') && (
         <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-2">
           <div className="flex items-center justify-between pb-4 border-b border-slate-50">
             <div className="flex items-center gap-3">
@@ -767,7 +1105,9 @@ export const SettingsPage: React.FC = () => {
             ))}
           </div>
         </section>
+        )}
 
+        {showModule('catalog') && (
         <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-3">
           <div className="flex items-center justify-between pb-4 border-b border-slate-50">
             <div className="flex items-center gap-3">
@@ -812,6 +1152,22 @@ export const SettingsPage: React.FC = () => {
               />
             ))}
           </div>
+        </section>
+        )}
+
+        {showModule('suppliers') && (
+        <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-3">
+          <div className="flex items-center justify-between pb-4 border-b border-slate-50">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-brand-primary/10 rounded-xl flex items-center justify-center text-brand-primary">
+                <Building className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="font-display font-bold text-lg text-slate-800">Fornecedores</h2>
+                <p className="text-sm text-slate-400">Cadastros preparados para relacionamento com o catálogo de chapas.</p>
+              </div>
+            </div>
+          </div>
 
           <SupplierCatalogField
             suppliers={settings.materialCatalog.suppliers}
@@ -821,7 +1177,9 @@ export const SettingsPage: React.FC = () => {
             feedback={supplierFeedback}
           />
         </section>
+        )}
 
+        {showModule('condominiums') && (
         <section className="bg-white p-6 rounded-[24px] border border-slate-100 shadow-sm space-y-6 xl:col-span-3">
           <div className="flex items-center justify-between pb-4 border-b border-slate-50">
             <div className="flex items-center gap-3">
@@ -953,6 +1311,7 @@ export const SettingsPage: React.FC = () => {
             )}
           </div>
         </section>
+        )}
       </div>
     </div>
   );

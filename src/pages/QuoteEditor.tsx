@@ -9,8 +9,9 @@ import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
   ChevronDown, ChevronUp, Calculator,
   MapPin, Phone, User,
-  Layers, PenTool
+  Layers, PenTool, Building2, Mail, Package2, BadgeDollarSign, CreditCard, Truck, ReceiptText, Wrench, Boxes, Percent, NotebookText
 } from 'lucide-react';
+import {DEFAULT_QUOTE_COMPLEXITY_OPTIONS, resolveLaborAmount, resolveLocationAmount} from '../lib/locationPricing';
 import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, parseCurrencyInput, parseMeasureInput, roundNumber } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
@@ -28,9 +29,10 @@ import {getInventoryItemArea} from '../lib/inventoryMetrics';
 import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {LABELS} from '../constants/labels';
 import {imageVariantUrl} from '../lib/storage';
-import {NumericInput} from '../components/inputs/NumericInput';
+import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
+type QuoteSidebarSectionKey = 'client' | 'materials' | 'pricing' | 'payment';
 
 const MATERIAL_PRICE_MINIMUM_ERROR = 'O valor personalizado não pode ser menor que o valor mínimo definido para este material.';
 
@@ -79,6 +81,56 @@ const inputValuesFromPieceManualPrices = (pieces?: QuotePiece[]) =>
   }, {} as Record<string, string>);
 
 const pieceMeasureInputKey = (pieceId: string, field: 'length' | 'width') => `${pieceId}:${field}`;
+
+const parseInstallmentCountFromMethod = (value?: string) => {
+  const match = String(value || '').match(/(\d{1,2})\s*x/i);
+  return match ? Math.max(1, Number(match[1]) || 1) : 1;
+};
+
+const SidebarAccordionSection = ({
+  sectionKey,
+  openSection,
+  onToggle,
+  icon: Icon,
+  title,
+  description,
+  children,
+}: {
+  sectionKey: QuoteSidebarSectionKey;
+  openSection: QuoteSidebarSectionKey;
+  onToggle: (section: QuoteSidebarSectionKey) => void;
+  icon: React.ComponentType<{className?: string}>;
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}) => {
+  const isOpen = openSection === sectionKey;
+  return (
+    <section className="overflow-hidden rounded-[28px] border border-slate-100 bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={() => onToggle(sectionKey)}
+        className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+      >
+        <div className="flex min-w-0 items-start gap-3">
+          <div className={cn('mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors', isOpen ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')}>
+            <Icon className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <div className="font-display text-lg font-bold text-slate-900">{title}</div>
+            <p className="mt-1 text-xs text-slate-500">{description}</p>
+          </div>
+        </div>
+        <ChevronDown className={cn('h-5 w-5 shrink-0 text-slate-400 transition-transform', isOpen && 'rotate-180')} />
+      </button>
+      <div className={cn('grid transition-all duration-300 ease-out', isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
+        <div className="overflow-hidden">
+          <div className="border-t border-slate-100 px-5 py-5">{children}</div>
+        </div>
+      </div>
+    </section>
+  );
+};
 
 const normalizeStockStatus = (value: unknown) =>
   String(value || '')
@@ -137,6 +189,11 @@ export const QuoteEditor: React.FC = () => {
   const [totalPaymentMethod, setTotalPaymentMethod] = useState('');
   const [remainingPaymentMethod, setRemainingPaymentMethod] = useState('');
   const [entryAmount, setEntryAmount] = useState('');
+  const [installmentCount, setInstallmentCount] = useState(1);
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [sidebarSection, setSidebarSection] = useState<QuoteSidebarSectionKey>('client');
+  const [complexityKey, setComplexityKey] = useState(DEFAULT_QUOTE_COMPLEXITY_OPTIONS[0].key);
+  const [commissionPercent, setCommissionPercent] = useState('');
   const [negotiationDiscountPercent, setNegotiationDiscountPercent] = useState('');
   const [rtPercent, setRtPercent] = useState('');
   const [deliveryDays, setDeliveryDays] = useState(15);
@@ -347,6 +404,12 @@ export const QuoteEditor: React.FC = () => {
   const selectedClient = clients.find(c => c.id === clientId);
   const { calculatePieceArea, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey));
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
+  const activeComplexityOptions = useMemo(
+    () => (settings.quoteComplexityOptions || DEFAULT_QUOTE_COMPLEXITY_OPTIONS)
+      .filter((option) => option.active !== false)
+      .sort((a, b) => a.sortOrder - b.sortOrder),
+    [settings.quoteComplexityOptions],
+  );
   
   const pieceManualPriceErrors = useMemo(() =>
     pieces.reduce((acc, piece) => {
@@ -370,6 +433,13 @@ export const QuoteEditor: React.FC = () => {
   const remainingMethodAdjustment = settings.paymentMethods.find(m => m.name === remainingPaymentMethod)?.adjustment || 0;
   const totalArea = pieces.reduce((acc, p) => acc + calculatePieceArea(p).totalArea, 0);
   const pieceAreaDetails = pieces.map((piece) => ({piece, totals: calculatePieceArea(piece), material: materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)}));
+  const locationContext = {
+    city: selectedClient?.city,
+    district: selectedClient?.neighborhood,
+    address: selectedClient?.address,
+  };
+  const resolvedComplexity = activeComplexityOptions.find((option) => option.key === complexityKey) || activeComplexityOptions[0] || DEFAULT_QUOTE_COMPLEXITY_OPTIONS[0];
+  const usesLinearLaborPricing = (settings.laborPricing?.mode || 'linear') === 'linear';
   const basePiecePricingBreakdowns = useMemo(
     () => buildPiecePricingBreakdowns({
       pieces,
@@ -381,7 +451,7 @@ export const QuoteEditor: React.FC = () => {
       },
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
-      includeLabor: quotePricingMode !== 'cost',
+      includeLabor: quotePricingMode !== 'cost' && usesLinearLaborPricing,
       includeMaterialLoss,
       resolveManualPiecePrice: (piece) => {
         if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
@@ -389,25 +459,52 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings],
+    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, usesLinearLaborPricing],
   );
   const stonesCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.stoneBaseValue, 0);
   const materialLossCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
-  const laborCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.laborValue, 0);
+  const linearLaborCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.laborValue, 0);
+  const resolvedLaborPricing = quotePricingMode === 'cost'
+    ? {amount: 0, source: 'disabled' as const, city: '', district: ''}
+    : resolveLaborAmount(settings.laborPricing, locationContext);
+  const laborCost = quotePricingMode === 'cost'
+    ? 0
+    : resolvedLaborPricing.source === 'linear'
+      ? linearLaborCost
+      : resolvedLaborPricing.amount;
   const cutoutsCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.cutoutValue, 0);
   const sculptedLaborCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.sinkAdditionalValue, 0);
-  const subtotalBeforeAdjustment = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.pieceSubtotalValue, 0);
+  const deliveryResolution = resolveLocationAmount(settings.deliveryPricing, locationContext);
+  const deliveryFee = Math.max(0, Number(deliveryResolution.amount) || 0);
+  const subtotalBeforeComplexity = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.pieceSubtotalValue, 0) + laborCost + deliveryFee;
+  const complexityPercent = Number(resolvedComplexity?.percent || 0);
+  const complexityValue = subtotalBeforeComplexity * (complexityPercent / 100);
+  const subtotalBeforeAdjustment = subtotalBeforeComplexity + complexityValue;
   const normalizedEntryAmount = Math.min(Math.max(Number(entryAmount) || 0, 0), subtotalBeforeAdjustment);
   const financedAmount = Math.max(0, subtotalBeforeAdjustment - normalizedEntryAmount);
   const selectedPaymentAdjustment = paymentMode === 'entry' ? remainingMethodAdjustment : totalMethodAdjustment;
   const adjustmentBase = paymentMode === 'entry' ? financedAmount : subtotalBeforeAdjustment;
   const adjustmentValue = adjustmentBase * (selectedPaymentAdjustment / 100);
   const paymentAdjustedTotal = subtotalBeforeAdjustment + adjustmentValue;
+  const normalizedCommissionPercent = Math.max(0, Number(commissionPercent) || 0);
   const normalizedNegotiationDiscountPercent = Math.max(0, Number(negotiationDiscountPercent) || 0);
   const normalizedRtPercent = Math.max(0, Number(rtPercent) || 0);
+  const commissionValue = paymentAdjustedTotal * (normalizedCommissionPercent / 100);
   const negotiationDiscountValue = paymentAdjustedTotal * (normalizedNegotiationDiscountPercent / 100);
   const rtValue = paymentAdjustedTotal * (normalizedRtPercent / 100);
-  const totalPrice = paymentAdjustedTotal - negotiationDiscountValue + rtValue;
+  const totalPrice = paymentAdjustedTotal + commissionValue - negotiationDiscountValue + rtValue;
+  const normalizedInstallmentCount = Math.max(1, Number(installmentCount) || 1);
+  const installmentBase = paymentMode === 'entry' ? Math.max(0, totalPrice - normalizedEntryAmount) : totalPrice;
+  const installmentAmount = normalizedInstallmentCount > 0 ? installmentBase / normalizedInstallmentCount : installmentBase;
+  const materialBaseCost = pieceAreaDetails.reduce((acc, {totals, material}) => {
+    const costPerM2 = Number(material?.baseCostPerM2 || 0);
+    const lossArea = includeMaterialLoss ? Number(totals.lossArea || 0) : 0;
+    return acc + ((totals.totalArea || 0) + lossArea) * costPerM2;
+  }, 0);
+  const estimatedOperationalCost = materialBaseCost + laborCost + deliveryFee + cutoutsCost + sculptedLaborCost;
+  const estimatedProfitPercent = estimatedOperationalCost > 0
+    ? ((totalPrice - estimatedOperationalCost) / estimatedOperationalCost) * 100
+    : 0;
   const resolvedPaymentMethod = paymentMode === 'entry'
     ? [
       normalizedEntryAmount > 0 ? `Entrada de ${formatCurrency(normalizedEntryAmount)}` : 'Entrada',
@@ -540,6 +637,10 @@ export const QuoteEditor: React.FC = () => {
       setTotalPaymentMethod(String(draft.totalPaymentMethod || draft.paymentMethod || ''));
       setRemainingPaymentMethod(String(draft.remainingPaymentMethod || ''));
       setEntryAmount(String(draft.entryAmount || ''));
+      setInstallmentCount(Math.max(1, Number(draft.installmentCount) || 1));
+      setPaymentNotes(String(draft.paymentNotes || ''));
+      setComplexityKey(String(draft.complexityKey || DEFAULT_QUOTE_COMPLEXITY_OPTIONS[0].key));
+      setCommissionPercent(String(draft.commissionPercent || ''));
       setNegotiationDiscountPercent(String(draft.negotiationDiscountPercent || ''));
       setRtPercent(String(draft.rtPercent || ''));
       setDeliveryDays(Number(draft.deliveryDays) || 15);
@@ -578,6 +679,10 @@ export const QuoteEditor: React.FC = () => {
           setTotalPaymentMethod(data.totalPaymentMethod || data.paymentMethod || '');
           setRemainingPaymentMethod(data.remainingPaymentMethod || '');
           setEntryAmount(data.entryAmount ? String(data.entryAmount) : '');
+          setInstallmentCount(Math.max(1, Number(data.installmentCount) || 1));
+          setPaymentNotes(data.paymentNotes || '');
+          setComplexityKey(data.complexityKey || DEFAULT_QUOTE_COMPLEXITY_OPTIONS[0].key);
+          setCommissionPercent(data.commissionPercent ? String(data.commissionPercent) : '');
           setNegotiationDiscountPercent(data.negotiationDiscountPercent ? String(data.negotiationDiscountPercent) : '');
           setRtPercent(data.rtPercent ? String(data.rtPercent) : '');
           setDeliveryDays(data.deliveryDays);
@@ -651,6 +756,12 @@ export const QuoteEditor: React.FC = () => {
   }, [currentUserName, id, responsible]);
 
   useEffect(() => {
+    if (!activeComplexityOptions.length) return;
+    if (activeComplexityOptions.some((option) => option.key === complexityKey)) return;
+    setComplexityKey(activeComplexityOptions[0].key);
+  }, [activeComplexityOptions, complexityKey]);
+
+  useEffect(() => {
     syncPieceMeasureInputs(pieces);
   }, [activePieceMeasureInput, pieces]);
 
@@ -667,6 +778,13 @@ export const QuoteEditor: React.FC = () => {
   }, [normalizedEntryAmount, paymentMode, remainingPaymentMethod, totalPaymentMethod]);
 
   useEffect(() => {
+    const referenceMethod = paymentMode === 'entry' ? remainingPaymentMethod : totalPaymentMethod;
+    const inferredInstallments = parseInstallmentCountFromMethod(referenceMethod);
+    if (!referenceMethod || inferredInstallments <= 1) return;
+    setInstallmentCount((current) => current > 1 ? current : inferredInstallments);
+  }, [paymentMode, remainingPaymentMethod, totalPaymentMethod]);
+
+  useEffect(() => {
     if (loading || !quoteDraftHydratedRef.current) return;
 
     const savedAt = saveDraft(quoteDraftKey, {
@@ -680,6 +798,10 @@ export const QuoteEditor: React.FC = () => {
       totalPaymentMethod,
       remainingPaymentMethod,
       entryAmount,
+      installmentCount,
+      paymentNotes,
+      complexityKey,
+      commissionPercent,
       negotiationDiscountPercent,
       rtPercent,
       deliveryDays,
@@ -700,7 +822,7 @@ export const QuoteEditor: React.FC = () => {
       pieceMaterialSearch,
     });
     if (savedAt) setQuoteDraftSavedAt(savedAt);
-  }, [clientId, clientSearch, commercialNotes, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, includeMaterialLoss, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, pieceManualPriceInputs, pieceMaterialSearch, pieces, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
+  }, [clientId, clientSearch, commercialNotes, commissionPercent, complexityKey, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, includeMaterialLoss, installmentCount, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, paymentNotes, pieceManualPriceInputs, pieceMaterialSearch, pieces, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
 
   const clearQuoteDraftState = () => {
     clearDraft(quoteDraftKey);
@@ -1010,7 +1132,7 @@ export const QuoteEditor: React.FC = () => {
       },
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
-      includeLabor: quotePricingMode !== 'cost',
+      includeLabor: quotePricingMode !== 'cost' && usesLinearLaborPricing,
       includeMaterialLoss,
       resolveManualPiecePrice: (piece) => {
         if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
@@ -1018,7 +1140,7 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, totalPrice],
+    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, totalPrice, usesLinearLaborPricing],
   );
   const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
     cooktop: 'cooktop',
@@ -1181,8 +1303,11 @@ export const QuoteEditor: React.FC = () => {
       clientId,
       clientName: selectedClient?.name || '',
       phone: selectedClient?.phone || '',
+      clientEmail: selectedClient?.email || '',
+      clientCpf: selectedClient?.cpf || '',
       address: selectedClient?.address || '',
       city: selectedClient?.city || '',
+      neighborhood: selectedClient?.neighborhood || '',
       environment,
       responsible,
       responsibleUserUid: appUid || '',
@@ -1194,6 +1319,10 @@ export const QuoteEditor: React.FC = () => {
       totalPaymentMethod,
       remainingPaymentMethod,
       entryAmount: normalizedEntryAmount,
+      installmentCount: normalizedInstallmentCount,
+      installmentAmount: Number(installmentAmount.toFixed(2)),
+      paymentNotes,
+      commissionPercent: normalizedCommissionPercent,
       negotiationDiscountPercent: normalizedNegotiationDiscountPercent,
       rtPercent: normalizedRtPercent,
       deliveryDays,
@@ -1202,6 +1331,11 @@ export const QuoteEditor: React.FC = () => {
       status,
       totalArea: normalizedTotalArea,
       totalPrice: normalizedTotalPrice,
+      laborCharge: Number(laborCost.toFixed(2)),
+      deliveryFee: Number(deliveryFee.toFixed(2)),
+      complexityKey: resolvedComplexity.key,
+      complexityLabel: resolvedComplexity.label,
+      complexityPercent: Number(complexityPercent.toFixed(2)),
       pricingMode: quotePricingMode,
       includeMaterialLoss,
       pieces: piecesWithStatus,
@@ -1317,8 +1451,220 @@ export const QuoteEditor: React.FC = () => {
       <DraftAutosaveStatus savedAt={quoteDraftSavedAt} />
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-8">
+        <div className="lg:col-span-1">
+          <div className="space-y-5 lg:sticky lg:top-6">
+            <section className="rounded-[32px] bg-brand-primary p-6 text-white shadow-xl shadow-brand-primary/20">
+              <div className="flex items-center gap-2 opacity-80">
+                <Calculator className="h-5 w-5" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.24em]">Resumo Financeiro</span>
+              </div>
+              <div className="mt-4 text-4xl font-display font-bold">{formatCurrency(totalPrice)}</div>
+              <div className="mt-5 space-y-2 text-sm text-white/80">
+                <div className="flex items-center justify-between gap-3"><span>Subtotal</span><strong className="text-white">{formatCurrency(subtotalBeforeComplexity)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Entrega</span><strong className="text-white">{formatCurrency(deliveryFee)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Mão de obra</span><strong className="text-white">{formatCurrency(laborCost)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Complexidade ({complexityPercent}%)</span><strong className="text-white">{formatCurrency(complexityValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Comissão ({normalizedCommissionPercent}%)</span><strong className="text-white">{formatCurrency(commissionValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Descontos</span><strong className="text-white">-{formatCurrency(negotiationDiscountValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Acréscimos</span><strong className="text-white">{formatCurrency(rtValue + adjustmentValue)}</strong></div>
+              </div>
+            </section>
+
+            <SidebarAccordionSection sectionKey="client" openSection={sidebarSection} onToggle={setSidebarSection} icon={Building2} title="Dados do Cliente" description="Identificação do cliente e dados operacionais do orçamento.">
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Nome</label>
+                  <div className="relative">
+                    <input
+                      value={clientSearch}
+                      onFocus={() => setClientPickerOpen(true)}
+                      onChange={(e) => {
+                        setClientSearch(e.target.value);
+                        setClientId('');
+                        setClientPickerOpen(true);
+                      }}
+                      className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 pr-10 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                      placeholder="Pesquisar cliente..."
+                    />
+                    <button type="button" onClick={() => setClientPickerOpen((value) => !value)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                      <ChevronDown className="h-4 w-4" />
+                    </button>
+                    {clientPickerOpen && (
+                      <div className="absolute left-0 right-0 top-[calc(100%+6px)] z-50 max-h-56 overflow-auto rounded-2xl border border-slate-100 bg-white p-2 shadow-xl">
+                        <button
+                          type="button"
+                          onMouseDown={(event) => event.preventDefault()}
+                          onClick={() => {
+                            setClientId('');
+                            setClientSearch('');
+                            setClientPickerOpen(false);
+                          }}
+                          className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-500 hover:bg-slate-50"
+                        >
+                          Selecionar cliente
+                        </button>
+                        {filteredClients.map((client) => (
+                          <button
+                            key={client.id}
+                            type="button"
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => {
+                              setClientId(client.id);
+                              setClientSearch(client.name);
+                              setClientPickerOpen(false);
+                            }}
+                            className={cn('w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', clientId === client.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
+                          >
+                            <span className="block">{client.name}</span>
+                            <span className={cn('text-[11px] font-medium', clientId === client.id ? 'text-white/80' : 'text-slate-400')}>{client.phone || client.email || 'Sem contato'}</span>
+                          </button>
+                        ))}
+                        {filteredClients.length === 0 && <div className="px-3 py-3 text-sm font-semibold text-slate-400">Nenhum cliente encontrado.</div>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Telefone</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient?.phone || '-'}</div></div>
+                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">E-mail</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient?.email || '-'}</div></div>
+                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CPF/CNPJ</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient?.cpf || '-'}</div></div>
+                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Cidade</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient?.city || '-'}</div></div>
+                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bairro</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient?.neighborhood || '-'}</div></div>
+                  <div className="space-y-1 sm:col-span-2"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Endereço</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient?.address || '-'}</div></div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ambiente</label><input value={environment} onChange={(e) => setEnvironment(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" placeholder="Ex: Cozinha" /></div>
+                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Responsável</label><input value={responsible} onChange={(e) => setResponsible(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" placeholder="Responsável" /></div>
+                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Prazo (dias)</label><NumericInput value={deliveryDays} onValueChange={(value) => setDeliveryDays(value)} decimals={0} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" /></div>
+                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Validade (dias)</label><NumericInput value={validityDays} onValueChange={(value) => setValidityDays(value)} decimals={0} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" /></div>
+                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Data da medição</label><input type="date" value={measurementDate} onChange={(e) => setMeasurementDate(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" /></div>
+                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Data da entrega</label><input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" /></div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Observações</label>
+                  <textarea value={commercialNotes} onChange={(e) => setCommercialNotes(e.target.value)} className="min-h-[120px] w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" placeholder="Informações de atendimento, instalação e observações gerais..." />
+                </div>
+              </div>
+            </SidebarAccordionSection>
+
+            <SidebarAccordionSection sectionKey="materials" openSection={sidebarSection} onToggle={setSidebarSection} icon={Package2} title="Materiais" description="Resumo dos materiais selecionados nas peças do orçamento.">
+              <div className="space-y-3">
+                {quoteMaterialPriceRows.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm font-semibold text-slate-400">Selecione materiais nas peças para visualizar os dados aqui.</div>
+                ) : quoteMaterialPriceRows.map((row) => (
+                  <div key={row.key} className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-4">
+                    <div className="font-bold text-slate-900">{row.name}</div>
+                    <div className="mt-1 text-[11px] font-semibold text-slate-400">{row.specs || 'Sem especificações adicionais'}</div>
+                    <div className="mt-3 text-sm text-slate-600">{row.pieceNames.length ? `Aplicado em: ${row.pieceNames.join(', ')}` : 'Sem observações adicionais.'}</div>
+                  </div>
+                ))}
+              </div>
+            </SidebarAccordionSection>
+
+            <SidebarAccordionSection sectionKey="pricing" openSection={sidebarSection} onToggle={setSidebarSection} icon={BadgeDollarSign} title="Precificação" description="Custos, regras automáticas e margens do orçamento.">
+              <div className="space-y-4">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-4">
+                    <div className="flex items-center gap-2"><Boxes className="h-4 w-4 text-brand-primary" /><h3 className="font-display text-base font-bold text-slate-900">Custos</h3></div>
+                    <div className="mt-3 space-y-2 text-sm">
+                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Material</span><strong>{formatCurrency(stonesCost + materialLossCost)}</strong></div>
+                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Insumos</span><strong>{formatCurrency(cutoutsCost + sculptedLaborCost)}</strong></div>
+                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Mão de obra</span><strong>{formatCurrency(laborCost)}</strong></div>
+                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Entrega</span><strong>{formatCurrency(deliveryFee)}</strong></div>
+                    </div>
+                  </div>
+                  <div className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-4">
+                    <div className="flex items-center gap-2"><Percent className="h-4 w-4 text-brand-primary" /><h3 className="font-display text-base font-bold text-slate-900">Complexidade</h3></div>
+                    <div className="mt-3 grid gap-2">
+                      {activeComplexityOptions.map((option) => (
+                        <button key={option.key} type="button" onClick={() => setComplexityKey(option.key)} className={cn('flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition-all', complexityKey === option.key ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-white text-slate-700')}>
+                          <span>{option.label}</span>
+                          <span>{option.percent > 0 ? '+' : ''}{option.percent}%</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-600">
+                    <div className="font-display text-base font-bold text-slate-900">Mão de obra automática</div>
+                    <div className="mt-3 flex items-center justify-between gap-3"><span>Modo</span><strong className="text-slate-900">{resolvedLaborPricing.source === 'linear' ? 'Linear legado' : (settings.laborPricing?.mode === 'fixed' ? 'Valor fixo' : 'Por localização')}</strong></div>
+                    <div className="mt-2 flex items-center justify-between gap-3"><span>Origem</span><strong className="text-slate-900">{resolvedLaborPricing.source === 'district' ? 'Bairro' : resolvedLaborPricing.source === 'city' ? 'Cidade' : resolvedLaborPricing.source === 'fixed' ? 'Fixo' : resolvedLaborPricing.source === 'linear' ? 'Linear' : 'Padrão'}</strong></div>
+                  </div>
+                  <div className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-600">
+                    <div className="font-display text-base font-bold text-slate-900">Entrega automática</div>
+                    <div className="mt-3 flex items-center justify-between gap-3"><span>Origem</span><strong className="text-slate-900">{deliveryResolution.source === 'district' ? 'Bairro' : deliveryResolution.source === 'city' ? 'Cidade' : 'Padrão'}</strong></div>
+                    <div className="mt-2 flex items-center justify-between gap-3"><span>Local</span><strong className="text-slate-900">{selectedClient?.neighborhood || selectedClient?.city || '-'}</strong></div>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="font-display text-base font-bold text-slate-900">Ajuste de materiais neste orçamento</div>
+                  {quoteMaterialPriceRows.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm font-semibold text-slate-400">Selecione materiais nas peças para personalizar valores.</div>
+                  ) : quoteMaterialPriceRows.map((row) => {
+                    const hasCustomInput = Boolean(row.customInput.trim());
+                    const isValidCustom = hasCustomInput && !row.error;
+                    return (
+                      <div key={row.key} className={cn('rounded-2xl border bg-white p-4 shadow-sm transition-all', row.error ? 'border-red-200 ring-2 ring-red-50' : isValidCustom ? 'border-green-100' : 'border-slate-100')}>
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <div className="font-bold text-slate-900">{row.name}</div>
+                            <div className="text-[11px] font-semibold text-slate-400">{row.specs || row.pieceNames.join(', ') || 'Material selecionado'}</div>
+                          </div>
+                          <span className={cn('inline-flex self-start rounded-full px-3 py-1 text-[10px] font-bold uppercase', row.error ? 'bg-red-50 text-red-600' : isValidCustom ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500')}>{row.error ? 'Inválido' : isValidCustom ? 'Válido' : 'Preço padrão'}</span>
+                        </div>
+                        <input type="text" inputMode="decimal" value={row.customInput} onChange={(event) => updateMaterialCustomPriceInput(row.key, event.target.value)} onBlur={() => formatMaterialCustomPriceInput(row.key)} className={cn('mt-3 w-full rounded-xl border bg-white px-4 py-2.5 text-sm font-mono outline-none transition-all focus:ring-2', row.error ? 'border-red-300 text-red-700 focus:ring-red-100' : isValidCustom ? 'border-green-200 text-slate-900 focus:ring-green-100' : 'border-slate-100 text-slate-900 focus:ring-brand-primary/20')} placeholder="0,00" />
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="space-y-1"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Comissão (%)</span><input type="number" value={commissionPercent} onChange={(e) => setCommissionPercent(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" placeholder="0" /></label>
+                  <label className="space-y-1"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Descontos (%)</span><input type="number" value={negotiationDiscountPercent} onChange={(e) => setNegotiationDiscountPercent(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" placeholder="0" /></label>
+                  <label className="space-y-1 sm:col-span-2"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Acréscimos (%)</span><input type="number" value={rtPercent} onChange={(e) => setRtPercent(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" placeholder="0" /></label>
+                </div>
+              </div>
+            </SidebarAccordionSection>
+
+            <SidebarAccordionSection sectionKey="payment" openSection={sidebarSection} onToggle={setSidebarSection} icon={CreditCard} title="Forma de Pagamento" description="Condição comercial, parcelas, entrada e observações financeiras.">
+              <div className="space-y-4">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button type="button" onClick={() => setPaymentMode('total')} className={cn('rounded-2xl px-4 py-3 text-sm font-semibold transition-all', paymentMode === 'total' ? 'bg-brand-primary text-white' : 'bg-slate-50 text-slate-600')}>Valor total</button>
+                  <button type="button" onClick={() => setPaymentMode('entry')} className={cn('rounded-2xl px-4 py-3 text-sm font-semibold transition-all', paymentMode === 'entry' ? 'bg-brand-primary text-white' : 'bg-slate-50 text-slate-600')}>Entrada + restante</button>
+                </div>
+                {paymentMode === 'total' ? (
+                  <select value={totalPaymentMethod} onChange={(e) => setTotalPaymentMethod(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
+                    <option value="">Selecionar forma de pagamento</option>
+                    {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
+                      <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)]">
+                    <input type="number" min="0" step="0.01" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="Entrada" className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" />
+                    <select value={remainingPaymentMethod} onChange={(e) => setRemainingPaymentMethod(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
+                      <option value="">Selecionar condição do restante</option>
+                      {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
+                        <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Parcelas</label><NumericInput value={normalizedInstallmentCount} onValueChange={(value) => setInstallmentCount(Math.max(1, value))} decimals={0} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" /></div>
+                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor de cada parcela</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-800">{formatCurrency(installmentAmount)}</div></div>
+                </div>
+                <textarea value={paymentNotes} onChange={(e) => setPaymentNotes(e.target.value)} className="min-h-[110px] w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" placeholder="Observações de pagamento..." />
+              </div>
+            </SidebarAccordionSection>
+          </div>
+        </div>
+
         {/* Left Column: Basic Info */}
-        <div className="lg:col-span-1 space-y-6">
+        <div className="hidden">
           <section className="bg-brand-primary p-8 rounded-[32px] text-white shadow-xl shadow-brand-primary/30">
             <div className="flex items-center gap-2 mb-4 opacity-80">
               <Calculator className="w-5 h-5" />

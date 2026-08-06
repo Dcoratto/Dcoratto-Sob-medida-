@@ -1,6 +1,7 @@
 import {useEffect, useState} from 'react';
 import {doc, onSnapshot} from '../lib/firestore';
 import {db} from '../lib/firestore';
+import {DEFAULT_QUOTE_COMPLEXITY_OPTIONS, sanitizeLocationPricingConfig, sanitizeQuoteComplexityOptions} from '../lib/locationPricing';
 import {repairText, repairTextDeep} from '../lib/utils';
 import {Settings, SupplierContact} from '../types';
 
@@ -72,6 +73,19 @@ export const DEFAULT_SETTINGS: Settings = repairTextDeep({
     altoTiete: 200,
     saoPaulo: 280,
   },
+  laborPricing: {
+    mode: 'linear',
+    fixedAmount: 0,
+    defaultAmount: 0,
+    cityRules: [],
+  },
+  deliveryPricing: {
+    mode: 'location',
+    fixedAmount: 0,
+    defaultAmount: 0,
+    cityRules: [],
+  },
+  quoteComplexityOptions: DEFAULT_QUOTE_COMPLEXITY_OPTIONS,
   defaultFrontonHeight: 10,
   defaultSkirtHeight: 4,
   defaultTurnHeight: 2,
@@ -128,6 +142,9 @@ export const useSettings = () => {
             ...DEFAULT_SETTINGS.laborMinimumByRegion,
             ...(data.laborMinimumByRegion || {}),
           },
+          laborPricing: sanitizeLocationPricingConfig(data.laborPricing, 'linear'),
+          deliveryPricing: sanitizeLocationPricingConfig(data.deliveryPricing, 'location'),
+          quoteComplexityOptions: sanitizeQuoteComplexityOptions(data.quoteComplexityOptions),
           cutoutPrices: {
             ...DEFAULT_SETTINGS.cutoutPrices,
             ...(data.cutoutPrices || {}),

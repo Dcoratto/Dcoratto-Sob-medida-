@@ -1,7 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, selectFields, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from '../lib/firestore';
 import {deleteObject, getDownloadURL, imageVariantUrl, ref as storageRef, storagePath, uploadBytes, uploadDataUrl} from '../lib/storage';
-import {AlertTriangle, BriefcaseBusiness, CheckCircle2, ChevronDown, Mail, Pencil, Plus, ShieldAlert, Trash2, XCircle} from 'lucide-react';
+import {AlertTriangle, BriefcaseBusiness, Building2, CheckCircle2, ChevronDown, CreditCard, Factory, Home, Mail, Package, Pencil, Plus, ShieldAlert, Trash2, Truck, XCircle} from 'lucide-react';
 import {db} from '../lib/firestore';
 import {storage} from '../lib/storage';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
@@ -121,14 +121,22 @@ const getCatalogSaveErrorMessage = (error: any, itemName: string) => {
 const AdminAccordionSection: React.FC<{
   title: string;
   description: string;
+  icon?: React.ReactNode;
   defaultOpen?: boolean;
   children: React.ReactNode;
-}> = ({title, description, defaultOpen = false, children}) => (
+}> = ({title, description, icon, defaultOpen = false, children}) => (
   <details open={defaultOpen} className="group rounded-[32px] border border-slate-100 bg-white shadow-sm overflow-hidden">
     <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 md:p-6">
-      <div>
-        <h2 className="font-display text-xl font-bold text-slate-900">{title}</h2>
-        <p className="text-sm text-slate-400">{description}</p>
+      <div className="flex items-center gap-4">
+        {icon && (
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brand-primary/10 text-brand-primary">
+            {icon}
+          </div>
+        )}
+        <div>
+          <h2 className="font-display text-xl font-bold text-slate-900">{title}</h2>
+          <p className="text-sm text-slate-400">{description}</p>
+        </div>
       </div>
       <ChevronDown className="h-5 w-5 text-slate-400 transition-transform group-open:rotate-180" />
     </summary>
@@ -1139,10 +1147,51 @@ export const AdminPage: React.FC = () => {
       </AdminAccordionSection>
 
       <AdminAccordionSection
-        title="Configurações, catálogo de chapas e condomínios"
-        description="Defina configurações gerais, regras de condom²nio e opções de chapas."
+        title="Dados da Empresa"
+        description="Dados institucionais, contato e padrões gerais dos orçamentos."
+        icon={<Building2 className="h-5 w-5" />}
       >
-        <SettingsPage />
+        <SettingsPage module="company" embedded />
+      </AdminAccordionSection>
+
+      <AdminAccordionSection
+        title="Mão de Obra e Produção"
+        description="Valores de produção, medidas padrão, recortes e serviços adicionais."
+        icon={<Factory className="h-5 w-5" />}
+      >
+        <SettingsPage module="production" embedded />
+      </AdminAccordionSection>
+
+      <AdminAccordionSection
+        title="Formas de Pagamento"
+        description="Condições, ajustes percentuais e opções usadas nos orçamentos."
+        icon={<CreditCard className="h-5 w-5" />}
+      >
+        <SettingsPage module="payment" embedded />
+      </AdminAccordionSection>
+
+      <AdminAccordionSection
+        title="Catálogo de Chapas"
+        description="Materiais, categorias, espessuras, acabamentos e cores."
+        icon={<Package className="h-5 w-5" />}
+      >
+        <SettingsPage module="catalog" embedded />
+      </AdminAccordionSection>
+
+      <AdminAccordionSection
+        title="Fornecedores"
+        description="Cadastro de fornecedores preparado para vínculo com o catálogo."
+        icon={<Truck className="h-5 w-5" />}
+      >
+        <SettingsPage module="suppliers" embedded />
+      </AdminAccordionSection>
+
+      <AdminAccordionSection
+        title="Condomínios e Regras"
+        description="Regras operacionais, horários e restrições por condomínio."
+        icon={<Home className="h-5 w-5" />}
+      >
+        <SettingsPage module="condominiums" embedded />
       </AdminAccordionSection>
 
       {isAdmin && (

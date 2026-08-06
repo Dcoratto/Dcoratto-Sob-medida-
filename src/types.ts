@@ -79,6 +79,9 @@ export interface Settings {
     altoTiete: number;
     saoPaulo: number;
   };
+  laborPricing: QuoteLocationPricingConfig;
+  deliveryPricing: QuoteLocationPricingConfig;
+  quoteComplexityOptions: QuoteComplexityOption[];
   defaultFrontonHeight: number;
   defaultSkirtHeight: number;
   defaultTurnHeight: number;
@@ -117,6 +120,36 @@ export interface Settings {
   };
   patioLayout?: Record<string, {x: number; y: number; rotation?: number}>;
   patioSize?: {width: number; height: number};
+}
+
+export interface QuoteLocationDistrictRule {
+  id?: string;
+  district: string;
+  amount: number;
+  active?: boolean;
+}
+
+export interface QuoteLocationCityRule {
+  id?: string;
+  city: string;
+  amount: number;
+  active?: boolean;
+  districts: QuoteLocationDistrictRule[];
+}
+
+export interface QuoteLocationPricingConfig {
+  mode?: 'linear' | 'fixed' | 'location';
+  fixedAmount?: number;
+  defaultAmount: number;
+  cityRules: QuoteLocationCityRule[];
+}
+
+export interface QuoteComplexityOption {
+  key: string;
+  label: string;
+  percent: number;
+  active: boolean;
+  sortOrder: number;
 }
 
 export interface SupplierContact {
@@ -640,8 +673,11 @@ export interface Quote {
   clientId: string;
   clientName: string;
   phone: string;
+  clientEmail?: string;
+  clientCpf?: string;
   address: string;
   city?: string;
+  neighborhood?: string;
   environment: string;
   responsible: string;
   responsibleUserUid?: string;
@@ -653,6 +689,10 @@ export interface Quote {
   totalPaymentMethod?: string;
   remainingPaymentMethod?: string;
   entryAmount?: number;
+  installmentCount?: number;
+  installmentAmount?: number;
+  paymentNotes?: string;
+  commissionPercent?: number;
   negotiationDiscountPercent?: number;
   rtPercent?: number;
   deliveryDays: number;
@@ -663,6 +703,11 @@ export interface Quote {
   status: QuoteStatus;
   totalArea: number;
   totalPrice: number;
+  laborCharge?: number;
+  deliveryFee?: number;
+  complexityKey?: string;
+  complexityLabel?: string;
+  complexityPercent?: number;
   pricingMode?: 'sale' | 'cost';
   includeMaterialLoss?: boolean;
   pieces: QuotePiece[];

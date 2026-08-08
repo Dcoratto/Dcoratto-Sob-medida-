@@ -110,7 +110,7 @@ export const quoteStatusColor = (status?: string) => {
     case 'Acabamento':
       return 'bg-[#FDD835]/25 text-[#8D6E00] border-[#FDD835]';
     case 'Montagem':
-      return 'bg-[#8D6E63]/20 text-[#5D4037] border-[#8D6E63]';
+      return 'bg-[#E1C6A4]/30 text-slate-700 border-[#E1C6A4]';
     case 'Produção Finalizada':
       return 'bg-[#2E7D32]/20 text-[#1B5E20] border-[#2E7D32]';
     case 'Conferência Final':
@@ -133,7 +133,7 @@ export const quoteStatusDotColor = (status?: string) => {
     case 'Projeto Aprovado': return 'bg-[#43A047]';
     case 'Corte': return 'bg-[#E53935]';
     case 'Acabamento': return 'bg-[#FDD835]';
-    case 'Montagem': return 'bg-[#8D6E63]';
+    case 'Montagem': return 'bg-[#E1C6A4]';
     case 'Produção Finalizada': return 'bg-[#2E7D32]';
     case 'Conferência Final': return 'bg-[#1B5E20]';
     case 'Entrega': return 'bg-[#00838F]';

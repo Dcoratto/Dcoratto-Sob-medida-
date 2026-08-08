@@ -1530,9 +1530,9 @@ export const QuoteEditor: React.FC = () => {
       )}
       <DraftAutosaveStatus savedAt={quoteDraftSavedAt} />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(360px,384px)_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[400px_minmax(0,1fr)]">
-        <div className="min-w-0">
-          <div className="space-y-5 lg:sticky lg:top-6">
+      <div className="grid grid-cols-1 gap-5 lg:h-[calc(100svh-190px)] lg:grid-cols-[minmax(360px,384px)_minmax(0,1fr)] lg:gap-8 lg:overflow-hidden xl:grid-cols-[400px_minmax(0,1fr)]">
+        <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+          <div className="space-y-5 lg:pb-6">
             <section className="rounded-[32px] bg-brand-primary p-6 text-white shadow-xl shadow-brand-primary/20">
               <div className="flex items-center gap-2 opacity-80">
                 <Calculator className="h-5 w-5" />
@@ -2121,7 +2121,7 @@ export const QuoteEditor: React.FC = () => {
         </div>
 
         {/* Right Column: Pieces */}
-        <div className="min-w-0 space-y-6">
+        <div className="min-w-0 space-y-6 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-2 lg:pb-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-2xl font-display font-bold text-slate-900">{LABELS.pieces.quotePieces}</h2>
             <div className="flex flex-wrap items-center gap-2">

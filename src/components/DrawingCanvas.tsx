@@ -1047,8 +1047,8 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       ctx.moveTo(geometry.points[0].x, geometry.points[0].y);
       geometry.points.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
       ctx.closePath();
-      ctx.fillStyle = 'rgba(142, 105, 62, 0.14)';
-      ctx.strokeStyle = '#8e693e';
+      ctx.fillStyle = 'rgba(225, 198, 164, 0.22)';
+      ctx.strokeStyle = '#E1C6A4';
       ctx.lineWidth = 0.025;
       ctx.fill();
       ctx.stroke();
@@ -1226,9 +1226,9 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       ctx.moveTo(geometryScreenPoints[0].x, geometryScreenPoints[0].y);
       geometryScreenPoints.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
       ctx.closePath();
-      ctx.fillStyle = 'rgba(142, 105, 62, 0.14)';
+      ctx.fillStyle = 'rgba(225, 198, 164, 0.22)';
       ctx.fill();
-      ctx.strokeStyle = '#8e693e';
+      ctx.strokeStyle = '#E1C6A4';
       ctx.lineWidth = 3;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
@@ -1240,7 +1240,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       ctx.beginPath();
       ctx.moveTo(screenPoints[0].x, screenPoints[0].y);
       screenPoints.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
-      ctx.strokeStyle = '#8e693e';
+      ctx.strokeStyle = '#E1C6A4';
       ctx.lineWidth = 3;
       ctx.lineJoin = 'round';
       ctx.lineCap = 'round';
@@ -1252,7 +1252,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       const to = worldToScreen(previewPoint);
       ctx.save();
       ctx.setLineDash([8, 6]);
-      ctx.strokeStyle = '#c99b55';
+      ctx.strokeStyle = '#E1C6A4';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(from.x, from.y);
@@ -1306,7 +1306,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
       const c2 = {x: b.x + normal.x * direction * offset, y: b.y + normal.y * direction * offset};
       const label = `${side.name} ${formatMeters(side.lengthM)}`;
       ctx.save();
-      ctx.strokeStyle = '#b6a17e';
+      ctx.strokeStyle = '#E1C6A4';
       ctx.fillStyle = '#1f2937';
       ctx.lineWidth = 1;
       ctx.setLineDash([4, 4]);
@@ -1346,7 +1346,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
     drawPoints.forEach((point, index) => {
       const screen = worldToScreen(point);
       ctx.beginPath();
-      ctx.fillStyle = hoverGuide === index ?'#16a34a' : index === drawPoints.length - 1 ?'#c99b55' : '#8e693e';
+      ctx.fillStyle = hoverGuide === index ?'#16a34a' : '#E1C6A4';
       ctx.arc(screen.x, screen.y, hoverGuide === index ?6 : 4.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = '#fffaf0';

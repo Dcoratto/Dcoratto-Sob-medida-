@@ -4,12 +4,12 @@ import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, 
 import { db } from '../lib/firestore';
 import { useSettings } from '../hooks/useSettings';
 import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuoteMaterialPriceOverride, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
-import { useQuoteCalculator } from '../hooks/useQuoteCalculator';
+import {MATERIAL_LOSS_PERCENTAGE, useQuoteCalculator} from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
   ChevronDown, ChevronUp, Calculator,
   MapPin, Phone, User,
-  Layers, PenTool, Building2, Mail, Package2, BadgeDollarSign, CreditCard, Truck, ReceiptText, Wrench, Boxes, Percent, NotebookText
+  Layers, PenTool, Building2, Mail, Package2, BadgeDollarSign, CreditCard, Truck, ReceiptText, Wrench, Boxes, NotebookText
 } from 'lucide-react';
 import {DEFAULT_QUOTE_COMPLEXITY_OPTIONS, resolveLaborAmount, resolveLocationAmount} from '../lib/locationPricing';
 import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, parseCurrencyInput, parseMeasureInput, roundNumber } from '../lib/utils';
@@ -132,6 +132,19 @@ const SidebarAccordionSection = ({
   );
 };
 
+const PricingSwitch = ({checked, onChange, label}: {checked: boolean; onChange: (checked: boolean) => void; label: string}) => (
+  <button
+    type="button"
+    role="switch"
+    aria-checked={checked}
+    aria-label={label}
+    onClick={() => onChange(!checked)}
+    className={cn('relative h-6 w-11 shrink-0 rounded-full transition-colors', checked ? 'bg-brand-primary' : 'bg-slate-200')}
+  >
+    <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform', checked ? 'translate-x-5' : 'translate-x-0.5')} />
+  </button>
+);
+
 const normalizeStockStatus = (value: unknown) =>
   String(value || '')
     .toLowerCase()
@@ -215,6 +228,11 @@ export const QuoteEditor: React.FC = () => {
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
   const [quotePricingMode, setQuotePricingMode] = useState<'sale' | 'cost'>('sale');
   const [includeMaterialLoss, setIncludeMaterialLoss] = useState(true);
+  const [includeCutouts, setIncludeCutouts] = useState(true);
+  const [includeSculptedSink, setIncludeSculptedSink] = useState(true);
+  const [includeLabor, setIncludeLabor] = useState(true);
+  const [includeDelivery, setIncludeDelivery] = useState(true);
+  const [includeComplexity, setIncludeComplexity] = useState(true);
   const quoteDraftHydratedRef = useRef(false);
   const quoteDraftKey = `quote-editor-draft:${appUid || 'anonymous'}:${id || 'new'}`;
 
@@ -451,37 +469,68 @@ export const QuoteEditor: React.FC = () => {
       },
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
-      includeLabor: quotePricingMode !== 'cost' && usesLinearLaborPricing,
+      includeLabor: quotePricingMode !== 'cost' && includeLabor && usesLinearLaborPricing,
       includeMaterialLoss,
+      includeCutouts,
+      includeSculptedSink,
       resolveManualPiecePrice: (piece) => {
         if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
         const parsed = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, usesLinearLaborPricing],
+    [calculatePieceArea, cutouts, includeCutouts, includeLabor, includeMaterialLoss, includeSculptedSink, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, usesLinearLaborPricing],
   );
   const stonesCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.stoneBaseValue, 0);
   const materialLossCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
-  const linearLaborCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.laborValue, 0);
+  const originalPiecePricingBreakdowns = useMemo(
+    () => buildPiecePricingBreakdowns({
+      pieces,
+      quoteCutouts: cutouts,
+      settings,
+      clientLocation: {
+        city: selectedClient?.city,
+        address: selectedClient?.address,
+      },
+      calculatePieceArea,
+      resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
+      includeLabor: quotePricingMode !== 'cost' && usesLinearLaborPricing,
+      includeMaterialLoss: quotePricingMode !== 'cost',
+      includeCutouts: true,
+      includeSculptedSink: true,
+      resolveManualPiecePrice: (piece) => {
+        if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
+        const parsed = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
+        return parsed.status === 'valid' ? Number(parsed.value) : undefined;
+      },
+    }),
+    [calculatePieceArea, cutouts, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, usesLinearLaborPricing],
+  );
+  const originalMaterialLossCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
+  const originalLinearLaborCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.laborValue, 0);
+  const originalCutoutsCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.cutoutValue, 0);
+  const originalSculptedLaborCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.sinkAdditionalValue, 0);
   const resolvedLaborPricing = quotePricingMode === 'cost'
     ? {amount: 0, source: 'disabled' as const, city: '', district: ''}
     : resolveLaborAmount(settings.laborPricing, locationContext);
-  const laborCost = quotePricingMode === 'cost'
+  const originalLaborCost = quotePricingMode === 'cost'
     ? 0
     : resolvedLaborPricing.source === 'linear'
-      ? linearLaborCost
+      ? originalLinearLaborCost
       : resolvedLaborPricing.amount;
-  const cutoutsCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.cutoutValue, 0);
-  const sculptedLaborCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.sinkAdditionalValue, 0);
+  const laborCost = includeLabor ? originalLaborCost : 0;
+  const cutoutsCost = includeCutouts ? originalCutoutsCost : 0;
+  const sculptedLaborCost = includeSculptedSink ? originalSculptedLaborCost : 0;
   const deliveryResolution = resolveLocationAmount(settings.deliveryPricing, locationContext);
-  const deliveryFee = Math.max(0, Number(deliveryResolution.amount) || 0);
+  const originalDeliveryFee = Math.max(0, Number(deliveryResolution.amount) || 0);
+  const deliveryFee = includeDelivery ? originalDeliveryFee : 0;
   const piecesSubtotal = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.pieceSubtotalValue, 0);
   const externalLaborCost = usesLinearLaborPricing ? 0 : laborCost;
   const productionSubtotal = piecesSubtotal + externalLaborCost;
   const subtotalBeforeComplexity = productionSubtotal + deliveryFee;
   const complexityPercent = Number(resolvedComplexity?.percent || 0);
-  const complexityValue = subtotalBeforeComplexity * (complexityPercent / 100);
+  const originalComplexityValue = subtotalBeforeComplexity * (complexityPercent / 100);
+  const complexityValue = includeComplexity ? originalComplexityValue : 0;
   const subtotalBeforeAdjustment = subtotalBeforeComplexity + complexityValue;
   const normalizedEntryAmount = Math.min(Math.max(Number(entryAmount) || 0, 0), subtotalBeforeAdjustment);
   const financedAmount = Math.max(0, subtotalBeforeAdjustment - normalizedEntryAmount);
@@ -657,6 +706,11 @@ export const QuoteEditor: React.FC = () => {
       setPieces(draftPieces);
       setQuotePricingMode((draft.pricingMode as 'sale' | 'cost') || 'sale');
       setIncludeMaterialLoss(typeof draft.includeMaterialLoss === 'boolean' ? draft.includeMaterialLoss : ((draft.pricingMode as 'sale' | 'cost') || 'sale') !== 'cost');
+      setIncludeCutouts(typeof draft.includeCutouts === 'boolean' ? draft.includeCutouts : true);
+      setIncludeSculptedSink(typeof draft.includeSculptedSink === 'boolean' ? draft.includeSculptedSink : true);
+      setIncludeLabor(typeof draft.includeLabor === 'boolean' ? draft.includeLabor : true);
+      setIncludeDelivery(typeof draft.includeDelivery === 'boolean' ? draft.includeDelivery : true);
+      setIncludeComplexity(typeof draft.includeComplexity === 'boolean' ? draft.includeComplexity : true);
       setMaterialCustomPriceInputs((draft.materialCustomPriceInputs as Record<string, string>) || inputValuesFromMaterialOverrides(draft.materialPriceOverrides as QuoteMaterialPriceOverride[]));
       setPieceManualPriceInputs((draft.pieceManualPriceInputs as Record<string, string>) || inputValuesFromPieceManualPrices(draftPieces));
       setCutouts((draft.cutouts as QuoteCutoutState) || { cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
@@ -697,6 +751,11 @@ export const QuoteEditor: React.FC = () => {
           setOriginalStatus(normalizeQuoteStatus(data.status));
           setQuotePricingMode(data.pricingMode || 'sale');
           setIncludeMaterialLoss(typeof data.includeMaterialLoss === 'boolean' ? data.includeMaterialLoss : (data.pricingMode || 'sale') !== 'cost');
+          setIncludeCutouts(typeof data.includeCutouts === 'boolean' ? data.includeCutouts : true);
+          setIncludeSculptedSink(typeof data.includeSculptedSink === 'boolean' ? data.includeSculptedSink : true);
+          setIncludeLabor(typeof data.includeLabor === 'boolean' ? data.includeLabor : true);
+          setIncludeDelivery(typeof data.includeDelivery === 'boolean' ? data.includeDelivery : true);
+          setIncludeComplexity(typeof data.includeComplexity === 'boolean' ? data.includeComplexity : true);
           const loadedPieces = (data.pieces || []).map((piece) => ensurePieceWorkflowStatus({
             ...piece,
             materialId: piece.materialId || data.materialId || '',
@@ -813,6 +872,11 @@ export const QuoteEditor: React.FC = () => {
       validityDays,
       pricingMode: quotePricingMode,
       includeMaterialLoss,
+      includeCutouts,
+      includeSculptedSink,
+      includeLabor,
+      includeDelivery,
+      includeComplexity,
       commercialNotes,
       status,
       originalStatus,
@@ -825,7 +889,7 @@ export const QuoteEditor: React.FC = () => {
       pieceMaterialSearch,
     });
     if (savedAt) setQuoteDraftSavedAt(savedAt);
-  }, [clientId, clientSearch, commercialNotes, commissionPercent, complexityKey, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, includeMaterialLoss, installmentCount, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, paymentNotes, pieceManualPriceInputs, pieceMaterialSearch, pieces, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
+  }, [clientId, clientSearch, commercialNotes, commissionPercent, complexityKey, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, includeComplexity, includeCutouts, includeDelivery, includeLabor, includeMaterialLoss, includeSculptedSink, installmentCount, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, paymentNotes, pieceManualPriceInputs, pieceMaterialSearch, pieces, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
 
   const clearQuoteDraftState = () => {
     clearDraft(quoteDraftKey);
@@ -1135,7 +1199,7 @@ export const QuoteEditor: React.FC = () => {
       },
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
-      includeLabor: quotePricingMode !== 'cost' && usesLinearLaborPricing,
+      includeLabor: quotePricingMode !== 'cost' && includeLabor && usesLinearLaborPricing,
       includeMaterialLoss,
       resolveManualPiecePrice: (piece) => {
         if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
@@ -1143,7 +1207,7 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, includeMaterialLoss, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, totalPrice, usesLinearLaborPricing],
+    [calculatePieceArea, cutouts, includeCutouts, includeLabor, includeMaterialLoss, includeSculptedSink, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, totalPrice, usesLinearLaborPricing],
   );
   const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
     cooktop: 'cooktop',
@@ -1341,6 +1405,11 @@ export const QuoteEditor: React.FC = () => {
       complexityPercent: Number(complexityPercent.toFixed(2)),
       pricingMode: quotePricingMode,
       includeMaterialLoss,
+      includeCutouts,
+      includeSculptedSink,
+      includeLabor,
+      includeDelivery,
+      includeComplexity,
       pieces: piecesWithStatus,
       cutouts,
       materialPriceOverrides,
@@ -1466,13 +1535,13 @@ export const QuoteEditor: React.FC = () => {
               <div className="mt-5 space-y-2 text-sm text-white/80">
                 <div className="flex items-center justify-between gap-3"><span>Área final total</span><strong className="text-white">{formatArea(totalArea)}</strong></div>
                 <div className="flex items-center justify-between gap-3"><span>Pedra base</span><strong className="text-white">{formatCurrency(stonesCost)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Perda material</span><strong className="text-white">{formatCurrency(materialLossCost)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Recortes</span><strong className="text-white">{formatCurrency(cutoutsCost)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Pia esculpida</span><strong className="text-white">{formatCurrency(sculptedLaborCost)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Mão de obra</span><strong className="text-white">{formatCurrency(laborCost)}</strong></div>
+                <div className={cn('flex items-center justify-between gap-3', !includeMaterialLoss && 'text-white/45')}><span>Perda material {!includeMaterialLoss && '(Desativado)'}</span><strong className="text-white">{formatCurrency(materialLossCost)}</strong></div>
+                <div className={cn('flex items-center justify-between gap-3', !includeCutouts && 'text-white/45')}><span>Recortes {!includeCutouts && '(Desativado)'}</span><strong className="text-white">{formatCurrency(cutoutsCost)}</strong></div>
+                <div className={cn('flex items-center justify-between gap-3', !includeSculptedSink && 'text-white/45')}><span>Pia esculpida {!includeSculptedSink && '(Desativado)'}</span><strong className="text-white">{formatCurrency(sculptedLaborCost)}</strong></div>
+                <div className={cn('flex items-center justify-between gap-3', !includeLabor && 'text-white/45')}><span>Mão de obra {!includeLabor && '(Desativado)'}</span><strong className="text-white">{formatCurrency(laborCost)}</strong></div>
                 <div className="flex items-center justify-between gap-3 border-t border-white/15 pt-2"><span>Subtotal produção</span><strong className="text-white">{formatCurrency(productionSubtotal)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Entrega</span><strong className="text-white">{formatCurrency(deliveryFee)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Complexidade ({complexityPercent}%)</span><strong className="text-white">{formatCurrency(complexityValue)}</strong></div>
+                <div className={cn('flex items-center justify-between gap-3', !includeDelivery && 'text-white/45')}><span>Entrega {!includeDelivery && '(Desativado)'}</span><strong className="text-white">{formatCurrency(deliveryFee)}</strong></div>
+                <div className={cn('flex items-center justify-between gap-3', !includeComplexity && 'text-white/45')}><span>Complexidade ({complexityPercent}%){!includeComplexity && ' (Desativado)'}</span><strong className="text-white">{formatCurrency(complexityValue)}</strong></div>
                 <div className="flex items-center justify-between gap-3"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong className="text-white">{formatCurrency(adjustmentValue)}</strong></div>
                 <div className="flex items-center justify-between gap-3"><span>Comissão ({normalizedCommissionPercent}%)</span><strong className="text-white">{formatCurrency(commissionValue)}</strong></div>
                 <div className="flex items-center justify-between gap-3"><span>Descontos ({normalizedNegotiationDiscountPercent}%)</span><strong className="text-white">-{formatCurrency(negotiationDiscountValue)}</strong></div>
@@ -1577,41 +1646,85 @@ export const QuoteEditor: React.FC = () => {
 
             <SidebarAccordionSection sectionKey="pricing" openSection={sidebarSection} onToggle={setSidebarSection} icon={BadgeDollarSign} title="Precificação" description="Custos, regras automáticas e margens do orçamento.">
               <div className="space-y-4">
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="flex min-h-[224px] flex-col rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                    <div className="flex items-center gap-2"><Boxes className="h-4 w-4 text-brand-primary" /><h3 className="text-sm font-semibold text-slate-900">Custos</h3></div>
-                    <div className="mt-4 space-y-3 text-sm">
-                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Material</span><strong className="font-semibold text-slate-900">{formatCurrency(stonesCost + materialLossCost)}</strong></div>
-                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Insumos</span><strong className="font-semibold text-slate-900">{formatCurrency(cutoutsCost + sculptedLaborCost)}</strong></div>
-                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Mão de obra</span><strong className="font-semibold text-slate-900">{formatCurrency(laborCost)}</strong></div>
-                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Entrega</span><strong className="font-semibold text-slate-900">{formatCurrency(deliveryFee)}</strong></div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <div className="flex items-center gap-2"><Boxes className="h-4 w-4 text-brand-primary" /><h3 className="text-sm font-semibold text-slate-900">Componentes do orçamento</h3></div>
+                  <div className="mt-4 divide-y divide-slate-100">
+                    <div className="flex items-center justify-between gap-4 py-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-900">Material</div>
+                        <div className="text-xs text-slate-400">Sempre ativo</div>
+                      </div>
+                      <div className="text-right text-sm font-semibold text-slate-900">{formatCurrency(stonesCost)}</div>
                     </div>
-                  </div>
-                  <div className="flex min-h-[224px] flex-col rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-                    <div className="flex items-center gap-2"><Percent className="h-4 w-4 text-brand-primary" /><h3 className="text-sm font-semibold text-slate-900">Complexidade</h3></div>
-                    <div className="mt-4 grid gap-2">
+                    <div className="flex items-center justify-between gap-4 py-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-900">Perda de material</div>
+                        <div className="text-xs text-slate-400">{MATERIAL_LOSS_PERCENTAGE}% · {includeMaterialLoss ? 'Ativo' : `Desativado · original ${formatCurrency(originalMaterialLossCost)}`}</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right text-sm font-semibold text-slate-900">{formatCurrency(materialLossCost)}</div>
+                        <PricingSwitch checked={includeMaterialLoss} onChange={setIncludeMaterialLoss} label="Alternar perda de material" />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 py-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-900">Recortes</div>
+                        <div className="text-xs text-slate-400">{includeCutouts ? 'Ativo' : `Desativado · original ${formatCurrency(originalCutoutsCost)}`}</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right text-sm font-semibold text-slate-900">{formatCurrency(cutoutsCost)}</div>
+                        <PricingSwitch checked={includeCutouts} onChange={setIncludeCutouts} label="Alternar recortes" />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 py-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-900">Pia esculpida</div>
+                        <div className="text-xs text-slate-400">{includeSculptedSink ? 'Ativo' : `Desativado · original ${formatCurrency(originalSculptedLaborCost)}`}</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right text-sm font-semibold text-slate-900">{formatCurrency(sculptedLaborCost)}</div>
+                        <PricingSwitch checked={includeSculptedSink} onChange={setIncludeSculptedSink} label="Alternar pia esculpida" />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 py-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-900">Mão de obra</div>
+                        <div className="text-xs text-slate-400">{includeLabor ? (resolvedLaborPricing.source === 'linear' ? 'Linear' : 'Automática') : `Desativado · original ${formatCurrency(originalLaborCost)}`}</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right text-sm font-semibold text-slate-900">{formatCurrency(laborCost)}</div>
+                        <PricingSwitch checked={includeLabor} onChange={setIncludeLabor} label="Alternar mão de obra" />
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-4 py-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-900">Entrega</div>
+                        <div className="text-xs text-slate-400">{includeDelivery ? (deliveryResolution.source === 'district' ? 'Bairro' : deliveryResolution.source === 'city' ? 'Cidade' : 'Padrão') : `Desativado · original ${formatCurrency(originalDeliveryFee)}`}</div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-right text-sm font-semibold text-slate-900">{formatCurrency(deliveryFee)}</div>
+                        <PricingSwitch checked={includeDelivery} onChange={setIncludeDelivery} label="Alternar entrega" />
+                      </div>
+                    </div>
+                    <div className="py-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="min-w-0">
+                          <div className="text-sm font-semibold text-slate-900">Complexidade</div>
+                          <div className="text-xs text-slate-400">{includeComplexity ? `${resolvedComplexity.label} · ${complexityPercent > 0 ? '+' : ''}${complexityPercent}%` : `Desativado · original ${formatCurrency(originalComplexityValue)}`}</div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="text-right text-sm font-semibold text-slate-900">{formatCurrency(complexityValue)}</div>
+                          <PricingSwitch checked={includeComplexity} onChange={setIncludeComplexity} label="Alternar complexidade" />
+                        </div>
+                      </div>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       {activeComplexityOptions.map((option) => (
                         <button key={option.key} type="button" onClick={() => setComplexityKey(option.key)} className={cn('flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all', complexityKey === option.key ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-700 hover:border-brand-primary/30 hover:bg-white')}>
                           <span>{option.label}</span>
                           <span>{option.percent > 0 ? '+' : ''}{option.percent}%</span>
                         </button>
                       ))}
-                    </div>
-                  </div>
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-slate-100 bg-white p-4 text-sm text-slate-600 shadow-sm">
-                    <div className="text-sm font-semibold text-slate-900">Mão de obra automática</div>
-                    <div className="mt-4 space-y-3">
-                      <div className="flex items-center justify-between gap-3"><span>Modo</span><strong className="font-semibold text-slate-900">{resolvedLaborPricing.source === 'linear' ? 'Linear legado' : (settings.laborPricing?.mode === 'fixed' ? 'Valor fixo' : 'Por localização')}</strong></div>
-                      <div className="flex items-center justify-between gap-3"><span>Origem</span><strong className="font-semibold text-slate-900">{resolvedLaborPricing.source === 'district' ? 'Bairro' : resolvedLaborPricing.source === 'city' ? 'Cidade' : resolvedLaborPricing.source === 'fixed' ? 'Fixo' : resolvedLaborPricing.source === 'linear' ? 'Linear' : 'Padrão'}</strong></div>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-slate-100 bg-white p-4 text-sm text-slate-600 shadow-sm">
-                    <div className="text-sm font-semibold text-slate-900">Entrega automática</div>
-                    <div className="mt-4 space-y-3">
-                      <div className="flex items-center justify-between gap-3"><span>Origem</span><strong className="font-semibold text-slate-900">{deliveryResolution.source === 'district' ? 'Bairro' : deliveryResolution.source === 'city' ? 'Cidade' : 'Padrão'}</strong></div>
-                      <div className="flex items-center justify-between gap-3"><span>Local</span><strong className="font-semibold text-slate-900">{selectedClient?.neighborhood || selectedClient?.city || '-'}</strong></div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1691,13 +1804,13 @@ export const QuoteEditor: React.FC = () => {
             <div className="space-y-2 text-sm font-medium text-white/75">
               <div className="flex justify-between gap-3"><span>Área final total</span><strong>{formatArea(totalArea)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pedras</span><strong>{formatCurrency(stonesCost)}</strong></div>
-              <div className="flex justify-between gap-3">
-                <span>{includeMaterialLoss ? 'Perda material (10%)' : 'Perda material desativada'}</span>
+              <div className={cn('flex justify-between gap-3', !includeMaterialLoss && 'text-white/45')}>
+                <span>{includeMaterialLoss ? `Perda material (${MATERIAL_LOSS_PERCENTAGE}%)` : 'Perda material desativada'}</span>
                 <strong>{formatCurrency(materialLossCost)}</strong>
               </div>
-              <div className="flex justify-between gap-3"><span>Mão de obra</span><strong>{formatCurrency(laborCost)}</strong></div>
-              <div className="flex justify-between gap-3"><span>Recortes</span><strong>{formatCurrency(cutoutsCost)}</strong></div>
-              <div className="flex justify-between gap-3"><span>Pia esculpida</span><strong>{formatCurrency(sculptedLaborCost)}</strong></div>
+              <div className={cn('flex justify-between gap-3', !includeLabor && 'text-white/45')}><span>Mão de obra {!includeLabor && '(Desativado)'}</span><strong>{formatCurrency(laborCost)}</strong></div>
+              <div className={cn('flex justify-between gap-3', !includeCutouts && 'text-white/45')}><span>Recortes {!includeCutouts && '(Desativado)'}</span><strong>{formatCurrency(cutoutsCost)}</strong></div>
+              <div className={cn('flex justify-between gap-3', !includeSculptedSink && 'text-white/45')}><span>Pia esculpida {!includeSculptedSink && '(Desativado)'}</span><strong>{formatCurrency(sculptedLaborCost)}</strong></div>
               <div className="flex justify-between gap-3 border-t border-white/15 pt-2"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong>{formatCurrency(adjustmentValue)}</strong></div>
               <div className="flex justify-between gap-3"><span>Negociação (-{normalizedNegotiationDiscountPercent}%)</span><strong>-{formatCurrency(negotiationDiscountValue)}</strong></div>
               <div className="flex justify-between gap-3"><span>RT (+{normalizedRtPercent}%)</span><strong>{formatCurrency(rtValue)}</strong></div>

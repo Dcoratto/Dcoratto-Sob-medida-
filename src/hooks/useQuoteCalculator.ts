@@ -1,7 +1,7 @@
 import { QuotePiece, QuoteCutouts, Settings, Material, SculptedSink } from '../types';
 import {getRegionalLaborMinimum} from '../lib/laborRegion';
 
-const MATERIAL_LOSS_PERCENTAGE = 10;
+export const MATERIAL_LOSS_PERCENTAGE = 10;
 
 export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece: QuotePiece) => Material | undefined) => {
   const calculateSculptedSink = (sink: SculptedSink, pieceMaterial?: Material) => {

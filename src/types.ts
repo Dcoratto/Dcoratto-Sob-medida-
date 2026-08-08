@@ -710,6 +710,11 @@ export interface Quote {
   complexityPercent?: number;
   pricingMode?: 'sale' | 'cost';
   includeMaterialLoss?: boolean;
+  includeCutouts?: boolean;
+  includeSculptedSink?: boolean;
+  includeLabor?: boolean;
+  includeDelivery?: boolean;
+  includeComplexity?: boolean;
   pieces: QuotePiece[];
   cutouts: QuoteCutouts;
   materialPriceOverrides?: QuoteMaterialPriceOverride[];

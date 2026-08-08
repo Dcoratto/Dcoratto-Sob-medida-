@@ -18,6 +18,7 @@ import {
   loadDashboardPage,
   loadInstallationPage,
   loadInventoryPage,
+  loadWarehousePage,
   loadLoginPage,
   loadMaterialsPage,
   loadProfilePage,
@@ -36,6 +37,7 @@ const ClientsPage = lazy(() => loadClientsPage().then((module) => ({default: mod
 const CrisisManagementPage = lazy(() => loadCrisisManagementPage().then((module) => ({default: module.CrisisManagementPage})));
 const InstallationPage = lazy(() => loadInstallationPage().then((module) => ({default: module.InstallationPage})));
 const InventoryPage = lazy(() => loadInventoryPage().then((module) => ({default: module.InventoryPage})));
+const WarehousePage = lazy(() => loadWarehousePage().then((module) => ({default: module.WarehousePage})));
 const MaterialsPage = lazy(() => loadMaterialsPage().then((module) => ({default: module.MaterialsPage})));
 const AdminPage = lazy(() => loadAdminPage().then((module) => ({default: module.AdminPage})));
 const ProfilePage = lazy(() => loadProfilePage().then((module) => ({default: module.ProfilePage})));
@@ -110,6 +112,7 @@ export default function App() {
             <Route path="/reports" element={<ProtectedRoute permission={['relatorios', 'visualizar']}><ReportsPage /></ProtectedRoute>} />
             <Route path="/materials" element={<ProtectedRoute permission={['materiais', 'visualizar']}><MaterialsPage /></ProtectedRoute>} />
             <Route path="/inventory" element={<ProtectedRoute permission={['estoque', 'visualizar']}><InventoryPage /></ProtectedRoute>} />
+            <Route path="/warehouse" element={<ProtectedRoute permission={['almoxarifado', 'visualizar']}><WarehousePage /></ProtectedRoute>} />
             <Route path="/settings" element={<Navigate to="/admin" replace />} />
             <Route path="/admin" element={<ProtectedRoute adminOnly><AdminPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />

@@ -7,6 +7,7 @@ export type PermissionMap = {
   historico: { visualizar: boolean; };
   materiais: { visualizar: boolean; editar: boolean; };
   estoque: { visualizar: boolean; adicionar: boolean; editar: boolean; excluir: boolean; movimentar: boolean; };
+  almoxarifado: { visualizar: boolean; editar: boolean; movimentar: boolean; comprar: boolean; };
   relatorios: { visualizar: boolean; exportar: boolean; verFaturamento: boolean; verProdutividade: boolean; };
   admin: { visualizarUsuarios: boolean; alterarPermissoes: boolean; excluirUsuarios: boolean; };
   cliente: { visualizar: boolean; editarDados: boolean; alterarEtapa: boolean; anexarArquivos: boolean; avaliarFuncionarios: boolean; verValores: boolean; };

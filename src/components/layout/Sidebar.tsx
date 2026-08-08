@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   Package,
+  PackageOpen,
   ShieldAlert,
   Users,
   X,
@@ -42,6 +43,7 @@ export const Sidebar: React.FC = () => {
     hasPermission('relatorios', 'visualizar') ?{icon: BarChart3, label: 'Relatórios', path: '/reports'} : null,
     hasPermission('materiais', 'visualizar') ?{icon: Package, label: 'Materiais', path: '/materials'} : null,
     hasPermission('estoque', 'visualizar') ?{icon: Database, label: 'Estoque', path: '/inventory'} : null,
+    hasPermission('almoxarifado', 'visualizar') ?{icon: PackageOpen, label: 'Almoxarifado', path: '/warehouse'} : null,
   ].filter(Boolean) as MenuItem[];
 
   if (isAdmin) {

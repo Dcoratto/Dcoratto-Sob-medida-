@@ -140,7 +140,7 @@ export const ProfilePage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute -bottom-2 -right-2 z-10 flex h-10 w-10 items-center justify-center rounded-xl border-4 border-white bg-brand-primary text-white shadow-lg transition-all hover:scale-110"
+                className="absolute -bottom-2 -right-2 z-10 flex h-10 w-10 items-center justify-center rounded-xl border-4 border-white bg-brand-primary text-[#3F3A34] shadow-lg transition-all hover:scale-110"
               >
                 <Camera className="h-5 w-5" />
               </button>
@@ -223,7 +223,7 @@ export const ProfilePage: React.FC = () => {
                 disabled={saving}
                 className={cn(
                   'flex items-center gap-2 rounded-2xl px-8 py-3 font-bold transition-all shadow-lg active:scale-95 disabled:opacity-50',
-                  success ?'bg-green-600 text-white shadow-green-200' : 'bg-brand-primary text-white shadow-brand-primary/20',
+                  success ?'bg-green-600 text-white shadow-green-200' : 'bg-brand-primary text-[#3F3A34] shadow-brand-primary/20',
                 )}
               >
                 {saving ?(

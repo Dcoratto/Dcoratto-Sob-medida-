@@ -218,7 +218,7 @@ export const QuotesPage: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/quotes/new')}
-            className="flex items-center gap-2 bg-brand-primary text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95"
+            className="flex items-center gap-2 bg-brand-primary text-[#3F3A34] px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95"
           >
             <Plus className="w-5 h-5" />
             {LABELS.quotes.new}

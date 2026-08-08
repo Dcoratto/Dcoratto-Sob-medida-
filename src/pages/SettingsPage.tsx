@@ -569,7 +569,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({module = 'all', embed
       disabled={saving || !isAdmin}
       className={cn(
         "flex items-center gap-2 px-6 py-3 rounded-2xl font-semibold transition-all shadow-lg active:scale-95 disabled:opacity-50",
-        success ?"bg-green-600 text-white shadow-green-200" : "bg-brand-primary text-white shadow-brand-primary/20"
+        success ?"bg-green-600 text-white shadow-green-200" : "bg-brand-primary text-[#3F3A34] shadow-brand-primary/20"
       )}
     >
       {saving ?(
@@ -926,7 +926,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({module = 'all', embed
                     </div>
                   ))}
 
-                  <button type="button" onClick={() => addLocationCityRule(section.key)} className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white">
+                  <button type="button" onClick={() => addLocationCityRule(section.key)} className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-[#3F3A34]">
                     <Plus className="w-4 h-4" /> Adicionar cidade
                   </button>
                 </div>
@@ -940,7 +940,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({module = 'all', embed
                 <h3 className="font-display font-bold text-base text-slate-800">Complexidade do orçamento</h3>
                 <p className="mt-1 text-xs text-slate-500">Percentuais usados no módulo de orçamento para recalcular o valor final.</p>
               </div>
-              <button type="button" onClick={addComplexityOption} className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white">
+              <button type="button" onClick={addComplexityOption} className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-[#3F3A34]">
                 <Plus className="w-4 h-4" /> Adicionar opção
               </button>
             </div>
@@ -1236,7 +1236,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({module = 'all', embed
                     key={label}
                     type="button"
                     onClick={() => toggleWeekday(index)}
-                    className={cn('px-3 py-2 rounded-xl text-xs font-bold', allowedWeekdays.includes(index) ?'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')}
+                    className={cn('px-3 py-2 rounded-xl text-xs font-bold', allowedWeekdays.includes(index) ?'bg-brand-primary text-[#3F3A34]' : 'bg-slate-100 text-slate-500')}
                   >
                     {label}
                   </button>
@@ -1256,7 +1256,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({module = 'all', embed
               <textarea value={condoNotes} onChange={(e) => setCondoNotes(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 min-h-[80px]" />
             </div>
             <div className="md:col-span-2 flex items-center gap-3">
-              <button type="submit" className="bg-brand-primary text-white px-5 py-2.5 rounded-xl text-sm font-bold">
+              <button type="submit" className="bg-brand-primary text-[#3F3A34] px-5 py-2.5 rounded-xl text-sm font-bold">
                 {editingCondominium ?'Atualizar condomínio' : 'Cadastrar condomínio'}
               </button>
               {editingCondominium && (
@@ -1348,7 +1348,7 @@ const MaterialCatalogField: React.FC<{
             const saved = await onAdd(draft);
             if (saved) setDraft('');
           }}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-[#3F3A34] disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Plus className="w-4 h-4" />
           Adicionar
@@ -1470,7 +1470,7 @@ const SupplierCatalogField: React.FC<{
         type="button"
         onClick={handleAdd}
         disabled={saving}
-        className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-[#3F3A34] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {saving ? (
           <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

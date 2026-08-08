@@ -482,7 +482,7 @@ export const InstallationPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-brand-primary/20"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-[#3F3A34] shadow-lg shadow-brand-primary/20"
             >
               <Plus className="h-4 w-4" />
               Adicionar Instalação
@@ -927,7 +927,7 @@ export const InstallationPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={creatingInstallation}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-[#3F3A34] disabled:opacity-60"
               >
                 {creatingInstallation ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 Criar instalação

@@ -113,7 +113,7 @@ const SidebarAccordionSection = ({
         className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
       >
         <div className="flex min-w-0 items-start gap-3">
-          <div className={cn('mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors', isOpen ? 'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')}>
+          <div className={cn('mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors', isOpen ? 'bg-brand-primary text-[#3F3A34]' : 'bg-slate-100 text-slate-500')}>
             <Icon className="h-5 w-5" />
           </div>
           <div className="min-w-0">
@@ -1514,7 +1514,7 @@ export const QuoteEditor: React.FC = () => {
         <button
           onClick={handleSave}
           disabled={saving || Boolean(quoteMaterialPriceError) || Boolean(pieceManualPriceError)}
-          className="flex items-center gap-2 bg-brand-primary text-white px-8 py-3 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95 disabled:opacity-50"
+          className="flex items-center gap-2 bg-brand-primary text-[#3F3A34] px-8 py-3 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95 disabled:opacity-50"
         >
           <Save className="w-5 h-5" />
           {saving ?'Salvando...' : LABELS.quotes.save}
@@ -1533,30 +1533,30 @@ export const QuoteEditor: React.FC = () => {
       <div className="grid grid-cols-1 gap-5 lg:h-[calc(100svh-190px)] lg:grid-cols-[minmax(360px,384px)_minmax(0,1fr)] lg:gap-8 lg:overflow-hidden xl:grid-cols-[400px_minmax(0,1fr)]">
         <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
           <div className="space-y-5 lg:pb-6">
-            <section className="rounded-[32px] bg-brand-primary p-6 text-white shadow-xl shadow-brand-primary/20">
+            <section className="rounded-[32px] bg-brand-primary p-6 text-[#3F3A34] shadow-xl shadow-brand-primary/20">
               <div className="flex items-center gap-2 opacity-80">
                 <Calculator className="h-5 w-5" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.24em]">Resumo Financeiro</span>
               </div>
               <div className="mt-4 text-4xl font-display font-bold">{formatCurrency(totalPrice)}</div>
-              <div className="mt-2 text-xs font-semibold text-white/65">Valor final do orçamento</div>
-              <div className="mt-5 space-y-2 text-sm text-white/80">
-                <div className="flex items-center justify-between gap-3"><span>Área final total</span><strong className="text-white">{formatArea(totalArea)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Pedra base</span><strong className="text-white">{formatCurrency(stonesCost)}</strong></div>
-                <div className={cn('flex items-center justify-between gap-3', !includeMaterialLoss && 'text-white/45')}><span>Perda material {!includeMaterialLoss && '(Desativado)'}</span><strong className="text-white">{formatCurrency(materialLossCost)}</strong></div>
-                <div className={cn('flex items-center justify-between gap-3', !includeCutouts && 'text-white/45')}><span>Recortes {!includeCutouts && '(Desativado)'}</span><strong className="text-white">{formatCurrency(cutoutsCost)}</strong></div>
-                <div className={cn('flex items-center justify-between gap-3', !includeSculptedSink && 'text-white/45')}><span>Pia esculpida {!includeSculptedSink && '(Desativado)'}</span><strong className="text-white">{formatCurrency(sculptedLaborCost)}</strong></div>
-                <div className={cn('flex items-center justify-between gap-3', !includeLabor && 'text-white/45')}><span>Mão de obra {!includeLabor && '(Desativado)'}</span><strong className="text-white">{formatCurrency(laborCost)}</strong></div>
-                <div className="flex items-center justify-between gap-3 border-t border-white/15 pt-2"><span>Subtotal produção</span><strong className="text-white">{formatCurrency(productionSubtotal)}</strong></div>
-                <div className={cn('flex items-center justify-between gap-3', !includeDelivery && 'text-white/45')}><span>Entrega {!includeDelivery && '(Desativado)'}</span><strong className="text-white">{formatCurrency(deliveryFee)}</strong></div>
-                <div className={cn('flex items-center justify-between gap-3', !includeComplexity && 'text-white/45')}><span>Complexidade ({complexityPercent}%){!includeComplexity && ' (Desativado)'}</span><strong className="text-white">{formatCurrency(complexityValue)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong className="text-white">{formatCurrency(adjustmentValue)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Comissão ({normalizedCommissionPercent}%)</span><strong className="text-white">{formatCurrency(commissionValue)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Descontos ({normalizedNegotiationDiscountPercent}%)</span><strong className="text-white">-{formatCurrency(negotiationDiscountValue)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Acréscimos ({normalizedRtPercent}%)</span><strong className="text-white">{formatCurrency(rtValue)}</strong></div>
-                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-white/10 px-4 py-3 text-base">
-                  <span className="font-bold text-white">Total final</span>
-                  <strong className="font-display text-xl text-white">{formatCurrency(totalPrice)}</strong>
+              <div className="mt-2 text-xs font-semibold text-[#5F5549]">Valor final do orçamento</div>
+              <div className="mt-5 space-y-2 text-sm text-[#4F473E]">
+                <div className="flex items-center justify-between gap-3"><span>Área final total</span><strong className="text-[#3F3A34]">{formatArea(totalArea)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Pedra base</span><strong className="text-[#3F3A34]">{formatCurrency(stonesCost)}</strong></div>
+                <div className={cn('flex items-center justify-between gap-3', !includeMaterialLoss && 'text-[#7A6D5F]')}><span>Perda material {!includeMaterialLoss && '(Desativado)'}</span><strong className="text-[#3F3A34]">{formatCurrency(materialLossCost)}</strong></div>
+                <div className={cn('flex items-center justify-between gap-3', !includeCutouts && 'text-[#7A6D5F]')}><span>Recortes {!includeCutouts && '(Desativado)'}</span><strong className="text-[#3F3A34]">{formatCurrency(cutoutsCost)}</strong></div>
+                <div className={cn('flex items-center justify-between gap-3', !includeSculptedSink && 'text-[#7A6D5F]')}><span>Pia esculpida {!includeSculptedSink && '(Desativado)'}</span><strong className="text-[#3F3A34]">{formatCurrency(sculptedLaborCost)}</strong></div>
+                <div className={cn('flex items-center justify-between gap-3', !includeLabor && 'text-[#7A6D5F]')}><span>Mão de obra {!includeLabor && '(Desativado)'}</span><strong className="text-[#3F3A34]">{formatCurrency(laborCost)}</strong></div>
+                <div className="flex items-center justify-between gap-3 border-t border-[#3F3A34]/15 pt-2"><span>Subtotal produção</span><strong className="text-[#3F3A34]">{formatCurrency(productionSubtotal)}</strong></div>
+                <div className={cn('flex items-center justify-between gap-3', !includeDelivery && 'text-[#7A6D5F]')}><span>Entrega {!includeDelivery && '(Desativado)'}</span><strong className="text-[#3F3A34]">{formatCurrency(deliveryFee)}</strong></div>
+                <div className={cn('flex items-center justify-between gap-3', !includeComplexity && 'text-[#7A6D5F]')}><span>Complexidade ({complexityPercent}%){!includeComplexity && ' (Desativado)'}</span><strong className="text-[#3F3A34]">{formatCurrency(complexityValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong className="text-[#3F3A34]">{formatCurrency(adjustmentValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Comissão ({normalizedCommissionPercent}%)</span><strong className="text-[#3F3A34]">{formatCurrency(commissionValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Descontos ({normalizedNegotiationDiscountPercent}%)</span><strong className="text-[#3F3A34]">-{formatCurrency(negotiationDiscountValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Acréscimos ({normalizedRtPercent}%)</span><strong className="text-[#3F3A34]">{formatCurrency(rtValue)}</strong></div>
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-white/20 px-4 py-3 text-base">
+                  <span className="font-bold text-[#3F3A34]">Total final</span>
+                  <strong className="font-display text-xl text-[#3F3A34]">{formatCurrency(totalPrice)}</strong>
                 </div>
               </div>
             </section>
@@ -1604,7 +1604,7 @@ export const QuoteEditor: React.FC = () => {
                               setClientSearch(client.name);
                               setClientPickerOpen(false);
                             }}
-                            className={cn('w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', clientId === client.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
+                            className={cn('w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', clientId === client.id ? 'bg-brand-primary text-[#3F3A34] hover:bg-brand-primary' : 'text-slate-700')}
                           >
                             <span className="block">{client.name}</span>
                           </button>
@@ -1727,7 +1727,7 @@ export const QuoteEditor: React.FC = () => {
                       </div>
                       <div className="mt-3 grid gap-2 sm:grid-cols-2">
                       {activeComplexityOptions.map((option) => (
-                        <button key={option.key} type="button" onClick={() => setComplexityKey(option.key)} className={cn('flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all', complexityKey === option.key ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-700 hover:border-brand-primary/30 hover:bg-white')}>
+                        <button key={option.key} type="button" onClick={() => setComplexityKey(option.key)} className={cn('flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all', complexityKey === option.key ? 'border-brand-primary bg-brand-primary text-[#3F3A34] shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-700 hover:border-brand-primary/30 hover:bg-white')}>
                           <span>{option.label}</span>
                           <span>{option.percent > 0 ? '+' : ''}{option.percent}%</span>
                         </button>
@@ -1768,8 +1768,8 @@ export const QuoteEditor: React.FC = () => {
             <SidebarAccordionSection sectionKey="payment" openSection={sidebarSection} onToggle={setSidebarSection} icon={CreditCard} title="Forma de Pagamento" description="Condição comercial, parcelas, entrada e observações financeiras.">
               <div className="space-y-4">
                 <div className="grid gap-2 sm:grid-cols-2">
-                  <button type="button" onClick={() => setPaymentMode('total')} className={cn('rounded-2xl px-4 py-3 text-sm font-semibold transition-all', paymentMode === 'total' ? 'bg-brand-primary text-white' : 'bg-slate-50 text-slate-600')}>Valor total</button>
-                  <button type="button" onClick={() => setPaymentMode('entry')} className={cn('rounded-2xl px-4 py-3 text-sm font-semibold transition-all', paymentMode === 'entry' ? 'bg-brand-primary text-white' : 'bg-slate-50 text-slate-600')}>Entrada + restante</button>
+                  <button type="button" onClick={() => setPaymentMode('total')} className={cn('rounded-2xl px-4 py-3 text-sm font-semibold transition-all', paymentMode === 'total' ? 'bg-brand-primary text-[#3F3A34]' : 'bg-slate-50 text-slate-600')}>Valor total</button>
+                  <button type="button" onClick={() => setPaymentMode('entry')} className={cn('rounded-2xl px-4 py-3 text-sm font-semibold transition-all', paymentMode === 'entry' ? 'bg-brand-primary text-[#3F3A34]' : 'bg-slate-50 text-slate-600')}>Entrada + restante</button>
                 </div>
                 {paymentMode === 'total' ? (
                   <select value={totalPaymentMethod} onChange={(e) => setTotalPaymentMethod(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
@@ -1801,7 +1801,7 @@ export const QuoteEditor: React.FC = () => {
 
         {/* Left Column: Basic Info */}
         <div className="hidden">
-          <section className="bg-brand-primary p-8 rounded-[32px] text-white shadow-xl shadow-brand-primary/30">
+          <section className="bg-brand-primary p-8 rounded-[32px] text-[#3F3A34] shadow-xl shadow-brand-primary/30">
             <div className="flex items-center gap-2 mb-4 opacity-80">
               <Calculator className="w-5 h-5" />
               <span className="text-[10px] font-bold uppercase tracking-widest">Resumo do Total</span>
@@ -1809,17 +1809,17 @@ export const QuoteEditor: React.FC = () => {
             <div className="text-4xl font-display font-bold mb-2">
               {formatCurrency(totalPrice)}
             </div>
-            <div className="space-y-2 text-sm font-medium text-white/75">
+            <div className="space-y-2 text-sm font-medium text-[#4F473E]">
               <div className="flex justify-between gap-3"><span>Área final total</span><strong>{formatArea(totalArea)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pedras</span><strong>{formatCurrency(stonesCost)}</strong></div>
-              <div className={cn('flex justify-between gap-3', !includeMaterialLoss && 'text-white/45')}>
+              <div className={cn('flex justify-between gap-3', !includeMaterialLoss && 'text-[#7A6D5F]')}>
                 <span>{includeMaterialLoss ? `Perda material (${MATERIAL_LOSS_PERCENTAGE}%)` : 'Perda material desativada'}</span>
                 <strong>{formatCurrency(materialLossCost)}</strong>
               </div>
-              <div className={cn('flex justify-between gap-3', !includeLabor && 'text-white/45')}><span>Mão de obra {!includeLabor && '(Desativado)'}</span><strong>{formatCurrency(laborCost)}</strong></div>
-              <div className={cn('flex justify-between gap-3', !includeCutouts && 'text-white/45')}><span>Recortes {!includeCutouts && '(Desativado)'}</span><strong>{formatCurrency(cutoutsCost)}</strong></div>
-              <div className={cn('flex justify-between gap-3', !includeSculptedSink && 'text-white/45')}><span>Pia esculpida {!includeSculptedSink && '(Desativado)'}</span><strong>{formatCurrency(sculptedLaborCost)}</strong></div>
-              <div className="flex justify-between gap-3 border-t border-white/15 pt-2"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong>{formatCurrency(adjustmentValue)}</strong></div>
+              <div className={cn('flex justify-between gap-3', !includeLabor && 'text-[#7A6D5F]')}><span>Mão de obra {!includeLabor && '(Desativado)'}</span><strong>{formatCurrency(laborCost)}</strong></div>
+              <div className={cn('flex justify-between gap-3', !includeCutouts && 'text-[#7A6D5F]')}><span>Recortes {!includeCutouts && '(Desativado)'}</span><strong>{formatCurrency(cutoutsCost)}</strong></div>
+              <div className={cn('flex justify-between gap-3', !includeSculptedSink && 'text-[#7A6D5F]')}><span>Pia esculpida {!includeSculptedSink && '(Desativado)'}</span><strong>{formatCurrency(sculptedLaborCost)}</strong></div>
+              <div className="flex justify-between gap-3 border-t border-[#3F3A34]/15 pt-2"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong>{formatCurrency(adjustmentValue)}</strong></div>
               <div className="flex justify-between gap-3"><span>Negociação (-{normalizedNegotiationDiscountPercent}%)</span><strong>-{formatCurrency(negotiationDiscountValue)}</strong></div>
               <div className="flex justify-between gap-3"><span>RT (+{normalizedRtPercent}%)</span><strong>{formatCurrency(rtValue)}</strong></div>
             </div>
@@ -1869,7 +1869,7 @@ export const QuoteEditor: React.FC = () => {
                           setClientSearch(client.name);
                           setClientPickerOpen(false);
                         }}
-                        className={cn('w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', clientId === client.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
+                        className={cn('w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', clientId === client.id ? 'bg-brand-primary text-[#3F3A34] hover:bg-brand-primary' : 'text-slate-700')}
                       >
                         <span className="block">{client.name}</span>
                       </button>
@@ -2013,7 +2013,7 @@ export const QuoteEditor: React.FC = () => {
                     onClick={() => setPaymentMode('total')}
                     className={cn(
                       'rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
-                      paymentMode === 'total' ? 'bg-brand-primary text-white' : 'bg-white text-slate-600',
+                      paymentMode === 'total' ? 'bg-brand-primary text-[#3F3A34]' : 'bg-white text-slate-600',
                     )}
                   >
                     Valor total
@@ -2023,7 +2023,7 @@ export const QuoteEditor: React.FC = () => {
                     onClick={() => setPaymentMode('entry')}
                     className={cn(
                       'rounded-xl px-4 py-2.5 text-sm font-semibold transition-all',
-                      paymentMode === 'entry' ? 'bg-brand-primary text-white' : 'bg-white text-slate-600',
+                      paymentMode === 'entry' ? 'bg-brand-primary text-[#3F3A34]' : 'bg-white text-slate-600',
                     )}
                   >
                     Entrada + restante
@@ -2135,7 +2135,7 @@ export const QuoteEditor: React.FC = () => {
               <button
                 type="button"
                 onClick={() => addPiece(true)}
-                className="rounded-2xl bg-brand-primary px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-brand-primary/90"
+                className="rounded-2xl bg-brand-primary px-4 py-2 text-sm font-bold text-[#3F3A34] shadow-sm hover:bg-brand-primary/90"
               >
                 Adicionar Escada
               </button>
@@ -2168,7 +2168,7 @@ export const QuoteEditor: React.FC = () => {
               <div key={piece.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
                 <div className="bg-slate-50/50 px-8 py-4 border-b border-slate-100 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-brand-primary text-white text-xs font-bold rounded-lg flex items-center justify-center">
+                    <div className="w-8 h-8 bg-brand-primary text-[#3F3A34] text-xs font-bold rounded-lg flex items-center justify-center">
                       {pIdx + 1}
                     </div>
                     <input 
@@ -2181,14 +2181,14 @@ export const QuoteEditor: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => updatePiece(piece.id, {stair: {...(piece.stair || defaultStairConfig()), active: false}})}
-                        className={cn('px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', !piece.stair?.active ?'bg-brand-primary text-white shadow-sm' : 'text-slate-400 hover:text-slate-700')}
+                        className={cn('px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', !piece.stair?.active ?'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-400 hover:text-slate-700')}
                       >
                         Peça
                       </button>
                       <button
                         type="button"
                         onClick={() => updatePiece(piece.id, {stair: {...defaultStairConfig(), ...(piece.stair || {}), active: true}, sculptedSink: {...piece.sculptedSink, active: false} as any, wetAreaRecess: {...piece.wetAreaRecess, active: false} as any})}
-                        className={cn('px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', piece.stair?.active ?'bg-brand-primary text-white shadow-sm' : 'text-slate-400 hover:text-slate-700')}
+                        className={cn('px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', piece.stair?.active ?'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-400 hover:text-slate-700')}
                       >
                         Escada
                       </button>
@@ -2307,18 +2307,18 @@ export const QuoteEditor: React.FC = () => {
                                       setPieceMaterialSearch((current) => ({...current, [piece.id]: material.name}));
                                       setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: false}));
                                     }}
-                                    className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', piece.materialId === material.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
+                                    className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', piece.materialId === material.id ? 'bg-brand-primary text-[#3F3A34] hover:bg-brand-primary' : 'text-slate-700')}
                                   >
                                     <div className={cn('h-12 w-12 shrink-0 overflow-hidden rounded-xl border', piece.materialId === material.id ? 'border-white/30 bg-white/15' : 'border-slate-100 bg-slate-50')}>
                                       {imageVariantUrl(material, 'thumbnail') ? <img src={imageVariantUrl(material, 'thumbnail')} alt={material.name} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase text-slate-300">Sem foto</div>}
                                     </div>
                                     <span className="min-w-0 flex-1">
                                       <span className="block truncate">{material.name}</span>
-                                      <span className={cn('block text-[11px] font-medium', piece.materialId === material.id ? 'text-white/80' : 'text-slate-400')}>
+                                      <span className={cn('block text-[11px] font-medium', piece.materialId === material.id ? 'text-[#5F5549]' : 'text-slate-400')}>
                                         {formatMaterialSpecs(material) || material.category || 'Sem categoria'}
                                       </span>
                                     </span>
-                                    <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase', available ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600', piece.materialId === material.id && 'bg-white/15 text-white')}>
+                                    <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase', available ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600', piece.materialId === material.id && 'bg-white/20 text-[#3F3A34]')}>
                                       <span className={cn('h-2 w-2 rounded-full', available ?'bg-green-500' : 'bg-red-500')} />
                                       {available ?'Disponível' : 'Indisponível'}
                                     </span>
@@ -2401,7 +2401,7 @@ export const QuoteEditor: React.FC = () => {
                             <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Espelhos</span><strong>{formatArea(stairDetails.riserArea)}</strong></div>
                             <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Patamar</span><strong>{formatArea(stairDetails.landingArea)}</strong></div>
                             <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Rodapé</span><strong>{formatArea(stairDetails.baseboardArea)}</strong></div>
-                            <div className="rounded-2xl bg-brand-primary p-3 text-white"><span className="block font-bold uppercase text-white/70">Total escada</span><strong>{formatArea(stairDetails.totalArea)}</strong></div>
+                            <div className="rounded-2xl bg-brand-primary p-3 text-[#3F3A34]"><span className="block font-bold uppercase text-[#5F5549]">Total escada</span><strong>{formatArea(stairDetails.totalArea)}</strong></div>
                           </div>
                         </div>
                       )}
@@ -2949,7 +2949,7 @@ export const QuoteEditor: React.FC = () => {
                 <button
                   id={`save-drawing-${showDrawing}`}
                   type="button"
-                  className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-3 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 transition-all hover:bg-brand-primary/90 sm:px-5"
+                  className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-3 text-sm font-bold text-[#3F3A34] shadow-lg shadow-brand-primary/20 transition-all hover:bg-brand-primary/90 sm:px-5"
                 >
                   <Save className="w-4 h-4" />
                   Salvar peça

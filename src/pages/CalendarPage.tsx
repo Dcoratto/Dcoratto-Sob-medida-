@@ -896,7 +896,7 @@ export const CalendarPage: React.FC = () => {
 
               {createError && <div className="rounded-xl bg-red-50 px-3 py-2 text-xs font-semibold text-red-700">{createError}</div>}
 
-              <button type="submit" disabled={isSavingEvent} className="w-full rounded-xl bg-brand-primary px-3 py-2 text-sm font-bold text-white hover:brightness-105 disabled:opacity-70">
+              <button type="submit" disabled={isSavingEvent} className="w-full rounded-xl bg-brand-primary px-3 py-2 text-sm font-bold text-[#3F3A34] hover:brightness-105 disabled:opacity-70">
                 {isSavingEvent ? 'Salvando...' : editingEventId ? 'Salvar alterações' : 'Salvar evento'}
               </button>
             </form>

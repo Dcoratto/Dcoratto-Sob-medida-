@@ -614,7 +614,7 @@ export const CrisisManagementPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowClientModal(true)}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 transition-all hover:brightness-110"
+              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-[#3F3A34] shadow-lg shadow-brand-primary/20 transition-all hover:brightness-110"
             >
               <Plus className="h-4 w-4" />
               Adicionar Cliente
@@ -765,7 +765,7 @@ export const CrisisManagementPage: React.FC = () => {
                         <button
                           type="button"
                           onClick={() => openTaskModal()}
-                          className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white shadow-lg shadow-brand-primary/20"
+                          className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-[#3F3A34] shadow-lg shadow-brand-primary/20"
                         >
                           <Plus className="h-4 w-4" />
                           Nova pendencia
@@ -1061,7 +1061,7 @@ export const CrisisManagementPage: React.FC = () => {
                     type="button"
                     disabled={addingClientId === client.id}
                     onClick={() => void handleAddClient(client)}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-[#3F3A34] disabled:opacity-60"
                   >
                     {addingClientId === client.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                     Adicionar
@@ -1104,7 +1104,7 @@ export const CrisisManagementPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={savingTask}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-[#3F3A34] disabled:opacity-60"
               >
                 {savingTask ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 Salvar pendencia
@@ -1203,7 +1203,7 @@ export const CrisisManagementPage: React.FC = () => {
                 <button
                   type="submit"
                   disabled={savingSchedule || removingSchedule}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white disabled:opacity-60"
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-[#3F3A34] disabled:opacity-60"
                 >
                   {savingSchedule ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
                   Salvar data

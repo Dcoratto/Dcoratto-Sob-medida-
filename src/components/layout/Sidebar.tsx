@@ -66,7 +66,7 @@ export const Sidebar: React.FC = () => {
             onFocus={() => void preloadRoute(item.path)}
             className={({isActive}) => cn(
               'group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200',
-              isActive ?'bg-brand-primary text-white shadow-lg shadow-brand-primary/20' : 'text-slate-600 hover:bg-slate-50 hover:text-brand-primary',
+              isActive ?'bg-brand-primary text-[#3F3A34] shadow-lg shadow-brand-primary/20' : 'text-slate-600 hover:bg-slate-50 hover:text-brand-primary',
             )}
           >
             <item.icon className="h-5 w-5 shrink-0" />
@@ -172,7 +172,7 @@ export const Sidebar: React.FC = () => {
               onFocus={() => void preloadRoute(item.path)}
               className={({isActive}) => cn(
                 'flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2.5 text-[10px] font-bold transition-all',
-                isActive ?'bg-brand-primary text-white shadow-lg shadow-brand-primary/20' : 'text-slate-500 hover:bg-slate-50 hover:text-brand-primary',
+                isActive ?'bg-brand-primary text-[#3F3A34] shadow-lg shadow-brand-primary/20' : 'text-slate-500 hover:bg-slate-50 hover:text-brand-primary',
               )}
             >
               <item.icon className="h-4 w-4 shrink-0" />

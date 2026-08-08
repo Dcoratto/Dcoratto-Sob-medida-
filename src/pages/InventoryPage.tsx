@@ -1487,7 +1487,7 @@ export const InventoryPage: React.FC = () => {
                 resetForm();
                 setShowModal(true);
               }}
-              className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-white hover:bg-brand-primary/90 transition-all"
+              className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-bold text-[#3F3A34] hover:bg-brand-primary/90 transition-all"
             >
               <Plus className="h-4 w-4" />
               Adicionar chapa
@@ -1720,7 +1720,7 @@ export const InventoryPage: React.FC = () => {
                 }}
                 className={cn(
                   'inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition-all',
-                  isEditingPatioLayout ? 'bg-brand-primary text-white hover:bg-brand-primary/90' : 'bg-slate-900 text-white hover:bg-slate-800',
+                  isEditingPatioLayout ? 'bg-brand-primary text-[#3F3A34] hover:bg-brand-primary/90' : 'bg-slate-900 text-white hover:bg-slate-800',
                 )}
               >
                 <Edit2 className="h-4 w-4" />
@@ -2508,10 +2508,10 @@ export const InventoryPage: React.FC = () => {
                 </div>
 
                 <div className="md:col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-2 flex gap-2">
-                  <button type="button" onClick={() => setPurchaseMeasureMode('same')} className={cn('flex-1 rounded-xl px-4 py-3 text-sm font-bold transition-all', purchaseMeasureMode === 'same' ?'bg-brand-primary text-white shadow-sm' : 'bg-white text-slate-500 hover:text-slate-900')}>
+                  <button type="button" onClick={() => setPurchaseMeasureMode('same')} className={cn('flex-1 rounded-xl px-4 py-3 text-sm font-bold transition-all', purchaseMeasureMode === 'same' ?'bg-brand-primary text-[#3F3A34] shadow-sm' : 'bg-white text-slate-500 hover:text-slate-900')}>
                     Mesma medida
                   </button>
-                  <button type="button" onClick={() => setPurchaseMeasureMode('different')} className={cn('flex-1 rounded-xl px-4 py-3 text-sm font-bold transition-all', purchaseMeasureMode === 'different' ?'bg-brand-primary text-white shadow-sm' : 'bg-white text-slate-500 hover:text-slate-900')}>
+                  <button type="button" onClick={() => setPurchaseMeasureMode('different')} className={cn('flex-1 rounded-xl px-4 py-3 text-sm font-bold transition-all', purchaseMeasureMode === 'different' ?'bg-brand-primary text-[#3F3A34] shadow-sm' : 'bg-white text-slate-500 hover:text-slate-900')}>
                     Medida diferente
                   </button>
                 </div>
@@ -2727,7 +2727,7 @@ export const InventoryPage: React.FC = () => {
                               setPhotoPreview(editingItem?.photoUrl || '');
                             }
                           }}
-                          className="w-full text-sm text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-brand-primary file:px-3 file:py-2 file:text-white file:font-semibold hover:file:bg-brand-primary/90"
+                          className="w-full text-sm text-slate-600 file:mr-3 file:rounded-xl file:border-0 file:bg-brand-primary file:px-3 file:py-2 file:text-[#3F3A34] file:font-semibold hover:file:bg-brand-primary/90"
                         />
                         <p className="mt-1 text-xs text-slate-400">A imagem será salva e exibida em círculo na lista.</p>
                       </div>
@@ -2740,7 +2740,7 @@ export const InventoryPage: React.FC = () => {
                 </div>
               </div>
 
-              <button type="submit" className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
+              <button type="submit" className="w-full bg-brand-primary text-[#3F3A34] py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
                 {editingItem ?'Salvar Alterações' : 'Adicionar ao Estoque'}
               </button>
               {!editingItem && (

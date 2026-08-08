@@ -539,7 +539,7 @@ export const MaterialsPage: React.FC = () => {
                 <label htmlFor="active" className="text-slate-700 font-medium cursor-pointer">Material disponível para venda</label>
               </div>
 
-              <button type="submit" disabled={savingPrice} className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95 disabled:opacity-60">
+              <button type="submit" disabled={savingPrice} className="w-full bg-brand-primary text-[#3F3A34] py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95 disabled:opacity-60">
                 {savingPrice ? 'Salvando...' : 'Salvar preço'}
               </button>
               <DraftAutosaveStatus savedAt={materialPriceDraftSavedAt} className="text-center" />

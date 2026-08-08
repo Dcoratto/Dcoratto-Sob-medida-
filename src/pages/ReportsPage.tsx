@@ -361,7 +361,7 @@ export const ReportsPage: React.FC = () => {
               key={item}
               type="button"
               onClick={() => setPeriod(item)}
-              className={cn('rounded-xl px-4 py-2 text-xs font-bold uppercase transition-all', period === item ?'bg-brand-primary text-white' : 'bg-white text-slate-500 hover:bg-slate-50')}
+              className={cn('rounded-xl px-4 py-2 text-xs font-bold uppercase transition-all', period === item ?'bg-brand-primary text-[#3F3A34]' : 'bg-white text-slate-500 hover:bg-slate-50')}
             >
               {item === 'today' ?'Hoje' : item === 'week' ?'Semana' : item === 'month' ?'Mês' : item === 'year' ?'Ano' : 'Tudo'}
             </button>

@@ -1371,7 +1371,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <ToolButton icon={Hand} label="Pan" active={drawTool === 'pan'} onClick={() => setDrawTool('pan')} />
         <ToolButton icon={Scissors} label="Adicionar recorte" active={drawTool === 'cutout'} onClick={activateCutoutTool} />
 
-        <button type="button" onClick={() => setOrtho((value) => !value)} className={cn('rounded-xl px-3 py-2 text-xs font-bold uppercase', ortho ?'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')}>
+        <button type="button" onClick={() => setOrtho((value) => !value)} className={cn('rounded-xl px-3 py-2 text-xs font-bold uppercase', ortho ?'bg-brand-primary text-[#3F3A34]' : 'bg-slate-100 text-slate-500')}>
           {ortho ?'ORTHO ligado' : 'ORTHO livre'}
         </button>
         <button type="button" onClick={() => setSnap((value) => !value)} className={cn('rounded-xl px-3 py-2 text-xs font-bold uppercase', snap ?'bg-green-600 text-white' : 'bg-slate-100 text-slate-500')}>
@@ -1434,7 +1434,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
           <button
             type="button"
             onClick={() => setCutoutRotation((value) => (value === 0 ?90 : 0))}
-            className={cn('rounded-xl px-3 py-2 text-xs font-bold uppercase', cutoutRotation === 90 ?'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')}
+            className={cn('rounded-xl px-3 py-2 text-xs font-bold uppercase', cutoutRotation === 90 ?'bg-brand-primary text-[#3F3A34]' : 'bg-slate-100 text-slate-500')}
             title="Girar recorte"
           >
             {cutoutRotation === 90 ?'Vertical' : 'Horizontal'}
@@ -1445,7 +1445,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
         <button type="button" onClick={() => setZoom((value) => Math.min(MAX_ZOOM, value * 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomIn className="h-4 w-4" /></button>
         <button type="button" onClick={() => setZoom((value) => Math.max(MIN_ZOOM, value / 1.12))} className="rounded-xl bg-slate-100 p-2 text-slate-500"><ZoomOut className="h-4 w-4" /></button>
         <button type="button" onClick={centerDrawing} className="rounded-xl bg-slate-100 p-2 text-slate-500"><LocateFixed className="h-4 w-4" /></button>
-        <button type="button" onClick={() => setShowHelp((value) => !value)} className={cn('rounded-xl p-2', showHelp ?'bg-brand-primary text-white' : 'bg-slate-100 text-slate-500')} title="Ajuda">
+        <button type="button" onClick={() => setShowHelp((value) => !value)} className={cn('rounded-xl p-2', showHelp ?'bg-brand-primary text-[#3F3A34]' : 'bg-slate-100 text-slate-500')} title="Ajuda">
           <HelpCircle className="h-4 w-4" />
         </button>
       </div>
@@ -1460,7 +1460,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             <button
               type="button"
               onClick={() => setFixturePickerOpen(true)}
-              className="rounded-xl bg-brand-primary px-3 py-2 text-xs font-bold uppercase text-white"
+              className="rounded-xl bg-brand-primary px-3 py-2 text-xs font-bold uppercase text-[#3F3A34]"
             >
               Ver peças
             </button>
@@ -1502,7 +1502,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             <button
               type="button"
               onClick={() => setCutoutRotation((value) => (value === 0 ?90 : 0))}
-              className={cn('w-full rounded-xl px-3 py-2 text-xs font-bold uppercase', cutoutRotation === 90 ?'bg-brand-primary text-white' : 'bg-white text-slate-500 border border-slate-200')}
+              className={cn('w-full rounded-xl px-3 py-2 text-xs font-bold uppercase', cutoutRotation === 90 ?'bg-brand-primary text-[#3F3A34]' : 'bg-white text-slate-500 border border-slate-200')}
               title="Girar recorte"
             >
               {cutoutRotation === 90 ?'Vertical' : 'Horizontal'}
@@ -1547,7 +1547,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
                 setSelectedFixtureId(fixture.id);
                 setFixturePickerOpen(false);
               }}
-              className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', selectedFixtureId === fixture.id ?'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
+              className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', selectedFixtureId === fixture.id ?'bg-brand-primary text-[#3F3A34] hover:bg-brand-primary' : 'text-slate-700')}
             >
               <div className={cn('flex h-12 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border', selectedFixtureId === fixture.id ?'border-white/30 bg-white/15' : 'border-slate-100 bg-slate-50')}>
                 {fixture.imageUrl ?(
@@ -1558,7 +1558,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
               </div>
               <span className="min-w-0">
                 <span className="block truncate">{fixture.name}</span>
-                <span className={cn('block text-[11px] font-medium', selectedFixtureId === fixture.id ?'text-white/80' : 'text-slate-400')}>
+                <span className={cn('block text-[11px] font-medium', selectedFixtureId === fixture.id ?'text-[#5F5549]' : 'text-slate-400')}>
                   {fixture.width || fixture.diameter ?`${formatCentimeters(fixture.width || fixture.diameter)} x ${formatCentimeters(fixture.depth || fixture.height || fixture.diameter || fixture.width)}` : 'Sem medida cadastrada'}
                 </span>
               </span>
@@ -1686,7 +1686,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
             placeholder="Medida em m"
             className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none sm:w-36 sm:flex-none"
           />
-          <button type="button" onClick={handleMeasureSubmit} className="rounded-xl bg-brand-primary p-2 text-white"><Check className="h-4 w-4" /></button>
+          <button type="button" onClick={handleMeasureSubmit} className="rounded-xl bg-brand-primary p-2 text-[#3F3A34]"><Check className="h-4 w-4" /></button>
         </div>
         <div className="absolute right-3 top-3 rounded-2xl border border-slate-100 bg-white/95 p-3 shadow-xl sm:right-4 sm:top-4 sm:p-4">
           <div className="text-xs font-bold uppercase tracking-widest text-slate-400">área principal</div>
@@ -1858,7 +1858,7 @@ export const DrawingCanvas: React.FC<DrawingCanvasProps> = ({
               </div>
           </div>
           <div className="space-y-2">
-            <button type="button" onClick={saveDrawing} disabled={geometries.length === 0} className="w-full rounded-2xl bg-brand-primary py-4 font-bold text-white shadow-lg shadow-brand-primary/20 disabled:opacity-50">
+            <button type="button" onClick={saveDrawing} disabled={geometries.length === 0} className="w-full rounded-2xl bg-brand-primary py-4 font-bold text-[#3F3A34] shadow-lg shadow-brand-primary/20 disabled:opacity-50">
               Adicionar ao orçamento
             </button>
             <button type="button" onClick={onCancel} className="w-full rounded-2xl bg-white py-3 text-sm font-bold text-slate-500 hover:bg-slate-100">
@@ -1878,7 +1878,7 @@ const ToolButton = ({icon: Icon, label, active, onClick}: {icon: any; label: str
     title={label}
     className={cn(
       'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-slate-500 transition-all hover:bg-slate-100',
-      active && 'bg-brand-primary text-white hover:bg-brand-primary',
+      active && 'bg-brand-primary text-[#3F3A34] hover:bg-brand-primary',
     )}
   >
     <Icon className="h-4 w-4" />

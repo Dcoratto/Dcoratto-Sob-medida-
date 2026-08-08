@@ -74,7 +74,7 @@ export const AuthCallback: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate('/login', {replace: true})}
-            className="mt-6 rounded-2xl bg-brand-primary px-6 py-3 text-sm font-bold text-white shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90"
+            className="mt-6 rounded-2xl bg-brand-primary px-6 py-3 text-sm font-bold text-[#3F3A34] shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90"
           >
             Voltar para o login
           </button>

@@ -866,7 +866,7 @@ export const AdminPage: React.FC = () => {
             placeholder="Telefone"
             className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20"
           />
-          <button type="submit" disabled={savingEmployee} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 font-bold text-white shadow-lg shadow-brand-primary/20 disabled:cursor-not-allowed disabled:opacity-60">
+          <button type="submit" disabled={savingEmployee} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 font-bold text-[#3F3A34] shadow-lg shadow-brand-primary/20 disabled:cursor-not-allowed disabled:opacity-60">
             <Plus className="w-4 h-4" />
             {savingEmployee ?'Adicionando...' : 'Adicionar'}
           </button>
@@ -963,7 +963,7 @@ export const AdminPage: React.FC = () => {
               }}
             />
           </label>
-          <button type="submit" disabled={savingMaterial} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-white disabled:opacity-60">
+          <button type="submit" disabled={savingMaterial} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-[#3F3A34] disabled:opacity-60">
             {savingMaterial ?'Salvando...' : editingMaterial ? 'Salvar pedra' : 'Cadastrar pedra'}
           </button>
           {editingMaterial && (
@@ -1082,7 +1082,7 @@ export const AdminPage: React.FC = () => {
             />
           </label>
           <input value={fixtureForm.notes} onChange={(e) => setFixtureForm((f) => ({...f, notes: e.target.value}))} placeholder="Informações" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-1" />
-          <button type="submit" disabled={savingFixture} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-white disabled:opacity-60">
+          <button type="submit" disabled={savingFixture} className="rounded-2xl bg-brand-primary px-4 py-3 font-bold text-[#3F3A34] disabled:opacity-60">
             {savingFixture ?'Salvando...' : editingFixture ? 'Salvar peça' : 'Cadastrar peça'}
           </button>
           {editingFixture && (
@@ -1277,7 +1277,7 @@ export const AdminPage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           <div className="font-semibold text-slate-900">{displayName}</div>
                           {userIsMaster && (
-                            <span className="rounded-full bg-brand-primary px-2 py-0.5 text-[10px] font-bold uppercase text-white">
+                            <span className="rounded-full bg-brand-primary px-2 py-0.5 text-[10px] font-bold uppercase text-[#3F3A34]">
                               Super admin
                             </span>
                           )}

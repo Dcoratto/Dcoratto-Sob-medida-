@@ -1450,7 +1450,7 @@ export const ClientsPage: React.FC = () => {
           <button
             type="button"
             onClick={() => { resetForm(); setShowModal(true); }}
-            className="flex items-center justify-center gap-2 bg-brand-primary text-white px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95"
+            className="flex items-center justify-center gap-2 bg-brand-primary text-[#3F3A34] px-6 py-3 rounded-2xl font-semibold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95"
           >
             <Plus className="w-5 h-5" />
             Novo Cliente
@@ -2392,7 +2392,7 @@ export const ClientsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={addLegacyPiece}
-                            className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-3 py-2 text-xs font-bold text-white"
+                            className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-3 py-2 text-xs font-bold text-[#3F3A34]"
                           >
                             <Plus className="h-4 w-4" />
                             Adicionar peça
@@ -2462,7 +2462,7 @@ export const ClientsPage: React.FC = () => {
                           <button
                             type="button"
                             onClick={addLegacyPayment}
-                            className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-3 py-2 text-xs font-bold text-white"
+                            className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-3 py-2 text-xs font-bold text-[#3F3A34]"
                           >
                             <Plus className="h-4 w-4" />
                             Adicionar parcela
@@ -2541,7 +2541,7 @@ export const ClientsPage: React.FC = () => {
                 <textarea value={notes} onChange={(e) => setNotes(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium min-h-[60px]" />
               </div>
 
-              <button type="submit" className="w-full bg-brand-primary text-white py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
+              <button type="submit" className="w-full bg-brand-primary text-[#3F3A34] py-4 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95">
                 {editingClient ?'Salvar Alterações' : 'Cadastrar Cliente'}
               </button>
               {!editingClient && (
@@ -2559,7 +2559,7 @@ const StatusFilter = ({label, active, onClick}: {key?: React.Key; label: string;
   <button
     type="button"
     onClick={onClick}
-    className={cn('px-3 py-2 rounded-xl text-xs font-bold transition-all', active  ? 'bg-brand-primary text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100')}
+    className={cn('px-3 py-2 rounded-xl text-xs font-bold transition-all', active  ? 'bg-brand-primary text-[#3F3A34]' : 'bg-slate-50 text-slate-500 hover:bg-slate-100')}
   >
     {label}
   </button>

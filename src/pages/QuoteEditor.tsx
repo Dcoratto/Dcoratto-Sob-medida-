@@ -1421,7 +1421,7 @@ export const QuoteEditor: React.FC = () => {
   if (settingsLoading) return <div>Carregando...</div>;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-32">
+    <div className="mx-auto max-w-7xl space-y-8 pb-32">
       <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/quotes')} className="self-start rounded-2xl border border-slate-200 bg-white p-3 transition-all hover:bg-slate-50">
@@ -1453,8 +1453,8 @@ export const QuoteEditor: React.FC = () => {
       )}
       <DraftAutosaveStatus savedAt={quoteDraftSavedAt} />
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-8">
-        <div className="lg:col-span-1">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(360px,384px)_minmax(0,1fr)] lg:gap-8 xl:grid-cols-[400px_minmax(0,1fr)]">
+        <div className="min-w-0">
           <div className="space-y-5 lg:sticky lg:top-6">
             <section className="rounded-[32px] bg-brand-primary p-6 text-white shadow-xl shadow-brand-primary/20">
               <div className="flex items-center gap-2 opacity-80">
@@ -1484,7 +1484,7 @@ export const QuoteEditor: React.FC = () => {
               </div>
             </section>
 
-            <SidebarAccordionSection sectionKey="client" openSection={sidebarSection} onToggle={setSidebarSection} icon={Building2} title="Dados do Cliente" description="Identificação do cliente e dados operacionais do orçamento.">
+            <SidebarAccordionSection sectionKey="client" openSection={sidebarSection} onToggle={setSidebarSection} icon={Building2} title="Cliente" description="Selecione o cliente para este orçamento.">
               <div className="space-y-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Nome</label>
@@ -1530,7 +1530,6 @@ export const QuoteEditor: React.FC = () => {
                             className={cn('w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', clientId === client.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
                           >
                             <span className="block">{client.name}</span>
-                            <span className={cn('text-[11px] font-medium', clientId === client.id ? 'text-white/80' : 'text-slate-400')}>{client.phone || client.email || 'Sem contato'}</span>
                           </button>
                         ))}
                         {filteredClients.length === 0 && <div className="px-3 py-3 text-sm font-semibold text-slate-400">Nenhum cliente encontrado.</div>}
@@ -1539,14 +1538,12 @@ export const QuoteEditor: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Telefone</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient?.phone || '-'}</div></div>
-                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">E-mail</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient?.email || '-'}</div></div>
-                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">CPF/CNPJ</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient?.cpf || '-'}</div></div>
-                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Cidade</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient?.city || '-'}</div></div>
-                  <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bairro</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient?.neighborhood || '-'}</div></div>
-                  <div className="space-y-1 sm:col-span-2"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Endereço</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient?.address || '-'}</div></div>
-                </div>
+                {selectedClient && (
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Cidade</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient.city || '-'}</div></div>
+                    <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Bairro</label><div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm text-slate-700">{selectedClient.neighborhood || '-'}</div></div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1"><label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Ambiente</label><input value={environment} onChange={(e) => setEnvironment(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" placeholder="Ex: Cozinha" /></div>
@@ -1581,20 +1578,20 @@ export const QuoteEditor: React.FC = () => {
             <SidebarAccordionSection sectionKey="pricing" openSection={sidebarSection} onToggle={setSidebarSection} icon={BadgeDollarSign} title="Precificação" description="Custos, regras automáticas e margens do orçamento.">
               <div className="space-y-4">
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-4">
-                    <div className="flex items-center gap-2"><Boxes className="h-4 w-4 text-brand-primary" /><h3 className="font-display text-base font-bold text-slate-900">Custos</h3></div>
-                    <div className="mt-3 space-y-2 text-sm">
-                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Material</span><strong>{formatCurrency(stonesCost + materialLossCost)}</strong></div>
-                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Insumos</span><strong>{formatCurrency(cutoutsCost + sculptedLaborCost)}</strong></div>
-                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Mão de obra</span><strong>{formatCurrency(laborCost)}</strong></div>
-                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Entrega</span><strong>{formatCurrency(deliveryFee)}</strong></div>
+                  <div className="flex min-h-[224px] flex-col rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-2"><Boxes className="h-4 w-4 text-brand-primary" /><h3 className="text-sm font-semibold text-slate-900">Custos</h3></div>
+                    <div className="mt-4 space-y-3 text-sm">
+                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Material</span><strong className="font-semibold text-slate-900">{formatCurrency(stonesCost + materialLossCost)}</strong></div>
+                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Insumos</span><strong className="font-semibold text-slate-900">{formatCurrency(cutoutsCost + sculptedLaborCost)}</strong></div>
+                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Mão de obra</span><strong className="font-semibold text-slate-900">{formatCurrency(laborCost)}</strong></div>
+                      <div className="flex items-center justify-between gap-3"><span className="text-slate-500">Entrega</span><strong className="font-semibold text-slate-900">{formatCurrency(deliveryFee)}</strong></div>
                     </div>
                   </div>
-                  <div className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-4">
-                    <div className="flex items-center gap-2"><Percent className="h-4 w-4 text-brand-primary" /><h3 className="font-display text-base font-bold text-slate-900">Complexidade</h3></div>
-                    <div className="mt-3 grid gap-2">
+                  <div className="flex min-h-[224px] flex-col rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                    <div className="flex items-center gap-2"><Percent className="h-4 w-4 text-brand-primary" /><h3 className="text-sm font-semibold text-slate-900">Complexidade</h3></div>
+                    <div className="mt-4 grid gap-2">
                       {activeComplexityOptions.map((option) => (
-                        <button key={option.key} type="button" onClick={() => setComplexityKey(option.key)} className={cn('flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition-all', complexityKey === option.key ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-white text-slate-700')}>
+                        <button key={option.key} type="button" onClick={() => setComplexityKey(option.key)} className={cn('flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all', complexityKey === option.key ? 'border-brand-primary bg-brand-primary text-white shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-700 hover:border-brand-primary/30 hover:bg-white')}>
                           <span>{option.label}</span>
                           <span>{option.percent > 0 ? '+' : ''}{option.percent}%</span>
                         </button>
@@ -1603,29 +1600,33 @@ export const QuoteEditor: React.FC = () => {
                   </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-600">
-                    <div className="font-display text-base font-bold text-slate-900">Mão de obra automática</div>
-                    <div className="mt-3 flex items-center justify-between gap-3"><span>Modo</span><strong className="text-slate-900">{resolvedLaborPricing.source === 'linear' ? 'Linear legado' : (settings.laborPricing?.mode === 'fixed' ? 'Valor fixo' : 'Por localização')}</strong></div>
-                    <div className="mt-2 flex items-center justify-between gap-3"><span>Origem</span><strong className="text-slate-900">{resolvedLaborPricing.source === 'district' ? 'Bairro' : resolvedLaborPricing.source === 'city' ? 'Cidade' : resolvedLaborPricing.source === 'fixed' ? 'Fixo' : resolvedLaborPricing.source === 'linear' ? 'Linear' : 'Padrão'}</strong></div>
+                  <div className="rounded-2xl border border-slate-100 bg-white p-4 text-sm text-slate-600 shadow-sm">
+                    <div className="text-sm font-semibold text-slate-900">Mão de obra automática</div>
+                    <div className="mt-4 space-y-3">
+                      <div className="flex items-center justify-between gap-3"><span>Modo</span><strong className="font-semibold text-slate-900">{resolvedLaborPricing.source === 'linear' ? 'Linear legado' : (settings.laborPricing?.mode === 'fixed' ? 'Valor fixo' : 'Por localização')}</strong></div>
+                      <div className="flex items-center justify-between gap-3"><span>Origem</span><strong className="font-semibold text-slate-900">{resolvedLaborPricing.source === 'district' ? 'Bairro' : resolvedLaborPricing.source === 'city' ? 'Cidade' : resolvedLaborPricing.source === 'fixed' ? 'Fixo' : resolvedLaborPricing.source === 'linear' ? 'Linear' : 'Padrão'}</strong></div>
+                    </div>
                   </div>
-                  <div className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-600">
-                    <div className="font-display text-base font-bold text-slate-900">Entrega automática</div>
-                    <div className="mt-3 flex items-center justify-between gap-3"><span>Origem</span><strong className="text-slate-900">{deliveryResolution.source === 'district' ? 'Bairro' : deliveryResolution.source === 'city' ? 'Cidade' : 'Padrão'}</strong></div>
-                    <div className="mt-2 flex items-center justify-between gap-3"><span>Local</span><strong className="text-slate-900">{selectedClient?.neighborhood || selectedClient?.city || '-'}</strong></div>
+                  <div className="rounded-2xl border border-slate-100 bg-white p-4 text-sm text-slate-600 shadow-sm">
+                    <div className="text-sm font-semibold text-slate-900">Entrega automática</div>
+                    <div className="mt-4 space-y-3">
+                      <div className="flex items-center justify-between gap-3"><span>Origem</span><strong className="font-semibold text-slate-900">{deliveryResolution.source === 'district' ? 'Bairro' : deliveryResolution.source === 'city' ? 'Cidade' : 'Padrão'}</strong></div>
+                      <div className="flex items-center justify-between gap-3"><span>Local</span><strong className="font-semibold text-slate-900">{selectedClient?.neighborhood || selectedClient?.city || '-'}</strong></div>
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="font-display text-base font-bold text-slate-900">Ajuste de materiais neste orçamento</div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <div className="text-sm font-semibold text-slate-900">Ajuste de materiais neste orçamento</div>
                   {quoteMaterialPriceRows.length === 0 ? (
-                    <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm font-semibold text-slate-400">Selecione materiais nas peças para personalizar valores.</div>
+                    <div className="mt-4 rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm font-semibold text-slate-400">Selecione materiais nas peças para personalizar valores.</div>
                   ) : quoteMaterialPriceRows.map((row) => {
                     const hasCustomInput = Boolean(row.customInput.trim());
                     const isValidCustom = hasCustomInput && !row.error;
                     return (
-                      <div key={row.key} className={cn('rounded-2xl border bg-white p-4 shadow-sm transition-all', row.error ? 'border-red-200 ring-2 ring-red-50' : isValidCustom ? 'border-green-100' : 'border-slate-100')}>
+                      <div key={row.key} className={cn('mt-4 rounded-xl border bg-slate-50 p-4 transition-all', row.error ? 'border-red-200 ring-2 ring-red-50' : isValidCustom ? 'border-green-100' : 'border-slate-100')}>
                         <div className="flex items-center justify-between gap-3">
                           <div>
-                            <div className="font-bold text-slate-900">{row.name}</div>
+                            <div className="font-semibold text-slate-900">{row.name}</div>
                             <div className="text-[11px] font-semibold text-slate-400">{row.specs || row.pieceNames.join(', ') || 'Material selecionado'}</div>
                           </div>
                           <span className={cn('inline-flex self-start rounded-full px-3 py-1 text-[10px] font-bold uppercase', row.error ? 'bg-red-50 text-red-600' : isValidCustom ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500')}>{row.error ? 'Inválido' : isValidCustom ? 'Válido' : 'Preço padrão'}</span>
@@ -1636,9 +1637,9 @@ export const QuoteEditor: React.FC = () => {
                   })}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="space-y-1"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Comissão (%)</span><input type="number" value={commissionPercent} onChange={(e) => setCommissionPercent(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" placeholder="0" /></label>
-                  <label className="space-y-1"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Descontos (%)</span><input type="number" value={negotiationDiscountPercent} onChange={(e) => setNegotiationDiscountPercent(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" placeholder="0" /></label>
-                  <label className="space-y-1 sm:col-span-2"><span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Acréscimos (%)</span><input type="number" value={rtPercent} onChange={(e) => setRtPercent(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" placeholder="0" /></label>
+                  <label className="space-y-1"><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Comissão (%)</span><input type="number" value={commissionPercent} onChange={(e) => setCommissionPercent(e.target.value)} className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-brand-primary/20" placeholder="0" /></label>
+                  <label className="space-y-1"><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Descontos (%)</span><input type="number" value={negotiationDiscountPercent} onChange={(e) => setNegotiationDiscountPercent(e.target.value)} className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-brand-primary/20" placeholder="0" /></label>
+                  <label className="space-y-1 sm:col-span-2"><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Acréscimos (%)</span><input type="number" value={rtPercent} onChange={(e) => setRtPercent(e.target.value)} className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-brand-primary/20" placeholder="0" /></label>
                 </div>
               </div>
             </SidebarAccordionSection>
@@ -1750,7 +1751,6 @@ export const QuoteEditor: React.FC = () => {
                         className={cn('w-full rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', clientId === client.id ? 'bg-brand-primary text-white hover:bg-brand-primary' : 'text-slate-700')}
                       >
                         <span className="block">{client.name}</span>
-                        <span className={cn('text-[11px] font-medium', clientId === client.id ? 'text-white/80' : 'text-slate-400')}>{client.phone || client.email || 'Sem contato'}</span>
                       </button>
                     ))}
                     {filteredClients.length === 0 && (
@@ -1760,6 +1760,13 @@ export const QuoteEditor: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {selectedClient && (
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="space-y-1"><label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cidade</label><div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm text-slate-700">{selectedClient.city || '-'}</div></div>
+                <div className="space-y-1"><label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Bairro</label><div className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm text-slate-700">{selectedClient.neighborhood || '-'}</div></div>
+              </div>
+            )}
 
             <div className="space-y-1">
               <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Ambiente</label>
@@ -1993,7 +2000,7 @@ export const QuoteEditor: React.FC = () => {
         </div>
 
         {/* Right Column: Pieces */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="min-w-0 space-y-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-2xl font-display font-bold text-slate-900">{LABELS.pieces.quotePieces}</h2>
             <div className="flex flex-wrap items-center gap-2">

@@ -7,6 +7,14 @@ export type WarehousePurchaseStatus = 'PENDENTE' | 'SOLICITADO' | 'COMPRADO' | '
 
 export type WarehouseActor = {uid: string; name: string; empresaId: string};
 export type WarehouseReferenceOption = {id: string; name: string; detail?: string; clientId?: string};
+export type WarehouseAlertItem = {
+  id: string;
+  name: string;
+  category: string;
+  unit: string;
+  currentQuantity: number;
+  minimumQuantity: number;
+};
 
 export type WarehouseProduct = {
   id: string;
@@ -104,6 +112,7 @@ export type WarehouseWorkConsumption = {
   totalQuantity: number;
   totalCost: number;
   withdrawals: Array<{
+    movementType: 'SAIDA' | 'DEVOLUCAO';
     date: string;
     quantity: number;
     unitCost: number | null;
@@ -123,7 +132,7 @@ export type WarehouseSummary = {
 };
 
 const throwIfError = (error: {message?: string} | null) => {
-  if (error) throw new Error(error.message || 'Nao foi possivel concluir a operacao.');
+  if (error) throw new Error(error.message || 'Não foi possível concluir a operação.');
 };
 
 const productFromRow = (row: any): WarehouseProduct => ({
@@ -206,20 +215,22 @@ export const listWarehouseProducts = async (options: {
   return {items: (data || []).map(productFromRow), total: count || 0};
 };
 
-export const listWarehouseAlerts = async () => {
-  const {data, error} = await supabase
-    .from('warehouse_products')
-    .select('id,name,category,unit,current_quantity,minimum_quantity,active')
-    .eq('active', true)
-    .order('current_quantity')
-    .limit(40);
+export const listWarehouseAlerts = async (): Promise<WarehouseAlertItem[]> => {
+  const {data, error} = await supabase.rpc('warehouse_stock_alerts', {p_limit: 12});
   throwIfError(error);
-  return (data || []).map(productFromRow).filter((item) => item.currentQuantity <= item.minimumQuantity * 1.25).slice(0, 12);
+  return (data || []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    category: row.category,
+    unit: row.unit,
+    currentQuantity: Number(row.current_quantity) || 0,
+    minimumQuantity: Number(row.minimum_quantity) || 0,
+  }));
 };
 
 export const saveWarehouseProduct = async (
   input: Omit<WarehouseProduct, 'id' | 'currentQuantity' | 'createdAt' | 'updatedAt'> & {id?: string},
-  actor: WarehouseActor,
+  _actor: WarehouseActor,
 ) => {
   const sharedPayload = {
     name: input.name.trim(),
@@ -234,7 +245,7 @@ export const saveWarehouseProduct = async (
   };
   const request = input.id
     ? supabase.from('warehouse_products').update(sharedPayload).eq('id', input.id)
-    : supabase.from('warehouse_products').insert({...sharedPayload, empresa_id: actor.empresaId, item_type: input.itemType, created_by_uid: actor.uid});
+    : supabase.from('warehouse_products').insert({...sharedPayload, item_type: input.itemType});
   const {data, error} = await request.select('id,name,description,category,item_type,unit,current_quantity,minimum_quantity,physical_location,default_supplier_id,unit_cost,active,created_at,updated_at').single();
   throwIfError(error);
   return productFromRow(data);
@@ -284,24 +295,21 @@ export const listWarehouseMovements = async (options: {
   dateFrom?: string;
   dateTo?: string;
 } = {}) => {
-  const page = Math.max(0, options.page || 0);
-  const pageSize = Math.min(50, Math.max(1, options.pageSize || 20));
-  let request = supabase
-    .from('warehouse_movements')
-    .select('id,product_id,movement_type,quantity,previous_quantity,resulting_quantity,unit_cost_snapshot,total_cost_snapshot,employee_id,client_id,work_quote_id,quote_id,reason,notes,performed_by_name,created_at,product:warehouse_products!warehouse_movements_product_fk(name,category,unit),employee:employees(name),client:clients(name),work:quotes!warehouse_movements_work_quote_id_fkey(environment,client_name)', {count: 'exact'})
-    .order('created_at', {ascending: false})
-    .range(page * pageSize, page * pageSize + pageSize - 1);
-  if (options.movementType) request = request.eq('movement_type', options.movementType);
-  if (options.productId) request = request.eq('product_id', options.productId);
-  if (options.employeeId) request = request.eq('employee_id', options.employeeId);
-  if (options.clientId) request = request.eq('client_id', options.clientId);
-  if (options.workQuoteId) request = request.eq('work_quote_id', options.workQuoteId);
-  if (options.category) request = request.eq('product.category', options.category);
-  if (options.dateFrom) request = request.gte('created_at', `${options.dateFrom}T00:00:00-03:00`);
-  if (options.dateTo) request = request.lte('created_at', `${options.dateTo}T23:59:59-03:00`);
-  const {data, error, count} = await request;
+  const {data, error} = await supabase.rpc('warehouse_list_movements', {
+    p_page: Math.max(0, options.page || 0),
+    p_page_size: Math.min(50, Math.max(1, options.pageSize || 20)),
+    p_movement_type: options.movementType || null,
+    p_product_id: options.productId || null,
+    p_employee_id: options.employeeId || null,
+    p_client_id: options.clientId || null,
+    p_work_quote_id: options.workQuoteId || null,
+    p_category: options.category || null,
+    p_date_from: options.dateFrom || null,
+    p_date_to: options.dateTo || null,
+  });
   throwIfError(error);
-  return {items: (data || []).map(movementFromRow), total: count || 0};
+  const rows = data || [];
+  return {items: rows.map(movementFromRow), total: Number(rows[0]?.total_count) || 0};
 };
 
 export const searchWarehouseProducts = async (search = '', type?: WarehouseItemType) => {
@@ -342,16 +350,14 @@ export const createWarehouseTool = async (input: {
   serialNumber?: string;
   condition: string;
   notes?: string;
-}, actor: WarehouseActor) => {
+}, _actor: WarehouseActor) => {
   const {data, error} = await supabase.from('warehouse_tools').insert({
-    empresa_id: actor.empresaId,
     product_id: input.productId,
     asset_code: input.assetCode.trim(),
     serial_number: input.serialNumber?.trim() || null,
     condition: input.condition.trim(),
     notes: input.notes?.trim() || null,
     active: true,
-    created_by_uid: actor.uid,
   }).select('id,product_id,asset_code,serial_number,condition,status,notes,current_employee_id,current_client_id,current_work_quote_id,checked_out_at,expected_return_at,active').single();
   throwIfError(error);
   return toolFromRow(data);
@@ -461,6 +467,7 @@ export const getWarehouseWorkConsumption = async (workQuoteId: string): Promise<
     totalQuantity: Number(row.total_quantity) || 0,
     totalCost: Number(row.total_cost) || 0,
     withdrawals: Array.isArray(row.withdrawals) ? row.withdrawals.map((item: any) => ({
+      movementType: item.movement_type,
       date: item.date,
       quantity: Number(item.quantity) || 0,
       unitCost: item.unit_cost == null ? null : Number(item.unit_cost),
@@ -491,17 +498,14 @@ export const createWarehousePurchase = async (input: {
   suggestedQuantity?: number;
   supplierId?: string;
   notes?: string;
-}, actor: WarehouseActor) => {
+}, _actor: WarehouseActor) => {
   const {data, error} = await supabase.from('warehouse_purchase_items').insert({
-    empresa_id: actor.empresaId,
     product_id: input.productId,
     requested_quantity: input.quantity,
     suggested_quantity: input.suggestedQuantity || null,
     supplier_id: input.supplierId || null,
     status: 'PENDENTE',
     notes: input.notes?.trim() || null,
-    requested_by_uid: actor.uid,
-    requested_by_name: actor.name,
   }).select('id,product_id,requested_quantity,suggested_quantity,supplier_id,status,notes,requested_by_name,requested_at,received_at').single();
   throwIfError(error);
   return purchaseFromRow(data);

@@ -46,6 +46,7 @@ import {
   searchWarehouseClients,
   searchWarehouseProducts,
   updateWarehousePurchaseStatus,
+  type WarehouseAlertItem,
   type WarehouseActor,
   type WarehouseItemType,
   type WarehouseMovement,
@@ -65,7 +66,7 @@ type TabKey = 'overview' | 'products' | 'movements' | 'tools' | 'purchases';
 type Feedback = {type: 'success' | 'error'; message: string} | null;
 
 const PAGE_SIZE = 16;
-const CATEGORIES = ['Abrasivos', 'Corte', 'Colagem', 'Polimento', 'Ferramentas', 'EPI', 'Instalacao', 'Limpeza', 'Outros'];
+const CATEGORIES = ['Abrasivos', 'Corte', 'Colagem', 'Polimento', 'Ferramentas', 'EPI', 'Instalação', 'Limpeza', 'Outros'];
 const UNITS = ['un', 'cx', 'kg', 'g', 'l', 'ml', 'm', 'par', 'rolo'];
 const inputClass = 'h-11 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20 disabled:bg-slate-100';
 const textareaClass = 'min-h-24 w-full resize-y rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none transition focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20';
@@ -119,10 +120,10 @@ const Pagination: React.FC<{page: number; total: number; onChange: (page: number
   if (pages <= 1) return null;
   return (
     <div className="mt-5 flex items-center justify-between border-t border-slate-100 pt-4">
-      <span className="text-xs text-slate-500">Pagina {page + 1} de {pages}</span>
+      <span className="text-xs text-slate-500">Página {page + 1} de {pages}</span>
       <div className="flex gap-2">
-        <button type="button" className={secondaryButton} disabled={page <= 0} onClick={() => onChange(page - 1)} aria-label="Pagina anterior"><ChevronLeft className="h-4 w-4" /></button>
-        <button type="button" className={secondaryButton} disabled={page + 1 >= pages} onClick={() => onChange(page + 1)} aria-label="Proxima pagina"><ChevronRight className="h-4 w-4" /></button>
+        <button type="button" className={secondaryButton} disabled={page <= 0} onClick={() => onChange(page - 1)} aria-label="Página anterior"><ChevronLeft className="h-4 w-4" /></button>
+        <button type="button" className={secondaryButton} disabled={page + 1 >= pages} onClick={() => onChange(page + 1)} aria-label="Próxima página"><ChevronRight className="h-4 w-4" /></button>
       </div>
     </div>
   );
@@ -132,9 +133,9 @@ const formatQuantity = (value: number) => new Intl.NumberFormat('pt-BR', {maximu
 const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString('pt-BR') : '-';
 
 const toolStatusMeta: Record<WarehouseToolStatus, {label: string; className: string}> = {
-  DISPONIVEL: {label: 'Disponivel', className: 'border-emerald-200 bg-emerald-50 text-emerald-700'},
+  DISPONIVEL: {label: 'Disponível', className: 'border-emerald-200 bg-emerald-50 text-emerald-700'},
   EM_USO: {label: 'Em uso', className: 'border-blue-200 bg-blue-50 text-blue-700'},
-  MANUTENCAO: {label: 'Manutencao', className: 'border-amber-200 bg-amber-50 text-amber-700'},
+  MANUTENCAO: {label: 'Manutenção', className: 'border-amber-200 bg-amber-50 text-amber-700'},
   DANIFICADA: {label: 'Danificada', className: 'border-red-200 bg-red-50 text-red-700'},
   INATIVA: {label: 'Inativa', className: 'border-slate-200 bg-slate-100 text-slate-600'},
 };
@@ -146,7 +147,7 @@ export const WarehousePage: React.FC = () => {
   const {settings} = useSettings();
   const actor = React.useMemo<WarehouseActor>(() => ({
     uid: accessUser?.uid || user?.id || '',
-    name: accessUser?.nome || profile?.name || user?.email?.split('@')[0] || 'Usuario',
+    name: accessUser?.nome || profile?.name || user?.email?.split('@')[0] || 'Usuário',
     empresaId: accessUser?.empresaId || profile?.empresaId || 'dcoratto-main',
   }), [accessUser, profile, user]);
   const canEdit = hasPermission('almoxarifado', 'editar');
@@ -158,7 +159,7 @@ export const WarehousePage: React.FC = () => {
   const [refreshKey, setRefreshKey] = React.useState(0);
 
   const [summary, setSummary] = React.useState<WarehouseSummary | null>(null);
-  const [alerts, setAlerts] = React.useState<WarehouseProduct[]>([]);
+  const [alerts, setAlerts] = React.useState<WarehouseAlertItem[]>([]);
   const [overviewLoading, setOverviewLoading] = React.useState(true);
   const [reportClientId, setReportClientId] = React.useState('');
   const [reportProjects, setReportProjects] = React.useState<WarehouseReferenceOption[]>([]);
@@ -220,6 +221,14 @@ export const WarehousePage: React.FC = () => {
   const [purchaseModalOpen, setPurchaseModalOpen] = React.useState(false);
   const [purchaseDraft, setPurchaseDraft] = React.useState({productId: '', quantity: '', suggestedQuantity: '', supplierId: '', notes: ''});
   const [savingPurchase, setSavingPurchase] = React.useState(false);
+  const tabCacheRef = React.useRef<Record<TabKey, string>>({
+    overview: '',
+    products: '',
+    movements: '',
+    tools: '',
+    purchases: '',
+  });
+  const referencesCacheRef = React.useRef('');
 
   const refresh = React.useCallback((message?: string) => {
     setRefreshKey((value) => value + 1);
@@ -228,11 +237,14 @@ export const WarehousePage: React.FC = () => {
 
   React.useEffect(() => {
     if (activeTab !== 'overview') return;
+    const cacheKey = String(refreshKey);
+    if (tabCacheRef.current.overview === cacheKey) return;
     let active = true;
     setOverviewLoading(true);
     Promise.all([getWarehouseSummary(), listWarehouseAlerts()])
       .then(([nextSummary, nextAlerts]) => {
         if (!active) return;
+        tabCacheRef.current.overview = cacheKey;
         setSummary(nextSummary);
         setAlerts(nextAlerts);
       })
@@ -243,11 +255,14 @@ export const WarehousePage: React.FC = () => {
 
   React.useEffect(() => {
     if (activeTab !== 'products') return;
+    const cacheKey = JSON.stringify({refreshKey, productPage, debouncedProductSearch, productTypeFilter});
+    if (tabCacheRef.current.products === cacheKey) return;
     let active = true;
     setProductsLoading(true);
     listWarehouseProducts({page: productPage, pageSize: PAGE_SIZE, search: debouncedProductSearch, itemType: productTypeFilter, activeOnly: false})
       .then((result) => {
         if (!active) return;
+        tabCacheRef.current.products = cacheKey;
         setProducts(result.items);
         setProductsTotal(result.total);
       })
@@ -258,6 +273,8 @@ export const WarehousePage: React.FC = () => {
 
   React.useEffect(() => {
     if (activeTab !== 'movements') return;
+    const cacheKey = JSON.stringify({refreshKey, movementPage, movementFilters});
+    if (tabCacheRef.current.movements === cacheKey) return;
     let active = true;
     setMovementsLoading(true);
     listWarehouseMovements({
@@ -273,6 +290,7 @@ export const WarehousePage: React.FC = () => {
       dateTo: movementFilters.dateTo,
     }).then((result) => {
       if (!active) return;
+      tabCacheRef.current.movements = cacheKey;
       setMovements(result.items);
       setMovementsTotal(result.total);
     }).catch((error) => active && setFeedback({type: 'error', message: (error as Error).message}))
@@ -282,11 +300,14 @@ export const WarehousePage: React.FC = () => {
 
   React.useEffect(() => {
     if (activeTab !== 'tools') return;
+    const cacheKey = JSON.stringify({refreshKey, toolPage, debouncedToolSearch, toolStatus});
+    if (tabCacheRef.current.tools === cacheKey) return;
     let active = true;
     setToolsLoading(true);
     listWarehouseTools({page: toolPage, pageSize: PAGE_SIZE, search: debouncedToolSearch, status: toolStatus})
       .then((result) => {
         if (!active) return;
+        tabCacheRef.current.tools = cacheKey;
         setTools(result.items);
         setToolsTotal(result.total);
       }).catch((error) => active && setFeedback({type: 'error', message: (error as Error).message}))
@@ -296,11 +317,14 @@ export const WarehousePage: React.FC = () => {
 
   React.useEffect(() => {
     if (activeTab !== 'purchases') return;
+    const cacheKey = JSON.stringify({refreshKey, purchasePage, purchaseStatus});
+    if (tabCacheRef.current.purchases === cacheKey) return;
     let active = true;
     setPurchasesLoading(true);
     listWarehousePurchases({page: purchasePage, pageSize: PAGE_SIZE, status: purchaseStatus})
       .then((result) => {
         if (!active) return;
+        tabCacheRef.current.purchases = cacheKey;
         setPurchases(result.items);
         setPurchasesTotal(result.total);
       }).catch((error) => active && setFeedback({type: 'error', message: (error as Error).message}))
@@ -309,6 +333,8 @@ export const WarehousePage: React.FC = () => {
   }, [activeTab, purchasePage, purchaseStatus, refreshKey]);
 
   const loadReferences = React.useCallback(async (productType?: WarehouseItemType) => {
+    const cacheKey = JSON.stringify({refreshKey, productType: productType || 'ALL', hasEmployees: employees.length > 0, hasClients: clients.length > 0, hasProducts: productOptions.length > 0});
+    if (referencesCacheRef.current === cacheKey) return;
     setReferencesLoading(true);
     try {
       const [nextProducts, nextEmployees, nextClients] = await Promise.all([
@@ -316,6 +342,7 @@ export const WarehousePage: React.FC = () => {
         employees.length ? Promise.resolve(employees) : listWarehouseEmployees(),
         clients.length ? Promise.resolve(clients) : searchWarehouseClients(),
       ]);
+      referencesCacheRef.current = cacheKey;
       setProductOptions(nextProducts);
       setEmployees(nextEmployees);
       setClients(nextClients);
@@ -324,7 +351,7 @@ export const WarehousePage: React.FC = () => {
     } finally {
       setReferencesLoading(false);
     }
-  }, [clients, employees]);
+  }, [clients, employees, productOptions.length, refreshKey]);
 
   const loadProjects = React.useCallback(async (clientId: string) => {
     setProjects([]);
@@ -452,7 +479,7 @@ export const WarehousePage: React.FC = () => {
         notes: movementDraft.notes,
       }, actor);
       setMovementModalOpen(false);
-      refresh('Movimentacao registrada com saldo e historico atualizados.');
+      refresh('Movimentação registrada com saldo e histórico atualizados.');
     } catch (error) {
       setFeedback({type: 'error', message: (error as Error).message});
     } finally {
@@ -495,7 +522,7 @@ export const WarehousePage: React.FC = () => {
         await returnWarehouseTool(selectedTool.id, toolDraft.condition, toolDraft.notes, actor);
       }
       setToolModalMode(null);
-      refresh(toolModalMode === 'create' ? 'Ferramenta cadastrada.' : toolModalMode === 'return' ? 'Ferramenta devolvida com historico preservado.' : 'Ferramenta retirada.');
+      refresh(toolModalMode === 'create' ? 'Ferramenta cadastrada.' : toolModalMode === 'return' ? 'Ferramenta devolvida com histórico preservado.' : 'Ferramenta retirada.');
     } catch (error) {
       setFeedback({type: 'error', message: (error as Error).message});
     } finally {
@@ -503,9 +530,10 @@ export const WarehousePage: React.FC = () => {
     }
   };
 
-  const openPurchaseModal = async (product?: WarehouseProduct) => {
+  const openPurchaseModal = async (product?: WarehouseProduct | WarehouseAlertItem) => {
     const suggested = product ? Math.max(1, product.minimumQuantity * 2 - product.currentQuantity) : 0;
-    setPurchaseDraft({productId: product?.id || '', quantity: suggested ? String(suggested) : '', suggestedQuantity: suggested ? String(suggested) : '', supplierId: product?.defaultSupplierId || '', notes: ''});
+    const supplierId = product && 'defaultSupplierId' in product ? (product.defaultSupplierId || '') : '';
+    setPurchaseDraft({productId: product?.id || '', quantity: suggested ? String(suggested) : '', suggestedQuantity: suggested ? String(suggested) : '', supplierId, notes: ''});
     setPurchaseModalOpen(true);
     await loadReferences();
   };
@@ -548,20 +576,20 @@ export const WarehousePage: React.FC = () => {
   };
 
   const tabs: Array<{key: TabKey; label: string; icon: React.ComponentType<{className?: string}>}> = [
-    {key: 'overview', label: 'Visao Geral', icon: Boxes},
+    {key: 'overview', label: 'Visão Geral', icon: Boxes},
     {key: 'products', label: 'Produtos', icon: PackageOpen},
-    {key: 'movements', label: 'Movimentacoes', icon: ArrowLeftRight},
+    {key: 'movements', label: 'Movimentações', icon: ArrowLeftRight},
     {key: 'tools', label: 'Ferramentas', icon: Wrench},
     {key: 'purchases', label: 'Compras', icon: ShoppingCart},
   ];
 
   const summaryCards = [
     {label: 'Itens cadastrados', value: summary?.totalProducts || 0, icon: PackageOpen, tone: 'bg-blue-50 text-blue-700'},
-    {label: 'Abaixo do minimo', value: summary?.belowMinimum || 0, icon: AlertTriangle, tone: 'bg-amber-50 text-amber-700'},
+    {label: 'Abaixo do mínimo', value: summary?.belowMinimum || 0, icon: AlertTriangle, tone: 'bg-amber-50 text-amber-700'},
     {label: 'Itens zerados', value: summary?.outOfStock || 0, icon: Boxes, tone: 'bg-red-50 text-red-700'},
     {label: 'Ferramentas emprestadas', value: summary?.borrowedTools || 0, icon: ToolCase, tone: 'bg-violet-50 text-violet-700'},
     {label: 'Aguardando compra', value: summary?.pendingPurchases || 0, icon: ShoppingCart, tone: 'bg-cyan-50 text-cyan-700'},
-    {label: 'Movimentacoes hoje', value: summary?.movementsToday || 0, icon: History, tone: 'bg-emerald-50 text-emerald-700'},
+    {label: 'Movimentações hoje', value: summary?.movementsToday || 0, icon: History, tone: 'bg-emerald-50 text-emerald-700'},
   ];
 
   return (
@@ -572,7 +600,7 @@ export const WarehousePage: React.FC = () => {
             <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-brand-primary text-[#3F3A34]"><PackageOpen className="h-5 w-5" /></div>
             <div>
               <h1 className="font-display text-2xl font-semibold text-slate-900">Almoxarifado</h1>
-              <p className="mt-0.5 text-sm text-slate-500">Insumos, consumiveis e ferramentas da operacao.</p>
+              <p className="mt-0.5 text-sm text-slate-500">Insumos, consumíveis e ferramentas da operação.</p>
             </div>
           </div>
         </div>
@@ -616,7 +644,7 @@ export const WarehousePage: React.FC = () => {
                 <div className="mb-3 flex items-center justify-between gap-3">
                   <div><h2 className="text-lg font-semibold text-slate-900">Alertas de estoque</h2><p className="text-sm text-slate-500">Itens zerados, abaixo ou proximos do minimo.</p></div>
                 </div>
-                {alerts.length === 0 ? <EmptyState icon={Boxes} title="Estoque em dia" body="Nenhum item requer reposicao agora." /> : (
+                {alerts.length === 0 ? <EmptyState icon={Boxes} title="Estoque em dia" body="Nenhum item requer reposição agora." /> : (
                   <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
                     {alerts.map((item) => {
                       const zero = item.currentQuantity === 0;
@@ -638,13 +666,13 @@ export const WarehousePage: React.FC = () => {
               </section>
               <section className="mt-8 border-t border-slate-200 pt-7">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                  <div><h2 className="text-lg font-semibold text-slate-900">Consumo por obra</h2><p className="text-sm text-slate-500">Custos historicos preservados no momento de cada retirada.</p></div>
+                  <div><h2 className="text-lg font-semibold text-slate-900">Consumo por obra</h2><p className="text-sm text-slate-500">Custos históricos preservados no momento de cada retirada.</p></div>
                   <div className="grid gap-2 sm:grid-cols-2 lg:w-[620px]">
                     <select className={inputClass} value={reportClientId} onChange={(event) => void selectReportClient(event.target.value)}><option value="">Selecione o cliente</option>{clients.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>
                     <select className={inputClass} disabled={!reportClientId} value={reportWorkId} onChange={(event) => void selectReportWork(event.target.value)}><option value="">Selecione a obra</option>{reportProjects.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.detail}</option>)}</select>
                   </div>
                 </div>
-                {reportLoading ? <div className="flex min-h-36 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-brand-primary" /></div> : reportWorkId && workConsumption.length === 0 ? <div className="mt-5"><EmptyState icon={CircleDollarSign} title="Sem consumo registrado" body="Esta obra ainda nao possui retiradas vinculadas." /></div> : workConsumption.length > 0 && (
+                {reportLoading ? <div className="flex min-h-36 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-brand-primary" /></div> : reportWorkId && workConsumption.length === 0 ? <div className="mt-5"><EmptyState icon={CircleDollarSign} title="Sem consumo registrado" body="Esta obra ainda não possui retiradas vinculadas." /></div> : workConsumption.length > 0 && (
                   <div className="mt-5 overflow-hidden rounded-lg border border-slate-200 bg-white">
                     <div className="hidden grid-cols-[minmax(180px,1fr)_130px_140px_minmax(220px,1fr)] gap-3 border-b border-slate-100 bg-slate-50 px-4 py-3 text-xs font-medium text-slate-500 md:grid"><span>Produto</span><span>Quantidade</span><span>Custo total</span><span>Retiradas</span></div>
                     {workConsumption.map((item) => <div key={item.productId} className="grid gap-3 border-b border-slate-100 px-4 py-4 last:border-b-0 md:grid-cols-[minmax(180px,1fr)_130px_140px_minmax(220px,1fr)] md:items-start"><div><h3 className="text-sm font-semibold text-slate-900">{item.productName}</h3><p className="mt-1 text-xs text-slate-500">{item.category}</p></div><div className="text-sm text-slate-700">{formatQuantity(item.totalQuantity)} {item.unit}</div><div className="text-sm font-medium text-slate-900">{formatCurrency(item.totalCost)}</div><div className="space-y-1 text-xs text-slate-500">{item.withdrawals.map((entry, index) => <div key={`${entry.date}-${index}`}>{new Date(entry.date).toLocaleDateString('pt-BR')} · {formatQuantity(entry.quantity)} {item.unit} · {entry.unitCost == null ? 'sem custo' : formatCurrency(entry.unitCost)} · {entry.employee || entry.performedBy}</div>)}</div></div>)}
@@ -673,7 +701,7 @@ export const WarehousePage: React.FC = () => {
                 <div key={item.id} className={cn('grid gap-3 border-b border-slate-100 px-4 py-4 last:border-b-0 lg:grid-cols-[minmax(220px,1.4fr)_150px_120px_130px_120px_160px] lg:items-center', !item.active && 'bg-slate-50 opacity-60')}>
                   <div className="min-w-0"><h3 className="truncate text-sm font-semibold text-slate-900">{item.name}</h3><p className="mt-1 truncate text-xs text-slate-500">{item.physicalLocation || 'Local nao informado'}{item.unitCost != null ? ` · ${formatCurrency(item.unitCost)}/${item.unit}` : ''}</p></div>
                   <span className="text-sm text-slate-600">{item.category}</span>
-                  <span className="text-xs font-medium text-slate-500">{item.itemType === 'CONSUMIVEL' ? 'Consumivel' : 'Ferramenta'}</span>
+                  <span className="text-xs font-medium text-slate-500">{item.itemType === 'CONSUMIVEL' ? 'Consumível' : 'Ferramenta'}</span>
                   <span className={cn('text-sm font-medium', item.currentQuantity === 0 ? 'text-red-600' : item.currentQuantity <= item.minimumQuantity ? 'text-amber-600' : 'text-slate-900')}>{formatQuantity(item.currentQuantity)} {item.unit}</span>
                   <span className="text-sm text-slate-600">{formatQuantity(item.minimumQuantity)} {item.unit}</span>
                   <div className="flex flex-wrap justify-start gap-2 lg:justify-end">
@@ -728,7 +756,7 @@ export const WarehousePage: React.FC = () => {
             <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
               {tools.map((tool) => {
                 const meta = toolStatusMeta[tool.status];
-                return <div key={tool.id} className="rounded-lg border border-slate-200 bg-white p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-semibold text-slate-900">{tool.product?.name || 'Ferramenta'}</h3><p className="mt-1 text-sm text-slate-600">Patrimonio: {tool.assetCode}</p></div><span className={cn('shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium', meta.className)}>{meta.label}</span></div><dl className="mt-4 grid grid-cols-2 gap-3 text-xs"><div><dt className="text-slate-400">Estado</dt><dd className="mt-1 text-slate-700">{tool.condition}</dd></div><div><dt className="text-slate-400">Funcionario</dt><dd className="mt-1 text-slate-700">{tool.employee?.name || '-'}</dd></div><div><dt className="text-slate-400">Obra</dt><dd className="mt-1 text-slate-700">{tool.work?.environment || '-'}</dd></div><div><dt className="text-slate-400">Retirada</dt><dd className="mt-1 text-slate-700">{tool.checkedOutAt ? new Date(tool.checkedOutAt).toLocaleDateString('pt-BR') : '-'}</dd></div></dl><div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3"><button type="button" className={secondaryButton} onClick={() => void openToolHistory(tool)}><History className="h-4 w-4" /> Historico</button>{canMove && (tool.status === 'DISPONIVEL' ? <button type="button" className={primaryButton} onClick={() => void openCheckoutTool(tool)}><ArrowUpFromLine className="h-4 w-4" /> Retirar</button> : tool.status === 'EM_USO' ? <button type="button" className={secondaryButton} onClick={() => openReturnTool(tool)}><Undo2 className="h-4 w-4" /> Devolver</button> : null)}</div></div>;
+                return <div key={tool.id} className="rounded-lg border border-slate-200 bg-white p-4"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><h3 className="truncate text-sm font-semibold text-slate-900">{tool.product?.name || 'Ferramenta'}</h3><p className="mt-1 text-sm text-slate-600">Patrimônio: {tool.assetCode}</p></div><span className={cn('shrink-0 rounded-full border px-2 py-1 text-[11px] font-medium', meta.className)}>{meta.label}</span></div><dl className="mt-4 grid grid-cols-2 gap-3 text-xs"><div><dt className="text-slate-400">Estado</dt><dd className="mt-1 text-slate-700">{tool.condition}</dd></div><div><dt className="text-slate-400">Funcionário</dt><dd className="mt-1 text-slate-700">{tool.employee?.name || '-'}</dd></div><div><dt className="text-slate-400">Obra</dt><dd className="mt-1 text-slate-700">{tool.work?.environment || '-'}</dd></div><div><dt className="text-slate-400">Retirada</dt><dd className="mt-1 text-slate-700">{tool.checkedOutAt ? new Date(tool.checkedOutAt).toLocaleDateString('pt-BR') : '-'}</dd></div></dl><div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3"><button type="button" className={secondaryButton} onClick={() => void openToolHistory(tool)}><History className="h-4 w-4" /> Histórico</button>{canMove && (tool.status === 'DISPONIVEL' ? <button type="button" className={primaryButton} onClick={() => void openCheckoutTool(tool)}><ArrowUpFromLine className="h-4 w-4" /> Retirar</button> : tool.status === 'EM_USO' ? <button type="button" className={secondaryButton} onClick={() => openReturnTool(tool)}><Undo2 className="h-4 w-4" /> Devolver</button> : null)}</div></div>;
               })}
             </div>
           )}
@@ -759,11 +787,11 @@ export const WarehousePage: React.FC = () => {
         <form onSubmit={handleSaveProduct} className="grid gap-4 sm:grid-cols-2">
           <div className="sm:col-span-2"><Field label="Nome" required><input className={inputClass} maxLength={120} required value={productDraft.name} onChange={(event) => setProductDraft((value) => ({...value, name: event.target.value}))} /></Field></div>
           <Field label="Categoria" required><input className={inputClass} list="warehouse-categories" maxLength={60} required value={productDraft.category} onChange={(event) => setProductDraft((value) => ({...value, category: event.target.value}))} /><datalist id="warehouse-categories">{CATEGORIES.map((item) => <option key={item}>{item}</option>)}</datalist></Field>
-          <Field label="Tipo" required><select className={inputClass} disabled={Boolean(editingProduct)} value={productDraft.itemType} onChange={(event) => setProductDraft((value) => ({...value, itemType: event.target.value as WarehouseItemType}))}><option value="CONSUMIVEL">Consumivel</option><option value="FERRAMENTA">Ferramenta</option></select></Field>
+          <Field label="Tipo" required><select className={inputClass} disabled={Boolean(editingProduct)} value={productDraft.itemType} onChange={(event) => setProductDraft((value) => ({...value, itemType: event.target.value as WarehouseItemType}))}><option value="CONSUMIVEL">Consumível</option><option value="FERRAMENTA">Ferramenta</option></select></Field>
           <Field label="Unidade" required><input className={inputClass} list="warehouse-units" maxLength={30} required value={productDraft.unit} onChange={(event) => setProductDraft((value) => ({...value, unit: event.target.value}))} /><datalist id="warehouse-units">{UNITS.map((item) => <option key={item}>{item}</option>)}</datalist></Field>
           <Field label="Estoque minimo"><input className={inputClass} type="number" min="0" max="1000000" step="0.001" value={productDraft.minimumQuantity} onChange={(event) => setProductDraft((value) => ({...value, minimumQuantity: event.target.value}))} /></Field>
           <Field label="Localizacao fisica"><input className={inputClass} maxLength={120} value={productDraft.physicalLocation} onChange={(event) => setProductDraft((value) => ({...value, physicalLocation: event.target.value}))} /></Field>
-          <Field label="Fornecedor padrao"><select className={inputClass} value={productDraft.supplierId} onChange={(event) => setProductDraft((value) => ({...value, supplierId: event.target.value}))}><option value="">Nao informado</option>{settings.materialCatalog.suppliers.map((supplier) => <option key={supplier.id || supplier.name} value={supplier.id || supplier.name}>{supplier.name}</option>)}</select></Field>
+          <Field label="Fornecedor padrao"><select className={inputClass} value={productDraft.supplierId} onChange={(event) => setProductDraft((value) => ({...value, supplierId: event.target.value}))}><option value="">Não informado</option>{settings.materialCatalog.suppliers.map((supplier) => <option key={supplier.id || supplier.name} value={supplier.id || supplier.name}>{supplier.name}</option>)}</select></Field>
           <Field label="Custo unitario"><input className={inputClass} type="number" min="0" max="100000000" step="0.01" value={productDraft.unitCost} onChange={(event) => setProductDraft((value) => ({...value, unitCost: event.target.value}))} /></Field>
           <div className="sm:col-span-2"><Field label="Descricao"><textarea className={textareaClass} maxLength={1000} value={productDraft.description} onChange={(event) => setProductDraft((value) => ({...value, description: event.target.value}))} /></Field></div>
           <div className="sm:col-span-2 flex justify-end gap-2 border-t border-slate-100 pt-4"><button type="button" className={secondaryButton} onClick={() => setProductModalOpen(false)}>Cancelar</button><button type="submit" className={primaryButton} disabled={savingProduct}>{savingProduct && <Loader2 className="h-4 w-4 animate-spin" />} Salvar produto</button></div>
@@ -800,13 +828,13 @@ export const WarehousePage: React.FC = () => {
           <div className="sm:col-span-2"><Field label="Produto" required><select className={inputClass} required value={purchaseDraft.productId} onChange={(event) => {const product = productOptions.find((item) => item.id === event.target.value); setPurchaseDraft((value) => ({...value, productId: event.target.value, supplierId: product?.defaultSupplierId || value.supplierId}));}}><option value="">Selecione</option>{productOptions.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></Field></div>
           <Field label="Quantidade" required><input className={inputClass} type="number" min="0.001" max="1000000" step="0.001" required value={purchaseDraft.quantity} onChange={(event) => setPurchaseDraft((value) => ({...value, quantity: event.target.value}))} /></Field>
           <Field label="Quantidade sugerida"><input className={inputClass} type="number" min="0.001" max="1000000" step="0.001" value={purchaseDraft.suggestedQuantity} onChange={(event) => setPurchaseDraft((value) => ({...value, suggestedQuantity: event.target.value}))} /></Field>
-          <div className="sm:col-span-2"><Field label="Fornecedor"><select className={inputClass} value={purchaseDraft.supplierId} onChange={(event) => setPurchaseDraft((value) => ({...value, supplierId: event.target.value}))}><option value="">Nao informado</option>{settings.materialCatalog.suppliers.map((supplier) => <option key={supplier.id || supplier.name} value={supplier.id || supplier.name}>{supplier.name}</option>)}</select></Field></div>
+          <div className="sm:col-span-2"><Field label="Fornecedor"><select className={inputClass} value={purchaseDraft.supplierId} onChange={(event) => setPurchaseDraft((value) => ({...value, supplierId: event.target.value}))}><option value="">Não informado</option>{settings.materialCatalog.suppliers.map((supplier) => <option key={supplier.id || supplier.name} value={supplier.id || supplier.name}>{supplier.name}</option>)}</select></Field></div>
           <div className="sm:col-span-2"><Field label="Observacao"><textarea className={textareaClass} maxLength={1000} value={purchaseDraft.notes} onChange={(event) => setPurchaseDraft((value) => ({...value, notes: event.target.value}))} /></Field></div>
           <div className="sm:col-span-2 flex justify-end gap-2 border-t border-slate-100 pt-4"><button type="button" className={secondaryButton} onClick={() => setPurchaseModalOpen(false)}>Cancelar</button><button type="submit" className={primaryButton} disabled={savingPurchase || referencesLoading}>{savingPurchase && <Loader2 className="h-4 w-4 animate-spin" />} Adicionar</button></div>
         </form>
       </Modal>
 
-      <Modal title={`Historico · ${selectedTool?.assetCode || ''}`} open={toolHistoryOpen} onClose={() => setToolHistoryOpen(false)}>
+      <Modal title={`Histórico · ${selectedTool?.assetCode || ''}`} open={toolHistoryOpen} onClose={() => setToolHistoryOpen(false)}>
         {toolHistoryLoading ? <div className="flex min-h-36 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin text-brand-primary" /></div> : toolHistory.length === 0 ? <EmptyState icon={History} title="Sem historico" body="Nenhuma retirada ou devolucao registrada." /> : <div className="space-y-0">{toolHistory.map((entry) => <div key={entry.id} className="border-b border-slate-100 py-4 first:pt-0 last:border-b-0"><div className="flex items-center justify-between gap-3"><span className="text-sm font-semibold text-slate-900">{entry.movementType === 'RETIRADA' ? 'Retirada' : entry.movementType === 'DEVOLUCAO' ? 'Devolvida' : 'Status alterado'}</span><span className="text-xs text-slate-500">{formatDateTime(entry.createdAt)}</span></div><p className="mt-2 text-sm text-slate-600">{entry.employee?.name || 'Sem funcionario'}{entry.client?.name ? ` · ${entry.client.name}` : ''}{entry.work?.environment ? ` · ${entry.work.environment}` : ''}</p><p className="mt-1 text-xs text-slate-500">{entry.previousStatus} → {entry.resultingStatus} · por {entry.performedByName}</p>{entry.notes && <p className="mt-2 text-xs text-slate-500">{entry.notes}</p>}</div>)}</div>}
       </Modal>
     </div>

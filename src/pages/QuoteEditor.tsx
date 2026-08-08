@@ -139,9 +139,17 @@ const PricingSwitch = ({checked, onChange, label}: {checked: boolean; onChange: 
     aria-checked={checked}
     aria-label={label}
     onClick={() => onChange(!checked)}
-    className={cn('relative h-6 w-11 shrink-0 rounded-full transition-colors', checked ? 'bg-brand-primary' : 'bg-slate-200')}
+    className={cn(
+      'relative inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border outline-none transition-[background-color,border-color] duration-[180ms] ease-out focus-visible:ring-2 focus-visible:ring-emerald-300/40 focus-visible:ring-offset-2',
+      checked ? 'border-emerald-500/10 bg-[#34C759]' : 'border-black/[0.04] bg-[#E9ECF1]',
+    )}
   >
-    <span className={cn('absolute top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform', checked ? 'translate-x-5' : 'translate-x-0.5')} />
+    <span
+      className={cn(
+        'absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-[0_1px_2px_rgba(0,0,0,0.14)] transition-transform duration-[180ms] ease-[cubic-bezier(0.4,0,0.2,1)]',
+        checked ? 'translate-x-4' : 'translate-x-0',
+      )}
+    />
   </button>
 );
 

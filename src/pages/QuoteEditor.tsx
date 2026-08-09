@@ -470,7 +470,7 @@ export const QuoteEditor: React.FC = () => {
       setDigitalVersions(versions);
       setDigitalAcceptances(acceptances);
     } catch (err: any) {
-      setDigitalError(err?.message || 'NÃ£o foi possÃ­vel carregar a proposta digital deste orÃ§amento.');
+      setDigitalError(err?.message || 'Não foi possível carregar a proposta digital deste orçamento.');
     } finally {
       setDigitalLoading(false);
     }
@@ -488,7 +488,7 @@ export const QuoteEditor: React.FC = () => {
       await generateQuotePresentationVersion(id, currentUserName);
       await refreshDigitalPresentation();
     } catch (err: any) {
-      setDigitalError(err?.message || 'NÃ£o foi possÃ­vel gerar a proposta digital agora.');
+      setDigitalError(err?.message || 'Não foi possível gerar a proposta digital agora.');
     } finally {
       setDigitalBusy('');
     }
@@ -502,7 +502,7 @@ export const QuoteEditor: React.FC = () => {
       window.open(buildPublicProposalUrl(version.publicToken), '_blank', 'noopener,noreferrer');
       await refreshDigitalPresentation();
     } catch (err: any) {
-      setDigitalError(err?.message || 'NÃ£o foi possÃ­vel abrir a proposta digital.');
+      setDigitalError(err?.message || 'Não foi possível abrir a proposta digital.');
     } finally {
       setDigitalBusy('');
     }
@@ -516,7 +516,7 @@ export const QuoteEditor: React.FC = () => {
       await navigator.clipboard.writeText(buildPublicProposalUrl(version.publicToken));
       await refreshDigitalPresentation();
     } catch (err: any) {
-      setDigitalError(err?.message || 'NÃ£o foi possÃ­vel copiar o link da proposta.');
+      setDigitalError(err?.message || 'Não foi possível copiar o link da proposta.');
     } finally {
       setDigitalBusy('');
     }
@@ -525,7 +525,7 @@ export const QuoteEditor: React.FC = () => {
   const handleSendDigitalWhatsApp = async (version: QuotePresentationVersionSummary) => {
     const whatsapp = normalizeWhatsApp(selectedClient?.phone || '');
     if (!whatsapp) {
-      window.alert('O cliente selecionado nÃ£o possui WhatsApp cadastrado.');
+      window.alert('O cliente selecionado não possui WhatsApp cadastrado.');
       return;
     }
 
@@ -535,7 +535,7 @@ export const QuoteEditor: React.FC = () => {
       await markQuotePresentationShared(version.id, currentUserName);
       const link = buildPublicProposalUrl(version.publicToken);
       const lines = [
-        `OlÃ¡, ${selectedClient?.name || 'cliente'}!`,
+        `Olá, ${selectedClient?.name || 'cliente'}!`,
         '',
         `Segue a proposta digital ${version.versionLabel} da D'Coratto para o seu projeto.`,
         link,
@@ -543,7 +543,7 @@ export const QuoteEditor: React.FC = () => {
       window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener,noreferrer');
       await refreshDigitalPresentation();
     } catch (err: any) {
-      setDigitalError(err?.message || 'NÃ£o foi possÃ­vel abrir o compartilhamento por WhatsApp.');
+      setDigitalError(err?.message || 'Não foi possível abrir o compartilhamento por WhatsApp.');
     } finally {
       setDigitalBusy('');
     }
@@ -559,7 +559,7 @@ export const QuoteEditor: React.FC = () => {
       await revokeQuotePresentationVersion(version.id, currentUserName);
       await refreshDigitalPresentation();
     } catch (err: any) {
-      setDigitalError(err?.message || 'NÃ£o foi possÃ­vel revogar o link desta proposta.');
+      setDigitalError(err?.message || 'Não foi possível revogar o link desta proposta.');
     } finally {
       setDigitalBusy('');
     }
@@ -1678,7 +1678,7 @@ export const QuoteEditor: React.FC = () => {
             <div>
               <h2 className="font-display text-2xl font-bold text-slate-900">Proposta Digital</h2>
               <p className="mt-1 max-w-2xl text-sm text-slate-500">
-                Gere a versÃ£o comercial em HTML para o cliente com histÃ³rico, link compartilhÃ¡vel e aceite digital.
+                Gere a versão comercial em HTML para o cliente com histórico, link compartilhável e aceite digital.
               </p>
             </div>
           </div>
@@ -1691,11 +1691,11 @@ export const QuoteEditor: React.FC = () => {
               className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-semibold text-[#3F3A34] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {digitalBusy === 'generate' ? <CheckCircle2 className="h-4 w-4 animate-pulse" /> : <Sparkles className="h-4 w-4" />}
-              {digitalVersions.length ? 'Nova versÃ£o' : 'Gerar orÃ§amento para cliente'}
+              {digitalVersions.length ? 'Nova versão' : 'Gerar orçamento para cliente'}
             </button>
             {!id && (
               <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                Salve o orÃ§amento primeiro para liberar a proposta digital.
+                Salve o orçamento primeiro para liberar a proposta digital.
               </div>
             )}
           </div>
@@ -1712,7 +1712,7 @@ export const QuoteEditor: React.FC = () => {
             <div className="rounded-[28px] border border-slate-100 bg-slate-50/70 p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">VersÃ£o atual</div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">Versão atual</div>
                   <div className="mt-2 text-lg font-semibold text-slate-900">
                     {latestDigitalVersion ? `${latestDigitalVersion.versionLabel} · ${latestDigitalVersion.proposalCode}` : 'Nenhuma proposta gerada'}
                   </div>
@@ -1762,7 +1762,7 @@ export const QuoteEditor: React.FC = () => {
                 </>
               ) : (
                 <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
-                  Assim que vocÃª gerar a primeira versÃ£o, o histÃ³rico e as aÃ§Ãµes de compartilhamento aparecem aqui.
+                  Assim que você gerar a primeira versão, o histórico e as ações de compartilhamento aparecem aqui.
                 </div>
               )}
             </div>
@@ -1770,11 +1770,11 @@ export const QuoteEditor: React.FC = () => {
             <div className="rounded-[28px] border border-slate-100 bg-slate-50/70 p-5">
               <div className="flex items-center gap-2 text-slate-900">
                 <History className="h-4 w-4 text-brand-primary" />
-                <div className="text-sm font-semibold">HistÃ³rico de versÃµes</div>
+                <div className="text-sm font-semibold">Histórico de versões</div>
               </div>
               <div className="mt-4 space-y-3">
                 {digitalVersions.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">Sem versÃµes geradas.</div>
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">Sem versões geradas.</div>
                 ) : (
                   digitalVersions.map((version) => (
                     <div key={version.id} className="rounded-2xl border border-slate-100 bg-white px-4 py-4">

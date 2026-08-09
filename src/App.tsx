@@ -23,6 +23,7 @@ import {
   loadMaterialsPage,
   loadProfilePage,
   loadProjectsPage,
+  loadQuotePresentationPage,
   loadQuoteEditorPage,
   loadQuotesPage,
   loadReportsPage,
@@ -33,6 +34,7 @@ const AuthCallback = lazy(() => loadAuthCallbackPage().then((module) => ({defaul
 const Dashboard = lazy(() => loadDashboardPage().then((module) => ({default: module.Dashboard})));
 const QuotesPage = lazy(() => loadQuotesPage().then((module) => ({default: module.QuotesPage})));
 const QuoteEditor = lazy(() => loadQuoteEditorPage().then((module) => ({default: module.QuoteEditor})));
+const QuotePresentationPage = lazy(() => loadQuotePresentationPage().then((module) => ({default: module.QuotePresentationPage})));
 const ClientsPage = lazy(() => loadClientsPage().then((module) => ({default: module.ClientsPage})));
 const CrisisManagementPage = lazy(() => loadCrisisManagementPage().then((module) => ({default: module.CrisisManagementPage})));
 const InstallationPage = lazy(() => loadInstallationPage().then((module) => ({default: module.InstallationPage})));
@@ -98,6 +100,7 @@ export default function App() {
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/auth/confirm" element={<AuthCallback />} />
+            <Route path="/proposta/:token" element={<QuotePresentationPage />} />
 
             <Route path="/" element={<ProtectedRoute permission={['dashboard', 'visualizar']}><Dashboard /></ProtectedRoute>} />
             <Route path="/quotes" element={<ProtectedRoute permission={['orcamento', 'visualizar']}><QuotesPage /></ProtectedRoute>} />

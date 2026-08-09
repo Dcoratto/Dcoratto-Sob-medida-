@@ -9,7 +9,8 @@ import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
   ChevronDown, ChevronUp, Calculator,
   MapPin, Phone, User,
-  Layers, PenTool, Building2, Mail, Package2, BadgeDollarSign, CreditCard, Truck, ReceiptText, Wrench, Boxes, NotebookText
+  Layers, PenTool, Building2, Mail, Package2, BadgeDollarSign, CreditCard, Truck, ReceiptText, Wrench, Boxes, NotebookText,
+  Ban, CheckCircle2, Copy, ExternalLink, History, MessageCircle, Sparkles
 } from 'lucide-react';
 import {DEFAULT_QUOTE_COMPLEXITY_OPTIONS, resolveLaborAmount, resolveLocationAmount} from '../lib/locationPricing';
 import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, parseCurrencyInput, parseMeasureInput, roundNumber } from '../lib/utils';
@@ -30,6 +31,15 @@ import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {LABELS} from '../constants/labels';
 import {imageVariantUrl} from '../lib/storage';
 import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
+import {
+  generateQuotePresentationVersion,
+  listQuotePresentationAcceptances,
+  listQuotePresentationVersions,
+  markQuotePresentationShared,
+  QuotePresentationAcceptanceSummary,
+  QuotePresentationVersionSummary,
+  revokeQuotePresentationVersion,
+} from '../lib/quoteDigital';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 type QuoteSidebarSectionKey = 'client' | 'materials' | 'pricing' | 'payment';
@@ -86,6 +96,14 @@ const parseInstallmentCountFromMethod = (value?: string) => {
   const match = String(value || '').match(/(\d{1,2})\s*x/i);
   return match ? Math.max(1, Number(match[1]) || 1) : 1;
 };
+
+const formatPresentationDate = (value?: string | null) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '-' : date.toLocaleDateString('pt-BR');
+};
+
+const normalizeWhatsApp = (value?: string) => String(value || '').replace(/\D/g, '');
 
 const SidebarAccordionSection = ({
   sectionKey,
@@ -195,6 +213,11 @@ export const QuoteEditor: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [quoteDraftRecovered, setQuoteDraftRecovered] = useState(false);
   const [quoteDraftSavedAt, setQuoteDraftSavedAt] = useState<string | null>(null);
+  const [digitalVersions, setDigitalVersions] = useState<QuotePresentationVersionSummary[]>([]);
+  const [digitalAcceptances, setDigitalAcceptances] = useState<QuotePresentationAcceptanceSummary[]>([]);
+  const [digitalLoading, setDigitalLoading] = useState(false);
+  const [digitalBusy, setDigitalBusy] = useState('');
+  const [digitalError, setDigitalError] = useState('');
 
   // Form State
   const [clientId, setClientId] = useState('');
@@ -430,6 +453,122 @@ export const QuoteEditor: React.FC = () => {
   const selectedClient = clients.find(c => c.id === clientId);
   const { calculatePieceArea, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey));
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
+  const refreshDigitalPresentation = async () => {
+    if (!id) {
+      setDigitalVersions([]);
+      setDigitalAcceptances([]);
+      return;
+    }
+
+    setDigitalLoading(true);
+    setDigitalError('');
+    try {
+      const [versions, acceptances] = await Promise.all([
+        listQuotePresentationVersions(id),
+        listQuotePresentationAcceptances(id),
+      ]);
+      setDigitalVersions(versions);
+      setDigitalAcceptances(acceptances);
+    } catch (err: any) {
+      setDigitalError(err?.message || 'NÃ£o foi possÃ­vel carregar a proposta digital deste orÃ§amento.');
+    } finally {
+      setDigitalLoading(false);
+    }
+  };
+
+  const latestDigitalVersion = digitalVersions[0];
+  const buildPublicProposalUrl = (publicToken?: string) =>
+    publicToken ? `${window.location.origin}/proposta/${publicToken}` : '';
+
+  const handleGenerateDigitalVersion = async () => {
+    if (!id) return;
+    setDigitalBusy('generate');
+    setDigitalError('');
+    try {
+      await generateQuotePresentationVersion(id, currentUserName);
+      await refreshDigitalPresentation();
+    } catch (err: any) {
+      setDigitalError(err?.message || 'NÃ£o foi possÃ­vel gerar a proposta digital agora.');
+    } finally {
+      setDigitalBusy('');
+    }
+  };
+
+  const handleOpenDigitalVersion = async (version: QuotePresentationVersionSummary) => {
+    setDigitalBusy(`open:${version.id}`);
+    setDigitalError('');
+    try {
+      await markQuotePresentationShared(version.id, currentUserName);
+      window.open(buildPublicProposalUrl(version.publicToken), '_blank', 'noopener,noreferrer');
+      await refreshDigitalPresentation();
+    } catch (err: any) {
+      setDigitalError(err?.message || 'NÃ£o foi possÃ­vel abrir a proposta digital.');
+    } finally {
+      setDigitalBusy('');
+    }
+  };
+
+  const handleCopyDigitalLink = async (version: QuotePresentationVersionSummary) => {
+    setDigitalBusy(`copy:${version.id}`);
+    setDigitalError('');
+    try {
+      await markQuotePresentationShared(version.id, currentUserName);
+      await navigator.clipboard.writeText(buildPublicProposalUrl(version.publicToken));
+      await refreshDigitalPresentation();
+    } catch (err: any) {
+      setDigitalError(err?.message || 'NÃ£o foi possÃ­vel copiar o link da proposta.');
+    } finally {
+      setDigitalBusy('');
+    }
+  };
+
+  const handleSendDigitalWhatsApp = async (version: QuotePresentationVersionSummary) => {
+    const whatsapp = normalizeWhatsApp(selectedClient?.phone || '');
+    if (!whatsapp) {
+      window.alert('O cliente selecionado nÃ£o possui WhatsApp cadastrado.');
+      return;
+    }
+
+    setDigitalBusy(`wa:${version.id}`);
+    setDigitalError('');
+    try {
+      await markQuotePresentationShared(version.id, currentUserName);
+      const link = buildPublicProposalUrl(version.publicToken);
+      const lines = [
+        `OlÃ¡, ${selectedClient?.name || 'cliente'}!`,
+        '',
+        `Segue a proposta digital ${version.versionLabel} da D'Coratto para o seu projeto.`,
+        link,
+      ];
+      window.open(`https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank', 'noopener,noreferrer');
+      await refreshDigitalPresentation();
+    } catch (err: any) {
+      setDigitalError(err?.message || 'NÃ£o foi possÃ­vel abrir o compartilhamento por WhatsApp.');
+    } finally {
+      setDigitalBusy('');
+    }
+  };
+
+  const handleRevokeDigitalVersion = async (version: QuotePresentationVersionSummary) => {
+    const confirmed = window.confirm(`Revogar o link da ${version.versionLabel}?`);
+    if (!confirmed) return;
+
+    setDigitalBusy(`revoke:${version.id}`);
+    setDigitalError('');
+    try {
+      await revokeQuotePresentationVersion(version.id, currentUserName);
+      await refreshDigitalPresentation();
+    } catch (err: any) {
+      setDigitalError(err?.message || 'NÃ£o foi possÃ­vel revogar o link desta proposta.');
+    } finally {
+      setDigitalBusy('');
+    }
+  };
+
+  useEffect(() => {
+    void refreshDigitalPresentation();
+  }, [id]);
+
   const activeComplexityOptions = useMemo(
     () => (settings.quoteComplexityOptions || DEFAULT_QUOTE_COMPLEXITY_OPTIONS)
       .filter((option) => option.active !== false)
@@ -1529,6 +1668,149 @@ export const QuoteEditor: React.FC = () => {
         />
       )}
       <DraftAutosaveStatus savedAt={quoteDraftSavedAt} />
+
+      <section className="rounded-[32px] border border-slate-100 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-2">
+            <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-primary/10 text-brand-primary">
+              <Sparkles className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-display text-2xl font-bold text-slate-900">Proposta Digital</h2>
+              <p className="mt-1 max-w-2xl text-sm text-slate-500">
+                Gere a versÃ£o comercial em HTML para o cliente com histÃ³rico, link compartilhÃ¡vel e aceite digital.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={handleGenerateDigitalVersion}
+              disabled={!id || digitalBusy === 'generate'}
+              className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-semibold text-[#3F3A34] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {digitalBusy === 'generate' ? <CheckCircle2 className="h-4 w-4 animate-pulse" /> : <Sparkles className="h-4 w-4" />}
+              {digitalVersions.length ? 'Nova versÃ£o' : 'Gerar orÃ§amento para cliente'}
+            </button>
+            {!id && (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
+                Salve o orÃ§amento primeiro para liberar a proposta digital.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {digitalError && (
+          <div className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+            {digitalError}
+          </div>
+        )}
+
+        {id && (
+          <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_320px]">
+            <div className="rounded-[28px] border border-slate-100 bg-slate-50/70 p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">VersÃ£o atual</div>
+                  <div className="mt-2 text-lg font-semibold text-slate-900">
+                    {latestDigitalVersion ? `${latestDigitalVersion.versionLabel} · ${latestDigitalVersion.proposalCode}` : 'Nenhuma proposta gerada'}
+                  </div>
+                </div>
+                {digitalLoading && <div className="text-sm font-semibold text-slate-400">Atualizando...</div>}
+              </div>
+
+              {latestDigitalVersion ? (
+                <>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</div>
+                      <div className="mt-2 text-sm font-semibold text-slate-900">{latestDigitalVersion.status}</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gerada em</div>
+                      <div className="mt-2 text-sm font-semibold text-slate-900">{formatPresentationDate(latestDigitalVersion.createdAt)}</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Validade</div>
+                      <div className="mt-2 text-sm font-semibold text-slate-900">{formatPresentationDate(latestDigitalVersion.validUntil)}</div>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3">
+                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Visualizada</div>
+                      <div className="mt-2 text-sm font-semibold text-slate-900">{formatPresentationDate(latestDigitalVersion.firstViewedAt)}</div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <button type="button" onClick={() => handleOpenDigitalVersion(latestDigitalVersion)} disabled={digitalBusy === `open:${latestDigitalVersion.id}`} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:opacity-60">
+                      <ExternalLink className="h-4 w-4" />
+                      Visualizar
+                    </button>
+                    <button type="button" onClick={() => handleCopyDigitalLink(latestDigitalVersion)} disabled={digitalBusy === `copy:${latestDigitalVersion.id}`} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:opacity-60">
+                      <Copy className="h-4 w-4" />
+                      Copiar link
+                    </button>
+                    <button type="button" onClick={() => handleSendDigitalWhatsApp(latestDigitalVersion)} disabled={digitalBusy === `wa:${latestDigitalVersion.id}`} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:opacity-60">
+                      <MessageCircle className="h-4 w-4" />
+                      Enviar pelo WhatsApp
+                    </button>
+                    <button type="button" onClick={() => handleRevokeDigitalVersion(latestDigitalVersion)} disabled={digitalBusy === `revoke:${latestDigitalVersion.id}` || latestDigitalVersion.status === 'REVOGADO'} className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 disabled:opacity-60">
+                      <Ban className="h-4 w-4" />
+                      Revogar link
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
+                  Assim que vocÃª gerar a primeira versÃ£o, o histÃ³rico e as aÃ§Ãµes de compartilhamento aparecem aqui.
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-[28px] border border-slate-100 bg-slate-50/70 p-5">
+              <div className="flex items-center gap-2 text-slate-900">
+                <History className="h-4 w-4 text-brand-primary" />
+                <div className="text-sm font-semibold">HistÃ³rico de versÃµes</div>
+              </div>
+              <div className="mt-4 space-y-3">
+                {digitalVersions.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">Sem versÃµes geradas.</div>
+                ) : (
+                  digitalVersions.map((version) => (
+                    <div key={version.id} className="rounded-2xl border border-slate-100 bg-white px-4 py-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-sm font-semibold text-slate-900">{version.versionLabel}</div>
+                        <span className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', version.status === 'ACEITO' ? 'bg-green-50 text-green-700' : version.status === 'REVOGADO' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500')}>
+                          {version.status}
+                        </span>
+                      </div>
+                      <div className="mt-2 text-xs leading-5 text-slate-500">
+                        {formatPresentationDate(version.createdAt)} · validade {formatPresentationDate(version.validUntil)}
+                      </div>
+                      {version.acceptedAt && (
+                        <div className="mt-2 text-xs font-semibold text-green-700">Aceita em {formatPresentationDate(version.acceptedAt)}</div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {digitalAcceptances.length > 0 && (
+                <div className="mt-5 rounded-2xl border border-slate-100 bg-white px-4 py-4">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Aceites registrados</div>
+                  <div className="mt-3 space-y-2">
+                    {digitalAcceptances.slice(0, 3).map((acceptance) => (
+                      <div key={acceptance.id} className="text-sm text-slate-700">
+                        <span className="font-semibold">{acceptance.acceptedName}</span> · {acceptance.versionNumber ? `V${acceptance.versionNumber}` : '-'} · {formatPresentationDate(acceptance.createdAt)}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </section>
 
       <div className="grid grid-cols-1 gap-5 lg:h-[calc(100svh-190px)] lg:grid-cols-[minmax(360px,384px)_minmax(0,1fr)] lg:gap-8 lg:overflow-hidden xl:grid-cols-[400px_minmax(0,1fr)]">
         <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">

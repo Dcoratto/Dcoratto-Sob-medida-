@@ -3,6 +3,7 @@ export const loadAuthCallbackPage = () => import('../pages/AuthCallback');
 export const loadDashboardPage = () => import('../pages/Dashboard');
 export const loadQuotesPage = () => import('../pages/QuotesPage');
 export const loadQuoteEditorPage = () => import('../pages/QuoteEditor');
+export const loadQuotePresentationPage = () => import('../pages/QuotePresentationPage');
 export const loadClientsPage = () => import('../pages/ClientsPage');
 export const loadCrisisManagementPage = () => import('../pages/CrisisManagementPage');
 export const loadInstallationPage = () => import('../pages/InstallationPage');
@@ -17,6 +18,7 @@ export const loadCalendarPage = () => import('../pages/CalendarPage');
 
 export const preloadRoute = (path: string) => {
   if (path === '/') return loadDashboardPage();
+  if (path.startsWith('/proposta/')) return loadQuotePresentationPage();
   if (path.startsWith('/quotes/new') || path.startsWith('/quotes/edit/')) return loadQuoteEditorPage();
   if (path.startsWith('/quotes') || path.startsWith('/history')) return loadQuotesPage();
   if (path.startsWith('/projects')) return loadProjectsPage();

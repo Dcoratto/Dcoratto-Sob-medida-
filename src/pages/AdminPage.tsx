@@ -179,6 +179,7 @@ export const AdminPage: React.FC = () => {
     materialType: 'Chapa',
     thicknessLabel: '',
     texture: '',
+    quoteDescription: '',
   });
   const [savingFixture, setSavingFixture] = useState(false);
   const [fixtureError, setFixtureError] = useState('');
@@ -306,7 +307,7 @@ export const AdminPage: React.FC = () => {
   useEffect(() => {
     const q = query(
       collection(db, 'materials'),
-      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'baseCostPerM2', 'marginPercentage', 'pricePerM2', 'active'),
+      selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'quoteDescription', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'baseCostPerM2', 'marginPercentage', 'pricePerM2', 'active'),
       orderBy('name', 'asc'),
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -474,6 +475,7 @@ export const AdminPage: React.FC = () => {
       materialType: 'Chapa',
       thicknessLabel: '',
       texture: '',
+      quoteDescription: '',
     });
     setMaterialImageFile(null);
     setMaterialError('');
@@ -490,6 +492,7 @@ export const AdminPage: React.FC = () => {
       materialType: material.materialType || 'Chapa',
       thicknessLabel: material.thicknessLabel || '',
       texture: material.texture || '',
+      quoteDescription: material.quoteDescription || '',
     });
     setMaterialImageFile(null);
     setMaterialError('');
@@ -564,6 +567,7 @@ export const AdminPage: React.FC = () => {
       const materialType = materialForm.materialType.trim() || 'Chapa';
       const thicknessLabel = materialForm.thicknessLabel.trim();
       const texture = materialForm.texture.trim();
+      const quoteDescription = materialForm.quoteDescription.trim();
       let imageUrl = previousImageUrl;
       const previousOriginalUrl = editingMaterial?.originalUrl || '';
       let originalUrl = previousOriginalUrl;
@@ -580,6 +584,7 @@ export const AdminPage: React.FC = () => {
         materialType,
         thicknessLabel,
         texture,
+        quoteDescription: quoteDescription || null,
         baseCostPerM2: editingMaterial?.baseCostPerM2 ?? 0,
         marginPercentage: editingMaterial?.marginPercentage ?? 0,
         pricePerM2: editingMaterial?.pricePerM2 ?? 0,
@@ -951,6 +956,12 @@ export const AdminPage: React.FC = () => {
             <option value="">Espessura</option>
             {thicknessOptions.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
+          <textarea
+            value={materialForm.quoteDescription}
+            onChange={(event) => setMaterialForm((form) => ({...form, quoteDescription: event.target.value.slice(0, 500)}))}
+            placeholder="Descrição para orçamento (opcional)"
+            className="min-h-[104px] rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 md:col-span-2 xl:col-span-2"
+          />
           <label className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-500 cursor-pointer">
             {materialImageFile ?materialImageFile.name : 'Imagem da pedra'}
             <input
@@ -1001,6 +1012,9 @@ export const AdminPage: React.FC = () => {
                   <div className="mt-1 text-xs text-slate-400">
                     {[material.materialType, material.thicknessLabel, material.texture].filter(Boolean).join(' · ') || 'Sem especificações'}
                   </div>
+                  {material.quoteDescription && (
+                    <div className="mt-2 text-xs leading-5 text-slate-500">{material.quoteDescription}</div>
+                  )}
                   <div className="mt-1 text-xs font-semibold text-slate-500">Preco e margem definidos na aba Materiais.</div>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">

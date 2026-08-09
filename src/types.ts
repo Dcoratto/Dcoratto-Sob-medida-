@@ -176,6 +176,7 @@ export interface Material {
   materialType?: string;
   thicknessLabel?: string;
   texture?: string;
+  quoteDescription?: string;
   imageUrl?: string;
   thumbnailUrl?: string;
   mediumUrl?: string;
@@ -726,6 +727,15 @@ export interface Quote {
   employeeEvaluations?: EmployeeEvaluation[];
   statusHistory?: QuoteStatusHistory[];
 }
+
+export type QuotePresentationStatus =
+  | 'RASCUNHO'
+  | 'GERADO'
+  | 'COMPARTILHADO'
+  | 'VISUALIZADO'
+  | 'ACEITO'
+  | 'EXPIRADO'
+  | 'REVOGADO';
 
 export interface InventoryItem {
   id: string;

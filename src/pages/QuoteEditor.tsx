@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, selectFields } from '../lib/firestore';
 import { db } from '../lib/firestore';
 import { useSettings } from '../hooks/useSettings';
-import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuoteMaterialPriceOverride, QuotePiece, QuoteStatus, QuoteStatusHistory } from '../types';
+import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuoteMaterialPriceOverride, QuotePiece, QuotePricingSnapshot, QuoteStatus, QuoteStatusHistory, Settings } from '../types';
 import {MATERIAL_LOSS_PERCENTAGE, useQuoteCalculator} from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
@@ -104,6 +104,95 @@ const formatPresentationDate = (value?: string | null) => {
 };
 
 const normalizeWhatsApp = (value?: string) => String(value || '').replace(/\D/g, '');
+
+const cloneQuotePricingSnapshot = (source: QuotePricingSnapshot): QuotePricingSnapshot => ({
+  laborRatePerLinearMeter: Number(source.laborRatePerLinearMeter || 0),
+  laborMinimumByRegion: {
+    altoTiete: Number(source.laborMinimumByRegion?.altoTiete || 0),
+    saoPaulo: Number(source.laborMinimumByRegion?.saoPaulo || 0),
+  },
+  laborPricing: {
+    mode: source.laborPricing?.mode || 'linear',
+    fixedAmount: Number(source.laborPricing?.fixedAmount || 0),
+    defaultAmount: Number(source.laborPricing?.defaultAmount || 0),
+    cityRules: (source.laborPricing?.cityRules || []).map((cityRule) => ({
+      ...cityRule,
+      amount: Number(cityRule.amount || 0),
+      districts: (cityRule.districts || []).map((districtRule) => ({
+        ...districtRule,
+        amount: Number(districtRule.amount || 0),
+      })),
+    })),
+  },
+  deliveryPricing: {
+    mode: source.deliveryPricing?.mode || 'location',
+    fixedAmount: Number(source.deliveryPricing?.fixedAmount || 0),
+    defaultAmount: Number(source.deliveryPricing?.defaultAmount || 0),
+    cityRules: (source.deliveryPricing?.cityRules || []).map((cityRule) => ({
+      ...cityRule,
+      amount: Number(cityRule.amount || 0),
+      districts: (cityRule.districts || []).map((districtRule) => ({
+        ...districtRule,
+        amount: Number(districtRule.amount || 0),
+      })),
+    })),
+  },
+  quoteComplexityOptions: (source.quoteComplexityOptions || []).map((option) => ({
+    ...option,
+    percent: Number(option.percent || 0),
+    sortOrder: Number(option.sortOrder || 0),
+  })),
+  cutoutPrices: {
+    cooktop: Number(source.cutoutPrices?.cooktop || 0),
+    sinkUnder: Number(source.cutoutPrices?.sinkUnder || 0),
+    sinkOver: Number(source.cutoutPrices?.sinkOver || 0),
+    faucetHole: Number(source.cutoutPrices?.faucetHole || 0),
+    trashBinCutout: Number(source.cutoutPrices?.trashBinCutout || 0),
+    popUpTowerCutout: Number(source.cutoutPrices?.popUpTowerCutout || 0),
+    wetAreaAmericanRecess: Number(source.cutoutPrices?.wetAreaAmericanRecess || 0),
+    wetAreaItalianRecess: Number(source.cutoutPrices?.wetAreaItalianRecess || 0),
+    sinkSculpted: Boolean(source.cutoutPrices?.sinkSculpted),
+    sinkSculptedPrice: Number(source.cutoutPrices?.sinkSculptedPrice || 0),
+  },
+  paymentMethods: (source.paymentMethods || []).map((method) => ({
+    name: String(method.name || ''),
+    adjustment: Number(method.adjustment || 0),
+  })),
+  sculptedSinkRates: {
+    simple: Number(source.sculptedSinkRates?.simple || 0),
+    ramp: Number(source.sculptedSinkRates?.ramp || 0),
+    hiddenValve: Number(source.sculptedSinkRates?.hiddenValve || 0),
+    extraSink: Number(source.sculptedSinkRates?.extraSink || 0),
+    riskPercentage: Number(source.sculptedSinkRates?.riskPercentage || 0),
+  },
+});
+
+const buildQuotePricingSnapshot = (settings: Settings): QuotePricingSnapshot => cloneQuotePricingSnapshot({
+  laborRatePerLinearMeter: settings.laborRatePerLinearMeter,
+  laborMinimumByRegion: settings.laborMinimumByRegion,
+  laborPricing: settings.laborPricing,
+  deliveryPricing: settings.deliveryPricing,
+  quoteComplexityOptions: settings.quoteComplexityOptions,
+  cutoutPrices: settings.cutoutPrices,
+  paymentMethods: settings.paymentMethods,
+  sculptedSinkRates: settings.sculptedSinkRates,
+});
+
+const applyQuotePricingSnapshot = (settings: Settings, snapshot?: QuotePricingSnapshot | null): Settings => {
+  if (!snapshot) return settings;
+  const clonedSnapshot = cloneQuotePricingSnapshot(snapshot);
+  return {
+    ...settings,
+    laborRatePerLinearMeter: clonedSnapshot.laborRatePerLinearMeter,
+    laborMinimumByRegion: clonedSnapshot.laborMinimumByRegion,
+    laborPricing: clonedSnapshot.laborPricing,
+    deliveryPricing: clonedSnapshot.deliveryPricing,
+    quoteComplexityOptions: clonedSnapshot.quoteComplexityOptions,
+    cutoutPrices: clonedSnapshot.cutoutPrices,
+    paymentMethods: clonedSnapshot.paymentMethods,
+    sculptedSinkRates: clonedSnapshot.sculptedSinkRates,
+  };
+};
 
 const SidebarAccordionSection = ({
   sectionKey,
@@ -264,8 +353,13 @@ export const QuoteEditor: React.FC = () => {
   const [includeLabor, setIncludeLabor] = useState(true);
   const [includeDelivery, setIncludeDelivery] = useState(true);
   const [includeComplexity, setIncludeComplexity] = useState(true);
+  const [pricingSnapshot, setPricingSnapshot] = useState<QuotePricingSnapshot | null>(null);
   const quoteDraftHydratedRef = useRef(false);
   const quoteDraftKey = `quote-editor-draft:${appUid || 'anonymous'}:${id || 'new'}`;
+  const effectiveQuoteSettings = useMemo(
+    () => applyQuotePricingSnapshot(settings, pricingSnapshot),
+    [pricingSnapshot, settings],
+  );
 
   const materialVariantOptions = useMemo(() => {
     const grouped = new Map<string, Material & {variantKey: string; availableArea: number; stockArea: number;}>();
@@ -451,7 +545,7 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const selectedClient = clients.find(c => c.id === clientId);
-  const { calculatePieceArea, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(settings, (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey));
+  const { calculatePieceArea, calculateSculptedSink, calculateStairArea } = useQuoteCalculator(effectiveQuoteSettings, (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey));
   const currentUserName = profile?.name || user?.user_metadata?.name || user?.email || 'Usuário';
   const refreshDigitalPresentation = async () => {
     if (!id) {
@@ -570,10 +664,10 @@ export const QuoteEditor: React.FC = () => {
   }, [id]);
 
   const activeComplexityOptions = useMemo(
-    () => (settings.quoteComplexityOptions || DEFAULT_QUOTE_COMPLEXITY_OPTIONS)
+    () => (effectiveQuoteSettings.quoteComplexityOptions || DEFAULT_QUOTE_COMPLEXITY_OPTIONS)
       .filter((option) => option.active !== false)
       .sort((a, b) => a.sortOrder - b.sortOrder),
-    [settings.quoteComplexityOptions],
+    [effectiveQuoteSettings.quoteComplexityOptions],
   );
   
   const pieceManualPriceErrors = useMemo(() =>
@@ -594,8 +688,8 @@ export const QuoteEditor: React.FC = () => {
   [pieceManualPriceInputs, pieces]);
   const pieceManualPriceError = Object.values(pieceManualPriceErrors).find(Boolean);
 
-  const totalMethodAdjustment = settings.paymentMethods.find(m => m.name === totalPaymentMethod)?.adjustment || 0;
-  const remainingMethodAdjustment = settings.paymentMethods.find(m => m.name === remainingPaymentMethod)?.adjustment || 0;
+  const totalMethodAdjustment = effectiveQuoteSettings.paymentMethods.find(m => m.name === totalPaymentMethod)?.adjustment || 0;
+  const remainingMethodAdjustment = effectiveQuoteSettings.paymentMethods.find(m => m.name === remainingPaymentMethod)?.adjustment || 0;
   const totalArea = pieces.reduce((acc, p) => acc + calculatePieceArea(p).totalArea, 0);
   const pieceAreaDetails = pieces.map((piece) => ({piece, totals: calculatePieceArea(piece), material: materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)}));
   const locationContext = {
@@ -604,12 +698,12 @@ export const QuoteEditor: React.FC = () => {
     address: selectedClient?.address,
   };
   const resolvedComplexity = activeComplexityOptions.find((option) => option.key === complexityKey) || activeComplexityOptions[0] || DEFAULT_QUOTE_COMPLEXITY_OPTIONS[0];
-  const usesLinearLaborPricing = (settings.laborPricing?.mode || 'linear') === 'linear';
+  const usesLinearLaborPricing = (effectiveQuoteSettings.laborPricing?.mode || 'linear') === 'linear';
   const basePiecePricingBreakdowns = useMemo(
     () => buildPiecePricingBreakdowns({
       pieces,
       quoteCutouts: cutouts,
-      settings,
+      settings: effectiveQuoteSettings,
       clientLocation: {
         city: selectedClient?.city,
         address: selectedClient?.address,
@@ -626,7 +720,7 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, includeCutouts, includeLabor, includeMaterialLoss, includeSculptedSink, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, usesLinearLaborPricing],
+    [calculatePieceArea, cutouts, effectiveQuoteSettings, includeCutouts, includeLabor, includeMaterialLoss, includeSculptedSink, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, usesLinearLaborPricing],
   );
   const stonesCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.stoneBaseValue, 0);
   const materialLossCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
@@ -634,7 +728,7 @@ export const QuoteEditor: React.FC = () => {
     () => buildPiecePricingBreakdowns({
       pieces,
       quoteCutouts: cutouts,
-      settings,
+      settings: effectiveQuoteSettings,
       clientLocation: {
         city: selectedClient?.city,
         address: selectedClient?.address,
@@ -651,7 +745,7 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, usesLinearLaborPricing],
+    [calculatePieceArea, cutouts, effectiveQuoteSettings, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, usesLinearLaborPricing],
   );
   const originalMaterialLossCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
   const originalLinearLaborCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.laborValue, 0);
@@ -659,7 +753,7 @@ export const QuoteEditor: React.FC = () => {
   const originalSculptedLaborCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.sinkAdditionalValue, 0);
   const resolvedLaborPricing = quotePricingMode === 'cost'
     ? {amount: 0, source: 'disabled' as const, city: '', district: ''}
-    : resolveLaborAmount(settings.laborPricing, locationContext);
+    : resolveLaborAmount(effectiveQuoteSettings.laborPricing, locationContext);
   const originalLaborCost = quotePricingMode === 'cost'
     ? 0
     : resolvedLaborPricing.source === 'linear'
@@ -668,7 +762,7 @@ export const QuoteEditor: React.FC = () => {
   const laborCost = includeLabor ? originalLaborCost : 0;
   const cutoutsCost = includeCutouts ? originalCutoutsCost : 0;
   const sculptedLaborCost = includeSculptedSink ? originalSculptedLaborCost : 0;
-  const deliveryResolution = resolveLocationAmount(settings.deliveryPricing, locationContext);
+  const deliveryResolution = resolveLocationAmount(effectiveQuoteSettings.deliveryPricing, locationContext);
   const originalDeliveryFee = Math.max(0, Number(deliveryResolution.amount) || 0);
   const deliveryFee = includeDelivery ? originalDeliveryFee : 0;
   const piecesSubtotal = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.pieceSubtotalValue, 0);
@@ -835,13 +929,13 @@ export const QuoteEditor: React.FC = () => {
       setPaymentMode((draft.paymentMode as 'total' | 'entry') || 'total');
       setTotalPaymentMethod(String(draft.totalPaymentMethod || draft.paymentMethod || ''));
       setRemainingPaymentMethod(String(draft.remainingPaymentMethod || ''));
-      setEntryAmount(String(draft.entryAmount || ''));
+      setEntryAmount(draft.entryAmount == null ? '' : String(draft.entryAmount));
       setInstallmentCount(Math.max(1, Number(draft.installmentCount) || 1));
       setPaymentNotes(String(draft.paymentNotes || ''));
       setComplexityKey(String(draft.complexityKey || DEFAULT_QUOTE_COMPLEXITY_OPTIONS[0].key));
-      setCommissionPercent(String(draft.commissionPercent || ''));
-      setNegotiationDiscountPercent(String(draft.negotiationDiscountPercent || ''));
-      setRtPercent(String(draft.rtPercent || ''));
+      setCommissionPercent(draft.commissionPercent == null ? '' : String(draft.commissionPercent));
+      setNegotiationDiscountPercent(draft.negotiationDiscountPercent == null ? '' : String(draft.negotiationDiscountPercent));
+      setRtPercent(draft.rtPercent == null ? '' : String(draft.rtPercent));
       setDeliveryDays(Number(draft.deliveryDays) || 15);
       setMeasurementDate(String(draft.measurementDate || ''));
       setDeliveryDate(String(draft.deliveryDate || ''));
@@ -864,6 +958,7 @@ export const QuoteEditor: React.FC = () => {
       setEmployeeAssignments(Array.isArray(draft.employeeAssignments) ? draft.employeeAssignments as EmployeeAssignment[] : []);
       setStatusHistory(Array.isArray(draft.statusHistory) ? draft.statusHistory as QuoteStatusHistory[] : []);
       setPieceMaterialSearch((draft.pieceMaterialSearch as Record<string, string>) || {});
+      setPricingSnapshot(draft.pricingSnapshot ? cloneQuotePricingSnapshot(draft.pricingSnapshot as QuotePricingSnapshot) : null);
     };
 
     // If editing, fetch initial quote
@@ -882,13 +977,13 @@ export const QuoteEditor: React.FC = () => {
           setPaymentMode(data.paymentMode || (data.remainingPaymentMethod || data.entryAmount ? 'entry' : 'total'));
           setTotalPaymentMethod(data.totalPaymentMethod || data.paymentMethod || '');
           setRemainingPaymentMethod(data.remainingPaymentMethod || '');
-          setEntryAmount(data.entryAmount ? String(data.entryAmount) : '');
+          setEntryAmount(data.entryAmount == null ? '' : String(data.entryAmount));
           setInstallmentCount(Math.max(1, Number(data.installmentCount) || 1));
           setPaymentNotes(data.paymentNotes || '');
           setComplexityKey(data.complexityKey || DEFAULT_QUOTE_COMPLEXITY_OPTIONS[0].key);
-          setCommissionPercent(data.commissionPercent ? String(data.commissionPercent) : '');
-          setNegotiationDiscountPercent(data.negotiationDiscountPercent ? String(data.negotiationDiscountPercent) : '');
-          setRtPercent(data.rtPercent ? String(data.rtPercent) : '');
+          setCommissionPercent(data.commissionPercent == null ? '' : String(data.commissionPercent));
+          setNegotiationDiscountPercent(data.negotiationDiscountPercent == null ? '' : String(data.negotiationDiscountPercent));
+          setRtPercent(data.rtPercent == null ? '' : String(data.rtPercent));
           setDeliveryDays(data.deliveryDays);
           setMeasurementDate(formatDateInput(data.measurementDate));
           setDeliveryDate(formatDateInput(data.deliveryDate));
@@ -903,6 +998,7 @@ export const QuoteEditor: React.FC = () => {
           setIncludeLabor(typeof data.includeLabor === 'boolean' ? data.includeLabor : true);
           setIncludeDelivery(typeof data.includeDelivery === 'boolean' ? data.includeDelivery : true);
           setIncludeComplexity(typeof data.includeComplexity === 'boolean' ? data.includeComplexity : true);
+          setPricingSnapshot(data.pricingSnapshot ? cloneQuotePricingSnapshot(data.pricingSnapshot) : null);
           const loadedPieces = (data.pieces || []).map((piece) => ensurePieceWorkflowStatus({
             ...piece,
             materialId: piece.materialId || data.materialId || '',
@@ -1024,6 +1120,7 @@ export const QuoteEditor: React.FC = () => {
       includeLabor,
       includeDelivery,
       includeComplexity,
+      pricingSnapshot,
       commercialNotes,
       status,
       originalStatus,
@@ -1036,7 +1133,7 @@ export const QuoteEditor: React.FC = () => {
       pieceMaterialSearch,
     });
     if (savedAt) setQuoteDraftSavedAt(savedAt);
-  }, [clientId, clientSearch, commercialNotes, commissionPercent, complexityKey, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, includeComplexity, includeCutouts, includeDelivery, includeLabor, includeMaterialLoss, includeSculptedSink, installmentCount, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, paymentNotes, pieceManualPriceInputs, pieceMaterialSearch, pieces, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
+  }, [clientId, clientSearch, commercialNotes, commissionPercent, complexityKey, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, includeComplexity, includeCutouts, includeDelivery, includeLabor, includeMaterialLoss, includeSculptedSink, installmentCount, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, paymentNotes, pieceManualPriceInputs, pieceMaterialSearch, pieces, pricingSnapshot, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
 
   const clearQuoteDraftState = () => {
     clearDraft(quoteDraftKey);
@@ -1339,7 +1436,7 @@ export const QuoteEditor: React.FC = () => {
       pieces,
       quoteCutouts: cutouts,
       totalQuotePrice: totalPrice,
-      settings,
+      settings: effectiveQuoteSettings,
       clientLocation: {
         city: selectedClient?.city,
         address: selectedClient?.address,
@@ -1354,7 +1451,7 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, includeCutouts, includeLabor, includeMaterialLoss, includeSculptedSink, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, settings, totalPrice, usesLinearLaborPricing],
+    [calculatePieceArea, cutouts, effectiveQuoteSettings, includeCutouts, includeLabor, includeMaterialLoss, includeSculptedSink, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, totalPrice, usesLinearLaborPricing],
   );
   const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
     cooktop: 'cooktop',
@@ -1557,6 +1654,7 @@ export const QuoteEditor: React.FC = () => {
       includeLabor,
       includeDelivery,
       includeComplexity,
+      pricingSnapshot: buildQuotePricingSnapshot(effectiveQuoteSettings),
       pieces: piecesWithStatus,
       cutouts,
       materialPriceOverrides,
@@ -2056,7 +2154,7 @@ export const QuoteEditor: React.FC = () => {
                 {paymentMode === 'total' ? (
                   <select value={totalPaymentMethod} onChange={(e) => setTotalPaymentMethod(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
                     <option value="">Selecionar forma de pagamento</option>
-                    {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
+                    {effectiveQuoteSettings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
                       <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
                     ))}
                   </select>
@@ -2065,7 +2163,7 @@ export const QuoteEditor: React.FC = () => {
                     <input type="number" min="0" step="0.01" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="Entrada" className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" />
                     <select value={remainingPaymentMethod} onChange={(e) => setRemainingPaymentMethod(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
                       <option value="">Selecionar condição do restante</option>
-                      {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
+                      {effectiveQuoteSettings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
                         <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
                       ))}
                     </select>
@@ -2320,7 +2418,7 @@ export const QuoteEditor: React.FC = () => {
                       className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
                     >
                       <option value="">Selecionar forma de pagamento</option>
-                      {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
+                      {effectiveQuoteSettings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
                         <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
                       ))}
                     </select>
@@ -2347,7 +2445,7 @@ export const QuoteEditor: React.FC = () => {
                         className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
                       >
                         <option value="">Selecionar condição do restante</option>
-                        {settings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
+                        {effectiveQuoteSettings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
                           <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
                         ))}
                       </select>

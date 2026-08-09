@@ -669,6 +669,17 @@ export interface QuoteMaterialPriceOverride {
   updatedAt?: any;
 }
 
+export interface QuotePricingSnapshot {
+  laborRatePerLinearMeter: number;
+  laborMinimumByRegion: Settings['laborMinimumByRegion'];
+  laborPricing: Settings['laborPricing'];
+  deliveryPricing: Settings['deliveryPricing'];
+  quoteComplexityOptions: Settings['quoteComplexityOptions'];
+  cutoutPrices: Settings['cutoutPrices'];
+  paymentMethods: Settings['paymentMethods'];
+  sculptedSinkRates: Settings['sculptedSinkRates'];
+}
+
 export interface Quote {
   id: string;
   empresaId?: string;
@@ -720,6 +731,7 @@ export interface Quote {
   pieces: QuotePiece[];
   cutouts: QuoteCutouts;
   materialPriceOverrides?: QuoteMaterialPriceOverride[];
+  pricingSnapshot?: QuotePricingSnapshot;
   createdAt: any;
   createdBy: string;
   teamCounts?: Partial<Record<ProductionStep, number>>;

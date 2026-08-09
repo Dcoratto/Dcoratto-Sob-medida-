@@ -1,0 +1,16 @@
+alter table public.quotes
+  add column if not exists installment_count integer,
+  add column if not exists installment_amount numeric,
+  add column if not exists payment_notes text,
+  add column if not exists commission_percent numeric,
+  add column if not exists labor_charge numeric,
+  add column if not exists delivery_fee numeric,
+  add column if not exists complexity_key text,
+  add column if not exists complexity_label text,
+  add column if not exists complexity_percent numeric,
+  add column if not exists include_cutouts boolean,
+  add column if not exists include_sculpted_sink boolean,
+  add column if not exists include_labor boolean,
+  add column if not exists include_delivery boolean,
+  add column if not exists include_complexity boolean,
+  add column if not exists pricing_snapshot jsonb;

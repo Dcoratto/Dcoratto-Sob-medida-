@@ -134,8 +134,24 @@ const normalizeQuotePresentationError = (message?: string) => {
   return message || 'Nao foi possivel concluir a operacao.';
 };
 
-const ensureSuccess = <T>(result: {data: T; error: {message?: string} | null}) => {
-  if (result.error) throw new Error(normalizeQuotePresentationError(result.error.message));
+const ensureSuccess = <T>(result: {
+  data: T;
+  error: {
+    code?: string;
+    message?: string;
+    details?: string;
+    hint?: string;
+  } | null;
+}) => {
+  if (result.error) {
+    console.error('[quote-digital-rpc]', {
+      code: result.error.code,
+      message: result.error.message,
+      details: result.error.details,
+      hint: result.error.hint,
+    });
+    throw new Error(normalizeQuotePresentationError(result.error.message));
+  }
   return result.data;
 };
 

@@ -63,6 +63,12 @@ export const validateInventoryItemPayload = (
   return null;
 };
 
+export const validateInventoryBatchQuantity = (quantity: number, maxQuantity = 50) => {
+  if (!Number.isInteger(quantity) || quantity <= 0) return 'Informe uma quantidade de chapas valida.';
+  if (quantity > maxQuantity) return `A quantidade maxima por cadastro e ${maxQuantity} chapas.`;
+  return null;
+};
+
 export const validateMaterialSalePrice = (minimumSalePerM2: number, salePricePerM2: number) => {
   if (!Number.isFinite(salePricePerM2) || salePricePerM2 <= 0) return 'Informe um preço final de venda válido.';
   if (minimumSalePerM2 > 0 && salePricePerM2 < minimumSalePerM2) {

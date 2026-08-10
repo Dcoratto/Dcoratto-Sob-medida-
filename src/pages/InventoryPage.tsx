@@ -16,11 +16,13 @@ import {deleteObject, getDownloadURL, imageVariantUrl, ref as storageRef, storag
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
-import {validateInventoryItemPayload, validatePurchaseSlabs} from '../lib/businessRules';
+import {validateInventoryBatchQuantity, validateInventoryItemPayload, validatePurchaseSlabs} from '../lib/businessRules';
 import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
+import {supabase} from '../lib/supabase';
 
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
+const MAX_INVENTORY_BATCH_QUANTITY = 50;
 const patioRacks = Array.from({length: 9}, (_, index) => `Cavalete ${index + 1}`);
 const UNASSIGNED_PANEL_ID = '__unassigned__';
 const PATIO_CARD_WIDTH = 116;
@@ -118,6 +120,15 @@ const emptyPurchaseSlab = (): PurchaseSlabForm => ({
 });
 
 const parseThicknessValue = (label: string) => Number(String(label || '').replace(',', '.').replace(/[^\d.]/g, '')) || 0;
+const normalizeRackIdForDb = (value: string) => {
+  const match = String(value || '').match(/^Cavalete\s+(\d+)$/i);
+  return match ? `rack_${match[1]}` : String(value || '').trim() || null;
+};
+
+const ensureSuccess = <T,>(result: {data: T; error: {message?: string} | null}) => {
+  if (result.error) throw new Error(result.error.message || 'Nao foi possivel concluir a operacao.');
+  return result.data;
+};
 
 const buildStorageFileName = (baseName: string, extension: string) => {
   const randomToken = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -249,6 +260,7 @@ export const InventoryPage: React.FC = () => {
   const [notes, setNotes] = useState('');
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState('');
+  const [inventoryQuantity, setInventoryQuantity] = useState('1');
   const [purchaseMaterialId, setPurchaseMaterialId] = useState('');
   const [purchaseMaterialName, setPurchaseMaterialName] = useState('');
   const [purchaseCode, setPurchaseCode] = useState('');
@@ -347,6 +359,7 @@ export const InventoryPage: React.FC = () => {
       setMaterialName(draft.materialName || '');
       setCode(draft.code || '');
       setProvider(draft.provider || '');
+      setInventoryQuantity(String(draft.inventoryQuantity || '1'));
       setRackId(draft.rackId || '');
       setCategory(draft.category || '');
       setMaterialLine(draft.materialLine || '');
@@ -377,6 +390,7 @@ export const InventoryPage: React.FC = () => {
       materialName,
       code,
       provider,
+      inventoryQuantity,
       rackId,
       category,
       materialLine,
@@ -393,7 +407,7 @@ export const InventoryPage: React.FC = () => {
       photoPreview,
     });
     if (savedAt) setInventoryDraftSavedAt(savedAt);
-  }, [category, code, cost, editingItem, inventoryDraftKey, length, materialLine, materialName, materialType, minimumSalePrice, notes, photoPreview, provider, rackId, selectedMaterialId, showModal, status, texture, thickness, thicknessLabel, width]);
+  }, [category, code, cost, editingItem, inventoryDraftKey, inventoryQuantity, length, materialLine, materialName, materialType, minimumSalePrice, notes, photoPreview, provider, rackId, selectedMaterialId, showModal, status, texture, thickness, thicknessLabel, width]);
 
   useEffect(() => {
     if (!showPurchaseModal || purchaseDraftLoadedRef.current) return;
@@ -481,6 +495,7 @@ export const InventoryPage: React.FC = () => {
     setMaterialName('');
     setCode('');
     setProvider('');
+    setInventoryQuantity('1');
     setRackId('');
     setCategory('');
     setMaterialLine('');
@@ -610,8 +625,8 @@ export const InventoryPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editingItem ?!hasPermission('estoque', 'editar') : !hasPermission('estoque', 'adicionar')) {
-      alert('Você não tem permissão para alterar o estoque. Fale com o administrador.');
+    if (editingItem ? !hasPermission('estoque', 'editar') : !hasPermission('estoque', 'adicionar')) {
+      alert('Voce nao tem permissao para alterar o estoque. Fale com o administrador.');
       return;
     }
     if (!selectedMaterialId) {
@@ -625,17 +640,21 @@ export const InventoryPage: React.FC = () => {
     const totalCost = parseFlexibleNumberInput(cost);
     const minimumSale = parseFlexibleNumberInput(minimumSalePrice || cost);
     const area = (parsedLength * parsedWidth) / 10000;
-    const inventoryRef = editingItem ?doc(db, 'inventory', editingItem.id) : doc(collection(db, 'inventory'));
+    const inventoryRef = editingItem ? doc(db, 'inventory', editingItem.id) : doc(collection(db, 'inventory'));
+    const quantity = editingItem ? 1 : Number.parseInt(inventoryQuantity, 10);
     const materialId = selectedMaterialId;
     const selectedMaterial = materials.find((material) => material.id === materialId);
     const previousPhotoUrl = editingItem?.photoUrl || '';
     const previousOriginalUrl = editingItem?.originalUrl || '';
     let photoUrl = previousPhotoUrl || selectedMaterial?.imageUrl || '';
     let originalUrl = previousOriginalUrl || selectedMaterial?.originalUrl || selectedMaterial?.imageUrl || '';
+    let uploadedNewPhoto = false;
+
     if (photoFile) {
       const uploadedPhoto = await uploadInventoryImage(photoFile, `${materialName || selectedMaterial?.name || 'estoque'}-${inventoryRef.id}`);
       photoUrl = uploadedPhoto.photoUrl;
       originalUrl = uploadedPhoto.originalUrl;
+      uploadedNewPhoto = true;
     }
 
     const data = {
@@ -660,6 +679,13 @@ export const InventoryPage: React.FC = () => {
       photoUrl,
       originalUrl,
     };
+
+    const quantityError = editingItem ? null : validateInventoryBatchQuantity(quantity, MAX_INVENTORY_BATCH_QUANTITY);
+    if (quantityError) {
+      alert(quantityError);
+      return;
+    }
+
     const validationError = validateInventoryItemPayload({
       selectedMaterialId,
       code,
@@ -672,18 +698,20 @@ export const InventoryPage: React.FC = () => {
       alert(validationError);
       return;
     }
-    const savedItem = {id: inventoryRef.id, ...data} as InventoryItem;
-    const syncSavedItem = () => {
-      setItems((current) => {
-        const nextItems = current.some((item) => item.id === savedItem.id)
-          ? current.map((item) => item.id === savedItem.id ? savedItem : item)
-          : [...current, savedItem];
 
-        return nextItems.sort((a, b) => String(a.code || '').localeCompare(String(b.code || ''), 'pt-BR', {sensitivity: 'base'}));
+    const syncSavedItems = (savedItems: InventoryItem[]) => {
+      setItems((current) => {
+        const byId = new Map<string, InventoryItem>(current.map((item) => [item.id, item] as const));
+        savedItems.forEach((item) => {
+          byId.set(item.id, item);
+        });
+        return Array.from(byId.values()).sort((a, b) => String(a.code || '').localeCompare(String(b.code || ''), 'pt-BR', {sensitivity: 'base'}));
       });
-      if (savedItem.rackId) {
-        setSelectedRackId(savedItem.rackId);
-        setFocusedInventoryId(savedItem.id);
+
+      const lastSavedItem = savedItems[savedItems.length - 1];
+      if (lastSavedItem?.rackId) {
+        setSelectedRackId(lastSavedItem.rackId);
+        setFocusedInventoryId(lastSavedItem.id);
       }
     };
 
@@ -693,7 +721,7 @@ export const InventoryPage: React.FC = () => {
         if (photoFile && previousPhotoUrl && previousPhotoUrl !== photoUrl) {
           await deleteStoredFile(previousPhotoUrl);
         }
-        syncSavedItem();
+        syncSavedItems([{id: inventoryRef.id, ...data} as InventoryItem]);
         clearDraft(inventoryDraftKey);
         setShowModal(false);
         resetForm();
@@ -708,29 +736,98 @@ export const InventoryPage: React.FC = () => {
           userUid: appUid || '',
           userName: currentUserName,
           metadata: {area, cost: totalCost, minimumSalePrice: minimumSale, status},
-        }).catch((error) => console.error('Erro ao registrar histórico do estoque:', error));
-      } else {
-        await setDoc(inventoryRef, data);
-        syncSavedItem();
-        clearDraft(inventoryDraftKey);
-        setShowModal(false);
-        resetForm();
-        void logSystemEvent({
-          type: 'inventory_created',
-          title: 'Item de estoque cadastrado',
-          description: `${data.materialName} - ${data.code}`,
-          entityType: 'inventory',
-          entityId: inventoryRef.id,
+        }).catch((error) => console.error('Erro ao registrar historico do estoque:', error));
+        return;
+      }
+
+      const batchItems = Array.from({length: quantity}, (_, index) => {
+        const batchId = index === 0 ? inventoryRef.id : doc(collection(db, 'inventory')).id;
+        const batchCode = quantity === 1 ? data.code : `${data.code}-${index + 1}`;
+        return {
+          id: batchId,
+          material_id: materialId,
+          material_name: data.materialName,
+          code: batchCode,
+          provider: data.provider,
+          rack_id: normalizeRackIdForDb(data.rackId),
+          category: data.category,
+          material_line: data.materialLine,
+          material_type: data.materialType,
+          thickness_label: data.thicknessLabel,
+          texture: data.texture,
+          length: data.length,
+          width: data.width,
+          thickness: data.thickness,
+          area: data.area,
+          cost: data.cost,
+          minimum_sale_price: data.minimumSalePrice,
+          status: data.status,
+          notes: data.notes,
+          photo_url: data.photoUrl,
+          original_url: data.originalUrl,
+        };
+      });
+
+      const insertedItems = ensureSuccess<Array<{id: string; code: string}>>(
+        await supabase.rpc('create_inventory_slabs_batch', {p_items: batchItems}),
+      );
+      const savedItems = batchItems.map((item) => {
+        const insertedItem = Array.isArray(insertedItems)
+          ? insertedItems.find((entry) => String(entry?.id || '') === item.id)
+          : null;
+        return {
+          id: insertedItem?.id || item.id,
           materialId,
           materialName: data.materialName,
-          userUid: appUid || '',
-          userName: currentUserName,
-          metadata: {area, cost: totalCost, minimumSalePrice: minimumSale, status},
-        }).catch((error) => console.error('Erro ao registrar histórico do estoque:', error));
-      }
+          code: insertedItem?.code || item.code,
+          provider: data.provider,
+          rackId: data.rackId,
+          category: data.category,
+          materialLine: data.materialLine,
+          materialType: data.materialType,
+          thicknessLabel: data.thicknessLabel,
+          texture: data.texture,
+          length: data.length,
+          width: data.width,
+          thickness: data.thickness,
+          area: data.area,
+          cost: data.cost,
+          minimumSalePrice: data.minimumSalePrice,
+          status: data.status,
+          notes: data.notes,
+          photoUrl: data.photoUrl,
+          originalUrl: data.originalUrl,
+        } as InventoryItem;
+      });
+
+      syncSavedItems(savedItems);
+      clearDraft(inventoryDraftKey);
+      setShowModal(false);
+      resetForm();
+      window.alert(quantity === 1 ? 'Chapa cadastrada com sucesso.' : `${quantity} chapas cadastradas com sucesso.`);
+      void logSystemEvent({
+        type: 'inventory_created',
+        title: 'Item de estoque cadastrado',
+        description: `${data.materialName} - ${data.code}`,
+        entityType: 'inventory',
+        entityId: inventoryRef.id,
+        materialId,
+        materialName: data.materialName,
+        userUid: appUid || '',
+        userName: currentUserName,
+        metadata: {area, cost: totalCost, minimumSalePrice: minimumSale, quantity, status},
+      }).catch((error) => console.error('Erro ao registrar historico do estoque:', error));
     } catch (error) {
       console.error('Erro ao salvar item de estoque:', error);
-      window.alert('Não foi possível salvar este item do estoque agora. Confira os dados e tente novamente.');
+      if (!editingItem && uploadedNewPhoto) {
+        await deleteStoredFile(photoUrl);
+        await deleteStoredFile(originalUrl);
+      }
+      window.alert(
+        editingItem
+          ? 'Nao foi possivel atualizar este item do estoque agora. Confira os dados e tente novamente.'
+          : 'Nao foi possivel cadastrar estas chapas agora. Confira os dados e tente novamente.',
+      );
     }
   };
 
@@ -2645,6 +2742,20 @@ export const InventoryPage: React.FC = () => {
                     {patioRacks.map((rack) => <option key={rack} value={rack}>{rack}</option>)}
                   </select>
                 </div>
+                {!editingItem && (
+                  <div className="space-y-1.5">
+                    <label className="text-slate-500 font-medium text-sm">Quantidade de chapas</label>
+                    <NumericInput
+                      min="1"
+                      max={String(MAX_INVENTORY_BATCH_QUANTITY)}
+                      required
+                      value={inventoryQuantity}
+                      onValueChange={(_, rawValue) => setInventoryQuantity(rawValue)}
+                      decimals={0}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono"
+                    />
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Categoria</label>
                   <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium">
@@ -2753,4 +2864,3 @@ export const InventoryPage: React.FC = () => {
     </div>
   );
 };
-

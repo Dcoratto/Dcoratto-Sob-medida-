@@ -121,8 +121,21 @@ export type PublicQuotePresentationResponse =
     versionLabel?: string;
   };
 
+const normalizeQuotePresentationError = (message?: string) => {
+  const normalized = String(message || '').toLowerCase();
+  if (
+    normalized.includes('record "p_quote" has no field')
+    || normalized.includes('record "p_client" has no field')
+    || normalized.includes('schema cache')
+    || normalized.includes('column')
+  ) {
+    return 'Nao foi possivel gerar a proposta digital agora. Revise os dados do orcamento e tente novamente.';
+  }
+  return message || 'Nao foi possivel concluir a operacao.';
+};
+
 const ensureSuccess = <T>(result: {data: T; error: {message?: string} | null}) => {
-  if (result.error) throw new Error(result.error.message || 'Nao foi possivel concluir a operacao.');
+  if (result.error) throw new Error(normalizeQuotePresentationError(result.error.message));
   return result.data;
 };
 

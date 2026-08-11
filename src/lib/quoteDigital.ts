@@ -50,6 +50,16 @@ export type QuotePresentationSnapshot = {
     responsible?: string;
     pieceCount?: number;
   };
+  includedFeatures?: {
+    materialSelected?: boolean;
+    fabricationIncluded?: boolean;
+    finishingIncluded?: boolean;
+    cutoutsIncluded?: boolean;
+    sculptedSinkIncluded?: boolean;
+    deliveryIncluded?: boolean;
+    installationIncluded?: boolean;
+    measurementIncluded?: boolean;
+  };
   material?: {
     name?: string;
     category?: string;
@@ -111,6 +121,7 @@ export type PublicQuotePresentationResponse =
       firstViewedAt?: string | null;
       lastViewedAt?: string | null;
       acceptedAt?: string | null;
+      acceptedName?: string | null;
     };
     snapshot: QuotePresentationSnapshot;
   }

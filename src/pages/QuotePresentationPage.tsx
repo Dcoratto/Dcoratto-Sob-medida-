@@ -6,18 +6,21 @@ import {
   ArrowLeft,
   ArrowRight,
   CalendarClock,
+  Check,
   CheckCircle2,
+  ChevronRight,
   CopyCheck,
   Loader2,
   MapPin,
   Phone,
   ShieldCheck,
+  Sparkles,
   X,
 } from 'lucide-react';
 import {acceptQuotePresentation, getPublicQuotePresentation, PublicQuotePresentationResponse, QuotePresentationSnapshot} from '../lib/quoteDigital';
 import {cn, formatArea, formatCurrency} from '../lib/utils';
 
-const formatDateTime = (value?: string | null) => {
+const formatDateLong = (value?: string | null) => {
   if (!value) return '';
   try {
     return format(new Date(value), "dd 'de' MMMM 'de' yyyy", {locale: ptBR});
@@ -26,7 +29,7 @@ const formatDateTime = (value?: string | null) => {
   }
 };
 
-const formatShortDate = (value?: string | null) => {
+const formatDateShort = (value?: string | null) => {
   if (!value) return '';
   try {
     return format(new Date(value), 'dd/MM/yyyy', {locale: ptBR});
@@ -67,25 +70,89 @@ const PublicStatePanel = ({
   title,
   description,
   company,
+  versionLabel,
 }: {
   title: string;
   description: string;
   company?: QuotePresentationSnapshot['company'];
-}) => (
-  <div className="flex min-h-screen items-center justify-center bg-[#0e0d0b] px-5 py-12 text-[#f4efe8]">
-    <div className="w-full max-w-2xl rounded-[32px] border border-white/10 bg-[#131210] p-8 text-center shadow-2xl shadow-black/30">
-      <div className="text-[11px] uppercase tracking-[0.34em] text-[#d4b48a]">{company?.name || "D'Coratto"}</div>
-      <h1 className="mt-5 font-display text-4xl text-[#f4efe8]">{title}</h1>
-      <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-[#cbbfb0]">{description}</p>
-      {(company?.phone || company?.email) && (
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3 text-sm text-[#e7dccf]">
-          {company?.phone && <span>{company.phone}</span>}
-          {company?.email && <span>{company.email}</span>}
+  versionLabel?: string;
+}) => {
+  const addressLines = String(company?.address || '')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return (
+    <div className="min-h-screen bg-[#0e0d0b] px-5 py-8 text-[#f4efe8]">
+      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-6xl flex-col justify-between">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_360px] lg:items-end">
+          <div className="pt-8 sm:pt-16">
+            <div className="text-[11px] uppercase tracking-[0.38em] text-[#b8976a]">{company?.name || "D'Coratto Sob Medida"}</div>
+            <h1 className="mt-8 max-w-4xl font-display text-5xl leading-none text-[#f4efe8] sm:text-6xl lg:text-7xl">{title}</h1>
+            <p className="mt-6 max-w-2xl text-base leading-8 text-[#d5c6b4] sm:text-lg">{description}</p>
+            {versionLabel && (
+              <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-[#b8976a]/25 bg-[#171512] px-4 py-2 text-xs uppercase tracking-[0.24em] text-[#e8dccf]">
+                <Sparkles className="h-4 w-4 text-[#b8976a]" />
+                {versionLabel}
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-[32px] border border-white/8 bg-[#131210] p-6 shadow-2xl shadow-black/30">
+            <div className="space-y-5">
+              <div className="text-[11px] uppercase tracking-[0.34em] text-[#b8976a]">Atendimento</div>
+              {company?.phone && (
+                <div className="flex items-center gap-3 text-sm text-[#e8ddd1]">
+                  <Phone className="h-4 w-4 text-[#b8976a]" />
+                  <span>{company.phone}</span>
+                </div>
+              )}
+              {company?.email && <div className="text-sm text-[#d5c6b4]">{company.email}</div>}
+              {addressLines.length > 0 && (
+                <div className="space-y-2 pt-2 text-sm leading-7 text-[#c6b6a2]">
+                  {addressLines.map((line) => (
+                    <div key={line}>{line}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      )}
+      </div>
     </div>
-  </div>
+  );
+};
+
+const SectionEyebrow = ({children}: {children: React.ReactNode}) => (
+  <div className="text-[11px] uppercase tracking-[0.34em] text-[#b8976a]">{children}</div>
 );
+
+const SectionTitle = ({children}: {children: React.ReactNode}) => (
+  <h2 className="mt-4 font-display text-4xl text-[#f4efe8] sm:text-5xl">{children}</h2>
+);
+
+const projectSteps = [
+  {
+    step: '01',
+    title: 'Medição',
+    description: 'Conferência técnica das medidas e validação do espaço antes da fabricação.',
+  },
+  {
+    step: '02',
+    title: 'Produção',
+    description: 'Fabricação sob medida das peças conforme a proposta aprovada.',
+  },
+  {
+    step: '03',
+    title: 'Acabamento',
+    description: 'Finalização das superfícies, recortes e detalhes de apresentação do projeto.',
+  },
+  {
+    step: '04',
+    title: 'Entrega e instalação',
+    description: 'Etapa final de entrega e montagem conforme as condições contratadas para o projeto.',
+  },
+];
 
 export const QuotePresentationPage: React.FC = () => {
   const {token = ''} = useParams();
@@ -123,14 +190,19 @@ export const QuotePresentationPage: React.FC = () => {
   const availablePayload = payload?.state === 'available' ? payload : null;
   const snapshot = availablePayload?.snapshot;
   const company = snapshot?.company;
+  const investment = snapshot?.investment;
+  const delivery = snapshot?.delivery;
+  const acceptedDisplayName = availablePayload?.meta.acceptedName || acceptedName;
+  const proposalAccepted = Boolean(availablePayload?.meta.acceptedAt);
+
   const gallery = useMemo(() => {
     if (!snapshot) return [];
-    const items = [
+    return [
       snapshot.material?.imageUrl
         ? {
           src: snapshot.material.imageUrl,
           title: snapshot.material.name || 'Material selecionado',
-          subtitle: snapshot.material.category || 'Material',
+          subtitle: [snapshot.material.materialLine, snapshot.material.materialType, snapshot.material.texture].filter(Boolean).join(' • '),
         }
         : null,
       ...((snapshot.pieces || []).map((piece) => (
@@ -138,14 +210,110 @@ export const QuotePresentationPage: React.FC = () => {
           ? {
             src: piece.imageUrl,
             title: piece.name || 'Peça',
-            subtitle: piece.dimensionsLabel || piece.environment || '',
+            subtitle: [piece.environment, piece.dimensionsLabel].filter(Boolean).join(' • '),
           }
           : null
       ))),
-    ].filter(Boolean) as Array<{src: string; title: string; subtitle: string}>;
-
-    return items.filter((item, index, array) => array.findIndex((entry) => entry.src === item.src) === index);
+    ]
+      .filter(Boolean)
+      .filter((item, index, array) => array.findIndex((entry) => entry?.src === item?.src) === index) as Array<{src: string; title: string; subtitle: string}>;
   }, [snapshot]);
+
+  const projectSummaryItems = useMemo(() => {
+    if (!snapshot) return [];
+    return [
+      {
+        label: 'Cliente',
+        value: snapshot.client?.name || 'Cliente',
+      },
+      {
+        label: 'Projeto',
+        value: snapshot.summary?.environment || snapshot.heroSubtitle || 'Projeto sob medida',
+      },
+      {
+        label: 'Local',
+        value: [snapshot.client?.city, snapshot.client?.neighborhood].filter(Boolean).join(' • ') || snapshot.client?.city || '-',
+      },
+      {
+        label: 'Responsável',
+        value: snapshot.summary?.responsible || 'D\'Coratto',
+      },
+    ];
+  }, [snapshot]);
+
+  const includedItems = useMemo(() => {
+    if (!snapshot) return [];
+    const features = snapshot.includedFeatures;
+    return [
+      {
+        key: 'material',
+        title: 'Material selecionado',
+        description: snapshot.material?.name || 'Superfície escolhida para o projeto.',
+        active: Boolean(features?.materialSelected || snapshot.material?.name),
+      },
+      {
+        key: 'fabrication',
+        title: 'Fabricação sob medida',
+        description: 'Produção conforme o desenho comercial aprovado.',
+        active: Boolean(features?.fabricationIncluded || snapshot.summary?.pieceCount),
+      },
+      {
+        key: 'cutouts',
+        title: 'Recortes',
+        description: 'Execução dos recortes previstos nesta composição.',
+        active: Boolean(features?.cutoutsIncluded),
+      },
+      {
+        key: 'sculpted-sink',
+        title: 'Pia esculpida',
+        description: 'Item contemplado na versão comercial apresentada.',
+        active: Boolean(features?.sculptedSinkIncluded),
+      },
+      {
+        key: 'finishing',
+        title: 'Acabamento',
+        description: snapshot.material?.texture ? `Acabamento ${snapshot.material.texture.toLowerCase()}.` : 'Acabamento previsto para o material selecionado.',
+        active: Boolean(features?.finishingIncluded || snapshot.material?.texture),
+      },
+      {
+        key: 'delivery',
+        title: 'Entrega',
+        description: 'Entrega incluída conforme a composição comercial deste orçamento.',
+        active: Boolean(features?.deliveryIncluded || delivery?.deliveryIncluded),
+      },
+      {
+        key: 'installation',
+        title: 'Instalação',
+        description: 'Montagem contemplada nesta proposta comercial.',
+        active: Boolean(features?.installationIncluded || delivery?.installationIncluded),
+      },
+    ].filter((item) => item.active);
+  }, [delivery?.deliveryIncluded, delivery?.installationIncluded, snapshot]);
+
+  const importantInfoItems = useMemo(() => {
+    if (!snapshot) return [];
+    const items = [
+      snapshot.validUntil ? `Proposta válida até ${formatDateLong(snapshot.validUntil)}.` : null,
+      snapshot.delivery?.measurementDate ? `Medição prevista para ${formatDateLong(snapshot.delivery.measurementDate)}.` : null,
+      snapshot.delivery?.deliveryDate ? `Entrega estimada para ${formatDateLong(snapshot.delivery.deliveryDate)}.` : null,
+      snapshot.notes?.commercialNotes || null,
+      snapshot.notes?.defaultNotes || null,
+      snapshot.payment?.notes || null,
+    ].filter(Boolean) as string[];
+
+    return items;
+  }, [snapshot]);
+
+  const paymentSummary = snapshot?.payment?.method || snapshot?.payment?.totalPaymentMethod || snapshot?.payment?.remainingPaymentMethod;
+  const paymentDetails = [
+    snapshot?.payment?.entryAmount ? `Entrada de ${formatCurrency(snapshot.payment.entryAmount)}` : null,
+    snapshot?.payment?.installmentCount && snapshot?.payment?.installmentAmount
+      ? `Saldo em ${snapshot.payment.installmentCount} parcela(s) de ${formatCurrency(snapshot.payment.installmentAmount)}`
+      : snapshot?.payment?.installmentCount
+        ? `${snapshot.payment.installmentCount} parcela(s)`
+        : null,
+    snapshot?.payment?.remainingPaymentMethod ? `Saldo via ${snapshot.payment.remainingPaymentMethod}` : null,
+  ].filter(Boolean) as string[];
 
   useEffect(() => {
     if (lightboxIndex == null) return;
@@ -166,7 +334,9 @@ export const QuotePresentationPage: React.FC = () => {
     setAccepting(true);
     try {
       const result = await acceptQuotePresentation(token, acceptedName.trim());
-      setAcceptanceMessage(`Proposta ${result.versionLabel} aceita em ${formatDateTime(result.acceptedAt)}.`);
+      const nextAcceptedName = result.acceptedName || acceptedName.trim();
+      setAcceptanceMessage(`Proposta ${result.versionLabel} aceita em ${formatDateLong(result.acceptedAt)}.`);
+      setAcceptedName(nextAcceptedName);
       setConfirming(false);
       setPayload((current) => (
         current && current.state === 'available'
@@ -176,6 +346,7 @@ export const QuotePresentationPage: React.FC = () => {
             meta: {
               ...current.meta,
               acceptedAt: result.acceptedAt,
+              acceptedName: nextAcceptedName,
             },
           }
           : current
@@ -189,12 +360,13 @@ export const QuotePresentationPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0e0d0b] px-5 py-12 text-[#f4efe8]">
-        <div className="mx-auto max-w-6xl animate-pulse space-y-6">
-          <div className="h-[58vh] rounded-[40px] border border-white/10 bg-[#131210]" />
-          <div className="grid gap-6 lg:grid-cols-2">
-            <div className="h-64 rounded-[32px] bg-[#131210]" />
-            <div className="h-64 rounded-[32px] bg-[#131210]" />
+      <div className="min-h-screen bg-[#0e0d0b] px-5 py-8 text-[#f4efe8]">
+        <div className="mx-auto max-w-6xl animate-pulse space-y-8">
+          <div className="h-[72vh] rounded-[40px] bg-[#131210]" />
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="h-56 rounded-[32px] bg-[#131210]" />
+            <div className="h-56 rounded-[32px] bg-[#131210]" />
+            <div className="h-56 rounded-[32px] bg-[#131210]" />
           </div>
         </div>
       </div>
@@ -206,84 +378,153 @@ export const QuotePresentationPage: React.FC = () => {
   }
 
   if (!payload || payload.state === 'missing') {
-    return <PublicStatePanel title="Proposta não encontrada" description="Este link não corresponde a uma proposta disponível. Fale com a D'Coratto para receber uma nova versão." company={payload?.company} />;
+    return (
+      <PublicStatePanel
+        title="Proposta não encontrada"
+        description="Este link não corresponde a uma proposta disponível. Fale com a D'Coratto para receber uma nova versão comercial."
+        company={payload?.company}
+        versionLabel={payload?.versionLabel}
+      />
+    );
   }
 
   if (payload.state === 'revoked') {
-    return <PublicStatePanel title="Proposta revogada" description="Esta proposta não está mais disponível. Entre em contato com a D'Coratto para solicitar uma nova versão atualizada." company={payload.company} />;
+    return (
+      <PublicStatePanel
+        title="Proposta revogada"
+        description="Esta versão foi encerrada e não está mais disponível. A D'Coratto pode compartilhar uma nova proposta atualizada para o seu projeto."
+        company={payload.company}
+        versionLabel={payload.versionLabel}
+      />
+    );
   }
 
   if (payload.state === 'expired') {
-    return <PublicStatePanel title="Proposta expirada" description="A validade desta proposta encerrou. A D'Coratto pode gerar uma nova versão comercial para você." company={payload.company} />;
+    return (
+      <PublicStatePanel
+        title="Proposta expirada"
+        description="A validade desta proposta foi encerrada. Solicite à D'Coratto uma nova versão comercial com as condições atualizadas."
+        company={payload.company}
+        versionLabel={payload.versionLabel}
+      />
+    );
   }
 
-  const paymentSummary = snapshot?.payment?.method || snapshot?.payment?.totalPaymentMethod || snapshot?.payment?.remainingPaymentMethod;
-  const noteBlocks = [snapshot?.notes?.commercialNotes, snapshot?.notes?.defaultNotes, snapshot?.payment?.notes].filter(Boolean) as string[];
-  const investment = snapshot?.investment;
-  const delivery = snapshot?.delivery;
+  const topImage = snapshot?.material?.imageUrl || gallery[0]?.src;
+  const primarySections = [
+    {id: 'projeto', label: 'Projeto'},
+    snapshot?.material ? {id: 'material', label: 'Material'} : null,
+    includedItems.length > 0 ? {id: 'inclusos', label: 'Inclusos'} : null,
+    {id: 'investimento', label: 'Investimento'},
+    {id: 'aceite', label: proposalAccepted ? 'Aceite' : 'Confirmar'},
+  ].filter(Boolean) as Array<{id: string; label: string}>;
 
   return (
     <div className="min-h-screen bg-[#0e0d0b] text-[#f4efe8]">
       <style>{`
+        html {
+          scroll-behavior: smooth;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          html {
+            scroll-behavior: auto;
+          }
+        }
         @media print {
           body { background: #ffffff !important; }
           .proposal-print-hide { display: none !important; }
-          .proposal-print-shell { background: #ffffff !important; color: #1f1a16 !important; }
-          .proposal-print-card { border-color: #d8c9b6 !important; background: #ffffff !important; box-shadow: none !important; }
+          .proposal-print-shell { background: #ffffff !important; color: #201a15 !important; }
         }
       `}</style>
 
-      <header className="proposal-print-hide sticky top-0 z-30 border-b border-white/5 bg-[#0e0d0b]/88 backdrop-blur-xl">
+      <header className="proposal-print-hide sticky top-0 z-40 border-b border-white/6 bg-[#0e0d0b]/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
-          <div className="text-[11px] uppercase tracking-[0.32em] text-[#d4b48a]">{company?.name || "D'Coratto"}</div>
+          <div className="min-w-0">
+            <div className="truncate text-[11px] uppercase tracking-[0.34em] text-[#b8976a]">{company?.name || "D'Coratto Sob Medida"}</div>
+            <div className="mt-1 truncate text-sm text-[#d7c8b6]">{availablePayload.meta.proposalCode}</div>
+          </div>
           <nav className="hidden items-center gap-5 text-xs text-[#d8c8b5] md:flex">
-            <a href="#projeto">Projeto</a>
-            {snapshot?.material && <a href="#material">Material</a>}
-            {gallery.length > 0 && <a href="#galeria">Peças</a>}
-            <a href="#investimento">Investimento</a>
-            <a href="#condicoes">Condições</a>
+            {primarySections.map((section) => (
+              <a key={section.id} href={`#${section.id}`} className="transition hover:text-[#f4efe8]">
+                {section.label}
+              </a>
+            ))}
           </nav>
+          <a
+            href="#aceite"
+            className="inline-flex items-center gap-2 rounded-full border border-[#b8976a]/25 bg-[#171512] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#f0e6dc] transition hover:border-[#d4b48a]/40 hover:text-white"
+          >
+            {proposalAccepted ? 'Aceita' : 'Responder'}
+            <ChevronRight className="h-4 w-4" />
+          </a>
         </div>
       </header>
 
       <main className="proposal-print-shell">
-        <section className="relative overflow-hidden px-5 pb-14 pt-10 sm:pt-14">
-          <div className="mx-auto grid max-w-6xl gap-8 lg:min-h-[82vh] lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)] lg:items-end">
+        <section className="relative overflow-hidden px-5 pb-16 pt-10 sm:pb-20 sm:pt-14">
+          <div className="absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_top,_rgba(184,151,106,0.16),_transparent_58%)]" />
+          <div className="relative mx-auto grid max-w-6xl gap-10 lg:min-h-[88vh] lg:grid-cols-[minmax(0,1.02fr)_minmax(320px,0.98fr)] lg:items-center">
             <div className="flex flex-col justify-center">
-              <div className="text-[11px] uppercase tracking-[0.34em] text-[#d4b48a]">{company?.name || "D'Coratto"}</div>
-              <h1 className="mt-6 font-display text-5xl leading-none text-[#f4efe8] sm:text-6xl">{snapshot?.heroTitle || 'Proposta Personalizada'}</h1>
-              <p className="mt-5 max-w-2xl text-base leading-8 text-[#d8c8b5]">{snapshot?.heroSubtitle || 'Apresentação comercial do seu projeto sob medida.'}</p>
-              <div className="mt-8 grid gap-3 text-sm text-[#efe5da] sm:grid-cols-2">
-                <div className="rounded-[24px] border border-white/10 bg-[#131210] px-5 py-4">
-                  <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">Cliente</div>
-                  <div className="mt-2 font-medium">{snapshot?.client?.name || 'Cliente'}</div>
-                </div>
-                <div className="rounded-[24px] border border-white/10 bg-[#131210] px-5 py-4">
+              <SectionEyebrow>Proposta comercial</SectionEyebrow>
+              <h1 className="mt-7 max-w-4xl font-display text-5xl leading-none text-[#f4efe8] sm:text-6xl lg:text-[5.5rem]">
+                Projeto desenvolvido para {snapshot?.client?.name || 'seu projeto'}.
+              </h1>
+              <p className="mt-6 max-w-2xl text-base leading-8 text-[#d8c8b5] sm:text-lg">
+                {snapshot?.heroSubtitle || 'Soluções em rochas e superfícies sob medida com apresentação comercial fiel ao orçamento aprovado.'}
+              </p>
+
+              <div className="mt-10 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[26px] border border-white/10 bg-[#131210] px-5 py-4">
                   <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">Proposta</div>
-                  <div className="mt-2 font-medium">{availablePayload.meta.proposalCode}</div>
+                  <div className="mt-2 text-base text-[#f4efe8]">{availablePayload.meta.proposalCode}</div>
+                  <div className="mt-1 text-sm text-[#bcae9d]">{availablePayload.meta.versionLabel}</div>
                 </div>
-                <div className="rounded-[24px] border border-white/10 bg-[#131210] px-5 py-4">
-                  <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">Gerada em</div>
-                  <div className="mt-2 font-medium">{formatDateTime(snapshot?.generatedAt)}</div>
-                </div>
-                <div className="rounded-[24px] border border-white/10 bg-[#131210] px-5 py-4">
+                <div className="rounded-[26px] border border-white/10 bg-[#131210] px-5 py-4">
                   <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">Validade</div>
-                  <div className="mt-2 font-medium">{formatDateTime(availablePayload.meta.validUntil)}</div>
+                  <div className="mt-2 text-base text-[#f4efe8]">{formatDateLong(availablePayload.meta.validUntil)}</div>
+                  <div className="mt-1 text-sm text-[#bcae9d]">Versão pública da proposta digital</div>
                 </div>
+              </div>
+
+              <div className="mt-10 flex flex-wrap gap-3">
+                <a
+                  href="#investimento"
+                  className="inline-flex items-center gap-2 rounded-full bg-[#b8976a] px-5 py-3 text-sm font-semibold text-[#2f2419] transition duration-200 hover:bg-[#d4b48a] motion-reduce:transition-none"
+                >
+                  Ver investimento
+                  <ChevronRight className="h-4 w-4" />
+                </a>
+                <a
+                  href="#projeto"
+                  className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/5 px-5 py-3 text-sm text-[#efe4d9] transition duration-200 hover:border-[#b8976a]/35 hover:bg-white/8 motion-reduce:transition-none"
+                >
+                  Explorar projeto
+                </a>
               </div>
             </div>
 
-            <div className="rounded-[36px] border border-white/10 bg-[#131210] p-4 shadow-2xl shadow-black/30">
-              <div className="overflow-hidden rounded-[28px] bg-[#1c1a17]">
-                <PresentationImage
-                  src={snapshot?.material?.imageUrl || gallery[0]?.src}
-                  alt={snapshot?.material?.name || 'Projeto D\'Coratto'}
-                  priority
-                  className="h-[320px] w-full object-cover sm:h-[420px]"
-                />
-                {!snapshot?.material?.imageUrl && !gallery[0]?.src && (
-                  <div className="flex h-[320px] items-center justify-center text-sm text-[#c5b7a6] sm:h-[420px]">
-                    Proposta comercial D&apos;Coratto
+            <div className="rounded-[36px] border border-white/8 bg-[#131210] p-4 shadow-[0_30px_90px_rgba(0,0,0,0.35)]">
+              <div className="overflow-hidden rounded-[30px] border border-white/6 bg-[#181512]">
+                <div className="flex items-center justify-between border-b border-white/6 px-5 py-4">
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">{company?.name || "D'Coratto Sob Medida"}</div>
+                    <div className="mt-2 text-sm text-[#e4d8cb]">Soluções em Rochas e Superfícies Sob Medida</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[11px] uppercase tracking-[0.24em] text-[#b8976a]">Valor final</div>
+                    <div className="mt-2 font-display text-3xl text-[#f4efe8]">{formatCurrency(investment?.totalPrice || 0)}</div>
+                  </div>
+                </div>
+                {topImage ? (
+                  <PresentationImage
+                    src={topImage}
+                    alt={snapshot?.material?.name || 'Projeto D\'Coratto'}
+                    priority
+                    className="h-[360px] w-full object-cover sm:h-[520px]"
+                  />
+                ) : (
+                  <div className="flex h-[360px] items-center justify-center bg-[#1c1a17] text-sm text-[#c7b7a5] sm:h-[520px]">
+                    Apresentação comercial D&apos;Coratto
                   </div>
                 )}
               </div>
@@ -291,43 +532,98 @@ export const QuotePresentationPage: React.FC = () => {
           </div>
         </section>
 
-        <section id="projeto" className="px-5 py-10">
-          <div className="mx-auto max-w-6xl rounded-[32px] border border-white/10 bg-[#131210] p-6 shadow-xl shadow-black/20 sm:p-8">
-            <div className="grid gap-6 md:grid-cols-4">
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.3em] text-[#b8976a]">Cliente</div>
-                <div className="mt-3 text-base">{snapshot?.client?.name || 'Cliente'}</div>
+        <section id="projeto" className="border-t border-white/6 px-5 py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl">
+            <SectionEyebrow>Seu projeto</SectionEyebrow>
+            <SectionTitle>Uma composição pensada para o seu ambiente.</SectionTitle>
+            <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {projectSummaryItems.map((item) => (
+                <div key={item.label} className="rounded-[26px] border border-white/8 bg-[#131210] px-5 py-5">
+                  <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">{item.label}</div>
+                  <div className="mt-3 text-lg text-[#f4efe8]">{item.value}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-12 grid gap-6 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
+              <div className="rounded-[30px] border border-white/8 bg-[#131210] p-6">
+                <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">Resumo da proposta</div>
+                <div className="mt-5 space-y-4 text-sm leading-8 text-[#d7c8b6]">
+                  <p>
+                    Esta proposta apresenta uma solução comercial personalizada da D'Coratto para o seu projeto,
+                    preservando exatamente os dados salvos no orçamento e nesta versão pública.
+                  </p>
+                  <p>
+                    {snapshot?.summary?.pieceCount
+                      ? `${snapshot.summary.pieceCount} peça(s) compõem esta versão comercial.`
+                      : 'Projeto sob medida preparado para o seu ambiente.'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.3em] text-[#b8976a]">Ambiente</div>
-                <div className="mt-3 text-base">{snapshot?.summary?.environment || 'Projeto sob medida'}</div>
-              </div>
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.3em] text-[#b8976a]">Cidade</div>
-                <div className="mt-3 text-base">{snapshot?.client?.city || '-'}</div>
-              </div>
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.3em] text-[#b8976a]">Validade</div>
-                <div className="mt-3 text-base">{formatShortDate(availablePayload.meta.validUntil) || '-'}</div>
-              </div>
+
+              {(snapshot?.pieces?.length || 0) > 0 && (
+                <div className="grid gap-4">
+                  {snapshot?.pieces?.map((piece, index) => (
+                    <article key={piece.id || index} className="overflow-hidden rounded-[30px] border border-white/8 bg-[#131210]">
+                      <div className="grid gap-0 md:grid-cols-[96px_minmax(0,1fr)]">
+                        <div className="flex items-center justify-center border-b border-white/6 px-6 py-6 md:border-b-0 md:border-r">
+                          <div className="font-display text-4xl text-[#b8976a]">{String(index + 1).padStart(2, '0')}</div>
+                        </div>
+                        <div className="px-6 py-6">
+                          <div className="flex flex-wrap items-start justify-between gap-4">
+                            <div>
+                              <h3 className="text-2xl text-[#f4efe8]">{piece.name || 'Peça'}</h3>
+                              <div className="mt-3 flex flex-wrap gap-2 text-sm text-[#d5c5b3]">
+                                {piece.environment && <span className="rounded-full border border-white/8 px-3 py-1.5">{piece.environment}</span>}
+                                {piece.dimensionsLabel && <span className="rounded-full border border-white/8 px-3 py-1.5">{piece.dimensionsLabel}</span>}
+                                {piece.material && <span className="rounded-full border border-white/8 px-3 py-1.5">{piece.material}</span>}
+                              </div>
+                            </div>
+                            {piece.imageUrl && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const matchedIndex = gallery.findIndex((item) => item.src === piece.imageUrl);
+                                  setLightboxIndex(matchedIndex >= 0 ? matchedIndex : 0);
+                                }}
+                                className="inline-flex items-center gap-2 rounded-full border border-[#b8976a]/20 px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dccf] transition hover:border-[#d4b48a]/40 hover:text-white"
+                              >
+                                Ver imagem
+                              </button>
+                            )}
+                          </div>
+                          {piece.notes && <p className="mt-5 text-sm leading-7 text-[#bba996]">{piece.notes}</p>}
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </section>
 
         {snapshot?.material && (
-          <section id="material" className="px-5 py-10">
-            <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
-              <div className="rounded-[32px] border border-white/10 bg-[#131210] p-4 shadow-xl shadow-black/20">
-                <div className="overflow-hidden rounded-[26px] bg-[#1c1a17]">
-                  <PresentationImage src={snapshot.material.imageUrl} alt={snapshot.material.name || 'Material'} className="h-[320px] w-full object-cover sm:h-[420px]" />
+          <section id="material" className="border-t border-white/6 px-5 py-16 sm:py-20">
+            <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-center">
+              <div className="overflow-hidden rounded-[34px] border border-white/8 bg-[#131210] p-4 shadow-[0_25px_70px_rgba(0,0,0,0.28)]">
+                <div className="overflow-hidden rounded-[28px] bg-[#181512]">
+                  <PresentationImage
+                    src={snapshot.material.imageUrl}
+                    alt={snapshot.material.name || 'Material'}
+                    className="h-[360px] w-full object-cover sm:h-[520px]"
+                  />
+                  {!snapshot.material.imageUrl && (
+                    <div className="flex h-[360px] items-center justify-center text-sm text-[#baa892] sm:h-[520px]">
+                      Material selecionado para o projeto
+                    </div>
+                  )}
                 </div>
               </div>
+
               <div>
-                <div className="text-[11px] uppercase tracking-[0.3em] text-[#b8976a]">Material escolhido</div>
-                <h2 className="mt-4 font-display text-4xl text-[#f4efe8]">{snapshot.material.name || 'Material selecionado'}</h2>
-                {snapshot.material.description && (
-                  <p className="mt-5 max-w-2xl text-base leading-8 text-[#d6c6b4]">{snapshot.material.description}</p>
-                )}
+                <SectionEyebrow>Material selecionado</SectionEyebrow>
+                <SectionTitle>{snapshot.material.name || 'Superfície escolhida'}</SectionTitle>
                 <div className="mt-6 flex flex-wrap gap-3 text-sm text-[#f0e6dc]">
                   {[snapshot.material.category, snapshot.material.materialLine, snapshot.material.materialType, snapshot.material.thicknessLabel, snapshot.material.texture]
                     .filter(Boolean)
@@ -335,82 +631,96 @@ export const QuotePresentationPage: React.FC = () => {
                       <span key={item} className="rounded-full border border-white/10 bg-white/5 px-4 py-2">{item}</span>
                     ))}
                 </div>
+                {snapshot.material.description && (
+                  <p className="mt-8 max-w-2xl text-base leading-8 text-[#d6c6b4]">{snapshot.material.description}</p>
+                )}
               </div>
             </div>
           </section>
         )}
 
-        {(snapshot?.pieces?.length || 0) > 0 && (
-          <section id="galeria" className="px-5 py-10">
+        {includedItems.length > 0 && (
+          <section id="inclusos" className="border-t border-white/6 px-5 py-16 sm:py-20">
             <div className="mx-auto max-w-6xl">
-              <div className="mb-8">
-                <div className="text-[11px] uppercase tracking-[0.3em] text-[#b8976a]">Seu projeto</div>
-                <h2 className="mt-4 font-display text-4xl text-[#f4efe8]">Peças e composição comercial</h2>
-              </div>
-              <div className="grid gap-6 md:grid-cols-2">
-                {(snapshot.pieces || []).map((piece, index) => (
-                  <article key={piece.id || index} className="rounded-[30px] border border-white/10 bg-[#131210] p-4 shadow-lg shadow-black/20">
-                    {piece.imageUrl ? (
-                      <PresentationImage
-                        src={piece.imageUrl}
-                        alt={piece.name || 'Peça'}
-                        onClick={() => {
-                          const lightboxItemIndex = gallery.findIndex((item) => item.src === piece.imageUrl);
-                          setLightboxIndex(lightboxItemIndex >= 0 ? lightboxItemIndex : 0);
-                        }}
-                        className="h-64 w-full rounded-[24px] object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-64 items-center justify-center rounded-[24px] bg-[#1c1a17] text-sm text-[#bfae99]">Sem imagem comercial</div>
-                    )}
-                    <div className="px-2 pb-2 pt-5">
-                      <h3 className="text-xl font-semibold text-[#f4efe8]">{piece.name || 'Peça'}</h3>
-                      <div className="mt-2 flex flex-wrap gap-3 text-sm text-[#cdbba8]">
-                        {piece.environment && <span>{piece.environment}</span>}
-                        {piece.dimensionsLabel && <span>{piece.dimensionsLabel}</span>}
-                        {piece.material && <span>{piece.material}</span>}
+              <SectionEyebrow>O que está incluso</SectionEyebrow>
+              <SectionTitle>Itens contemplados nesta proposta comercial.</SectionTitle>
+              <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {includedItems.map((item) => (
+                  <div key={item.key} className="rounded-[28px] border border-white/8 bg-[#131210] px-5 py-5">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#b8976a]/12 text-[#d4b48a]">
+                        <Check className="h-5 w-5" />
                       </div>
-                      {piece.notes && <p className="mt-3 text-sm leading-7 text-[#b9aa98]">{piece.notes}</p>}
+                      <div>
+                        <div className="text-lg text-[#f4efe8]">{item.title}</div>
+                        <p className="mt-2 text-sm leading-7 text-[#c7b6a2]">{item.description}</p>
+                      </div>
                     </div>
-                  </article>
+                  </div>
                 ))}
               </div>
             </div>
           </section>
         )}
 
-        <section id="investimento" className="px-5 py-10">
-          <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-            <div className="rounded-[32px] border border-[#b8976a]/20 bg-[#131210] p-8 shadow-xl shadow-black/20">
-              <div className="text-[11px] uppercase tracking-[0.3em] text-[#b8976a]">Investimento</div>
-              <div className="mt-5 font-display text-5xl text-[#f4efe8]">{formatCurrency(investment?.totalPrice || 0)}</div>
-              <div className="mt-3 text-base text-[#d5c4b2]">{investment?.description || 'Valor consolidado da proposta comercial.'}</div>
-              {investment?.totalArea ? (
-                <div className="mt-5 text-sm text-[#b9aa98]">Área estimada: {formatArea(investment.totalArea)}</div>
-              ) : null}
+        <section className="border-t border-white/6 px-5 py-16 sm:py-20">
+          <div className="mx-auto max-w-6xl">
+            <SectionEyebrow>Etapas do seu projeto</SectionEyebrow>
+            <SectionTitle>Um processo claro do início à finalização.</SectionTitle>
+            <div className="mt-10 grid gap-4 lg:grid-cols-4">
+              {projectSteps.map((step) => (
+                <div key={step.step} className="rounded-[28px] border border-white/8 bg-[#131210] px-5 py-6">
+                  <div className="font-display text-4xl text-[#b8976a]">{step.step}</div>
+                  <div className="mt-6 text-xl text-[#f4efe8]">{step.title}</div>
+                  <p className="mt-3 text-sm leading-7 text-[#c6b6a2]">{step.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section id="investimento" className="border-t border-white/6 px-5 py-16 sm:py-20">
+          <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.9fr)]">
+            <div className="rounded-[36px] border border-[#b8976a]/18 bg-[#131210] px-6 py-8 shadow-[0_30px_90px_rgba(0,0,0,0.3)] sm:px-8 sm:py-10">
+              <SectionEyebrow>Investimento</SectionEyebrow>
+              <div className="mt-6 font-display text-5xl text-[#f4efe8] sm:text-6xl">{formatCurrency(investment?.totalPrice || 0)}</div>
+              <div className="mt-4 max-w-2xl text-base leading-8 text-[#d4c4b2]">
+                {investment?.description || 'Valor final consolidado desta proposta comercial.'}
+              </div>
+              <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                {investment?.totalArea ? (
+                  <div className="rounded-[26px] border border-white/8 bg-[#171512] px-5 py-4">
+                    <div className="text-[11px] uppercase tracking-[0.24em] text-[#b8976a]">Área final</div>
+                    <div className="mt-2 text-xl text-[#f4efe8]">{formatArea(investment.totalArea)}</div>
+                  </div>
+                ) : null}
+                <div className="rounded-[26px] border border-white/8 bg-[#171512] px-5 py-4">
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-[#b8976a]">Validade</div>
+                  <div className="mt-2 text-xl text-[#f4efe8]">{formatDateShort(availablePayload.meta.validUntil) || '-'}</div>
+                </div>
+              </div>
             </div>
 
-            <div id="condicoes" className="grid gap-6">
-              <div className="rounded-[32px] border border-white/10 bg-[#131210] p-8 shadow-xl shadow-black/20">
-                <div className="text-[11px] uppercase tracking-[0.3em] text-[#b8976a]">Forma de pagamento</div>
-                <div className="mt-4 text-xl text-[#f4efe8]">{paymentSummary || 'Condição comercial a confirmar com a D\'Coratto'}</div>
-                {(snapshot?.payment?.entryAmount || snapshot?.payment?.installmentAmount || snapshot?.payment?.installmentCount) && (
-                  <div className="mt-4 space-y-2 text-sm text-[#d4c3b0]">
-                    {snapshot?.payment?.entryAmount ? <div>Entrada: {formatCurrency(snapshot.payment.entryAmount)}</div> : null}
-                    {snapshot?.payment?.installmentCount ? <div>Parcelas: {snapshot.payment.installmentCount}x</div> : null}
-                    {snapshot?.payment?.installmentAmount ? <div>Valor por parcela: {formatCurrency(snapshot.payment.installmentAmount)}</div> : null}
+            <div className="grid gap-5">
+              <div id="condicoes" className="rounded-[30px] border border-white/8 bg-[#131210] px-6 py-7">
+                <SectionEyebrow>Condições de pagamento</SectionEyebrow>
+                <div className="mt-5 text-2xl text-[#f4efe8]">{paymentSummary || 'Condição comercial a confirmar com a D\'Coratto'}</div>
+                {paymentDetails.length > 0 && (
+                  <div className="mt-5 space-y-3 text-sm leading-7 text-[#d2c1ae]">
+                    {paymentDetails.map((detail) => <div key={detail}>{detail}</div>)}
                   </div>
                 )}
               </div>
 
-              {(delivery?.deliveryDays || delivery?.deliveryDate || delivery?.deliveryIncluded || delivery?.installationIncluded) && (
-                <div className="rounded-[32px] border border-white/10 bg-[#131210] p-8 shadow-xl shadow-black/20">
-                  <div className="text-[11px] uppercase tracking-[0.3em] text-[#b8976a]">Entrega e instalação</div>
-                  <div className="mt-4 space-y-2 text-sm leading-7 text-[#e8ddd2]">
-                    {delivery?.deliveryDays ? <div>Prazo estimado: {delivery.deliveryDays} dias</div> : null}
-                    {delivery?.deliveryDate ? <div>Data estimada: {formatDateTime(delivery.deliveryDate)}</div> : null}
-                    {delivery?.deliveryIncluded ? <div>Entrega inclusa na condição comercial apresentada.</div> : null}
-                    {delivery?.installationIncluded ? <div>Instalação inclusa na composição deste projeto.</div> : null}
+              {(delivery?.deliveryDays || delivery?.deliveryDate || delivery?.measurementDate || delivery?.deliveryIncluded || delivery?.installationIncluded) && (
+                <div className="rounded-[30px] border border-white/8 bg-[#131210] px-6 py-7">
+                  <SectionEyebrow>Planejamento comercial</SectionEyebrow>
+                  <div className="mt-5 space-y-3 text-sm leading-7 text-[#e8ddd2]">
+                    {delivery?.measurementDate ? <div>Medição prevista para {formatDateLong(delivery.measurementDate)}.</div> : null}
+                    {delivery?.deliveryDays ? <div>Prazo estimado de {delivery.deliveryDays} dias.</div> : null}
+                    {delivery?.deliveryDate ? <div>Entrega estimada para {formatDateLong(delivery.deliveryDate)}.</div> : null}
+                    {delivery?.deliveryIncluded ? <div>Entrega contemplada na composição comercial desta proposta.</div> : null}
+                    {delivery?.installationIncluded ? <div>Instalação contemplada na composição comercial desta proposta.</div> : null}
                   </div>
                 </div>
               )}
@@ -418,111 +728,152 @@ export const QuotePresentationPage: React.FC = () => {
           </div>
         </section>
 
-        {noteBlocks.length > 0 && (
-          <section className="px-5 py-10">
-            <div className="mx-auto max-w-6xl rounded-[32px] border border-white/10 bg-[#131210] p-8 shadow-xl shadow-black/20">
-              <div className="text-[11px] uppercase tracking-[0.3em] text-[#b8976a]">Informações importantes</div>
-              <div className="mt-5 grid gap-4 md:grid-cols-2">
-                {noteBlocks.map((note) => (
-                  <div key={note} className="rounded-[24px] border border-white/8 bg-white/5 px-5 py-4 text-sm leading-7 text-[#ddcfc1]">{note}</div>
+        {importantInfoItems.length > 0 && (
+          <section className="border-t border-white/6 px-5 py-16 sm:py-20">
+            <div className="mx-auto max-w-6xl">
+              <SectionEyebrow>Informações importantes</SectionEyebrow>
+              <SectionTitle>Condições e observações desta versão.</SectionTitle>
+              <div className="mt-10 grid gap-4 md:grid-cols-2">
+                {importantInfoItems.map((item) => (
+                  <div key={item} className="rounded-[28px] border border-white/8 bg-[#131210] px-5 py-5 text-sm leading-7 text-[#d9cbbe]">
+                    {item}
+                  </div>
                 ))}
               </div>
             </div>
           </section>
         )}
 
-        <section className="px-5 py-10">
-          <div className="mx-auto max-w-6xl rounded-[36px] border border-[#b8976a]/25 bg-[#131210] p-8 shadow-2xl shadow-black/20 sm:p-10">
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:items-end">
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.3em] text-[#b8976a]">Aceite digital</div>
-                <h2 className="mt-4 font-display text-4xl text-[#f4efe8]">Confirmar esta proposta</h2>
-                <p className="mt-4 max-w-2xl text-sm leading-8 text-[#d4c4b3]">
-                  Ao confirmar, seu aceite fica registrado para esta versão da proposta, preservando exatamente as condições comerciais apresentadas aqui.
-                </p>
-                {acceptanceMessage && (
-                  <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
-                    <CopyCheck className="h-4 w-4" />
-                    {acceptanceMessage}
-                  </div>
-                )}
+        <section id="aceite" className="border-t border-white/6 px-5 py-16 sm:py-20">
+          <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1.1fr)_340px]">
+            <div>
+              <SectionEyebrow>{proposalAccepted ? 'Proposta aceita' : 'Pronto para iniciar seu projeto?'}</SectionEyebrow>
+              <SectionTitle>{proposalAccepted ? 'Seu aceite já está registrado.' : 'Uma apresentação comercial pronta para sua decisão.'}</SectionTitle>
+              <div className="mt-6 max-w-2xl text-base leading-8 text-[#d4c4b2]">
+                {proposalAccepted
+                  ? `Aceite registrado${acceptedDisplayName ? ` por ${acceptedDisplayName}` : ''} em ${formatDateLong(availablePayload.meta.acceptedAt)}.`
+                  : 'Ao confirmar esta proposta, a versão pública preserva exatamente as condições comerciais exibidas aqui, incluindo valor final e validade.'}
               </div>
-              <div className="rounded-[28px] border border-white/10 bg-[#1c1a17] p-5">
-                {availablePayload.meta.acceptedAt ? (
-                  <div className="space-y-3 text-sm text-[#e9dfd4]">
-                    <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-emerald-300">
-                      <CheckCircle2 className="h-4 w-4" />
-                      Proposta aceita
-                    </div>
-                    <div>Aceite registrado em {formatDateTime(availablePayload.meta.acceptedAt)}.</div>
+              <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                <div className="rounded-[28px] border border-white/8 bg-[#131210] px-5 py-5">
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-[#b8976a]">Investimento</div>
+                  <div className="mt-3 font-display text-4xl text-[#f4efe8]">{formatCurrency(investment?.totalPrice || 0)}</div>
+                </div>
+                <div className="rounded-[28px] border border-white/8 bg-[#131210] px-5 py-5">
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-[#b8976a]">Proposta válida até</div>
+                  <div className="mt-3 text-2xl text-[#f4efe8]">{formatDateShort(availablePayload.meta.validUntil) || '-'}</div>
+                </div>
+              </div>
+              {acceptanceMessage && (
+                <div className="mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
+                  <CopyCheck className="h-4 w-4" />
+                  {acceptanceMessage}
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-[32px] border border-[#b8976a]/18 bg-[#131210] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
+              {proposalAccepted ? (
+                <div className="space-y-4">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
+                    <CheckCircle2 className="h-4 w-4" />
+                    Proposta aceita
                   </div>
-                ) : (
-                  <div className="space-y-4">
-                    {confirming ? (
-                      <>
-                        <input
-                          value={acceptedName}
-                          onChange={(event) => setAcceptedName(event.target.value)}
-                          placeholder="Seu nome"
-                          className="w-full rounded-2xl border border-white/10 bg-[#131210] px-4 py-3 text-sm text-[#f4efe8] outline-none placeholder:text-[#907e69] focus:ring-2 focus:ring-[#b8976a]/25"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleAccept}
-                          disabled={accepting}
-                          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#b8976a] px-4 py-3 text-sm font-semibold text-[#33291f] transition hover:bg-[#d4b48a] disabled:opacity-60"
-                        >
-                          {accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                          Confirmar aceite
-                        </button>
-                        <button type="button" onClick={() => setConfirming(false)} className="w-full rounded-2xl border border-white/10 px-4 py-3 text-sm text-[#d9c9b6]">
-                          Cancelar
-                        </button>
-                      </>
-                    ) : (
+                  <div className="text-sm leading-7 text-[#d8caba]">
+                    {acceptedDisplayName
+                      ? `Aceita por ${acceptedDisplayName} em ${formatDateLong(availablePayload.meta.acceptedAt)}.`
+                      : `Aceite registrado em ${formatDateLong(availablePayload.meta.acceptedAt)}.`}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">Aceite digital</div>
+                  <div className="text-sm leading-7 text-[#d3c3b1]">
+                    Confirme seu nome para registrar o aceite desta versão.
+                  </div>
+                  {confirming ? (
+                    <>
+                      <input
+                        value={acceptedName}
+                        onChange={(event) => setAcceptedName(event.target.value)}
+                        placeholder="Seu nome completo"
+                        className="w-full rounded-2xl border border-white/10 bg-[#171512] px-4 py-3 text-sm text-[#f4efe8] outline-none placeholder:text-[#8f7d67] focus:ring-2 focus:ring-[#b8976a]/25"
+                      />
                       <button
                         type="button"
-                        onClick={() => setConfirming(true)}
-                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#b8976a] px-4 py-3 text-sm font-semibold text-[#33291f] transition hover:bg-[#d4b48a]"
+                        onClick={handleAccept}
+                        disabled={accepting}
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#b8976a] px-4 py-3 text-sm font-semibold text-[#33291f] transition hover:bg-[#d4b48a] disabled:opacity-60"
                       >
-                        <ShieldCheck className="h-4 w-4" />
-                        Aceitar proposta
+                        {accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                        Confirmar aceite
                       </button>
-                    )}
-                  </div>
-                )}
-              </div>
+                      <button
+                        type="button"
+                        onClick={() => setConfirming(false)}
+                        className="w-full rounded-2xl border border-white/10 px-4 py-3 text-sm text-[#d9c9b6]"
+                      >
+                        Cancelar
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setConfirming(true)}
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#b8976a] px-4 py-3 text-sm font-semibold text-[#33291f] transition hover:bg-[#d4b48a]"
+                    >
+                      <ShieldCheck className="h-4 w-4" />
+                      Aceitar proposta
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-white/5 px-5 py-10">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 text-sm text-[#d5c6b4] md:flex-row md:items-center md:justify-between">
+      <footer className="border-t border-white/6 px-5 py-10">
+        <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-[minmax(0,1fr)_minmax(260px,0.9fr)]">
           <div>
-            <div className="font-display text-2xl text-[#f4efe8]">{company?.name || "D'Coratto"}</div>
-            <div className="mt-2 text-[#bcae9c]">Apresentação comercial digital</div>
+            <div className="font-display text-3xl text-[#f4efe8]">{company?.name || "D'Coratto Sob Medida"}</div>
+            <div className="mt-3 text-sm leading-7 text-[#c7b7a4]">Soluções em Rochas e Superfícies Sob Medida</div>
+            {snapshot?.summary?.responsible && (
+              <div className="mt-5 text-sm text-[#e6dacd]">
+                Responsável pela proposta: {snapshot.summary.responsible}
+              </div>
+            )}
           </div>
-          <div className="space-y-2 text-right">
-            {company?.phone && <div className="flex items-center justify-end gap-2"><Phone className="h-4 w-4 text-[#b8976a]" /> {company.phone}</div>}
-            {company?.address && <div className="flex items-center justify-end gap-2"><MapPin className="h-4 w-4 text-[#b8976a]" /> {company.address}</div>}
-            {availablePayload.meta.validUntil && <div className="flex items-center justify-end gap-2"><CalendarClock className="h-4 w-4 text-[#b8976a]" /> Válida até {formatShortDate(availablePayload.meta.validUntil)}</div>}
+          <div className="space-y-3 text-sm text-[#d5c6b4] md:text-right">
+            {company?.phone && <div className="flex items-center gap-2 md:justify-end"><Phone className="h-4 w-4 text-[#b8976a]" /> {company.phone}</div>}
+            {company?.address && <div className="flex items-start gap-2 md:justify-end"><MapPin className="mt-1 h-4 w-4 shrink-0 text-[#b8976a]" /> <span className="whitespace-pre-line">{company.address}</span></div>}
+            {availablePayload.meta.validUntil && <div className="flex items-center gap-2 md:justify-end"><CalendarClock className="h-4 w-4 text-[#b8976a]" /> Válida até {formatDateShort(availablePayload.meta.validUntil)}</div>}
           </div>
         </div>
       </footer>
 
       {lightboxIndex != null && gallery[lightboxIndex] && (
-        <div className="proposal-print-hide fixed inset-0 z-50 bg-black/90 p-4 backdrop-blur-sm">
-          <button type="button" onClick={() => setLightboxIndex(null)} className="absolute right-5 top-5 rounded-full border border-white/15 p-3 text-white">
+        <div className="proposal-print-hide fixed inset-0 z-50 bg-black/92 p-4 backdrop-blur-sm">
+          <button
+            type="button"
+            onClick={() => setLightboxIndex(null)}
+            className="absolute right-5 top-5 rounded-full border border-white/15 p-3 text-white transition hover:border-[#b8976a]/45"
+          >
             <X className="h-5 w-5" />
           </button>
           <div className="flex h-full items-center justify-center">
-            <button type="button" onClick={() => setLightboxIndex((current) => current == null ? current : (current - 1 + gallery.length) % gallery.length)} className="mr-3 rounded-full border border-white/15 p-3 text-white">
-              <ArrowLeft className="h-5 w-5" />
-            </button>
+            {gallery.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setLightboxIndex((current) => current == null ? current : (current - 1 + gallery.length) % gallery.length)}
+                className="mr-3 rounded-full border border-white/15 p-3 text-white transition hover:border-[#b8976a]/45"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </button>
+            )}
             <div className="w-full max-w-5xl">
               <PresentationImage src={gallery[lightboxIndex].src} alt={gallery[lightboxIndex].title} className="max-h-[78vh] w-full rounded-[24px] object-contain" />
-              <div className="mt-5 flex items-center justify-between text-sm text-white/80">
+              <div className="mt-5 flex items-center justify-between gap-4 text-sm text-white/80">
                 <div>
                   <div className="font-medium text-white">{gallery[lightboxIndex].title}</div>
                   <div>{gallery[lightboxIndex].subtitle}</div>
@@ -530,9 +881,15 @@ export const QuotePresentationPage: React.FC = () => {
                 <div>{lightboxIndex + 1} / {gallery.length}</div>
               </div>
             </div>
-            <button type="button" onClick={() => setLightboxIndex((current) => current == null ? current : (current + 1) % gallery.length)} className="ml-3 rounded-full border border-white/15 p-3 text-white">
-              <ArrowRight className="h-5 w-5" />
-            </button>
+            {gallery.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setLightboxIndex((current) => current == null ? current : (current + 1) % gallery.length)}
+                className="ml-3 rounded-full border border-white/15 p-3 text-white transition hover:border-[#b8976a]/45"
+              >
+                <ArrowRight className="h-5 w-5" />
+              </button>
+            )}
           </div>
         </div>
       )}

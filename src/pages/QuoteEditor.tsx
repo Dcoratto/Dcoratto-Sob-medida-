@@ -581,10 +581,16 @@ export const QuoteEditor: React.FC = () => {
     setDigitalBusy('generate');
     setDigitalError('');
     try {
+      await persistQuote({
+        navigateAfterPersist: false,
+        appendStatusHistory: false,
+        logEvent: false,
+        showAlertOnError: false,
+      });
       await generateQuotePresentationVersion(id, currentUserName);
       await refreshDigitalPresentation();
     } catch (err: any) {
-      setDigitalError(err?.message || 'Não foi possível gerar a proposta digital agora.');
+      setDigitalError(err?.message || 'Nao foi possivel gerar a proposta digital agora.');
     } finally {
       setDigitalBusy('');
     }
@@ -1561,7 +1567,23 @@ export const QuoteEditor: React.FC = () => {
     }));
   };
 
-  const handleSave = async () => {
+  const persistQuote = async ({
+    navigateAfterPersist = false,
+    appendStatusHistory = true,
+    logEvent = true,
+    showAlertOnError = true,
+  }: {
+    navigateAfterPersist?: boolean;
+    appendStatusHistory?: boolean;
+    logEvent?: boolean;
+    showAlertOnError?: boolean;
+  } = {}) => {
+    const failPersist = (message: string) => {
+      if (showAlertOnError) {
+        window.alert(message);
+      }
+      throw new Error(message);
+    };
     const normalizedTotalArea = roundNumber(totalArea);
     const normalizedTotalPrice = Number(totalPrice.toFixed(2));
     const validationError = validateQuoteBeforeSave({
@@ -1573,16 +1595,13 @@ export const QuoteEditor: React.FC = () => {
       calculatePieceArea,
     });
     if (validationError) {
-      alert(validationError);
-      return;
+      failPersist(String(validationError));
     }
     if (quoteMaterialPriceError) {
-      alert(quoteMaterialPriceError);
-      return;
+      failPersist(String(quoteMaterialPriceError));
     }
     if (pieceManualPriceError) {
-      alert(pieceManualPriceError);
-      return;
+      failPersist(String(pieceManualPriceError));
     }
     setSaving(true);
     const firstAssigned = employeeAssignments.find((item) => item.employeeId);
@@ -1611,7 +1630,17 @@ export const QuoteEditor: React.FC = () => {
         minimumSalePerM2: Number(row.minimumSalePerM2.toFixed(2)),
         updatedAt: Timestamp.now(),
       }));
-    
+    const nextStatusHistory = appendStatusHistory
+      ? [...statusHistory, {
+        status,
+        changedAt: Timestamp.now(),
+        changedByUid: appUid || '',
+        changedByName: currentUserName,
+        responsibleEmployeeId: firstAssigned?.employeeId || '',
+        responsibleEmployeeName: firstAssigned?.employeeName || '',
+      }]
+      : statusHistory;
+
     const quoteData: Partial<Quote> = {
       clientId,
       clientName: selectedClient?.name || '',
@@ -1657,76 +1686,92 @@ export const QuoteEditor: React.FC = () => {
       cutouts,
       materialPriceOverrides,
       employeeAssignments,
-      statusHistory: [...statusHistory, {
-        status,
-        changedAt: Timestamp.now(),
-        changedByUid: appUid || '',
-        changedByName: currentUserName,
-        responsibleEmployeeId: firstAssigned?.employeeId || '',
-        responsibleEmployeeName: firstAssigned?.employeeName || '',
-      }],
+      statusHistory: nextStatusHistory,
       ...(id ?{} : {createdAt: Timestamp.now()}),
       createdBy: appUid || '',
     };
 
     try {
+      let persistedQuoteId = id;
       if (id) {
         await setDoc(doc(db, 'quotes', id), quoteData, { merge: true });
         await applyQuoteInventoryByStatusTransition(id, originalStatus, status, quoteData);
         clearDraft(quoteDraftKey);
         setQuoteDraftRecovered(false);
         setQuoteDraftSavedAt(null);
-        await logSystemEvent({
-          type: 'quote_updated',
-          title: LABELS.quotes.updated,
-          description: `${selectedClient?.name || 'Cliente'} - ${environment || 'Sem ambiente'}`,
-          entityType: 'quote',
-          entityId: id,
-          quoteId: id,
-          quoteStatus: status,
-          clientId,
-          clientName: selectedClient?.name || '',
-          materialId: primaryMaterialId,
-          materialName: primaryMaterial?.name || '',
-          userUid: appUid || '',
-          userName: currentUserName,
-          metadata: {totalArea: normalizedTotalArea, totalPrice: normalizedTotalPrice, pieces: pieces.length},
-        });
+        if (logEvent) {
+          await logSystemEvent({
+            type: 'quote_updated',
+            title: LABELS.quotes.updated,
+            description: `${selectedClient?.name || 'Cliente'} - ${environment || 'Sem ambiente'}`,
+            entityType: 'quote',
+            entityId: id,
+            quoteId: id,
+            quoteStatus: status,
+            clientId,
+            clientName: selectedClient?.name || '',
+            materialId: primaryMaterialId,
+            materialName: primaryMaterial?.name || '',
+            userUid: appUid || '',
+            userName: currentUserName,
+            metadata: {totalArea: normalizedTotalArea, totalPrice: normalizedTotalPrice, pieces: pieces.length},
+          });
+        }
       } else {
         const createdRef = await addDoc(collection(db, 'quotes'), quoteData);
+        persistedQuoteId = createdRef.id;
         await applyQuoteInventoryByStatusTransition(createdRef.id, LABELS.quotes.singular, status, quoteData);
         clearDraft(quoteDraftKey);
         setQuoteDraftRecovered(false);
         setQuoteDraftSavedAt(null);
-        await logSystemEvent({
-          type: 'quote_created',
-          title: LABELS.quotes.created,
-          description: `${selectedClient?.name || 'Cliente'} - ${environment || 'Sem ambiente'}`,
-          entityType: 'quote',
-          entityId: createdRef.id,
-          quoteId: createdRef.id,
-          quoteStatus: status,
-          clientId,
-          clientName: selectedClient?.name || '',
-          materialId: primaryMaterialId,
-          materialName: primaryMaterial?.name || '',
-          userUid: appUid || '',
-          userName: currentUserName,
-          metadata: {totalArea: normalizedTotalArea, totalPrice: normalizedTotalPrice, pieces: pieces.length},
-        });
+        if (logEvent) {
+          await logSystemEvent({
+            type: 'quote_created',
+            title: LABELS.quotes.created,
+            description: `${selectedClient?.name || 'Cliente'} - ${environment || 'Sem ambiente'}`,
+            entityType: 'quote',
+            entityId: createdRef.id,
+            quoteId: createdRef.id,
+            quoteStatus: status,
+            clientId,
+            clientName: selectedClient?.name || '',
+            materialId: primaryMaterialId,
+            materialName: primaryMaterial?.name || '',
+            userUid: appUid || '',
+            userName: currentUserName,
+            metadata: {totalArea: normalizedTotalArea, totalPrice: normalizedTotalPrice, pieces: pieces.length},
+          });
+        }
       }
       setOriginalStatus(status);
-      navigate('/quotes');
+      if (navigateAfterPersist) {
+        navigate('/quotes');
+      }
+      return persistedQuoteId;
     } catch (err) {
-      console.error('Erro ao salvar orçamento:', err);
+      console.error('Erro ao salvar orcamento:', err);
       const errorMessage = [
         (err as {message?: string})?.message,
         (err as {details?: string})?.details,
         (err as {hint?: string})?.hint,
-      ].filter(Boolean).join(' · ');
-      window.alert(errorMessage ? `Não foi possível salvar este orçamento. ${errorMessage}` : 'Não foi possível salvar este orçamento agora. Tente novamente em instantes.');
+      ].filter(Boolean).join(' | ');
+      const message = errorMessage
+        ? `Nao foi possivel salvar este orcamento. ${errorMessage}`
+        : 'Nao foi possivel salvar este orcamento agora. Tente novamente em instantes.';
+      if (showAlertOnError) {
+        window.alert(message);
+      }
+      throw new Error(message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      await persistQuote({navigateAfterPersist: true});
+    } catch {
+      // The persist helper already surfaced the save failure to the user.
     }
   };
 

@@ -305,14 +305,15 @@ export const QuotePresentationPage: React.FC = () => {
   }, [snapshot]);
 
   const paymentSummary = snapshot?.payment?.method || snapshot?.payment?.totalPaymentMethod || snapshot?.payment?.remainingPaymentMethod;
+  const isEntryPaymentMode = snapshot?.payment?.mode === 'entry';
   const paymentDetails = [
-    snapshot?.payment?.entryAmount ? `Entrada de ${formatCurrency(snapshot.payment.entryAmount)}` : null,
+    isEntryPaymentMode && snapshot?.payment?.entryAmount ? `Entrada de ${formatCurrency(snapshot.payment.entryAmount)}` : null,
     snapshot?.payment?.installmentCount && snapshot?.payment?.installmentAmount
       ? `Saldo em ${snapshot.payment.installmentCount} parcela(s) de ${formatCurrency(snapshot.payment.installmentAmount)}`
       : snapshot?.payment?.installmentCount
         ? `${snapshot.payment.installmentCount} parcela(s)`
         : null,
-    snapshot?.payment?.remainingPaymentMethod ? `Saldo via ${snapshot.payment.remainingPaymentMethod}` : null,
+    isEntryPaymentMode && snapshot?.payment?.remainingPaymentMethod ? `Saldo via ${snapshot.payment.remainingPaymentMethod}` : null,
   ].filter(Boolean) as string[];
 
   useEffect(() => {

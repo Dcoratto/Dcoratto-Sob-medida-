@@ -1,5 +1,5 @@
 import {formatMaterialSpecsWithProvider} from './materialSpecs';
-import {formatArea, formatCentimeters, formatCurrency, formatNumber} from './utils';
+import {formatArea, formatCentimeters, formatCurrency} from './utils';
 import type {InventoryPurchase, Settings} from '../types';
 
 type PurchaseOrderGroup = {
@@ -96,7 +96,7 @@ export const generatePurchaseOrderPdf = async (group: PurchaseOrderGroup, settin
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.text(`Total de chapas: ${group.purchases.length}`, 14, finalY + 12);
-  doc.text(`Área total: ${formatNumber(totalArea)} m²`, 14, finalY + 18);
+  doc.text(`Área total: ${formatArea(totalArea)}`, 14, finalY + 18);
   doc.text(sanitizePdfText(`Compra total: ${formatCurrency(totalCost)}`), 14, finalY + 24);
 
   doc.setFont('helvetica', 'normal');

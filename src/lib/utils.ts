@@ -30,8 +30,11 @@ export function formatMeasure(value: number | string, decimals = 3) {
   return formatNumber(roundNumber(value, decimals), decimals);
 }
 
-export function formatArea(value: number | string) {
-  return `${formatMeasure(value)} m²`;
+export function formatArea(value: number | string | null | undefined) {
+  if (value == null || value === '') return '-';
+  const parsed = typeof value === 'number' ? value : parseFlexibleNumberInput(value);
+  if (!Number.isFinite(parsed)) return '-';
+  return `${formatMeasure(parsed, 1)} m²`;
 }
 
 export function formatCentimeters(value: number | string) {

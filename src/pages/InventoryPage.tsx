@@ -599,7 +599,7 @@ export const InventoryPage: React.FC = () => {
         `Fornecedor: ${payload.supplier || 'Não informado'}`,
         `Material: ${payload.materialName}`,
         `Quantidade: ${payload.quantity} chapa(s)`,
-        `Área total: ${formatNumber(payload.totalArea)} m²`,
+        `Área total: ${formatArea(payload.totalArea)}`,
         payload.notes ? `Observações: ${payload.notes}` : '',
       ].filter(Boolean).join('\n'),
       date: Timestamp.fromDate(payload.expectedDeliveryDate),
@@ -905,7 +905,7 @@ export const InventoryPage: React.FC = () => {
     setPurchaseCost('');
     setPurchaseMinimumSalePrice('');
     setPurchaseCode('');
-    setPurchaseNotes(`Compra pendente sugerida: ${formatNumber(item.missing)} m²`);
+    setPurchaseNotes(`Compra pendente sugerida: ${formatArea(item.missing)}`);
     setShowPurchaseModal(true);
   };
 
@@ -998,7 +998,7 @@ export const InventoryPage: React.FC = () => {
     await logSystemEvent({
       type: 'purchase_ordered',
       title: 'Compra de material lançada',
-      description: `${quantity} chapa(s) de ${selectedMaterialName} - ${formatNumber(totalArea)} m²`,
+      description: `${quantity} chapa(s) de ${selectedMaterialName} - ${formatArea(totalArea)}`,
       entityType: 'purchase',
       entityId: createdPurchases[0]?.id || purchaseGroupId,
       materialId: purchaseMaterialId,
@@ -1054,7 +1054,7 @@ export const InventoryPage: React.FC = () => {
     await logSystemEvent({
       type: 'purchase_received',
       title: 'Compra de material recebida',
-      description: `${purchase.materialName} - ${formatNumber(purchase.area)} m²`,
+      description: `${purchase.materialName} - ${formatArea(purchase.area)}`,
       entityType: 'purchase',
       entityId: purchase.id,
       materialId: purchase.materialId,
@@ -1524,7 +1524,7 @@ export const InventoryPage: React.FC = () => {
       `Material: ${group.materialName}`,
       `Especificações: ${formatMaterialSpecsWithProvider(group.purchases[0]) || 'Sem especificações'}`,
       `Quantidade: ${group.purchases.length} chapa(s)`,
-      `Área total: ${formatNumber(group.totalArea)} m²`,
+      `Área total: ${formatArea(group.totalArea)}`,
       '',
       'Itens do pedido:',
       ...group.purchases.map((purchase, index) => (
@@ -1633,15 +1633,15 @@ export const InventoryPage: React.FC = () => {
         </div>
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Área Disponível</div>
-          <div className="text-3xl font-display font-bold text-brand-primary">{formatNumber(totalAvailableArea)} m²</div>
+          <div className="text-3xl font-display font-bold text-brand-primary">{formatArea(totalAvailableArea)}</div>
         </div>
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Área Reservada</div>
-          <div className="text-3xl font-display font-bold text-amber-600">{formatNumber(totalReservedArea)} m²</div>
+          <div className="text-3xl font-display font-bold text-amber-600">{formatArea(totalReservedArea)}</div>
         </div>
         <div className="bg-white p-6 rounded-[32px] border border-slate-100 shadow-sm">
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Área Vendida</div>
-          <div className="text-3xl font-display font-bold text-green-700">{formatNumber(quoteSoldArea)} m²</div>
+          <div className="text-3xl font-display font-bold text-green-700">{formatArea(quoteSoldArea)}</div>
         </div>
         <div className={cn(
           'p-6 rounded-[32px] border shadow-sm',
@@ -1649,7 +1649,7 @@ export const InventoryPage: React.FC = () => {
         )}>
           <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Compra Pendente</div>
           <div className={cn('text-3xl font-display font-bold', pendingPurchases.length > 0 ?'text-amber-700' : 'text-slate-900')}>
-            {formatNumber(totalPendingPurchaseArea)} m²
+            {formatArea(totalPendingPurchaseArea)}
           </div>
         </div>
       </div>
@@ -1682,19 +1682,19 @@ export const InventoryPage: React.FC = () => {
                     <div className="mt-3 grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
                       <div>
                         <span className="block font-bold uppercase tracking-widest text-slate-400">Disponível</span>
-                        <strong className="text-slate-700">{formatNumber(item.available)} m²</strong>
+                        <strong className="text-slate-700">{formatArea(item.available)}</strong>
                       </div>
                       <div>
                         <span className="block font-bold uppercase tracking-widest text-slate-400">Vendido</span>
-                        <strong className="text-amber-700">{formatNumber(item.reserved)} m²</strong>
+                        <strong className="text-amber-700">{formatArea(item.reserved)}</strong>
                       </div>
                       <div>
                         <span className="block font-bold uppercase tracking-widest text-slate-400">Pedido</span>
-                        <strong className="text-blue-700">{formatNumber(item.ordered)} m²</strong>
+                        <strong className="text-blue-700">{formatArea(item.ordered)}</strong>
                       </div>
                       <div>
                         <span className="block font-bold uppercase tracking-widest text-slate-400">Comprar</span>
-                        <strong className="text-red-600">{formatNumber(item.missing)} m²</strong>
+                        <strong className="text-red-600">{formatArea(item.missing)}</strong>
                       </div>
                     </div>
                   </div>
@@ -1724,7 +1724,7 @@ export const InventoryPage: React.FC = () => {
                       </div>
                     </div>
                     <div className="mt-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-xs text-slate-500">
-                      <div><strong>{group.purchases.length}</strong> chapa(s) · <strong>{formatNumber(group.totalArea)} m²</strong></div>
+                      <div><strong>{group.purchases.length}</strong> chapa(s) · <strong>{formatArea(group.totalArea)}</strong></div>
                       <div className="mt-1">Fornecedor: <strong>{group.supplier || 'Não informado'}</strong></div>
                       <div className="mt-1">Previsão de entrega: <strong>{group.purchases[0]?.expectedDeliveryDateKey ? group.purchases[0].expectedDeliveryDateKey.split('-').reverse().join('/') : 'Não definida'}</strong></div>
                       <div className="mt-1">Comprado por <strong>{group.purchasedByName}</strong></div>
@@ -1970,7 +1970,7 @@ export const InventoryPage: React.FC = () => {
                   {selectedPatioPanel === UNASSIGNED_PANEL_ID ? 'Pendentes' : 'Área'}
                 </div>
                 <div className="font-mono text-sm font-bold text-slate-700">
-                  {selectedPatioPanel === UNASSIGNED_PANEL_ID ? `${unassignedPatioItems.length} chapa(s)` : `${formatNumber(selectedRackArea)} m²`}
+                  {selectedPatioPanel === UNASSIGNED_PANEL_ID ? `${unassignedPatioItems.length} chapa(s)` : formatArea(selectedRackArea)}
                 </div>
               </div>
             </div>
@@ -2030,7 +2030,7 @@ export const InventoryPage: React.FC = () => {
 
                         <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-500">
                           <div>{formatCentimeters(item.length)} x {formatCentimeters(item.width)}</div>
-                          <div className="text-right">{formatNumber(item.area)} m²</div>
+                          <div className="text-right">{formatArea(item.area)}</div>
                           <div>{formatCurrency(item.cost)}</div>
                           <div className="text-right">Mín. {formatCurrency(item.minimumSalePrice ?? item.cost)}</div>
                         </div>
@@ -2178,7 +2178,7 @@ export const InventoryPage: React.FC = () => {
                       {formatCentimeters(item.length)} x {formatCentimeters(item.width)}
                       <div className="text-xs text-slate-400">{item.thicknessLabel || (item.thickness ? `${item.thickness}` : 'Sem espessura')}</div>
                     </td>
-                    <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(item.area)} m²</td>
+                    <td className="px-6 py-4 font-medium text-slate-900">{formatArea(item.area)}</td>
                     <td className="px-6 py-4 font-mono text-sm">
                       <div>{formatCurrency(item.cost)}</div>
                       <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-green-700">Mín. {formatCurrency(item.minimumSalePrice ?? item.cost)}</div>
@@ -2200,12 +2200,12 @@ export const InventoryPage: React.FC = () => {
                           className="mt-1 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[10px] font-semibold text-amber-700 hover:bg-amber-100 transition-all"
                         >
                           <Eye className="h-3 w-3" />
-                          {formatNumber(reservedAreaByMaterial(item.materialId))} m² em orçamentos
+                          {formatArea(reservedAreaByMaterial(item.materialId))} em orçamentos
                         </button>
                       )}
                       {soldAreaByMaterial(item.materialId) > 0 && (
                         <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-green-50 px-2 py-1 text-[10px] font-semibold text-green-700">
-                          {formatNumber(soldAreaByMaterial(item.materialId))} m² vendido/finalizado
+                          {formatArea(soldAreaByMaterial(item.materialId))} vendido/finalizado
                         </div>
                       )}
                       {item.lossReason && (
@@ -2275,7 +2275,7 @@ export const InventoryPage: React.FC = () => {
                       <div className="text-xs text-brand-primary font-mono">{purchase.code || 'Sem lote'}</div>
                       <div className="text-xs text-slate-400">{formatMaterialSpecsWithProvider(purchase) || `${purchase.category || 'Sem categoria'} · ${purchase.provider || 'Sem fornecedor'}`}</div>
                     </td>
-                    <td className="px-6 py-4 font-medium text-slate-900">{formatNumber(purchase.area)} m²</td>
+                    <td className="px-6 py-4 font-medium text-slate-900">{formatArea(purchase.area)}</td>
                     <td className="px-6 py-4">
                       <span className={cn(
                         'inline-flex px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase',
@@ -2330,7 +2330,7 @@ export const InventoryPage: React.FC = () => {
                         </div>
                         <div className="rounded-xl bg-white px-3 py-2 text-right">
                           <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Usando</div>
-                          <div className="font-mono font-bold text-amber-700">{formatNumber(reservation.area || 0)} m²</div>
+                          <div className="font-mono font-bold text-amber-700">{formatArea(reservation.area || 0)}</div>
                         </div>
                       </div>
                     </button>
@@ -2411,7 +2411,7 @@ export const InventoryPage: React.FC = () => {
                     <option value="">Selecionar chapa do estoque</option>
                     {lossInventoryOptions.map((item) => (
                       <option key={item.id} value={item.id}>
-                        {item.materialName} · {item.code || 'Sem lote'} · {formatNumber(item.area)} m²
+                        {item.materialName} · {item.code || 'Sem lote'} · {formatArea(item.area)}
                       </option>
                     ))}
                   </select>
@@ -2648,7 +2648,7 @@ export const InventoryPage: React.FC = () => {
                 <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div className="rounded-2xl bg-slate-100 border border-slate-200 px-4 py-3">
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Área total calculada</div>
-                    <div className="mt-1 font-mono text-xl font-bold text-slate-800">{formatNumber(purchaseTotalArea)} m²</div>
+                    <div className="mt-1 font-mono text-xl font-bold text-slate-800">{formatArea(purchaseTotalArea)}</div>
                   </div>
                   <div className="rounded-2xl bg-slate-100 border border-slate-200 px-4 py-3">
                     <div className="text-xs font-bold uppercase tracking-widest text-slate-400">Compra total calculada</div>

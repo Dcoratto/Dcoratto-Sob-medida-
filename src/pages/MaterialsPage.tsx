@@ -4,7 +4,7 @@ import {AlertTriangle, Edit2, Eye, PackageCheck, Search, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
 import {db} from '../lib/firestore';
 import {InventoryItem, InventoryReservation, Material, Quote} from '../types';
-import {cn, formatCurrency, formatNumber} from '../lib/utils';
+import {cn, formatArea, formatCurrency, formatNumber} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {formatMaterialSpecsWithProvider} from '../lib/materialSpecs';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
@@ -423,7 +423,7 @@ export const MaterialsPage: React.FC = () => {
                     <td className="px-6 py-4 font-mono text-sm text-slate-600">
                       <div>{formatNumber(material.stockArea)} {AREA_UNIT}</div>
                       {material.manualReservedArea > 0 && (
-                        <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-amber-600">{formatNumber(material.manualReservedArea)} m² reservado manual</div>
+                        <div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-amber-600">{formatArea(material.manualReservedArea)} reservado manual</div>
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -582,7 +582,7 @@ export const MaterialsPage: React.FC = () => {
                         </div>
                         <div className="rounded-xl bg-white px-3 py-2 text-right">
                           <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Usando</div>
-                          <div className="font-mono font-bold text-amber-700">{formatNumber(reservation.area || 0)} m²</div>
+                          <div className="font-mono font-bold text-amber-700">{formatArea(reservation.area || 0)}</div>
                         </div>
                       </div>
                     </button>

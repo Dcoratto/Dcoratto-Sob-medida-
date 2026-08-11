@@ -42,7 +42,7 @@ import {
 } from '../lib/quoteDigital';
 
 type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
-type QuoteSidebarSectionKey = 'client' | 'materials' | 'pricing' | 'payment';
+type QuoteSidebarSectionKey = 'digital' | 'client' | 'materials' | 'pricing' | 'payment';
 
 const MATERIAL_PRICE_MINIMUM_ERROR = 'O valor personalizado não pode ser menor que o valor mínimo definido para este material.';
 
@@ -307,6 +307,7 @@ export const QuoteEditor: React.FC = () => {
   const [digitalLoading, setDigitalLoading] = useState(false);
   const [digitalBusy, setDigitalBusy] = useState('');
   const [digitalError, setDigitalError] = useState('');
+  const [digitalHistoryOpen, setDigitalHistoryOpen] = useState(false);
 
   // Form State
   const [clientId, setClientId] = useState('');
@@ -571,6 +572,7 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const latestDigitalVersion = digitalVersions[0];
+  const isDigitalOpen = sidebarSection === 'digital' || Boolean(digitalError);
   const buildPublicProposalUrl = (publicToken?: string) =>
     publicToken ? `${window.location.origin}/proposta/${publicToken}` : '';
 
@@ -1763,149 +1765,6 @@ export const QuoteEditor: React.FC = () => {
       )}
       <DraftAutosaveStatus savedAt={quoteDraftSavedAt} />
 
-      <section className="rounded-[32px] border border-slate-100 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div className="space-y-2">
-            <div className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-primary/10 text-brand-primary">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="font-display text-2xl font-bold text-slate-900">Proposta Digital</h2>
-              <p className="mt-1 max-w-2xl text-sm text-slate-500">
-                Gere a versão comercial em HTML para o cliente com histórico, link compartilhável e aceite digital.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={handleGenerateDigitalVersion}
-              disabled={!id || digitalBusy === 'generate'}
-              className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-semibold text-[#3F3A34] disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {digitalBusy === 'generate' ? <CheckCircle2 className="h-4 w-4 animate-pulse" /> : <Sparkles className="h-4 w-4" />}
-              {digitalVersions.length ? 'Nova versão' : 'Gerar orçamento para cliente'}
-            </button>
-            {!id && (
-              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
-                Salve o orçamento primeiro para liberar a proposta digital.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {digitalError && (
-          <div className="mt-4 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
-            {digitalError}
-          </div>
-        )}
-
-        {id && (
-          <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.05fr)_320px]">
-            <div className="rounded-[28px] border border-slate-100 bg-slate-50/70 p-5">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">Versão atual</div>
-                  <div className="mt-2 text-lg font-semibold text-slate-900">
-                    {latestDigitalVersion ? `${latestDigitalVersion.versionLabel} · ${latestDigitalVersion.proposalCode}` : 'Nenhuma proposta gerada'}
-                  </div>
-                </div>
-                {digitalLoading && <div className="text-sm font-semibold text-slate-400">Atualizando...</div>}
-              </div>
-
-              {latestDigitalVersion ? (
-                <>
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</div>
-                      <div className="mt-2 text-sm font-semibold text-slate-900">{latestDigitalVersion.status}</div>
-                    </div>
-                    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gerada em</div>
-                      <div className="mt-2 text-sm font-semibold text-slate-900">{formatPresentationDate(latestDigitalVersion.createdAt)}</div>
-                    </div>
-                    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Validade</div>
-                      <div className="mt-2 text-sm font-semibold text-slate-900">{formatPresentationDate(latestDigitalVersion.validUntil)}</div>
-                    </div>
-                    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3">
-                      <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Visualizada</div>
-                      <div className="mt-2 text-sm font-semibold text-slate-900">{formatPresentationDate(latestDigitalVersion.firstViewedAt)}</div>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <button type="button" onClick={() => handleOpenDigitalVersion(latestDigitalVersion)} disabled={digitalBusy === `open:${latestDigitalVersion.id}`} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:opacity-60">
-                      <ExternalLink className="h-4 w-4" />
-                      Visualizar
-                    </button>
-                    <button type="button" onClick={() => handleCopyDigitalLink(latestDigitalVersion)} disabled={digitalBusy === `copy:${latestDigitalVersion.id}`} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:opacity-60">
-                      <Copy className="h-4 w-4" />
-                      Copiar link
-                    </button>
-                    <button type="button" onClick={() => handleSendDigitalWhatsApp(latestDigitalVersion)} disabled={digitalBusy === `wa:${latestDigitalVersion.id}`} className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:opacity-60">
-                      <MessageCircle className="h-4 w-4" />
-                      Enviar pelo WhatsApp
-                    </button>
-                    <button type="button" onClick={() => handleRevokeDigitalVersion(latestDigitalVersion)} disabled={digitalBusy === `revoke:${latestDigitalVersion.id}` || latestDigitalVersion.status === 'REVOGADO'} className="inline-flex items-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 disabled:opacity-60">
-                      <Ban className="h-4 w-4" />
-                      Revogar link
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-sm text-slate-500">
-                  Assim que você gerar a primeira versão, o histórico e as ações de compartilhamento aparecem aqui.
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-[28px] border border-slate-100 bg-slate-50/70 p-5">
-              <div className="flex items-center gap-2 text-slate-900">
-                <History className="h-4 w-4 text-brand-primary" />
-                <div className="text-sm font-semibold">Histórico de versões</div>
-              </div>
-              <div className="mt-4 space-y-3">
-                {digitalVersions.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">Sem versões geradas.</div>
-                ) : (
-                  digitalVersions.map((version) => (
-                    <div key={version.id} className="rounded-2xl border border-slate-100 bg-white px-4 py-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="text-sm font-semibold text-slate-900">{version.versionLabel}</div>
-                        <span className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', version.status === 'ACEITO' ? 'bg-green-50 text-green-700' : version.status === 'REVOGADO' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500')}>
-                          {version.status}
-                        </span>
-                      </div>
-                      <div className="mt-2 text-xs leading-5 text-slate-500">
-                        {formatPresentationDate(version.createdAt)} · validade {formatPresentationDate(version.validUntil)}
-                      </div>
-                      {version.acceptedAt && (
-                        <div className="mt-2 text-xs font-semibold text-green-700">Aceita em {formatPresentationDate(version.acceptedAt)}</div>
-                      )}
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {digitalAcceptances.length > 0 && (
-                <div className="mt-5 rounded-2xl border border-slate-100 bg-white px-4 py-4">
-                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Aceites registrados</div>
-                  <div className="mt-3 space-y-2">
-                    {digitalAcceptances.slice(0, 3).map((acceptance) => (
-                      <div key={acceptance.id} className="text-sm text-slate-700">
-                        <span className="font-semibold">{acceptance.acceptedName}</span> · {acceptance.versionNumber ? `V${acceptance.versionNumber}` : '-'} · {formatPresentationDate(acceptance.createdAt)}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </section>
-
       <div className="grid grid-cols-1 gap-5 lg:h-[calc(100svh-190px)] lg:grid-cols-[minmax(360px,384px)_minmax(0,1fr)] lg:gap-8 lg:overflow-hidden xl:grid-cols-[400px_minmax(0,1fr)]">
         <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
           <div className="space-y-5 lg:pb-6">
@@ -1933,6 +1792,201 @@ export const QuoteEditor: React.FC = () => {
                 <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-white/20 px-4 py-3 text-base">
                   <span className="font-bold text-[#3F3A34]">Total final</span>
                   <strong className="font-display text-xl text-[#3F3A34]">{formatCurrency(totalPrice)}</strong>
+                </div>
+              </div>
+            </section>
+
+            <section className="overflow-hidden rounded-[28px] border border-slate-100 bg-white shadow-sm">
+              <button
+                type="button"
+                onClick={() => setSidebarSection(isDigitalOpen ? null : 'digital')}
+                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left"
+              >
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className={cn('mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors', isDigitalOpen ? 'bg-brand-primary text-[#3F3A34]' : 'bg-slate-100 text-slate-500')}>
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="font-display text-lg font-bold text-slate-900">Proposta Digital</div>
+                    <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2 text-xs text-slate-500">
+                      <span className="truncate">
+                        {!id
+                          ? 'Salve o orçamento primeiro'
+                          : latestDigitalVersion
+                            ? `${latestDigitalVersion.versionLabel} · ${latestDigitalVersion.status}`
+                            : 'Nenhuma versão gerada'}
+                      </span>
+                      {latestDigitalVersion && (
+                        <span className={cn(
+                          'inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase',
+                          latestDigitalVersion.status === 'ACEITO'
+                            ? 'bg-green-50 text-green-700'
+                            : latestDigitalVersion.status === 'REVOGADO'
+                              ? 'bg-red-50 text-red-600'
+                              : 'bg-slate-100 text-slate-500',
+                        )}
+                        >
+                          {latestDigitalVersion.status}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <ChevronDown className={cn('h-5 w-5 shrink-0 text-slate-400 transition-transform duration-200', isDigitalOpen && 'rotate-180')} />
+              </button>
+
+              <div className={cn('grid transition-all duration-200 ease-out', isDigitalOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
+                <div className="overflow-hidden">
+                  <div className="border-t border-slate-100 px-5 py-5">
+                    <div className="space-y-4">
+                      {digitalError && (
+                        <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+                          {digitalError}
+                        </div>
+                      )}
+
+                      {!id && (
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                          Salve o orçamento primeiro para liberar a proposta digital.
+                        </div>
+                      )}
+
+                      {latestDigitalVersion ? (
+                        <>
+                          <div className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-4">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0">
+                                <div className="text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">Versão atual</div>
+                                <div className="mt-2 truncate text-sm font-semibold text-slate-900">
+                                  {latestDigitalVersion.versionLabel} · {latestDigitalVersion.proposalCode}
+                                </div>
+                              </div>
+                              {digitalLoading && <div className="text-xs font-semibold text-slate-400">Atualizando...</div>}
+                            </div>
+
+                            <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                              <div className="rounded-2xl border border-slate-100 bg-white px-3 py-3">
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Status</div>
+                                <div className="mt-1 font-semibold text-slate-900">{latestDigitalVersion.status}</div>
+                              </div>
+                              <div className="rounded-2xl border border-slate-100 bg-white px-3 py-3">
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Gerada em</div>
+                                <div className="mt-1 font-semibold text-slate-900">{formatPresentationDate(latestDigitalVersion.createdAt)}</div>
+                              </div>
+                              <div className="rounded-2xl border border-slate-100 bg-white px-3 py-3">
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Validade</div>
+                                <div className="mt-1 font-semibold text-slate-900">{formatPresentationDate(latestDigitalVersion.validUntil)}</div>
+                              </div>
+                              <div className="rounded-2xl border border-slate-100 bg-white px-3 py-3">
+                                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Visualizada</div>
+                                <div className="mt-1 font-semibold text-slate-900">{formatPresentationDate(latestDigitalVersion.firstViewedAt)}</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <button type="button" onClick={() => handleOpenDigitalVersion(latestDigitalVersion)} disabled={digitalBusy === `open:${latestDigitalVersion.id}`} className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:opacity-60">
+                              <ExternalLink className="h-4 w-4" />
+                              Visualizar
+                            </button>
+                            <button type="button" onClick={() => handleCopyDigitalLink(latestDigitalVersion)} disabled={digitalBusy === `copy:${latestDigitalVersion.id}`} className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:opacity-60">
+                              <Copy className="h-4 w-4" />
+                              Copiar link
+                            </button>
+                            <button type="button" onClick={() => handleSendDigitalWhatsApp(latestDigitalVersion)} disabled={digitalBusy === `wa:${latestDigitalVersion.id}`} className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 disabled:opacity-60">
+                              <MessageCircle className="h-4 w-4" />
+                              WhatsApp
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleGenerateDigitalVersion}
+                              disabled={!id || digitalBusy === 'generate'}
+                              className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl bg-brand-primary px-4 py-3 text-sm font-semibold text-[#3F3A34] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {digitalBusy === 'generate' ? <CheckCircle2 className="h-4 w-4 animate-pulse" /> : <Sparkles className="h-4 w-4" />}
+                              Nova versão
+                            </button>
+                            <button type="button" onClick={() => handleRevokeDigitalVersion(latestDigitalVersion)} disabled={digitalBusy === `revoke:${latestDigitalVersion.id}` || latestDigitalVersion.status === 'REVOGADO'} className="inline-flex min-w-0 items-center justify-center gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600 disabled:opacity-60 sm:col-span-2">
+                              <Ban className="h-4 w-4" />
+                              Revogar link
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50/70 p-4">
+                          <div className="text-sm text-slate-500">
+                            Gere a versão comercial em HTML para o cliente com histórico, link compartilhável e aceite digital.
+                          </div>
+                          <div className="mt-4">
+                            <button
+                              type="button"
+                              onClick={handleGenerateDigitalVersion}
+                              disabled={!id || digitalBusy === 'generate'}
+                              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-primary px-4 py-3 text-sm font-semibold text-[#3F3A34] disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {digitalBusy === 'generate' ? <CheckCircle2 className="h-4 w-4 animate-pulse" /> : <Sparkles className="h-4 w-4" />}
+                              Gerar proposta
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="rounded-[24px] border border-slate-100 bg-slate-50/70">
+                        <button
+                          type="button"
+                          onClick={() => setDigitalHistoryOpen((current) => !current)}
+                          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+                        >
+                          <div className="flex items-center gap-2 text-sm font-semibold text-slate-900">
+                            <History className="h-4 w-4 text-brand-primary" />
+                            Histórico de versões
+                          </div>
+                          <ChevronDown className={cn('h-4 w-4 text-slate-400 transition-transform duration-200', digitalHistoryOpen && 'rotate-180')} />
+                        </button>
+                        <div className={cn('grid transition-all duration-200 ease-out', digitalHistoryOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
+                          <div className="overflow-hidden">
+                            <div className="border-t border-slate-100 px-4 py-4">
+                              <div className="max-h-60 space-y-3 overflow-y-auto pr-1">
+                                {digitalVersions.length === 0 ? (
+                                  <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-5 text-sm text-slate-500">Sem versões geradas.</div>
+                                ) : (
+                                  digitalVersions.map((version) => (
+                                    <div key={version.id} className="rounded-2xl border border-slate-100 bg-white px-4 py-4">
+                                      <div className="flex items-center justify-between gap-3">
+                                        <div className="text-sm font-semibold text-slate-900">{version.versionLabel}</div>
+                                        <span className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', version.status === 'ACEITO' ? 'bg-green-50 text-green-700' : version.status === 'REVOGADO' ? 'bg-red-50 text-red-600' : 'bg-slate-100 text-slate-500')}>
+                                          {version.status}
+                                        </span>
+                                      </div>
+                                      <div className="mt-2 text-xs leading-5 text-slate-500">
+                                        {formatPresentationDate(version.createdAt)} · validade {formatPresentationDate(version.validUntil)}
+                                      </div>
+                                      {version.acceptedAt && (
+                                        <div className="mt-2 text-xs font-semibold text-green-700">Aceita em {formatPresentationDate(version.acceptedAt)}</div>
+                                      )}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+
+                              {digitalAcceptances.length > 0 && (
+                                <div className="mt-4 rounded-2xl border border-slate-100 bg-white px-4 py-4">
+                                  <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Aceites registrados</div>
+                                  <div className="mt-3 space-y-2">
+                                    {digitalAcceptances.slice(0, 3).map((acceptance) => (
+                                      <div key={acceptance.id} className="text-sm text-slate-700">
+                                        <span className="font-semibold">{acceptance.acceptedName}</span> · {acceptance.versionNumber ? `V${acceptance.versionNumber}` : '-'} · {formatPresentationDate(acceptance.createdAt)}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>

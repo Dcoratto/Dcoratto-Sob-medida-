@@ -32,6 +32,12 @@ import {LABELS} from '../constants/labels';
 import {imageVariantUrl} from '../lib/storage';
 import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
 import {
+  calculateQuoteInstallmentAmount,
+  calculateQuotePaymentTotals,
+  findPaymentMethodAdjustment,
+  parseInstallmentCountFromMethod,
+} from '../lib/quotePaymentSimulation';
+import {
   generateQuotePresentationVersion,
   listQuotePresentationAcceptances,
   listQuotePresentationVersions,
@@ -91,11 +97,6 @@ const inputValuesFromPieceManualPrices = (pieces?: QuotePiece[]) =>
   }, {} as Record<string, string>);
 
 const pieceMeasureInputKey = (pieceId: string, field: 'length' | 'width') => `${pieceId}:${field}`;
-
-const parseInstallmentCountFromMethod = (value?: string) => {
-  const match = String(value || '').match(/(\d{1,2})\s*x/i);
-  return match ? Math.max(1, Number(match[1]) || 1) : 1;
-};
 
 const formatPresentationDate = (value?: string | null) => {
   if (!value) return '-';
@@ -696,8 +697,8 @@ export const QuoteEditor: React.FC = () => {
   [pieceManualPriceInputs, pieces]);
   const pieceManualPriceError = Object.values(pieceManualPriceErrors).find(Boolean);
 
-  const totalMethodAdjustment = effectiveQuoteSettings.paymentMethods.find(m => m.name === totalPaymentMethod)?.adjustment || 0;
-  const remainingMethodAdjustment = effectiveQuoteSettings.paymentMethods.find(m => m.name === remainingPaymentMethod)?.adjustment || 0;
+  const totalMethodAdjustment = findPaymentMethodAdjustment(effectiveQuoteSettings.paymentMethods, totalPaymentMethod);
+  const remainingMethodAdjustment = findPaymentMethodAdjustment(effectiveQuoteSettings.paymentMethods, remainingPaymentMethod);
   const totalArea = pieces.reduce((acc, p) => acc + calculatePieceArea(p).totalArea, 0);
   const pieceAreaDetails = pieces.map((piece) => ({piece, totals: calculatePieceArea(piece), material: materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)}));
   const locationContext = {
@@ -782,21 +783,34 @@ export const QuoteEditor: React.FC = () => {
   const complexityValue = includeComplexity ? originalComplexityValue : 0;
   const subtotalBeforeAdjustment = subtotalBeforeComplexity + complexityValue;
   const normalizedEntryAmount = Math.min(Math.max(Number(entryAmount) || 0, 0), subtotalBeforeAdjustment);
-  const financedAmount = Math.max(0, subtotalBeforeAdjustment - normalizedEntryAmount);
   const selectedPaymentAdjustment = paymentMode === 'entry' ? remainingMethodAdjustment : totalMethodAdjustment;
-  const adjustmentBase = paymentMode === 'entry' ? financedAmount : subtotalBeforeAdjustment;
-  const adjustmentValue = adjustmentBase * (selectedPaymentAdjustment / 100);
-  const paymentAdjustedTotal = subtotalBeforeAdjustment + adjustmentValue;
   const normalizedCommissionPercent = Math.max(0, Number(commissionPercent) || 0);
   const normalizedNegotiationDiscountPercent = Math.max(0, Number(negotiationDiscountPercent) || 0);
   const normalizedRtPercent = Math.max(0, Number(rtPercent) || 0);
-  const commissionValue = paymentAdjustedTotal * (normalizedCommissionPercent / 100);
-  const negotiationDiscountValue = paymentAdjustedTotal * (normalizedNegotiationDiscountPercent / 100);
-  const rtValue = paymentAdjustedTotal * (normalizedRtPercent / 100);
-  const totalPrice = paymentAdjustedTotal + commissionValue - negotiationDiscountValue + rtValue;
+  const {
+    adjustmentBase,
+    adjustmentValue,
+    paymentAdjustedTotal,
+    commissionValue,
+    negotiationDiscountValue,
+    rtValue,
+    totalPrice,
+  } = calculateQuotePaymentTotals({
+    subtotalBeforeAdjustment,
+    paymentMode,
+    entryAmount: normalizedEntryAmount,
+    selectedAdjustment: selectedPaymentAdjustment,
+    commissionPercent: normalizedCommissionPercent,
+    negotiationDiscountPercent: normalizedNegotiationDiscountPercent,
+    rtPercent: normalizedRtPercent,
+  });
   const normalizedInstallmentCount = Math.max(1, Number(installmentCount) || 1);
-  const installmentBase = paymentMode === 'entry' ? Math.max(0, totalPrice - normalizedEntryAmount) : totalPrice;
-  const installmentAmount = normalizedInstallmentCount > 0 ? installmentBase / normalizedInstallmentCount : installmentBase;
+  const installmentAmount = calculateQuoteInstallmentAmount({
+    totalPrice,
+    paymentMode,
+    entryAmount: normalizedEntryAmount,
+    installmentCount: normalizedInstallmentCount,
+  });
   const materialBaseCost = pieceAreaDetails.reduce((acc, {totals, material}) => {
     const costPerM2 = Number(material?.baseCostPerM2 || 0);
     const lossArea = includeMaterialLoss ? Number(totals.lossArea || 0) : 0;
@@ -2556,7 +2570,7 @@ export const QuoteEditor: React.FC = () => {
                     </div>
                     {paymentMode === 'entry' && (
                       <div>
-                        Entrada: {formatCurrency(normalizedEntryAmount)} · Restante: {formatCurrency(financedAmount)}
+                        Entrada: {formatCurrency(normalizedEntryAmount)} · Restante: {formatCurrency(Math.max(0, subtotalBeforeAdjustment - normalizedEntryAmount))}
                       </div>
                     )}
                   </div>

@@ -94,6 +94,15 @@ export type QuotePresentationSnapshot = {
     installmentCount?: number;
     installmentAmount?: number;
     notes?: string;
+    simulation?: {
+      availableMethods?: Array<{
+        name?: string;
+        adjustment?: number;
+      }>;
+      commissionPercent?: number;
+      negotiationDiscountPercent?: number;
+      rtPercent?: number;
+    };
   };
   delivery?: {
     deliveryDays?: number;

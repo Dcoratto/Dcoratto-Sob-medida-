@@ -1,12 +1,9 @@
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {useParams} from 'react-router-dom';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
 import {
-  ArrowLeft,
-  ArrowRight,
   CalendarClock,
-  Check,
   CheckCircle2,
   ChevronRight,
   CopyCheck,
@@ -17,7 +14,16 @@ import {
   Sparkles,
   X,
 } from 'lucide-react';
-import {acceptQuotePresentation, getPublicQuotePresentation, PublicQuotePresentationResponse, QuotePresentationSnapshot} from '../lib/quoteDigital';
+import {
+  acceptQuotePresentation,
+  getPublicQuotePresentation,
+  PublicQuotePresentationResponse,
+  QuotePresentationSnapshot,
+} from '../lib/quoteDigital';
+import {
+  buildQuotePaymentSimulationOptions,
+  QuotePaymentMethodOption,
+} from '../lib/quotePaymentSimulation';
 import {cn, formatArea, formatCurrency} from '../lib/utils';
 
 const formatDateLong = (value?: string | null) => {
@@ -36,6 +42,20 @@ const formatDateShort = (value?: string | null) => {
   } catch {
     return '';
   }
+};
+
+const usePrefersReducedMotion = () => {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const update = () => setPrefersReducedMotion(media.matches);
+    update();
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
+
+  return prefersReducedMotion;
 };
 
 const PresentationImage = ({
@@ -66,6 +86,60 @@ const PresentationImage = ({
   );
 };
 
+const RevealBlock = ({
+  children,
+  className,
+  delayMs = 0,
+  reducedMotion = false,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delayMs?: number;
+  reducedMotion?: boolean;
+}) => {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(reducedMotion);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setVisible(true);
+      return;
+    }
+
+    const element = ref.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          observer.disconnect();
+        }
+      },
+      {threshold: 0.18, rootMargin: '0px 0px -10% 0px'},
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [reducedMotion]);
+
+  return (
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        opacity: visible ? 1 : 0,
+        transform: visible ? 'translateY(0px)' : 'translateY(22px)',
+        transition: reducedMotion
+          ? 'none'
+          : `opacity 620ms ease ${delayMs}ms, transform 620ms ease ${delayMs}ms`,
+      }}
+    >
+      {children}
+    </div>
+  );
+};
+
 const PublicStatePanel = ({
   title,
   description,
@@ -76,90 +150,81 @@ const PublicStatePanel = ({
   description: string;
   company?: QuotePresentationSnapshot['company'];
   versionLabel?: string;
-}) => {
-  const addressLines = String(company?.address || '')
-    .split('\n')
-    .map((line) => line.trim())
-    .filter(Boolean);
-
-  return (
-    <div className="min-h-screen bg-[#0e0d0b] px-5 py-8 text-[#f4efe8]">
-      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-6xl flex-col justify-between">
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,1.1fr)_360px] lg:items-end">
-          <div className="pt-8 sm:pt-16">
-            <div className="text-[11px] uppercase tracking-[0.38em] text-[#b8976a]">{company?.name || "D'Coratto Sob Medida"}</div>
-            <h1 className="mt-8 max-w-4xl font-display text-5xl leading-none text-[#f4efe8] sm:text-6xl lg:text-7xl">{title}</h1>
-            <p className="mt-6 max-w-2xl text-base leading-8 text-[#d5c6b4] sm:text-lg">{description}</p>
-            {versionLabel && (
-              <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-[#b8976a]/25 bg-[#171512] px-4 py-2 text-xs uppercase tracking-[0.24em] text-[#e8dccf]">
-                <Sparkles className="h-4 w-4 text-[#b8976a]" />
-                {versionLabel}
-              </div>
-            )}
-          </div>
-
-          <div className="rounded-[32px] border border-white/8 bg-[#131210] p-6 shadow-2xl shadow-black/30">
-            <div className="space-y-5">
-              <div className="text-[11px] uppercase tracking-[0.34em] text-[#b8976a]">Atendimento</div>
-              {company?.phone && (
-                <div className="flex items-center gap-3 text-sm text-[#e8ddd1]">
-                  <Phone className="h-4 w-4 text-[#b8976a]" />
-                  <span>{company.phone}</span>
-                </div>
-              )}
-              {company?.email && <div className="text-sm text-[#d5c6b4]">{company.email}</div>}
-              {addressLines.length > 0 && (
-                <div className="space-y-2 pt-2 text-sm leading-7 text-[#c6b6a2]">
-                  {addressLines.map((line) => (
-                    <div key={line}>{line}</div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+}) => (
+  <div className="min-h-screen bg-[#0f0d0b] px-5 py-8 text-[#f7f1ea]">
+    <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-5xl flex-col justify-center gap-8">
+      <div className="inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.34em] text-[#c9a46b]">
+        <Sparkles className="h-4 w-4" />
+        {company?.name || "D'Coratto Sob Medida"}
       </div>
+      <div className="space-y-5">
+        <h1 className="font-display text-5xl leading-none text-[#f7f1ea] sm:text-6xl">{title}</h1>
+        <p className="max-w-2xl text-base leading-8 text-[#d6c6b3] sm:text-lg">{description}</p>
+      </div>
+      {versionLabel && (
+        <div className="inline-flex w-fit items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.24em] text-[#f0e6dc]">
+          {versionLabel}
+        </div>
+      )}
     </div>
-  );
-};
+  </div>
+);
 
 const SectionEyebrow = ({children}: {children: React.ReactNode}) => (
-  <div className="text-[11px] uppercase tracking-[0.34em] text-[#b8976a]">{children}</div>
+  <div className="text-[11px] uppercase tracking-[0.34em] text-[#c9a46b]">{children}</div>
 );
 
 const SectionTitle = ({children}: {children: React.ReactNode}) => (
-  <h2 className="mt-4 font-display text-4xl text-[#f4efe8] sm:text-5xl">{children}</h2>
+  <h2 className="mt-4 font-display text-4xl leading-tight text-[#f7f1ea] sm:text-5xl">{children}</h2>
 );
 
-const projectSteps = [
-  {
-    step: '01',
-    title: 'Medição',
-    description: 'Conferência técnica das medidas e validação do espaço antes da fabricação.',
-  },
-  {
-    step: '02',
-    title: 'Produção',
-    description: 'Fabricação sob medida das peças conforme a proposta aprovada.',
-  },
-  {
-    step: '03',
-    title: 'Acabamento',
-    description: 'Finalização das superfícies, recortes e detalhes de apresentação do projeto.',
-  },
-  {
-    step: '04',
-    title: 'Entrega e instalação',
-    description: 'Etapa final de entrega e montagem conforme as condições contratadas para o projeto.',
-  },
-];
+const buildOfficialPaymentRows = (snapshot?: QuotePresentationSnapshot | null) => {
+  if (!snapshot?.payment) return [];
+
+  const rows: Array<{label: string; value: string; auxiliary?: string}> = [];
+  const installmentCount = Number(snapshot.payment.installmentCount || 0);
+  const installmentAmount = Number(snapshot.payment.installmentAmount || 0);
+  const paymentMode = snapshot.payment.mode === 'entry' ? 'entry' : 'total';
+
+  if (paymentMode === 'entry') {
+    if (snapshot.payment.entryAmount) {
+      rows.push({
+        label: 'Entrada',
+        value: formatCurrency(snapshot.payment.entryAmount),
+      });
+    }
+
+    rows.push({
+      label: 'Saldo',
+      value: snapshot.payment.remainingPaymentMethod || 'A combinar',
+      auxiliary: installmentCount > 1 && installmentAmount > 0
+        ? `${installmentCount}x de ${formatCurrency(installmentAmount)}`
+        : undefined,
+    });
+
+    return rows;
+  }
+
+  rows.push({
+    label: 'Condição atual',
+    value: snapshot.payment.totalPaymentMethod || snapshot.payment.method || 'A combinar',
+    auxiliary: installmentCount > 1 && installmentAmount > 0
+      ? `${installmentCount}x de ${formatCurrency(installmentAmount)}`
+      : undefined,
+  });
+
+  return rows;
+};
 
 export const QuotePresentationPage: React.FC = () => {
   const {token = ''} = useParams();
+  const prefersReducedMotion = usePrefersReducedMotion();
   const [payload, setPayload] = useState<PublicQuotePresentationResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [simulatorOpen, setSimulatorOpen] = useState(false);
+  const [selectedSimulationMethod, setSelectedSimulationMethod] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [acceptedName, setAcceptedName] = useState('');
   const [accepting, setAccepting] = useState(false);
@@ -167,6 +232,7 @@ export const QuotePresentationPage: React.FC = () => {
 
   useEffect(() => {
     let active = true;
+
     const load = async () => {
       setLoading(true);
       setError('');
@@ -176,16 +242,46 @@ export const QuotePresentationPage: React.FC = () => {
         setPayload(result);
       } catch (err: any) {
         if (!active) return;
-        setError(err?.message || 'Não foi possível carregar a proposta agora.');
+        setError(err?.message || 'Nao foi possivel carregar a proposta agora.');
       } finally {
         if (active) setLoading(false);
       }
     };
+
     void load();
+
     return () => {
       active = false;
     };
   }, [token]);
+
+  useEffect(() => {
+    if (!simulatorOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSimulatorOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [simulatorOpen]);
+
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setLightboxOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [lightboxOpen]);
+
+  useEffect(() => {
+    if (!simulatorOpen && !lightboxOpen) {
+      document.body.style.removeProperty('overflow');
+      return;
+    }
+
+    document.body.style.overflow = 'hidden';
+    return () => document.body.style.removeProperty('overflow');
+  }, [lightboxOpen, simulatorOpen]);
 
   const availablePayload = payload?.state === 'available' ? payload : null;
   const snapshot = availablePayload?.snapshot;
@@ -194,144 +290,88 @@ export const QuotePresentationPage: React.FC = () => {
   const delivery = snapshot?.delivery;
   const acceptedDisplayName = availablePayload?.meta.acceptedName || acceptedName;
   const proposalAccepted = Boolean(availablePayload?.meta.acceptedAt);
+  const materialImage = snapshot?.material?.imageUrl;
+  const generatedLabel = snapshot?.generatedAt ? formatDateLong(snapshot.generatedAt) : '';
+  const validUntilLabel = availablePayload?.meta.validUntil ? formatDateLong(availablePayload.meta.validUntil) : '';
 
-  const gallery = useMemo(() => {
-    if (!snapshot) return [];
-    return [
-      snapshot.material?.imageUrl
-        ? {
-          src: snapshot.material.imageUrl,
-          title: snapshot.material.name || 'Material selecionado',
-          subtitle: [snapshot.material.materialLine, snapshot.material.materialType, snapshot.material.texture].filter(Boolean).join(' • '),
-        }
-        : null,
-      ...((snapshot.pieces || []).map((piece) => (
-        piece.imageUrl
-          ? {
-            src: piece.imageUrl,
-            title: piece.name || 'Peça',
-            subtitle: [piece.environment, piece.dimensionsLabel].filter(Boolean).join(' • '),
-          }
-          : null
-      ))),
-    ]
-      .filter(Boolean)
-      .filter((item, index, array) => array.findIndex((entry) => entry?.src === item?.src) === index) as Array<{src: string; title: string; subtitle: string}>;
-  }, [snapshot]);
+  const projectLocation = [snapshot?.client?.city, snapshot?.client?.neighborhood]
+    .filter(Boolean)
+    .join(' · ');
 
-  const projectSummaryItems = useMemo(() => {
-    if (!snapshot) return [];
-    return [
-      {
-        label: 'Cliente',
-        value: snapshot.client?.name || 'Cliente',
-      },
-      {
-        label: 'Projeto',
-        value: snapshot.summary?.environment || snapshot.heroSubtitle || 'Projeto sob medida',
-      },
-      {
-        label: 'Local',
-        value: [snapshot.client?.city, snapshot.client?.neighborhood].filter(Boolean).join(' • ') || snapshot.client?.city || '-',
-      },
-      {
-        label: 'Responsável',
-        value: snapshot.summary?.responsible || 'D\'Coratto',
-      },
-    ];
-  }, [snapshot]);
+  const officialPaymentRows = useMemo(() => buildOfficialPaymentRows(snapshot), [snapshot]);
 
-  const includedItems = useMemo(() => {
-    if (!snapshot) return [];
-    const features = snapshot.includedFeatures;
-    return [
-      {
-        key: 'material',
-        title: 'Material selecionado',
-        description: snapshot.material?.name || 'Superfície escolhida para o projeto.',
-        active: Boolean(features?.materialSelected || snapshot.material?.name),
-      },
-      {
-        key: 'fabrication',
-        title: 'Fabricação sob medida',
-        description: 'Produção conforme o desenho comercial aprovado.',
-        active: Boolean(features?.fabricationIncluded || snapshot.summary?.pieceCount),
-      },
-      {
-        key: 'cutouts',
-        title: 'Recortes',
-        description: 'Execução dos recortes previstos nesta composição.',
-        active: Boolean(features?.cutoutsIncluded),
-      },
-      {
-        key: 'sculpted-sink',
-        title: 'Pia esculpida',
-        description: 'Item contemplado na versão comercial apresentada.',
-        active: Boolean(features?.sculptedSinkIncluded),
-      },
-      {
-        key: 'finishing',
-        title: 'Acabamento',
-        description: snapshot.material?.texture ? `Acabamento ${snapshot.material.texture.toLowerCase()}.` : 'Acabamento previsto para o material selecionado.',
-        active: Boolean(features?.finishingIncluded || snapshot.material?.texture),
-      },
-      {
-        key: 'delivery',
-        title: 'Entrega',
-        description: 'Entrega incluída conforme a composição comercial deste orçamento.',
-        active: Boolean(features?.deliveryIncluded || delivery?.deliveryIncluded),
-      },
-      {
-        key: 'installation',
-        title: 'Instalação',
-        description: 'Montagem contemplada nesta proposta comercial.',
-        active: Boolean(features?.installationIncluded || delivery?.installationIncluded),
-      },
-    ].filter((item) => item.active);
-  }, [delivery?.deliveryIncluded, delivery?.installationIncluded, snapshot]);
+  const availablePaymentMethods = useMemo(
+    () => (
+      snapshot?.payment?.simulation?.availableMethods || []
+    ).reduce((acc, method) => {
+      const name = String(method.name || '').trim();
+      if (!name) return acc;
+      acc.push({
+        name,
+        adjustment: Number(method.adjustment || 0),
+      });
+      return acc;
+    }, [] as QuotePaymentMethodOption[]),
+    [snapshot?.payment?.simulation?.availableMethods],
+  );
+
+  const simulationOptions = useMemo(
+    () => buildQuotePaymentSimulationOptions({
+      officialTotalPrice: Number(investment?.totalPrice || 0),
+      paymentMode: snapshot?.payment?.mode === 'entry' ? 'entry' : 'total',
+      totalPaymentMethod: snapshot?.payment?.totalPaymentMethod || snapshot?.payment?.method,
+      remainingPaymentMethod: snapshot?.payment?.remainingPaymentMethod,
+      entryAmount: snapshot?.payment?.entryAmount,
+      commissionPercent: snapshot?.payment?.simulation?.commissionPercent,
+      negotiationDiscountPercent: snapshot?.payment?.simulation?.negotiationDiscountPercent,
+      rtPercent: snapshot?.payment?.simulation?.rtPercent,
+      paymentMethods: availablePaymentMethods,
+    }),
+    [
+      availablePaymentMethods,
+      investment?.totalPrice,
+      snapshot?.payment?.entryAmount,
+      snapshot?.payment?.method,
+      snapshot?.payment?.mode,
+      snapshot?.payment?.remainingPaymentMethod,
+      snapshot?.payment?.simulation?.commissionPercent,
+      snapshot?.payment?.simulation?.negotiationDiscountPercent,
+      snapshot?.payment?.simulation?.rtPercent,
+      snapshot?.payment?.totalPaymentMethod,
+    ],
+  );
+
+  useEffect(() => {
+    if (!simulationOptions.length) {
+      setSelectedSimulationMethod('');
+      return;
+    }
+
+    const currentOption = simulationOptions.find((option) => option.isCurrent);
+    setSelectedSimulationMethod((current) => {
+      if (current && simulationOptions.some((option) => option.methodName === current)) return current;
+      return currentOption?.methodName || simulationOptions[0].methodName;
+    });
+  }, [simulationOptions]);
+
+  const selectedSimulation = simulationOptions.find((option) => option.methodName === selectedSimulationMethod) || simulationOptions[0] || null;
 
   const importantInfoItems = useMemo(() => {
     if (!snapshot) return [];
-    const items = [
+    return [
       snapshot.validUntil ? `Proposta válida até ${formatDateLong(snapshot.validUntil)}.` : null,
-      snapshot.delivery?.measurementDate ? `Medição prevista para ${formatDateLong(snapshot.delivery.measurementDate)}.` : null,
-      snapshot.delivery?.deliveryDate ? `Entrega estimada para ${formatDateLong(snapshot.delivery.deliveryDate)}.` : null,
       snapshot.notes?.commercialNotes || null,
       snapshot.notes?.defaultNotes || null,
       snapshot.payment?.notes || null,
     ].filter(Boolean) as string[];
-
-    return items;
   }, [snapshot]);
-
-  const paymentSummary = snapshot?.payment?.method || snapshot?.payment?.totalPaymentMethod || snapshot?.payment?.remainingPaymentMethod;
-  const isEntryPaymentMode = snapshot?.payment?.mode === 'entry';
-  const paymentDetails = [
-    isEntryPaymentMode && snapshot?.payment?.entryAmount ? `Entrada de ${formatCurrency(snapshot.payment.entryAmount)}` : null,
-    snapshot?.payment?.installmentCount && snapshot?.payment?.installmentAmount
-      ? `Saldo em ${snapshot.payment.installmentCount} parcela(s) de ${formatCurrency(snapshot.payment.installmentAmount)}`
-      : snapshot?.payment?.installmentCount
-        ? `${snapshot.payment.installmentCount} parcela(s)`
-        : null,
-    isEntryPaymentMode && snapshot?.payment?.remainingPaymentMethod ? `Saldo via ${snapshot.payment.remainingPaymentMethod}` : null,
-  ].filter(Boolean) as string[];
-
-  useEffect(() => {
-    if (lightboxIndex == null) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setLightboxIndex(null);
-      if (event.key === 'ArrowRight') setLightboxIndex((current) => current == null ? current : (current + 1) % gallery.length);
-      if (event.key === 'ArrowLeft') setLightboxIndex((current) => current == null ? current : (current - 1 + gallery.length) % gallery.length);
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [gallery.length, lightboxIndex]);
 
   const handleAccept = async () => {
     if (!acceptedName.trim()) {
       window.alert('Informe seu nome para confirmar o aceite.');
       return;
     }
+
     setAccepting(true);
     try {
       const result = await acceptQuotePresentation(token, acceptedName.trim());
@@ -353,7 +393,7 @@ export const QuotePresentationPage: React.FC = () => {
           : current
       ));
     } catch (err: any) {
-      window.alert(err?.message || 'Não foi possível registrar o aceite agora.');
+      window.alert(err?.message || 'Nao foi possivel registrar o aceite agora.');
     } finally {
       setAccepting(false);
     }
@@ -361,13 +401,13 @@ export const QuotePresentationPage: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0e0d0b] px-5 py-8 text-[#f4efe8]">
+      <div className="min-h-screen bg-[#0f0d0b] px-5 py-8 text-[#f7f1ea]">
         <div className="mx-auto max-w-6xl animate-pulse space-y-8">
-          <div className="h-[72vh] rounded-[40px] bg-[#131210]" />
+          <div className="h-[72vh] rounded-[40px] bg-[#171411]" />
           <div className="grid gap-6 lg:grid-cols-3">
-            <div className="h-56 rounded-[32px] bg-[#131210]" />
-            <div className="h-56 rounded-[32px] bg-[#131210]" />
-            <div className="h-56 rounded-[32px] bg-[#131210]" />
+            <div className="h-56 rounded-[32px] bg-[#171411]" />
+            <div className="h-56 rounded-[32px] bg-[#171411]" />
+            <div className="h-56 rounded-[32px] bg-[#171411]" />
           </div>
         </div>
       </div>
@@ -411,17 +451,8 @@ export const QuotePresentationPage: React.FC = () => {
     );
   }
 
-  const topImage = snapshot?.material?.imageUrl || gallery[0]?.src;
-  const primarySections = [
-    {id: 'projeto', label: 'Projeto'},
-    snapshot?.material ? {id: 'material', label: 'Material'} : null,
-    includedItems.length > 0 ? {id: 'inclusos', label: 'Inclusos'} : null,
-    {id: 'investimento', label: 'Investimento'},
-    {id: 'aceite', label: proposalAccepted ? 'Aceite' : 'Confirmar'},
-  ].filter(Boolean) as Array<{id: string; label: string}>;
-
   return (
-    <div className="min-h-screen bg-[#0e0d0b] text-[#f4efe8]">
+    <div className="min-h-screen bg-[#0f0d0b] text-[#f7f1ea]">
       <style>{`
         html {
           scroll-behavior: smooth;
@@ -434,311 +465,306 @@ export const QuotePresentationPage: React.FC = () => {
         @media print {
           body { background: #ffffff !important; }
           .proposal-print-hide { display: none !important; }
-          .proposal-print-shell { background: #ffffff !important; color: #201a15 !important; }
+          .proposal-print-shell { background: #ffffff !important; color: #201913 !important; }
         }
       `}</style>
 
-      <header className="proposal-print-hide sticky top-0 z-40 border-b border-white/6 bg-[#0e0d0b]/90 backdrop-blur-xl">
+      <header className="proposal-print-hide sticky top-0 z-40 border-b border-white/6 bg-[#0f0d0b]/88 backdrop-blur-xl">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
           <div className="min-w-0">
-            <div className="truncate text-[11px] uppercase tracking-[0.34em] text-[#b8976a]">{company?.name || "D'Coratto Sob Medida"}</div>
-            <div className="mt-1 truncate text-sm text-[#d7c8b6]">{availablePayload.meta.proposalCode}</div>
+            <div className="truncate text-[11px] uppercase tracking-[0.34em] text-[#c9a46b]">{company?.name || "D'Coratto Sob Medida"}</div>
+            <div className="mt-1 truncate text-sm text-[#dbcbb9]">{availablePayload.meta.proposalCode}</div>
           </div>
-          <nav className="hidden items-center gap-5 text-xs text-[#d8c8b5] md:flex">
-            {primarySections.map((section) => (
-              <a key={section.id} href={`#${section.id}`} className="transition hover:text-[#f4efe8]">
-                {section.label}
-              </a>
-            ))}
-          </nav>
+          <div className="hidden items-center gap-4 text-xs text-[#dbcbb9] md:flex">
+            <a href="#material" className="transition hover:text-white">Material</a>
+            <a href="#projeto" className="transition hover:text-white">Projeto</a>
+            <a href="#investimento" className="transition hover:text-white">Investimento</a>
+            <a href="#aceite" className="transition hover:text-white">{proposalAccepted ? 'Aceite' : 'Responder'}</a>
+          </div>
           <a
             href="#aceite"
-            className="inline-flex items-center gap-2 rounded-full border border-[#b8976a]/25 bg-[#171512] px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#f0e6dc] transition hover:border-[#d4b48a]/40 hover:text-white"
+            className="inline-flex items-center gap-2 rounded-full border border-[#c9a46b]/22 bg-white/5 px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#f0e6dc] transition hover:border-[#e1bd89]/45 hover:text-white"
           >
-            {proposalAccepted ? 'Aceita' : 'Responder'}
+            {proposalAccepted ? 'Aceita' : 'Aceitar'}
             <ChevronRight className="h-4 w-4" />
           </a>
         </div>
       </header>
 
       <main className="proposal-print-shell">
-        <section className="relative overflow-hidden px-5 pb-16 pt-10 sm:pb-20 sm:pt-14">
-          <div className="absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_top,_rgba(184,151,106,0.16),_transparent_58%)]" />
-          <div className="relative mx-auto grid max-w-6xl gap-10 lg:min-h-[88vh] lg:grid-cols-[minmax(0,1.02fr)_minmax(320px,0.98fr)] lg:items-center">
+        <section className="relative overflow-hidden px-5 pb-20 pt-10 sm:pt-14">
+          <div className="absolute inset-x-0 top-0 h-[520px] bg-[radial-gradient(circle_at_top,_rgba(225,198,164,0.18),_transparent_58%)]" />
+          <div className="relative mx-auto grid max-w-6xl gap-10 lg:min-h-[86vh] lg:grid-cols-[minmax(0,1.02fr)_minmax(320px,0.98fr)] lg:items-center">
             <div className="flex flex-col justify-center">
-              <SectionEyebrow>Proposta comercial</SectionEyebrow>
-              <h1 className="mt-7 max-w-4xl font-display text-5xl leading-none text-[#f4efe8] sm:text-6xl lg:text-[5.5rem]">
-                Projeto desenvolvido para {snapshot?.client?.name || 'seu projeto'}.
-              </h1>
-              <p className="mt-6 max-w-2xl text-base leading-8 text-[#d8c8b5] sm:text-lg">
-                {snapshot?.heroSubtitle || 'Soluções em rochas e superfícies sob medida com apresentação comercial fiel ao orçamento aprovado.'}
-              </p>
-
-              <div className="mt-10 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[26px] border border-white/10 bg-[#131210] px-5 py-4">
-                  <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">Proposta</div>
-                  <div className="mt-2 text-base text-[#f4efe8]">{availablePayload.meta.proposalCode}</div>
-                  <div className="mt-1 text-sm text-[#bcae9d]">{availablePayload.meta.versionLabel}</div>
+              <RevealBlock reducedMotion={prefersReducedMotion}>
+                <div className="inline-flex items-center gap-4">
+                  {company?.logoUrl ? (
+                    <PresentationImage
+                      src={company.logoUrl}
+                      alt={company.name || "D'Coratto Sob Medida"}
+                      priority
+                      className="h-12 w-auto object-contain sm:h-14"
+                    />
+                  ) : (
+                    <div className="rounded-full border border-[#c9a46b]/18 bg-white/5 px-4 py-3 text-[11px] uppercase tracking-[0.36em] text-[#c9a46b]">
+                      D'Coratto
+                    </div>
+                  )}
                 </div>
-                <div className="rounded-[26px] border border-white/10 bg-[#131210] px-5 py-4">
-                  <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">Validade</div>
-                  <div className="mt-2 text-base text-[#f4efe8]">{formatDateLong(availablePayload.meta.validUntil)}</div>
-                  <div className="mt-1 text-sm text-[#bcae9d]">Versão pública da proposta digital</div>
-                </div>
-              </div>
+              </RevealBlock>
 
-              <div className="mt-10 flex flex-wrap gap-3">
-                <a
-                  href="#investimento"
-                  className="inline-flex items-center gap-2 rounded-full bg-[#b8976a] px-5 py-3 text-sm font-semibold text-[#2f2419] transition duration-200 hover:bg-[#d4b48a] motion-reduce:transition-none"
-                >
-                  Ver investimento
-                  <ChevronRight className="h-4 w-4" />
-                </a>
-                <a
-                  href="#projeto"
-                  className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/5 px-5 py-3 text-sm text-[#efe4d9] transition duration-200 hover:border-[#b8976a]/35 hover:bg-white/8 motion-reduce:transition-none"
-                >
-                  Explorar projeto
-                </a>
-              </div>
+              <RevealBlock reducedMotion={prefersReducedMotion} delayMs={300} className="mt-8">
+                <h1 className="max-w-4xl font-display text-5xl leading-none text-[#f7f1ea] sm:text-6xl lg:text-[5.6rem]">
+                  {snapshot?.client?.name || 'Cliente'}
+                </h1>
+              </RevealBlock>
+
+              <RevealBlock reducedMotion={prefersReducedMotion} delayMs={500} className="mt-6">
+                <p className="max-w-2xl text-base leading-8 text-[#d7c7b5] sm:text-lg">
+                  Proposta desenvolvida especialmente para o seu projeto.
+                </p>
+              </RevealBlock>
+
+              <RevealBlock reducedMotion={prefersReducedMotion} delayMs={700} className="mt-8">
+                <div className="flex flex-wrap gap-3 text-sm text-[#e9ddd1]">
+                  <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
+                    {availablePayload.meta.proposalCode} · {availablePayload.meta.versionLabel}
+                  </span>
+                  {generatedLabel ? (
+                    <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">{generatedLabel}</span>
+                  ) : null}
+                  {validUntilLabel ? (
+                    <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">Válida até {validUntilLabel}</span>
+                  ) : null}
+                </div>
+              </RevealBlock>
+
+              <RevealBlock reducedMotion={prefersReducedMotion} delayMs={820} className="mt-10">
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href="#investimento"
+                    className="inline-flex items-center gap-2 rounded-full bg-[#e1c6a4] px-5 py-3 text-sm font-semibold text-[#3a2d22] transition duration-200 hover:bg-[#f0d8b8] motion-reduce:transition-none"
+                  >
+                    Ver investimento
+                    <ChevronRight className="h-4 w-4" />
+                  </a>
+                  {simulationOptions.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => setSimulatorOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/5 px-5 py-3 text-sm text-[#f0e6dc] transition duration-200 hover:border-[#e1c6a4]/42 hover:bg-white/8 motion-reduce:transition-none"
+                    >
+                      Simule as formas de pagamento
+                    </button>
+                  ) : null}
+                </div>
+              </RevealBlock>
             </div>
 
-            <div className="rounded-[36px] border border-white/8 bg-[#131210] p-4 shadow-[0_30px_90px_rgba(0,0,0,0.35)]">
-              <div className="overflow-hidden rounded-[30px] border border-white/6 bg-[#181512]">
-                <div className="flex items-center justify-between border-b border-white/6 px-5 py-4">
-                  <div>
-                    <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">{company?.name || "D'Coratto Sob Medida"}</div>
-                    <div className="mt-2 text-sm text-[#e4d8cb]">Soluções em Rochas e Superfícies Sob Medida</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[11px] uppercase tracking-[0.24em] text-[#b8976a]">Valor final</div>
-                    <div className="mt-2 font-display text-3xl text-[#f4efe8]">{formatCurrency(investment?.totalPrice || 0)}</div>
+            <RevealBlock reducedMotion={prefersReducedMotion} delayMs={220} className="lg:justify-self-end">
+              <div className="group rounded-[36px] border border-white/8 bg-[#15120f] p-4 shadow-[0_32px_90px_rgba(0,0,0,0.34)]">
+                <div className="overflow-hidden rounded-[30px] border border-white/8 bg-[#1a1714]">
+                  {materialImage ? (
+                    <button type="button" onClick={() => setLightboxOpen(true)} className="block w-full text-left">
+                      <PresentationImage
+                        src={materialImage}
+                        alt={snapshot?.material?.name || 'Material selecionado'}
+                        priority
+                        className={cn(
+                          'h-[380px] w-full object-cover transition duration-500 group-hover:scale-[1.02]',
+                          prefersReducedMotion && 'transition-none group-hover:scale-100',
+                        )}
+                      />
+                    </button>
+                  ) : (
+                    <div className="flex h-[380px] items-center justify-center text-sm text-[#c9b8a4]">
+                      Proposta comercial D'Coratto
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between border-t border-white/8 px-5 py-4">
+                    <div>
+                      <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Material escolhido</div>
+                      <div className="mt-2 text-lg text-[#f7f1ea]">{snapshot?.material?.name || 'Projeto sob medida'}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Valor oficial</div>
+                      <div className="mt-2 font-display text-3xl text-[#f7f1ea]">{formatCurrency(investment?.totalPrice || 0)}</div>
+                    </div>
                   </div>
                 </div>
-                {topImage ? (
-                  <PresentationImage
-                    src={topImage}
-                    alt={snapshot?.material?.name || 'Projeto D\'Coratto'}
-                    priority
-                    className="h-[360px] w-full object-cover sm:h-[520px]"
-                  />
-                ) : (
-                  <div className="flex h-[360px] items-center justify-center bg-[#1c1a17] text-sm text-[#c7b7a5] sm:h-[520px]">
-                    Apresentação comercial D&apos;Coratto
-                  </div>
-                )}
               </div>
-            </div>
+            </RevealBlock>
+          </div>
+        </section>
+
+        <section id="material" className="border-t border-white/6 px-5 py-16 sm:py-20">
+          <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center">
+            {materialImage ? (
+              <RevealBlock reducedMotion={prefersReducedMotion}>
+                <div className="group overflow-hidden rounded-[34px] border border-white/8 bg-[#15120f] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.28)]">
+                  <div className="overflow-hidden rounded-[28px] bg-[#1a1714]">
+                    <PresentationImage
+                      src={materialImage}
+                      alt={snapshot?.material?.name || 'Material selecionado'}
+                      className={cn(
+                        'h-[360px] w-full object-cover transition duration-500 group-hover:scale-[1.02]',
+                        prefersReducedMotion && 'transition-none group-hover:scale-100',
+                      )}
+                      onClick={() => setLightboxOpen(true)}
+                    />
+                  </div>
+                </div>
+              </RevealBlock>
+            ) : null}
+
+            <RevealBlock reducedMotion={prefersReducedMotion} delayMs={80}>
+              <SectionEyebrow>Material selecionado</SectionEyebrow>
+              <SectionTitle>{snapshot?.material?.name || 'Superfície escolhida'}</SectionTitle>
+              <div className="mt-6 flex flex-wrap gap-3 text-sm text-[#f0e6dc]">
+                {[
+                  snapshot?.material?.category,
+                  snapshot?.material?.materialLine,
+                  snapshot?.material?.materialType,
+                  snapshot?.material?.thicknessLabel,
+                  snapshot?.material?.texture,
+                ].filter(Boolean).map((item) => (
+                  <span key={item} className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
+                    {item}
+                  </span>
+                ))}
+              </div>
+              {snapshot?.material?.description ? (
+                <p className="mt-8 max-w-2xl text-base leading-8 text-[#d6c6b4]">{snapshot.material.description}</p>
+              ) : null}
+            </RevealBlock>
           </div>
         </section>
 
         <section id="projeto" className="border-t border-white/6 px-5 py-16 sm:py-20">
           <div className="mx-auto max-w-6xl">
-            <SectionEyebrow>Seu projeto</SectionEyebrow>
-            <SectionTitle>Uma composição pensada para o seu ambiente.</SectionTitle>
-            <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {projectSummaryItems.map((item) => (
-                <div key={item.label} className="rounded-[26px] border border-white/8 bg-[#131210] px-5 py-5">
-                  <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">{item.label}</div>
-                  <div className="mt-3 text-lg text-[#f4efe8]">{item.value}</div>
-                </div>
-              ))}
-            </div>
+            <RevealBlock reducedMotion={prefersReducedMotion}>
+              <SectionEyebrow>Seu projeto</SectionEyebrow>
+              <SectionTitle>Ambiente e metragem apresentados com clareza.</SectionTitle>
+            </RevealBlock>
 
-            <div className="mt-12 grid gap-6 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
-              <div className="rounded-[30px] border border-white/8 bg-[#131210] p-6">
-                <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">Resumo da proposta</div>
-                <div className="mt-5 space-y-4 text-sm leading-8 text-[#d7c8b6]">
-                  <p>
-                    Esta proposta apresenta uma solução comercial personalizada da D'Coratto para o seu projeto,
-                    preservando exatamente os dados salvos no orçamento e nesta versão pública.
-                  </p>
-                  <p>
-                    {snapshot?.summary?.pieceCount
-                      ? `${snapshot.summary.pieceCount} peça(s) compõem esta versão comercial.`
-                      : 'Projeto sob medida preparado para o seu ambiente.'}
-                  </p>
+            <div className="mt-10 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)_minmax(280px,0.8fr)]">
+              <RevealBlock reducedMotion={prefersReducedMotion} delayMs={40}>
+                <div className="rounded-[30px] border border-white/8 bg-[#15120f] px-6 py-7">
+                  <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Ambiente</div>
+                  <div className="mt-4 font-display text-4xl text-[#f7f1ea]">{snapshot?.summary?.environment || snapshot?.heroSubtitle || 'Projeto sob medida'}</div>
                 </div>
-              </div>
+              </RevealBlock>
 
-              {(snapshot?.pieces?.length || 0) > 0 && (
-                <div className="grid gap-4">
-                  {snapshot?.pieces?.map((piece, index) => (
-                    <article key={piece.id || index} className="overflow-hidden rounded-[30px] border border-white/8 bg-[#131210]">
-                      <div className="grid gap-0 md:grid-cols-[96px_minmax(0,1fr)]">
-                        <div className="flex items-center justify-center border-b border-white/6 px-6 py-6 md:border-b-0 md:border-r">
-                          <div className="font-display text-4xl text-[#b8976a]">{String(index + 1).padStart(2, '0')}</div>
-                        </div>
-                        <div className="px-6 py-6">
-                          <div className="flex flex-wrap items-start justify-between gap-4">
-                            <div>
-                              <h3 className="text-2xl text-[#f4efe8]">{piece.name || 'Peça'}</h3>
-                              <div className="mt-3 flex flex-wrap gap-2 text-sm text-[#d5c5b3]">
-                                {piece.environment && <span className="rounded-full border border-white/8 px-3 py-1.5">{piece.environment}</span>}
-                                {piece.dimensionsLabel && <span className="rounded-full border border-white/8 px-3 py-1.5">{piece.dimensionsLabel}</span>}
-                                {piece.material && <span className="rounded-full border border-white/8 px-3 py-1.5">{piece.material}</span>}
-                              </div>
-                            </div>
-                            {piece.imageUrl && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const matchedIndex = gallery.findIndex((item) => item.src === piece.imageUrl);
-                                  setLightboxIndex(matchedIndex >= 0 ? matchedIndex : 0);
-                                }}
-                                className="inline-flex items-center gap-2 rounded-full border border-[#b8976a]/20 px-4 py-2 text-xs uppercase tracking-[0.22em] text-[#e8dccf] transition hover:border-[#d4b48a]/40 hover:text-white"
-                              >
-                                Ver imagem
-                              </button>
-                            )}
-                          </div>
-                          {piece.notes && <p className="mt-5 text-sm leading-7 text-[#bba996]">{piece.notes}</p>}
-                        </div>
-                      </div>
-                    </article>
-                  ))}
+              <RevealBlock reducedMotion={prefersReducedMotion} delayMs={100}>
+                <div className="rounded-[30px] border border-white/8 bg-[#15120f] px-6 py-7">
+                  <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Área do projeto</div>
+                  <div className="mt-4 font-display text-4xl text-[#f7f1ea]">{formatArea(investment?.totalArea || 0)}</div>
                 </div>
-              )}
-            </div>
-          </div>
-        </section>
+              </RevealBlock>
 
-        {snapshot?.material && (
-          <section id="material" className="border-t border-white/6 px-5 py-16 sm:py-20">
-            <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:items-center">
-              <div className="overflow-hidden rounded-[34px] border border-white/8 bg-[#131210] p-4 shadow-[0_25px_70px_rgba(0,0,0,0.28)]">
-                <div className="overflow-hidden rounded-[28px] bg-[#181512]">
-                  <PresentationImage
-                    src={snapshot.material.imageUrl}
-                    alt={snapshot.material.name || 'Material'}
-                    className="h-[360px] w-full object-cover sm:h-[520px]"
-                  />
-                  {!snapshot.material.imageUrl && (
-                    <div className="flex h-[360px] items-center justify-center text-sm text-[#baa892] sm:h-[520px]">
-                      Material selecionado para o projeto
-                    </div>
-                  )}
+              <RevealBlock reducedMotion={prefersReducedMotion} delayMs={160}>
+                <div className="rounded-[30px] border border-white/8 bg-[#15120f] px-6 py-7">
+                  <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Local</div>
+                  <div className="mt-4 text-lg leading-8 text-[#f7f1ea]">{projectLocation || snapshot?.client?.city || '-'}</div>
                 </div>
-              </div>
-
-              <div>
-                <SectionEyebrow>Material selecionado</SectionEyebrow>
-                <SectionTitle>{snapshot.material.name || 'Superfície escolhida'}</SectionTitle>
-                <div className="mt-6 flex flex-wrap gap-3 text-sm text-[#f0e6dc]">
-                  {[snapshot.material.category, snapshot.material.materialLine, snapshot.material.materialType, snapshot.material.thicknessLabel, snapshot.material.texture]
-                    .filter(Boolean)
-                    .map((item) => (
-                      <span key={item} className="rounded-full border border-white/10 bg-white/5 px-4 py-2">{item}</span>
-                    ))}
-                </div>
-                {snapshot.material.description && (
-                  <p className="mt-8 max-w-2xl text-base leading-8 text-[#d6c6b4]">{snapshot.material.description}</p>
-                )}
-              </div>
-            </div>
-          </section>
-        )}
-
-        {includedItems.length > 0 && (
-          <section id="inclusos" className="border-t border-white/6 px-5 py-16 sm:py-20">
-            <div className="mx-auto max-w-6xl">
-              <SectionEyebrow>O que está incluso</SectionEyebrow>
-              <SectionTitle>Itens contemplados nesta proposta comercial.</SectionTitle>
-              <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {includedItems.map((item) => (
-                  <div key={item.key} className="rounded-[28px] border border-white/8 bg-[#131210] px-5 py-5">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#b8976a]/12 text-[#d4b48a]">
-                        <Check className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="text-lg text-[#f4efe8]">{item.title}</div>
-                        <p className="mt-2 text-sm leading-7 text-[#c7b6a2]">{item.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
-        <section className="border-t border-white/6 px-5 py-16 sm:py-20">
-          <div className="mx-auto max-w-6xl">
-            <SectionEyebrow>Etapas do seu projeto</SectionEyebrow>
-            <SectionTitle>Um processo claro do início à finalização.</SectionTitle>
-            <div className="mt-10 grid gap-4 lg:grid-cols-4">
-              {projectSteps.map((step) => (
-                <div key={step.step} className="rounded-[28px] border border-white/8 bg-[#131210] px-5 py-6">
-                  <div className="font-display text-4xl text-[#b8976a]">{step.step}</div>
-                  <div className="mt-6 text-xl text-[#f4efe8]">{step.title}</div>
-                  <p className="mt-3 text-sm leading-7 text-[#c6b6a2]">{step.description}</p>
-                </div>
-              ))}
+              </RevealBlock>
             </div>
           </div>
         </section>
 
         <section id="investimento" className="border-t border-white/6 px-5 py-16 sm:py-20">
-          <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(340px,0.9fr)]">
-            <div className="rounded-[36px] border border-[#b8976a]/18 bg-[#131210] px-6 py-8 shadow-[0_30px_90px_rgba(0,0,0,0.3)] sm:px-8 sm:py-10">
-              <SectionEyebrow>Investimento</SectionEyebrow>
-              <div className="mt-6 font-display text-5xl text-[#f4efe8] sm:text-6xl">{formatCurrency(investment?.totalPrice || 0)}</div>
-              <div className="mt-4 max-w-2xl text-base leading-8 text-[#d4c4b2]">
-                {investment?.description || 'Valor final consolidado desta proposta comercial.'}
+          <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1.06fr)_minmax(360px,0.94fr)]">
+            <RevealBlock reducedMotion={prefersReducedMotion}>
+              <div className="rounded-[36px] border border-[#e1c6a4]/18 bg-[#15120f] px-6 py-8 shadow-[0_30px_90px_rgba(0,0,0,0.3)] sm:px-8 sm:py-10">
+                <SectionEyebrow>Investimento</SectionEyebrow>
+                <div className="mt-6 font-display text-5xl text-[#f7f1ea] sm:text-6xl">{formatCurrency(investment?.totalPrice || 0)}</div>
+                <p className="mt-5 max-w-2xl text-base leading-8 text-[#d4c4b2]">
+                  Este é o valor oficial desta proposta, fiel ao orçamento salvo e à versão pública compartilhada.
+                </p>
               </div>
-              <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                {investment?.totalArea ? (
-                  <div className="rounded-[26px] border border-white/8 bg-[#171512] px-5 py-4">
-                    <div className="text-[11px] uppercase tracking-[0.24em] text-[#b8976a]">Área final</div>
-                    <div className="mt-2 text-xl text-[#f4efe8]">{formatArea(investment.totalArea)}</div>
-                  </div>
-                ) : null}
-                <div className="rounded-[26px] border border-white/8 bg-[#171512] px-5 py-4">
-                  <div className="text-[11px] uppercase tracking-[0.24em] text-[#b8976a]">Validade</div>
-                  <div className="mt-2 text-xl text-[#f4efe8]">{formatDateShort(availablePayload.meta.validUntil) || '-'}</div>
-                </div>
-              </div>
-            </div>
+            </RevealBlock>
 
             <div className="grid gap-5">
-              <div id="condicoes" className="rounded-[30px] border border-white/8 bg-[#131210] px-6 py-7">
-                <SectionEyebrow>Condições de pagamento</SectionEyebrow>
-                <div className="mt-5 text-2xl text-[#f4efe8]">{paymentSummary || 'Condição comercial a confirmar com a D\'Coratto'}</div>
-                {paymentDetails.length > 0 && (
-                  <div className="mt-5 space-y-3 text-sm leading-7 text-[#d2c1ae]">
-                    {paymentDetails.map((detail) => <div key={detail}>{detail}</div>)}
-                  </div>
-                )}
-              </div>
-
-              {(delivery?.deliveryDays || delivery?.deliveryDate || delivery?.measurementDate || delivery?.deliveryIncluded || delivery?.installationIncluded) && (
-                <div className="rounded-[30px] border border-white/8 bg-[#131210] px-6 py-7">
-                  <SectionEyebrow>Planejamento comercial</SectionEyebrow>
-                  <div className="mt-5 space-y-3 text-sm leading-7 text-[#e8ddd2]">
-                    {delivery?.measurementDate ? <div>Medição prevista para {formatDateLong(delivery.measurementDate)}.</div> : null}
-                    {delivery?.deliveryDays ? <div>Prazo estimado de {delivery.deliveryDays} dias.</div> : null}
-                    {delivery?.deliveryDate ? <div>Entrega estimada para {formatDateLong(delivery.deliveryDate)}.</div> : null}
-                    {delivery?.deliveryIncluded ? <div>Entrega contemplada na composição comercial desta proposta.</div> : null}
-                    {delivery?.installationIncluded ? <div>Instalação contemplada na composição comercial desta proposta.</div> : null}
+              <RevealBlock reducedMotion={prefersReducedMotion} delayMs={60}>
+                <div className="rounded-[30px] border border-white/8 bg-[#15120f] px-6 py-7">
+                  <SectionEyebrow>Condições financeiras</SectionEyebrow>
+                  <div className="mt-6 space-y-4">
+                    {officialPaymentRows.map((row) => (
+                      <div key={row.label} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">{row.label}</div>
+                        <div className="mt-2 text-xl text-[#f7f1ea]">{row.value}</div>
+                        {row.auxiliary ? <div className="mt-2 text-sm text-[#ccbba7]">{row.auxiliary}</div> : null}
+                      </div>
+                    ))}
                   </div>
                 </div>
-              )}
+              </RevealBlock>
+
+              <RevealBlock reducedMotion={prefersReducedMotion} delayMs={120}>
+                <div className="rounded-[30px] border border-white/8 bg-[#15120f] px-6 py-7">
+                  <SectionEyebrow>Planejamento</SectionEyebrow>
+                  <div className="mt-5 space-y-3 text-sm leading-7 text-[#e6dacc]">
+                    {delivery?.deliveryDays ? <div>Prazo estimado de {delivery.deliveryDays} dias.</div> : null}
+                    {delivery?.measurementDate ? <div>Medição prevista para {formatDateLong(delivery.measurementDate)}.</div> : null}
+                    {delivery?.deliveryDate ? <div>Entrega estimada para {formatDateLong(delivery.deliveryDate)}.</div> : null}
+                    {delivery?.deliveryIncluded ? <div>Entrega contemplada nesta proposta.</div> : null}
+                    {delivery?.installationIncluded ? <div>Instalação contemplada nesta proposta.</div> : null}
+                    {!delivery?.deliveryDays && !delivery?.measurementDate && !delivery?.deliveryDate && !delivery?.deliveryIncluded && !delivery?.installationIncluded ? (
+                      <div>Os prazos e condições logísticas permanecem conforme a proposta comercial vigente.</div>
+                    ) : null}
+                  </div>
+                </div>
+              </RevealBlock>
             </div>
+          </div>
+        </section>
+
+        <section id="simulador" className="border-t border-white/6 px-5 py-16 sm:py-20">
+          <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <RevealBlock reducedMotion={prefersReducedMotion}>
+              <SectionEyebrow>Simule as formas de pagamento</SectionEyebrow>
+              <SectionTitle>Veja como esta proposta se comporta em outras condições.</SectionTitle>
+              <p className="mt-6 max-w-2xl text-base leading-8 text-[#d6c6b4]">
+                A simulação reutiliza a mesma lógica financeira oficial do orçamento e não altera esta proposta.
+              </p>
+            </RevealBlock>
+
+            <RevealBlock reducedMotion={prefersReducedMotion} delayMs={100}>
+              <div className="rounded-[30px] border border-[#e1c6a4]/14 bg-[#15120f] px-6 py-7">
+                <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Simulação</div>
+                <div className="mt-4 text-sm leading-7 text-[#dacbbc]">
+                  {simulationOptions.length > 0
+                    ? 'Abra o simulador para comparar Pix, parcelamentos e demais condições disponíveis nesta versão.'
+                    : 'Esta versão pública não possui regras de simulação congeladas o suficiente para comparar outras condições com segurança.'}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSimulatorOpen(true)}
+                  disabled={simulationOptions.length === 0}
+                  className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#e1c6a4] px-5 py-3 text-sm font-semibold text-[#3a2d22] transition hover:bg-[#f0d8b8] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Simule as formas de pagamento
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </RevealBlock>
           </div>
         </section>
 
         {importantInfoItems.length > 0 && (
           <section className="border-t border-white/6 px-5 py-16 sm:py-20">
             <div className="mx-auto max-w-6xl">
-              <SectionEyebrow>Informações importantes</SectionEyebrow>
-              <SectionTitle>Condições e observações desta versão.</SectionTitle>
+              <RevealBlock reducedMotion={prefersReducedMotion}>
+                <SectionEyebrow>Informações importantes</SectionEyebrow>
+                <SectionTitle>Condições e observações desta versão.</SectionTitle>
+              </RevealBlock>
               <div className="mt-10 grid gap-4 md:grid-cols-2">
-                {importantInfoItems.map((item) => (
-                  <div key={item} className="rounded-[28px] border border-white/8 bg-[#131210] px-5 py-5 text-sm leading-7 text-[#d9cbbe]">
-                    {item}
-                  </div>
+                {importantInfoItems.map((item, index) => (
+                  <RevealBlock reducedMotion={prefersReducedMotion} delayMs={index * 60}>
+                    <div className="rounded-[28px] border border-white/8 bg-[#15120f] px-5 py-5 text-sm leading-7 text-[#dacbbc]">
+                      {item}
+                    </div>
+                  </RevealBlock>
                 ))}
               </div>
             </div>
@@ -746,23 +772,23 @@ export const QuotePresentationPage: React.FC = () => {
         )}
 
         <section id="aceite" className="border-t border-white/6 px-5 py-16 sm:py-20">
-          <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1.1fr)_340px]">
-            <div>
+          <div className="mx-auto grid max-w-6xl gap-8 lg:grid-cols-[minmax(0,1.08fr)_360px]">
+            <RevealBlock reducedMotion={prefersReducedMotion}>
               <SectionEyebrow>{proposalAccepted ? 'Proposta aceita' : 'Pronto para iniciar seu projeto?'}</SectionEyebrow>
-              <SectionTitle>{proposalAccepted ? 'Seu aceite já está registrado.' : 'Uma apresentação comercial pronta para sua decisão.'}</SectionTitle>
+              <SectionTitle>{proposalAccepted ? 'Seu aceite já está registrado.' : 'Aceite esta proposta quando estiver pronto.'}</SectionTitle>
               <div className="mt-6 max-w-2xl text-base leading-8 text-[#d4c4b2]">
                 {proposalAccepted
                   ? `Aceite registrado${acceptedDisplayName ? ` por ${acceptedDisplayName}` : ''} em ${formatDateLong(availablePayload.meta.acceptedAt)}.`
-                  : 'Ao confirmar esta proposta, a versão pública preserva exatamente as condições comerciais exibidas aqui, incluindo valor final e validade.'}
+                  : 'Ao confirmar, esta versão pública preserva exatamente as condições comerciais exibidas aqui.'}
               </div>
               <div className="mt-8 grid gap-4 sm:grid-cols-2">
-                <div className="rounded-[28px] border border-white/8 bg-[#131210] px-5 py-5">
-                  <div className="text-[11px] uppercase tracking-[0.24em] text-[#b8976a]">Investimento</div>
-                  <div className="mt-3 font-display text-4xl text-[#f4efe8]">{formatCurrency(investment?.totalPrice || 0)}</div>
+                <div className="rounded-[28px] border border-white/8 bg-[#15120f] px-5 py-5">
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Valor oficial</div>
+                  <div className="mt-3 font-display text-4xl text-[#f7f1ea]">{formatCurrency(investment?.totalPrice || 0)}</div>
                 </div>
-                <div className="rounded-[28px] border border-white/8 bg-[#131210] px-5 py-5">
-                  <div className="text-[11px] uppercase tracking-[0.24em] text-[#b8976a]">Proposta válida até</div>
-                  <div className="mt-3 text-2xl text-[#f4efe8]">{formatDateShort(availablePayload.meta.validUntil) || '-'}</div>
+                <div className="rounded-[28px] border border-white/8 bg-[#15120f] px-5 py-5">
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Validade</div>
+                  <div className="mt-3 text-2xl text-[#f7f1ea]">{formatDateShort(availablePayload.meta.validUntil) || '-'}</div>
                 </div>
               </div>
               {acceptanceMessage && (
@@ -771,65 +797,67 @@ export const QuotePresentationPage: React.FC = () => {
                   {acceptanceMessage}
                 </div>
               )}
-            </div>
+            </RevealBlock>
 
-            <div className="rounded-[32px] border border-[#b8976a]/18 bg-[#131210] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
-              {proposalAccepted ? (
-                <div className="space-y-4">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
-                    <CheckCircle2 className="h-4 w-4" />
-                    Proposta aceita
+            <RevealBlock reducedMotion={prefersReducedMotion} delayMs={120}>
+              <div className="rounded-[32px] border border-[#e1c6a4]/18 bg-[#15120f] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
+                {proposalAccepted ? (
+                  <div className="space-y-4">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-2 text-sm text-emerald-300">
+                      <CheckCircle2 className="h-4 w-4" />
+                      Proposta aceita
+                    </div>
+                    <div className="text-sm leading-7 text-[#d8caba]">
+                      {acceptedDisplayName
+                        ? `Aceita por ${acceptedDisplayName} em ${formatDateLong(availablePayload.meta.acceptedAt)}.`
+                        : `Aceite registrado em ${formatDateLong(availablePayload.meta.acceptedAt)}.`}
+                    </div>
                   </div>
-                  <div className="text-sm leading-7 text-[#d8caba]">
-                    {acceptedDisplayName
-                      ? `Aceita por ${acceptedDisplayName} em ${formatDateLong(availablePayload.meta.acceptedAt)}.`
-                      : `Aceite registrado em ${formatDateLong(availablePayload.meta.acceptedAt)}.`}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="text-[11px] uppercase tracking-[0.26em] text-[#b8976a]">Aceite digital</div>
-                  <div className="text-sm leading-7 text-[#d3c3b1]">
-                    Confirme seu nome para registrar o aceite desta versão.
-                  </div>
-                  {confirming ? (
-                    <>
-                      <input
-                        value={acceptedName}
-                        onChange={(event) => setAcceptedName(event.target.value)}
-                        placeholder="Seu nome completo"
-                        className="w-full rounded-2xl border border-white/10 bg-[#171512] px-4 py-3 text-sm text-[#f4efe8] outline-none placeholder:text-[#8f7d67] focus:ring-2 focus:ring-[#b8976a]/25"
-                      />
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Aceite digital</div>
+                    <div className="text-sm leading-7 text-[#d3c3b1]">
+                      Confirme seu nome para registrar o aceite desta versão.
+                    </div>
+                    {confirming ? (
+                      <>
+                        <input
+                          value={acceptedName}
+                          onChange={(event) => setAcceptedName(event.target.value)}
+                          placeholder="Seu nome completo"
+                          className="w-full rounded-2xl border border-white/10 bg-[#1b1714] px-4 py-3 text-sm text-[#f7f1ea] outline-none placeholder:text-[#8f7d67] focus:ring-2 focus:ring-[#e1c6a4]/25"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAccept}
+                          disabled={accepting}
+                          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#e1c6a4] px-4 py-3 text-sm font-semibold text-[#3a2d22] transition hover:bg-[#f0d8b8] disabled:opacity-60"
+                        >
+                          {accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                          Confirmar aceite
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirming(false)}
+                          className="w-full rounded-2xl border border-white/10 px-4 py-3 text-sm text-[#d9c9b6]"
+                        >
+                          Cancelar
+                        </button>
+                      </>
+                    ) : (
                       <button
                         type="button"
-                        onClick={handleAccept}
-                        disabled={accepting}
-                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#b8976a] px-4 py-3 text-sm font-semibold text-[#33291f] transition hover:bg-[#d4b48a] disabled:opacity-60"
+                        onClick={() => setConfirming(true)}
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#e1c6a4] px-4 py-3 text-sm font-semibold text-[#3a2d22] transition hover:bg-[#f0d8b8]"
                       >
-                        {accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                        Confirmar aceite
+                        <ShieldCheck className="h-4 w-4" />
+                        Aceitar proposta
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setConfirming(false)}
-                        className="w-full rounded-2xl border border-white/10 px-4 py-3 text-sm text-[#d9c9b6]"
-                      >
-                        Cancelar
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setConfirming(true)}
-                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#b8976a] px-4 py-3 text-sm font-semibold text-[#33291f] transition hover:bg-[#d4b48a]"
-                    >
-                      <ShieldCheck className="h-4 w-4" />
-                      Aceitar proposta
-                    </button>
-                  )}
-                </div>
-              )}
-            </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </RevealBlock>
           </div>
         </section>
       </main>
@@ -837,7 +865,7 @@ export const QuotePresentationPage: React.FC = () => {
       <footer className="border-t border-white/6 px-5 py-10">
         <div className="mx-auto grid max-w-6xl gap-8 md:grid-cols-[minmax(0,1fr)_minmax(260px,0.9fr)]">
           <div>
-            <div className="font-display text-3xl text-[#f4efe8]">{company?.name || "D'Coratto Sob Medida"}</div>
+            <div className="font-display text-3xl text-[#f7f1ea]">{company?.name || "D'Coratto Sob Medida"}</div>
             <div className="mt-3 text-sm leading-7 text-[#c7b7a4]">Soluções em Rochas e Superfícies Sob Medida</div>
             {snapshot?.summary?.responsible && (
               <div className="mt-5 text-sm text-[#e6dacd]">
@@ -846,54 +874,142 @@ export const QuotePresentationPage: React.FC = () => {
             )}
           </div>
           <div className="space-y-3 text-sm text-[#d5c6b4] md:text-right">
-            {company?.phone && <div className="flex items-center gap-2 md:justify-end"><Phone className="h-4 w-4 text-[#b8976a]" /> {company.phone}</div>}
-            {company?.address && <div className="flex items-start gap-2 md:justify-end"><MapPin className="mt-1 h-4 w-4 shrink-0 text-[#b8976a]" /> <span className="whitespace-pre-line">{company.address}</span></div>}
-            {availablePayload.meta.validUntil && <div className="flex items-center gap-2 md:justify-end"><CalendarClock className="h-4 w-4 text-[#b8976a]" /> Válida até {formatDateShort(availablePayload.meta.validUntil)}</div>}
+            {company?.phone && <div className="flex items-center gap-2 md:justify-end"><Phone className="h-4 w-4 text-[#c9a46b]" /> {company.phone}</div>}
+            {company?.address && <div className="flex items-start gap-2 md:justify-end"><MapPin className="mt-1 h-4 w-4 shrink-0 text-[#c9a46b]" /> <span className="whitespace-pre-line">{company.address}</span></div>}
+            {availablePayload.meta.validUntil && <div className="flex items-center gap-2 md:justify-end"><CalendarClock className="h-4 w-4 text-[#c9a46b]" /> Válida até {formatDateShort(availablePayload.meta.validUntil)}</div>}
           </div>
         </div>
       </footer>
 
-      {lightboxIndex != null && gallery[lightboxIndex] && (
+      {materialImage && lightboxOpen && (
         <div className="proposal-print-hide fixed inset-0 z-50 bg-black/92 p-4 backdrop-blur-sm">
           <button
             type="button"
-            onClick={() => setLightboxIndex(null)}
-            className="absolute right-5 top-5 rounded-full border border-white/15 p-3 text-white transition hover:border-[#b8976a]/45"
+            onClick={() => setLightboxOpen(false)}
+            className="absolute right-5 top-5 rounded-full border border-white/15 p-3 text-white transition hover:border-[#e1c6a4]/45"
           >
             <X className="h-5 w-5" />
           </button>
           <div className="flex h-full items-center justify-center">
-            {gallery.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setLightboxIndex((current) => current == null ? current : (current - 1 + gallery.length) % gallery.length)}
-                className="mr-3 rounded-full border border-white/15 p-3 text-white transition hover:border-[#b8976a]/45"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-            )}
             <div className="w-full max-w-5xl">
-              <PresentationImage src={gallery[lightboxIndex].src} alt={gallery[lightboxIndex].title} className="max-h-[78vh] w-full rounded-[24px] object-contain" />
-              <div className="mt-5 flex items-center justify-between gap-4 text-sm text-white/80">
-                <div>
-                  <div className="font-medium text-white">{gallery[lightboxIndex].title}</div>
-                  <div>{gallery[lightboxIndex].subtitle}</div>
-                </div>
-                <div>{lightboxIndex + 1} / {gallery.length}</div>
-              </div>
+              <PresentationImage src={materialImage} alt={snapshot?.material?.name || 'Material'} className="max-h-[80vh] w-full rounded-[24px] object-contain" />
             </div>
-            {gallery.length > 1 && (
-              <button
-                type="button"
-                onClick={() => setLightboxIndex((current) => current == null ? current : (current + 1) % gallery.length)}
-                className="ml-3 rounded-full border border-white/15 p-3 text-white transition hover:border-[#b8976a]/45"
-              >
-                <ArrowRight className="h-5 w-5" />
-              </button>
-            )}
           </div>
         </div>
       )}
+
+      <div
+        className={cn(
+          'proposal-print-hide fixed inset-0 z-50 bg-black/60 transition-opacity duration-300',
+          simulatorOpen ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0',
+          prefersReducedMotion && 'transition-none',
+        )}
+        onClick={() => setSimulatorOpen(false)}
+      />
+
+      <aside
+        className={cn(
+          'proposal-print-hide fixed inset-x-0 bottom-0 z-[60] max-h-[88vh] rounded-t-[32px] border border-white/8 bg-[#15120f] shadow-[0_-24px_60px_rgba(0,0,0,0.45)] transition duration-300 lg:inset-y-0 lg:right-0 lg:left-auto lg:max-h-none lg:w-[460px] lg:rounded-none lg:border-l',
+          simulatorOpen ? 'translate-y-0 lg:translate-x-0' : 'translate-y-full lg:translate-x-full lg:translate-y-0',
+          prefersReducedMotion && 'transition-none',
+        )}
+        aria-hidden={!simulatorOpen}
+      >
+        <div className="flex h-full flex-col">
+          <div className="flex items-center justify-between border-b border-white/8 px-5 py-4">
+            <div>
+              <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Simule sua condição</div>
+              <div className="mt-2 text-sm text-[#d8c8b5]">Valor oficial da proposta: {formatCurrency(investment?.totalPrice || 0)}</div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSimulatorOpen(false)}
+              className="rounded-full border border-white/10 p-3 text-[#f7f1ea]"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto px-5 py-5">
+            {simulationOptions.length > 0 && selectedSimulation ? (
+              <div className="space-y-6">
+                <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5">
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Formas disponíveis</div>
+                  <div className="mt-4 space-y-3">
+                    {simulationOptions.map((option) => (
+                      <button
+                        key={option.methodName}
+                        type="button"
+                        onClick={() => setSelectedSimulationMethod(option.methodName)}
+                        className={cn(
+                          'w-full rounded-[22px] border px-4 py-4 text-left transition',
+                          option.methodName === selectedSimulation.methodName
+                            ? 'border-[#e1c6a4]/55 bg-[#201a15]'
+                            : 'border-white/8 bg-[#1a1714] hover:border-[#e1c6a4]/28',
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="text-base text-[#f7f1ea]">{option.methodName}</div>
+                            <div className="mt-1 text-sm text-[#cab8a4]">
+                              {option.installmentCount > 1
+                                ? `${option.installmentCount}x de ${formatCurrency(option.installmentAmount)}`
+                                : `Total nesta condição: ${formatCurrency(option.totalPrice)}`}
+                            </div>
+                          </div>
+                          {option.isCurrent ? (
+                            <span className="rounded-full border border-[#e1c6a4]/24 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-[#f1dfca]">
+                              Atual
+                            </span>
+                          ) : null}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="rounded-[24px] border border-[#e1c6a4]/18 bg-[#1a1714] p-5">
+                  <div
+                    key={selectedSimulation.methodName}
+                    className={cn(
+                      'transition duration-300 ease-out',
+                      prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-2',
+                    )}
+                  >
+                    <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Condição selecionada</div>
+                    <div className="mt-4 text-2xl text-[#f7f1ea]">{selectedSimulation.methodName}</div>
+                    {selectedSimulation.paymentMode === 'entry' && selectedSimulation.entryAmount > 0 ? (
+                      <div className="mt-5 rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Entrada</div>
+                        <div className="mt-2 text-xl text-[#f7f1ea]">{formatCurrency(selectedSimulation.entryAmount)}</div>
+                      </div>
+                    ) : null}
+                    <div className="mt-5 rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                      <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Valor final nesta condição</div>
+                      <div className="mt-2 font-display text-4xl text-[#f7f1ea]">{formatCurrency(selectedSimulation.totalPrice)}</div>
+                    </div>
+                    {selectedSimulation.installmentCount > 1 ? (
+                      <div className="mt-5 rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Parcelamento</div>
+                        <div className="mt-2 text-2xl text-[#f7f1ea]">
+                          {selectedSimulation.installmentCount}x de {formatCurrency(selectedSimulation.installmentAmount)}
+                        </div>
+                      </div>
+                    ) : null}
+                    <p className="mt-5 text-sm leading-7 text-[#cab8a4]">
+                      Simulação informativa. A proposta oficial continua preservada com o valor principal exibido nesta página.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5 text-sm leading-7 text-[#dacbbc]">
+                Esta versão não possui dados suficientes para uma simulação segura sem recorrer às regras atuais do Admin, então o comparativo foi bloqueado para preservar a fidelidade financeira da proposta.
+              </div>
+            )}
+          </div>
+        </div>
+      </aside>
     </div>
   );
 };

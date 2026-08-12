@@ -230,6 +230,45 @@ const detectPaymentGroup = (methodName: string) => {
   return 'all';
 };
 
+const formatSimulationMethodHeading = (methodName: string) => {
+  const normalized = methodName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+  if (normalized.includes('pix') || normalized.includes('avista') || normalized.includes('a vista')) {
+    return 'À vista / Pix';
+  }
+
+  if (normalized.includes('debito')) {
+    return 'Débito';
+  }
+
+  const installmentMatch = methodName.match(/(\d{1,2})\s*x/i);
+  if (installmentMatch) {
+    return `Crédito ${installmentMatch[1]}x`;
+  }
+
+  return methodName;
+};
+
+const formatSimulationMethodDetail = (option: {
+  installmentCount: number;
+  installmentAmount: number;
+  totalPrice: number;
+  entryAmount: number;
+}) => {
+  if (option.installmentCount > 1) {
+    return `${option.installmentCount}x de ${formatCurrency(option.installmentAmount)}`;
+  }
+
+  if (option.entryAmount > 0) {
+    return `${formatCurrency(option.totalPrice - option.entryAmount)} + entrada`;
+  }
+
+  return formatCurrency(option.totalPrice);
+};
+
 const buildOfficialPaymentRows = (snapshot?: QuotePresentationSnapshot | null) => {
   if (!snapshot?.payment) return [];
 
@@ -472,6 +511,11 @@ export const QuotePresentationPage: React.FC = () => {
   const selectedSimulation = filteredSimulationOptions.find((option) => option.methodName === selectedSimulationMethod)
     || filteredSimulationOptions[0]
     || null;
+  const stickySummaryLabel = selectedSimulation
+    ? selectedSimulation.installmentCount > 1
+      ? `${selectedSimulation.installmentCount}x de ${formatCurrency(selectedSimulation.installmentAmount)}`
+      : formatSimulationMethodHeading(selectedSimulation.methodName)
+    : '';
 
   const importantInfoItems = useMemo(() => {
     if (!snapshot) return [];
@@ -1039,48 +1083,45 @@ export const QuotePresentationPage: React.FC = () => {
         aria-hidden={!simulatorOpen}
       >
         <div className="flex h-full min-h-0 flex-col">
-          <div className="shrink-0 border-b border-white/8 px-5 pb-4 pt-4">
-            <div className="mb-3 flex items-center justify-center lg:hidden">
+          <div className="shrink-0 border-b border-white/8 px-4 pb-3 pt-4 sm:px-5">
+            <div className="mb-2 flex items-center justify-center lg:hidden">
               <div className="h-1.5 w-14 rounded-full bg-white/10" />
             </div>
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Simule sua condição</div>
-                <div className="mt-2 text-sm text-[#d8c8b5]">Valor oficial da proposta</div>
-                <div className="mt-1 text-2xl text-[#f7f1ea]">{formatCurrency(investment?.totalPrice || 0)}</div>
+                <div className="text-[10px] uppercase tracking-[0.28em] text-[#c9a46b]">Simule seu pagamento</div>
+                <div className="mt-2 text-xs uppercase tracking-[0.18em] text-[#99836c]">Valor da proposta</div>
+                <div className="mt-1 text-[1.7rem] leading-none text-[#f7f1ea]">{formatCurrency(investment?.totalPrice || 0)}</div>
               </div>
               <button
                 type="button"
                 onClick={() => setSimulatorOpen(false)}
-                className="rounded-full border border-white/10 p-3 text-[#f7f1ea]"
+                className="rounded-full border border-white/10 p-2.5 text-[#f7f1ea] transition hover:border-[#e1c6a4]/35"
+                aria-label="Fechar simulador"
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 [padding-bottom:calc(env(safe-area-inset-bottom)+1.25rem)]">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5 [padding-bottom:calc(env(safe-area-inset-bottom)+8.75rem)] lg:[padding-bottom:calc(env(safe-area-inset-bottom)+7.5rem)]">
             {simulationOptions.length > 0 ? (
-              <div className="space-y-6">
-                <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5">
+              <div className="space-y-4">
+                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4 sm:p-5">
                   <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Entrada</div>
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-3 space-y-3">
                     <input
                       type="text"
                       inputMode="numeric"
                       value={simulationEntryInput}
                       onChange={(event) => setSimulationEntryInput(formatCurrencyInputDisplay(parseCurrencyInputDigits(event.target.value)))}
                       placeholder="R$ 0,00"
-                      className="w-full rounded-[18px] border border-white/10 bg-[#1a1714] px-4 py-3 text-lg text-[#f7f1ea] outline-none placeholder:text-[#8f7d67] focus:border-[#e1c6a4]/35"
+                      className="w-full rounded-[18px] border border-white/10 bg-[#1a1714] px-4 py-3 text-lg text-[#f7f1ea] outline-none placeholder:text-[#8f7d67] transition focus:border-[#e1c6a4]/35"
                     />
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="space-y-3">
                       <div className="rounded-[18px] border border-white/8 bg-[#1a1714] px-4 py-3">
-                        <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">Entrada aplicada</div>
-                        <div className="mt-2 text-lg text-[#f7f1ea]">{formatCurrency(normalizedSimulationEntryAmount)}</div>
-                      </div>
-                      <div className="rounded-[18px] border border-white/8 bg-[#1a1714] px-4 py-3">
-                        <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">Saldo base</div>
-                        <div className="mt-2 text-lg text-[#f7f1ea]">{formatCurrency(simulationBaseBalance)}</div>
+                        <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">Saldo após entrada</div>
+                        <div className="mt-1 text-xl text-[#f7f1ea]">{formatCurrency(simulationBaseBalance)}</div>
                       </div>
                     </div>
                     {simulationBase && requestedEntryAmount > simulationBase.subtotalBeforeAdjustment ? (
@@ -1091,7 +1132,7 @@ export const QuotePresentationPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5">
+                <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4 sm:p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Formas disponíveis</div>
                     <div className="flex flex-wrap gap-2">
@@ -1117,39 +1158,43 @@ export const QuotePresentationPage: React.FC = () => {
                       ))}
                     </div>
                   </div>
-                  <div className="mt-4 space-y-3">
+                  <div className="mt-4 space-y-2.5">
                     {filteredSimulationOptions.map((option) => (
                       <button
                         key={option.methodName}
                         type="button"
                         onClick={() => setSelectedSimulationMethod(option.methodName)}
                         className={cn(
-                          'w-full rounded-[22px] border px-4 py-4 text-left transition',
+                          'w-full rounded-[20px] border px-4 py-3.5 text-left transition',
                           option.methodName === selectedSimulation?.methodName
-                            ? 'border-[#e1c6a4]/55 bg-[#201a15]'
+                            ? 'border-[#e1c6a4]/55 bg-[#201a15] shadow-[0_10px_30px_rgba(0,0,0,0.18)]'
                             : 'border-white/8 bg-[#1a1714] hover:border-[#e1c6a4]/28',
                         )}
                       >
-                        <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <div className="text-base text-[#f7f1ea]">{option.methodName}</div>
+                            <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">{formatSimulationMethodHeading(option.methodName)}</div>
+                            <div className="mt-2 text-base text-[#f7f1ea]">{formatSimulationMethodDetail(option)}</div>
+                            <div className="mt-1 text-sm text-[#cab8a4]">Total: {formatCurrency(option.totalPrice)}</div>
                             {option.entryAmount > 0 ? (
-                              <div className="mt-2 text-sm text-[#cab8a4]">Entrada: {formatCurrency(option.entryAmount)}</div>
-                            ) : null}
-                            <div className="mt-1 text-sm text-[#cab8a4]">
-                              {option.installmentCount > 1
-                                ? `${option.installmentCount}x de ${formatCurrency(option.installmentAmount)}`
-                                : `Total nesta condição: ${formatCurrency(option.totalPrice)}`}
-                            </div>
-                            {option.entryAmount > 0 ? (
-                              <div className="mt-1 text-xs text-[#bca792]">Saldo base: {formatCurrency(option.financedAmount)}</div>
+                              <div className="mt-1 text-xs text-[#bca792]">Saldo financiado: {formatCurrency(option.financedAmount)}</div>
                             ) : null}
                           </div>
-                          {option.isCurrent ? (
-                            <span className="rounded-full border border-[#e1c6a4]/24 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-[#f1dfca]">
-                              Atual
-                            </span>
-                          ) : null}
+                          <div className="flex shrink-0 items-center gap-2 pt-0.5">
+                            {option.isCurrent ? (
+                              <span className="rounded-full border border-[#e1c6a4]/24 px-2.5 py-1 text-[10px] uppercase tracking-[0.24em] text-[#f1dfca]">
+                                Atual
+                              </span>
+                            ) : null}
+                            <span
+                              className={cn(
+                                'h-2.5 w-2.5 rounded-full border transition',
+                                option.methodName === selectedSimulation?.methodName
+                                  ? 'border-[#f1dfca] bg-[#e1c6a4]'
+                                  : 'border-white/25 bg-transparent',
+                              )}
+                            />
+                          </div>
                         </div>
                       </button>
                     ))}
@@ -1169,41 +1214,29 @@ export const QuotePresentationPage: React.FC = () => {
           </div>
 
           {selectedSimulation ? (
-            <div className="shrink-0 border-t border-white/8 bg-[#15120f] px-5 py-4 [padding-bottom:calc(env(safe-area-inset-bottom)+1rem)]">
+            <div className="shrink-0 border-t border-white/8 bg-[#15120f]/95 px-4 py-3 backdrop-blur-sm sm:px-5 [padding-bottom:calc(env(safe-area-inset-bottom)+0.85rem)]">
               <div
                 key={selectedSimulation.methodName}
                 className={cn(
-                  'rounded-[24px] border border-[#e1c6a4]/18 bg-[#1a1714] p-5 transition duration-300 ease-out',
+                  'rounded-[20px] border border-[#e1c6a4]/18 bg-[#1a1714] px-4 py-3.5 transition duration-300 ease-out',
                   prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-2',
                 )}
               >
-                <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Condição selecionada</div>
-                <div className="mt-3 text-xl text-[#f7f1ea]">{selectedSimulation.methodName}</div>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4">
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">Entrada</div>
-                    <div className="mt-2 text-lg text-[#f7f1ea]">{formatCurrency(selectedSimulation.entryAmount)}</div>
+                <div className="flex items-end justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="text-[10px] uppercase tracking-[0.24em] text-[#c9a46b]">Resumo da simulação</div>
+                    <div className="mt-2 text-sm text-[#cab8a4]">Entrada {formatCurrency(selectedSimulation.entryAmount)}</div>
+                    <div className="mt-1 text-base text-[#f7f1ea]">{stickySummaryLabel}</div>
                   </div>
-                  <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4">
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">Saldo a financiar</div>
-                    <div className="mt-2 text-lg text-[#f7f1ea]">{formatCurrency(selectedSimulation.financedAmount)}</div>
+                  <div className="text-right">
+                    <div className="text-[10px] uppercase tracking-[0.22em] text-[#c9a46b]">Total</div>
+                    <div className="mt-1 text-2xl text-[#f7f1ea]">{formatCurrency(selectedSimulation.totalPrice)}</div>
                   </div>
                 </div>
-                {selectedSimulation.installmentCount > 1 ? (
-                  <div className="mt-4 rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4">
-                    <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">Parcelamento</div>
-                    <div className="mt-2 text-lg text-[#f7f1ea]">
-                      {selectedSimulation.installmentCount} parcelas de {formatCurrency(selectedSimulation.installmentAmount)}
-                    </div>
-                  </div>
-                ) : null}
-                <div className="mt-4 rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4">
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">Total final nesta condição</div>
-                  <div className="mt-2 font-display text-3xl text-[#f7f1ea]">{formatCurrency(selectedSimulation.totalPrice)}</div>
+                <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/8 pt-3 text-xs text-[#bca792]">
+                  <span>Saldo financiado: {formatCurrency(selectedSimulation.financedAmount)}</span>
+                  <span>Simulação não altera o valor oficial da proposta.</span>
                 </div>
-                <p className="mt-4 text-sm leading-7 text-[#cab8a4]">
-                  Simulação informativa. A proposta oficial continua preservada com o valor principal exibido nesta página.
-                </p>
               </div>
             </div>
           ) : null}

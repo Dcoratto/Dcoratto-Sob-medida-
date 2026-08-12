@@ -525,6 +525,21 @@ export interface DrawingCutout {
   fixtureImageUrl?: string;
 }
 
+export type PieceScopedCutoutType =
+  | 'cooktop'
+  | 'sinkUnder'
+  | 'sinkOver'
+  | 'faucetHole'
+  | 'trashBinCutout'
+  | 'popUpTowerCutout'
+  | 'wetAreaAmericanRecess'
+  | 'wetAreaItalianRecess';
+
+export interface QuotePieceCutoutItem {
+  type: PieceScopedCutoutType;
+  quantity: number;
+}
+
 export interface SculptedSink {
   active: boolean;
   type?: 'Simples' | 'Com rampa' | 'Válvula oculta' | 'Cuba dupla';
@@ -590,6 +605,7 @@ export interface QuotePiece {
   previewUrl?: string;
   proposalImageUrl?: string;
   cutouts?: DrawingCutout[];
+  manualCutouts?: QuotePieceCutoutItem[];
   stair?: StairConfig;
   sculptedSink?: SculptedSink;
   wetAreaRecess?: WetAreaRecess;

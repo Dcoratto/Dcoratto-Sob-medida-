@@ -31,6 +31,16 @@ import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {LABELS} from '../constants/labels';
 import {imageVariantUrl} from '../lib/storage';
 import {getEffectivePieceBaseArea, getPieceAreaMode, getStoredDrawingArea, getStoredManualFinalArea} from '../lib/quotePieceArea';
+import {
+  buildCutoutCatalog,
+  EMPTY_QUOTE_CUTOUTS,
+  getCutoutLabel,
+  hasAnyScopedCutouts,
+  resolveQuoteCutoutSource,
+  updatePieceManualCutouts,
+  type PieceScopedCutoutType,
+  type QuoteCutoutState,
+} from '../lib/quotePieceCutouts';
 import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
 import {
   calculateQuoteInstallmentAmount,
@@ -48,7 +58,6 @@ import {
   revokeQuotePresentationVersion,
 } from '../lib/quoteDigital';
 
-type QuoteCutoutState = { cooktop: number; sinkUnder: number; sinkOver: number; faucetHole: number; trashBinCutout: number; popUpTowerCutout: number; wetAreaAmericanRecess: number; wetAreaItalianRecess: number };
 type QuoteSidebarSectionKey = 'digital' | 'client' | 'materials' | 'pricing' | 'payment';
 
 const MATERIAL_PRICE_MINIMUM_ERROR = 'O valor personalizado não pode ser menor que o valor mínimo definido para este material.';
@@ -377,7 +386,7 @@ export const QuoteEditor: React.FC = () => {
   const [pieceManualPriceInputs, setPieceManualPriceInputs] = useState<Record<string, string>>({});
   const [pieceMeasureInputs, setPieceMeasureInputs] = useState<Record<string, string>>({});
   const [activePieceMeasureInput, setActivePieceMeasureInput] = useState<string | null>(null);
-  const [cutouts, setCutouts] = useState<QuoteCutoutState>({ cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
+  const [cutouts, setCutouts] = useState<QuoteCutoutState>(EMPTY_QUOTE_CUTOUTS);
   const [showDrawing, setShowDrawing] = useState<string | null>(null);
   const [employeeAssignments, setEmployeeAssignments] = useState<EmployeeAssignment[]>([]);
   const [statusHistory, setStatusHistory] = useState<QuoteStatusHistory[]>([]);
@@ -742,10 +751,14 @@ export const QuoteEditor: React.FC = () => {
   };
   const resolvedComplexity = activeComplexityOptions.find((option) => option.key === complexityKey) || activeComplexityOptions[0] || DEFAULT_QUOTE_COMPLEXITY_OPTIONS[0];
   const usesLinearLaborPricing = (effectiveQuoteSettings.laborPricing?.mode || 'linear') === 'linear';
+  const effectiveQuoteCutouts = useMemo(
+    () => resolveQuoteCutoutSource(pieces, cutouts),
+    [pieces, cutouts],
+  );
   const basePiecePricingBreakdowns = useMemo(
     () => buildPiecePricingBreakdowns({
       pieces,
-      quoteCutouts: cutouts,
+      quoteCutouts: effectiveQuoteCutouts,
       settings: effectiveQuoteSettings,
       clientLocation: {
         city: selectedClient?.city,
@@ -753,24 +766,24 @@ export const QuoteEditor: React.FC = () => {
       },
       calculatePieceArea,
       resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
-      includeLabor: quotePricingMode !== 'cost' && includeLabor && usesLinearLaborPricing,
-      includeMaterialLoss,
-      includeCutouts,
-      includeSculptedSink,
+      includeLabor: quotePricingMode !== 'cost' && usesLinearLaborPricing,
+      includeMaterialLoss: true,
+      includeCutouts: true,
+      includeSculptedSink: true,
       resolveManualPiecePrice: (piece) => {
         if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
         const parsed = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, effectiveQuoteSettings, includeCutouts, includeLabor, includeMaterialLoss, includeSculptedSink, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, usesLinearLaborPricing],
+    [calculatePieceArea, effectiveQuoteCutouts, effectiveQuoteSettings, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, usesLinearLaborPricing],
   );
   const stonesCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.stoneBaseValue, 0);
-  const materialLossCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
+  const originalMaterialLossCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
   const originalPiecePricingBreakdowns = useMemo(
     () => buildPiecePricingBreakdowns({
       pieces,
-      quoteCutouts: cutouts,
+      quoteCutouts: effectiveQuoteCutouts,
       settings: effectiveQuoteSettings,
       clientLocation: {
         city: selectedClient?.city,
@@ -788,9 +801,8 @@ export const QuoteEditor: React.FC = () => {
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, cutouts, effectiveQuoteSettings, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, usesLinearLaborPricing],
+    [calculatePieceArea, effectiveQuoteCutouts, effectiveQuoteSettings, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, usesLinearLaborPricing],
   );
-  const originalMaterialLossCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
   const originalLinearLaborCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.laborValue, 0);
   const originalCutoutsCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.cutoutValue, 0);
   const originalSculptedLaborCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.sinkAdditionalValue, 0);
@@ -802,13 +814,24 @@ export const QuoteEditor: React.FC = () => {
     : resolvedLaborPricing.source === 'linear'
       ? originalLinearLaborCost
       : resolvedLaborPricing.amount;
+  const materialLossCost = includeMaterialLoss ? originalMaterialLossCost : 0;
   const laborCost = includeLabor ? originalLaborCost : 0;
   const cutoutsCost = includeCutouts ? originalCutoutsCost : 0;
   const sculptedLaborCost = includeSculptedSink ? originalSculptedLaborCost : 0;
   const deliveryResolution = resolveLocationAmount(effectiveQuoteSettings.deliveryPricing, locationContext);
   const originalDeliveryFee = Math.max(0, Number(deliveryResolution.amount) || 0);
   const deliveryFee = includeDelivery ? originalDeliveryFee : 0;
-  const piecesSubtotal = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.pieceSubtotalValue, 0);
+  const piecesSubtotal = basePiecePricingBreakdowns.reduce((acc, item, index) => {
+    if ((pieces[index]?.pricingMode || 'automatic') === 'manual') {
+      return acc + item.pieceSubtotalValue;
+    }
+    const chargedPieceSubtotal = (item.pieceSubtotalValue || 0)
+      - (includeMaterialLoss ? 0 : (item.materialLossValue || 0))
+      - (includeCutouts ? 0 : (item.calculatedCutoutValue || 0))
+      - (includeSculptedSink ? 0 : (item.sinkAdditionalValue || 0))
+      - (includeLabor && usesLinearLaborPricing ? 0 : (item.calculatedLaborValue || 0));
+    return acc + chargedPieceSubtotal;
+  }, 0);
   const externalLaborCost = usesLinearLaborPricing ? 0 : laborCost;
   const productionSubtotal = piecesSubtotal + externalLaborCost;
   const subtotalBeforeComplexity = productionSubtotal + deliveryFee;
@@ -1023,7 +1046,7 @@ export const QuoteEditor: React.FC = () => {
       setIncludeComplexity(typeof draft.includeComplexity === 'boolean' ? draft.includeComplexity : true);
       setMaterialCustomPriceInputs((draft.materialCustomPriceInputs as Record<string, string>) || inputValuesFromMaterialOverrides(draft.materialPriceOverrides as QuoteMaterialPriceOverride[]));
       setPieceManualPriceInputs((draft.pieceManualPriceInputs as Record<string, string>) || inputValuesFromPieceManualPrices(draftPieces));
-      setCutouts((draft.cutouts as QuoteCutoutState) || { cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0 });
+      setCutouts((draft.cutouts as QuoteCutoutState) || EMPTY_QUOTE_CUTOUTS);
       setEmployeeAssignments(Array.isArray(draft.employeeAssignments) ? draft.employeeAssignments as EmployeeAssignment[] : []);
       setStatusHistory(Array.isArray(draft.statusHistory) ? draft.statusHistory as QuoteStatusHistory[] : []);
       setPieceMaterialSearch((draft.pieceMaterialSearch as Record<string, string>) || {});
@@ -1085,14 +1108,8 @@ export const QuoteEditor: React.FC = () => {
           setEmployeeAssignments(data.employeeAssignments || []);
           setStatusHistory(data.statusHistory || []);
           setCutouts({
-            cooktop: data.cutouts?.cooktop || 0,
-            sinkUnder: data.cutouts?.sinkUnder || 0,
-            sinkOver: data.cutouts?.sinkOver || 0,
-            faucetHole: data.cutouts?.faucetHole || 0,
-            trashBinCutout: data.cutouts?.trashBinCutout || 0,
-            popUpTowerCutout: data.cutouts?.popUpTowerCutout || 0,
-            wetAreaAmericanRecess: data.cutouts?.wetAreaAmericanRecess || 0,
-            wetAreaItalianRecess: data.cutouts?.wetAreaItalianRecess || 0,
+            ...EMPTY_QUOTE_CUTOUTS,
+            ...(data.cutouts || {}),
           });
         }
       }
@@ -1206,9 +1223,9 @@ export const QuoteEditor: React.FC = () => {
       status,
       originalStatus,
       pieces,
+      cutouts: effectiveQuoteCutouts,
       materialCustomPriceInputs,
       pieceManualPriceInputs,
-      cutouts,
       employeeAssignments,
       statusHistory,
       pieceMaterialSearch,
@@ -1404,7 +1421,7 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const countCutouts = (drawingCutouts?: QuotePiece['cutouts']): QuoteCutoutState => {
-    const counts: QuoteCutoutState = {cooktop: 0, sinkUnder: 0, sinkOver: 0, faucetHole: 0, trashBinCutout: 0, popUpTowerCutout: 0, wetAreaAmericanRecess: 0, wetAreaItalianRecess: 0};
+    const counts: QuoteCutoutState = {...EMPTY_QUOTE_CUTOUTS};
     (drawingCutouts || []).forEach((item) => {
       if (item.type === 'cooktop') counts.cooktop += 1;
       if (item.type === 'torneira') counts.faucetHole += 1;
@@ -1428,6 +1445,21 @@ export const QuoteEditor: React.FC = () => {
       wetAreaAmericanRecess: current.wetAreaAmericanRecess,
       wetAreaItalianRecess: current.wetAreaItalianRecess,
     }));
+  };
+
+  const cutoutCatalog = useMemo(
+    () => buildCutoutCatalog(effectiveQuoteSettings),
+    [effectiveQuoteSettings],
+  );
+
+  const updatePieceManualCutoutQuantity = (
+    piece: QuotePiece,
+    cutoutType: PieceScopedCutoutType,
+    nextQuantity: number,
+  ) => {
+    updatePiece(piece.id, {
+      manualCutouts: updatePieceManualCutouts(piece, cutoutType, nextQuantity),
+    });
   };
 
   const removePiece = (id: string) => {
@@ -1543,28 +1575,6 @@ export const QuoteEditor: React.FC = () => {
     trashBin: 'trashBinCutout',
   };
 
-  const piecePricingBreakdowns = useMemo(
-    () => buildPiecePricingBreakdowns({
-      pieces,
-      quoteCutouts: cutouts,
-      totalQuotePrice: totalPrice,
-      settings: effectiveQuoteSettings,
-      clientLocation: {
-        city: selectedClient?.city,
-        address: selectedClient?.address,
-      },
-      calculatePieceArea,
-      resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
-      includeLabor: quotePricingMode !== 'cost' && includeLabor && usesLinearLaborPricing,
-      includeMaterialLoss,
-      resolveManualPiecePrice: (piece) => {
-        if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
-        const parsed = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
-        return parsed.status === 'valid' ? Number(parsed.value) : undefined;
-      },
-    }),
-    [calculatePieceArea, cutouts, effectiveQuoteSettings, includeCutouts, includeLabor, includeMaterialLoss, includeSculptedSink, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, totalPrice, usesLinearLaborPricing],
-  );
   const fixtureKeyByCutoutType: Record<string, 'cooktop' | 'sink' | 'faucet' | 'popUpTower' | 'trashBin'> = {
     cooktop: 'cooktop',
     cuba: 'sink',
@@ -1773,7 +1783,7 @@ export const QuoteEditor: React.FC = () => {
       status,
       totalArea: normalizedTotalArea,
       totalPrice: normalizedTotalPrice,
-      laborCharge: Number(laborCost.toFixed(2)),
+      laborCharge: Number(originalLaborCost.toFixed(2)),
       deliveryFee: Number(deliveryFee.toFixed(2)),
       complexityKey: resolvedComplexity.key,
       complexityLabel: resolvedComplexity.label,
@@ -1787,7 +1797,7 @@ export const QuoteEditor: React.FC = () => {
       includeComplexity,
       pricingSnapshot: buildQuotePricingSnapshot(effectiveQuoteSettings),
       pieces: piecesWithStatus,
-      cutouts,
+      cutouts: effectiveQuoteCutouts,
       materialPriceOverrides,
       employeeAssignments,
       statusHistory: nextStatusHistory,
@@ -2744,6 +2754,9 @@ export const QuoteEditor: React.FC = () => {
               const isManualPieceArea = pieceAreaMode === 'manual';
               const drawingArea = getStoredDrawingArea(piece);
               const manualFinalArea = getStoredManualFinalArea(piece);
+              const pieceCutoutBreakdown = originalPiecePricingBreakdowns[pIdx];
+              const pieceScopedCutouts = pieceCutoutBreakdown?.cutoutRows || [];
+              const pieceScopedCutoutTotal = pieceCutoutBreakdown?.calculatedCutoutValue || 0;
               const hasMaterial = Boolean(piece.materialId);
               const hasEnoughStock = hasMaterial && stock.available >= pieceArea;
               const lotInfo = hasMaterial ?materialLotInfo(piece.materialId, pieceArea, piece.materialVariantKey) : null;
@@ -3375,10 +3388,96 @@ export const QuoteEditor: React.FC = () => {
                     )}
                   </div>
 
+                  <div className="space-y-4 pt-4 border-t border-slate-50">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                      <div>
+                        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">Recortes da peça</h3>
+                        <p className="text-xs text-slate-500">Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.</p>
+                      </div>
+                      <select
+                        value=""
+                        onChange={(event) => {
+                          const selectedType = event.target.value as PieceScopedCutoutType;
+                          if (!selectedType) return;
+                          const existingRow = pieceScopedCutouts.find((item) => item.label === getCutoutLabel(selectedType));
+                          const nextQuantity = existingRow ? existingRow.count + 1 : 1;
+                          updatePieceManualCutoutQuantity(piece, selectedType, nextQuantity);
+                          event.currentTarget.value = '';
+                        }}
+                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none md:w-[220px]"
+                      >
+                        <option value="">+ Adicionar recorte</option>
+                        {cutoutCatalog
+                          .filter((item) => !pieceScopedCutouts.some((row) => row.label === item.label))
+                          .map((item) => (
+                            <option key={item.type} value={item.type}>
+                              {item.label}
+                            </option>
+                          ))}
+                      </select>
+                    </div>
+
+                    {pieceScopedCutouts.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                        Nenhum recorte adicionado nesta peça.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {pieceScopedCutouts.map((row) => {
+                          const cutoutType = cutoutCatalog.find((item) => item.label === row.label)?.type;
+                          if (!cutoutType) return null;
+                          return (
+                            <div key={row.label} className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="min-w-0">
+                                <div className="text-sm font-semibold text-slate-900">{row.label}</div>
+                                <div className="text-xs text-slate-500">{row.count} un. · {formatCurrency(row.price)} por unidade</div>
+                              </div>
+                              <div className="flex items-center justify-between gap-3 sm:justify-end">
+                                <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white">
+                                  <button
+                                    type="button"
+                                    onClick={() => updatePieceManualCutoutQuantity(piece, cutoutType, row.count - 1)}
+                                    className="px-3 py-2 text-sm font-bold text-slate-500 transition-colors hover:text-slate-900"
+                                  >
+                                    -
+                                  </button>
+                                  <span className="min-w-[40px] px-2 text-center text-sm font-semibold text-slate-900">{row.count}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => updatePieceManualCutoutQuantity(piece, cutoutType, row.count + 1)}
+                                    className="px-3 py-2 text-sm font-bold text-slate-500 transition-colors hover:text-slate-900"
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                                <div className="min-w-[88px] text-right text-sm font-semibold text-slate-900">
+                                  {formatCurrency(row.count * row.price)}
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => updatePieceManualCutoutQuantity(piece, cutoutType, 0)}
+                                  className="rounded-xl p-2 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
+                                  aria-label={`Remover ${row.label}`}
+                                  title={`Remover ${row.label}`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                        <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-4 py-3 text-sm">
+                          <span className="font-semibold text-slate-600">Subtotal de recortes da peça</span>
+                          <strong className="font-mono text-slate-900">{formatCurrency(pieceScopedCutoutTotal)}</strong>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   {/* Adicionais - Frontão, Saia, etc */}
                   <div className="space-y-4 pt-4 border-t border-slate-50">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Adicionais (Frontão/Saia/Virada/Pé)</h3>
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Acabamentos / Complementos</h3>
                       <div className="flex flex-wrap gap-2">
                         <button
                           type="button"
@@ -3497,57 +3596,39 @@ export const QuoteEditor: React.FC = () => {
           </div>
 
           <section className="rounded-[28px] border border-slate-100 bg-white p-4 shadow-sm space-y-6 sm:rounded-[32px] sm:p-6 lg:p-8">
-            <h2 className="font-display font-bold text-xl text-slate-800">Recortes e Acabamentos Especiais</h2>
+            <div>
+              <h2 className="font-display font-bold text-xl text-slate-800">Resumo de recortes do orçamento</h2>
+              <p className="mt-1 text-sm text-slate-500">Os recortes são cadastrados dentro de cada peça. Aqui fica apenas a consolidação do orçamento.</p>
+            </div>
             {!pieces.length ?(
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                Adicione ao menos uma peça para vincular os recortes cadastrados no Admin.
+                Adicione ao menos uma peça para visualizar o resumo consolidado dos recortes.
               </div>
             ) : (
-              <div className="grid grid-cols-[repeat(auto-fit,minmax(190px,1fr))] gap-4">
-                {([
-                  { key: 'cooktop', label: 'Cooktop', category: 'cooktop' },
-                  { key: 'sink', label: 'Cuba', category: 'sink' },
-                  { key: 'faucet', label: 'Torneira', category: 'faucet' },
-                  { key: 'trashBin', label: 'Lixeira de embutir', category: 'trashBin' },
-                  { key: 'popUpTower', label: 'Torre de tomada', category: 'popUpTower' },
-                ] as const).map((fixtureConfig) => {
-                  const options = fixturesByCategory(fixtureConfig.category);
-                  const selectedId = pieces[0]?.selectedFixtureIds?.[fixtureConfig.key] || drawingFixtureIdForKey(fixtureConfig.key);
-                  const selectedItem = options.find((item) => item.id === selectedId);
-                  const totalLinkedCutouts = cutoutCountByFixtureKey(fixtureConfig.key);
-                  return (
-                    <div key={fixtureConfig.key} className="space-y-2 rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                      <div className="flex flex-col items-start gap-1.5">
-                        <div className="text-[11px] font-bold uppercase leading-tight tracking-wider text-slate-500">{fixtureConfig.label}</div>
-                        <span className={cn('inline-flex rounded-full px-2 py-1 text-[10px] font-bold leading-none', totalLinkedCutouts > 0 ?'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500')}>
-                          {totalLinkedCutouts} no orçamento
-                        </span>
+              <div className="space-y-3">
+                {cutoutCatalog
+                  .map((item) => ({
+                    ...item,
+                    quantity: Number(effectiveQuoteCutouts[item.type] || 0),
+                  }))
+                  .filter((item) => item.quantity > 0)
+                  .map((item) => (
+                    <div key={item.type} className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                      <div>
+                        <div className="text-sm font-semibold text-slate-900">{item.label}</div>
+                        <div className="text-xs text-slate-500">{item.quantity} un. · {formatCurrency(item.unitPrice)} por unidade</div>
                       </div>
-                      <select
-                        value={selectedId}
-                        onChange={(e) => selectCatalogFixtureForFirstPiece(fixtureConfig.key, e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
-                      >
-                        <option value="">Sem recorte</option>
-                        {options.map((item) => (
-                          <option key={item.id} value={item.id}>
-                            {item.name} {item.brand ?`- ${item.brand}` : ''} {item.model ?`(${item.model})` : ''}
-                          </option>
-                        ))}
-                      </select>
-                      {selectedItem && (
-                        <div className="space-y-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-500">
-                          <div><span className="font-semibold text-slate-600">Marca:</span> {selectedItem.brand || '-'}</div>
-                          <div><span className="font-semibold text-slate-600">Modelo:</span> {selectedItem.model || '-'}</div>
-                          {imageVariantUrl(selectedItem, 'thumbnail') && <img src={imageVariantUrl(selectedItem, 'thumbnail')} alt={selectedItem.name} loading="lazy" decoding="async" className="mt-2 h-20 w-full rounded-lg object-contain bg-slate-50" />}
-                        </div>
-                      )}
-                      {!options.length && (
-                        <div className="text-xs text-slate-400">Cadastre opções no Admin.</div>
-                      )}
+                      <div className="text-right">
+                        <div className="text-sm font-semibold text-slate-900">{formatCurrency(item.quantity * item.unitPrice)}</div>
+                        <div className="text-[11px] text-slate-400">{item.quantity} no orçamento</div>
+                      </div>
                     </div>
-                  );
-                })}
+                  ))}
+                {Object.values(effectiveQuoteCutouts).every((value) => !value) && (
+                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                    Nenhum recorte consolidado no orçamento.
+                  </div>
+                )}
               </div>
             )}
           </section>

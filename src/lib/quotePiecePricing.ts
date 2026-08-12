@@ -1,16 +1,11 @@
 import {Settings, Quote, QuotePiece} from '../types';
 import {getRegionalLaborMinimum} from './laborRegion';
-
-type QuoteCutoutState = {
-  cooktop: number;
-  sinkUnder: number;
-  sinkOver: number;
-  faucetHole: number;
-  trashBinCutout: number;
-  popUpTowerCutout: number;
-  wetAreaAmericanRecess: number;
-  wetAreaItalianRecess: number;
-};
+import {
+  buildCutoutCatalog,
+  getCutoutLabel,
+  getPieceScopedCutoutCounts,
+  hasAnyScopedCutouts,
+} from './quotePieceCutouts';
 
 export type PieceCutoutRow = {
   label: string;
@@ -21,6 +16,8 @@ export type PieceCutoutRow = {
 export type PiecePricingBreakdown = {
   stoneBaseValue: number;
   materialLossValue: number;
+  calculatedLaborValue: number;
+  calculatedCutoutValue: number;
   stoneWithLossValue: number;
   laborValue: number;
   cutoutValue: number;
@@ -34,29 +31,6 @@ export type PiecePricingBreakdown = {
 
 const roundCurrency = (value: number) => Math.round((Number(value) || 0) * 100) / 100;
 
-export const countPieceDrawingCutouts = (drawingCutouts?: QuotePiece['cutouts']): QuoteCutoutState => {
-  const counts: QuoteCutoutState = {
-    cooktop: 0,
-    sinkUnder: 0,
-    sinkOver: 0,
-    faucetHole: 0,
-    trashBinCutout: 0,
-    popUpTowerCutout: 0,
-    wetAreaAmericanRecess: 0,
-    wetAreaItalianRecess: 0,
-  };
-
-  (drawingCutouts || []).forEach((item) => {
-    if (item.type === 'cooktop') counts.cooktop += 1;
-    if (item.type === 'torneira') counts.faucetHole += 1;
-    if (item.type === 'cuba') counts.sinkUnder += 1;
-    if (item.type === 'lixeira') counts.trashBinCutout += 1;
-    if (item.type === 'torre_tomada') counts.popUpTowerCutout += 1;
-  });
-
-  return counts;
-};
-
 export const buildPieceCutoutSummary = ({
   piece,
   pieces,
@@ -68,30 +42,28 @@ export const buildPieceCutoutSummary = ({
   quoteCutouts: Quote['cutouts'];
   settings: Settings;
 }) => {
-  const pieceCutouts = countPieceDrawingCutouts(piece.cutouts);
-  const sourceCutouts = piece.cutouts?.length || pieces.length !== 1
-    ? pieceCutouts
+  const scopedCutoutsExist = hasAnyScopedCutouts(pieces);
+  const isLegacyFallbackPiece = !scopedCutoutsExist && pieces[0]?.id === piece.id;
+  const pieceScopedCutouts = scopedCutoutsExist
+    ? getPieceScopedCutoutCounts(piece)
     : {
-      cooktop: quoteCutouts?.cooktop || 0,
-      sinkUnder: quoteCutouts?.sinkUnder || 0,
-      sinkOver: quoteCutouts?.sinkOver || 0,
-      faucetHole: quoteCutouts?.faucetHole || 0,
-      trashBinCutout: quoteCutouts?.trashBinCutout || 0,
-      popUpTowerCutout: quoteCutouts?.popUpTowerCutout || 0,
-      wetAreaAmericanRecess: quoteCutouts?.wetAreaAmericanRecess || 0,
-      wetAreaItalianRecess: quoteCutouts?.wetAreaItalianRecess || 0,
+      cooktop: isLegacyFallbackPiece ? Number(quoteCutouts?.cooktop || 0) : 0,
+      sinkUnder: isLegacyFallbackPiece ? Number(quoteCutouts?.sinkUnder || 0) : 0,
+      sinkOver: isLegacyFallbackPiece ? Number(quoteCutouts?.sinkOver || 0) : 0,
+      faucetHole: isLegacyFallbackPiece ? Number(quoteCutouts?.faucetHole || 0) : 0,
+      trashBinCutout: isLegacyFallbackPiece ? Number(quoteCutouts?.trashBinCutout || 0) : 0,
+      popUpTowerCutout: isLegacyFallbackPiece ? Number(quoteCutouts?.popUpTowerCutout || 0) : 0,
+      wetAreaAmericanRecess: isLegacyFallbackPiece ? Number(quoteCutouts?.wetAreaAmericanRecess || 0) : 0,
+      wetAreaItalianRecess: isLegacyFallbackPiece ? Number(quoteCutouts?.wetAreaItalianRecess || 0) : 0,
     };
 
-  const rows: PieceCutoutRow[] = [
-    {label: 'Cooktop', count: sourceCutouts.cooktop || 0, price: settings.cutoutPrices?.cooktop || 0},
-    {label: 'Cuba embutida', count: sourceCutouts.sinkUnder || 0, price: settings.cutoutPrices?.sinkUnder || 0},
-    {label: 'Cuba sobreposta', count: sourceCutouts.sinkOver || 0, price: settings.cutoutPrices?.sinkOver || 0},
-    {label: 'Furo torneira', count: sourceCutouts.faucetHole || 0, price: settings.cutoutPrices?.faucetHole || 0},
-    {label: 'Lixeira', count: sourceCutouts.trashBinCutout || 0, price: settings.cutoutPrices?.trashBinCutout || 0},
-    {label: 'Torre tomada', count: sourceCutouts.popUpTowerCutout || 0, price: settings.cutoutPrices?.popUpTowerCutout || 0},
-    {label: 'Rebaixo americano', count: sourceCutouts.wetAreaAmericanRecess || 0, price: settings.cutoutPrices?.wetAreaAmericanRecess || 0},
-    {label: 'Rebaixo italiano', count: sourceCutouts.wetAreaItalianRecess || 0, price: settings.cutoutPrices?.wetAreaItalianRecess || 0},
-  ].filter((item) => item.count > 0);
+  const rows: PieceCutoutRow[] = buildCutoutCatalog(settings)
+    .map((item) => ({
+      label: getCutoutLabel(item.type),
+      count: Number(pieceScopedCutouts[item.type] || 0),
+      price: item.unitPrice,
+    }))
+    .filter((item) => item.count > 0);
 
   return {
     rows,
@@ -149,10 +121,10 @@ export const buildPiecePricingBreakdowns = ({
     const stoneBaseValue = roundCurrency((totals.totalArea || 0) * materialPricePerM2);
     const materialLossValue = includeMaterialLoss ? roundCurrency((totals.lossArea || 0) * materialPricePerM2) : 0;
     const stoneWithLossValue = roundCurrency(stoneBaseValue + materialLossValue);
-    const laborValue = includeLabor
-      ? calculatePieceLaborValue(piece, settings.laborRatePerLinearMeter, regionalLaborMinimum)
-      : 0;
-    const cutoutValue = includeCutouts ? cutoutSummary.totalValue : 0;
+    const calculatedLaborValue = calculatePieceLaborValue(piece, settings.laborRatePerLinearMeter, regionalLaborMinimum);
+    const laborValue = includeLabor ? calculatedLaborValue : 0;
+    const calculatedCutoutValue = cutoutSummary.totalValue;
+    const cutoutValue = includeCutouts ? calculatedCutoutValue : 0;
     const sinkAdditionalValue = includeSculptedSink ? roundCurrency(totals.sinkAdditionalValue || 0) : 0;
     const automaticPieceSubtotalValue = roundCurrency(stoneWithLossValue + laborValue + cutoutValue + sinkAdditionalValue);
     const manualPiecePrice = resolveManualPiecePrice?.(piece);
@@ -163,6 +135,8 @@ export const buildPiecePricingBreakdowns = ({
     return {
       stoneBaseValue,
       materialLossValue,
+      calculatedLaborValue,
+      calculatedCutoutValue,
       stoneWithLossValue,
       laborValue,
       cutoutValue,

@@ -3,6 +3,7 @@ import {db} from './firestore';
 import {Quote, QuoteStatus} from '../types';
 import {isQuoteApprovedOrBeyond, normalizeText} from './quoteStatus';
 import {buildMaterialVariantKey} from './materialVariants';
+import {getEffectivePieceBaseArea} from './quotePieceArea';
 
 export const shouldReserveStock = (status?: QuoteStatus | string) => {
   const text = normalizeText(status);
@@ -28,10 +29,8 @@ export const syncQuoteReservation = async (quoteId: string, quote: Partial<Quote
   const areasByMaterial = new Map<string, {name: string; area: number; materialId: string; materialVariantKey?: string; materialLine?: string; materialType?: string; thicknessLabel?: string; texture?: string; provider?: string;}>();
   (quote.pieces || []).forEach((piece) => {
     if (!piece.materialId) return;
-    const mainArea = piece.unit === 'cm' ?((piece.width || 0) * (piece.length || 0)) / 10000 : (piece.width || 0) * (piece.length || 0);
     const sidesArea = (piece.sides || []).reduce((sum, side) => sum + ((side.length || 0) * (side.height || 0) * (side.quantity || 1)) / (piece.unit === 'cm' ?10000 : 1), 0);
-    const manualOrMain = piece.manualArea || mainArea;
-    const area = manualOrMain + sidesArea;
+    const area = getEffectivePieceBaseArea(piece) + sidesArea;
     if (area <= 0) return;
     const materialVariantKey = piece.materialVariantKey || buildMaterialVariantKey(piece);
     const mapKey = materialVariantKey || piece.materialId;

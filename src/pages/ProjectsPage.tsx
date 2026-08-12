@@ -7,6 +7,7 @@ import {Client, Employee, ProductionStep, Quote, QuotePiece} from '../types';
 import {cn, formatArea, formatCentimeters, formatCurrency} from '../lib/utils';
 import {getClientDisplayStatus, normalizeQuoteStatus, quoteStatusColor, shouldAppearInProjects} from '../lib/quoteStatus';
 import {ClientNavigationButtons} from '../components/ClientNavigationButtons';
+import {getEffectivePieceBaseArea} from '../lib/quotePieceArea';
 
 const normalize = (value: unknown) =>
   String(value || '')
@@ -147,7 +148,7 @@ export const ProjectsPage: React.FC = () => {
       id: piece.id,
       name: piece.name,
       status: normalizeQuoteStatus(piece.pieceStatus || trackingModalProject.quote?.status || trackingModalProject.status),
-      area: piece.totalArea || piece.manualArea || piece.area || 0,
+      area: getEffectivePieceBaseArea(piece),
       notes: piece.notes || '',
       value: piece.manualPrice || 0,
       dimensions: piece.unit === 'cm'

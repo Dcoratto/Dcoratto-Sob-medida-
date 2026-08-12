@@ -1,4 +1,5 @@
 import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote} from '../types';
+import {getPieceAreaMode, getStoredManualFinalArea} from './quotePieceArea';
 
 const normalize = (value: unknown) =>
   String(value || '')
@@ -129,7 +130,7 @@ export const validateQuoteBeforeSave = ({
       if (invalidStairDimension) {
         return `A peça "${piece.name}" tem ${invalidStairDimension.label} fora do limite esperado. Revise as medidas da escada.`;
       }
-    } else {
+    } else if (getPieceAreaMode(piece) !== 'manual') {
       const unitLimit = piece.unit === 'cm' ? MAX_DIMENSION_CM : MAX_DIMENSION_M;
       const width = Number(piece.width || 0);
       const length = Number(piece.length || 0);
@@ -143,6 +144,13 @@ export const validateQuoteBeforeSave = ({
 
     if (piece.manualArea && (!Number.isFinite(piece.manualArea) || piece.manualArea <= 0 || piece.manualArea > MAX_PIECE_AREA)) {
       return `A peça "${piece.name}" está com uma área de desenho fora do limite esperado. Reabra o desenho e salve novamente.`;
+    }
+
+    if (getPieceAreaMode(piece) === 'manual') {
+      const manualFinalArea = getStoredManualFinalArea(piece);
+      if (!Number.isFinite(manualFinalArea) || manualFinalArea <= 0 || manualFinalArea > MAX_PIECE_AREA) {
+        return `A peça "${piece.name}" está com uma área manual inválida. Informe um m² final válido antes de salvar.`;
+      }
     }
 
     const pieceTotals = calculatePieceArea(piece);

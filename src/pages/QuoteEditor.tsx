@@ -30,6 +30,7 @@ import {getInventoryItemArea} from '../lib/inventoryMetrics';
 import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {LABELS} from '../constants/labels';
 import {imageVariantUrl} from '../lib/storage';
+import {getEffectivePieceBaseArea, getPieceAreaMode, getStoredDrawingArea, getStoredManualFinalArea} from '../lib/quotePieceArea';
 import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
 import {
   calculateQuoteInstallmentAmount,
@@ -97,6 +98,7 @@ const inputValuesFromPieceManualPrices = (pieces?: QuotePiece[]) =>
   }, {} as Record<string, string>);
 
 const pieceMeasureInputKey = (pieceId: string, field: 'length' | 'width') => `${pieceId}:${field}`;
+const pieceManualAreaInputKey = (pieceId: string) => `${pieceId}:manual-final-area`;
 
 const formatPresentationDate = (value?: string | null) => {
   if (!value) return '-';
@@ -1253,6 +1255,10 @@ export const QuoteEditor: React.FC = () => {
           if (activePieceMeasureInput === key) return;
           next[key] = formatMeasureInput(piece[field] || 0);
         });
+        const manualAreaKey = pieceManualAreaInputKey(piece.id);
+        if (activePieceMeasureInput !== manualAreaKey) {
+          next[manualAreaKey] = piece.manualFinalArea == null ? '' : formatMeasureInput(piece.manualFinalArea);
+        }
       });
       return next;
     });
@@ -1283,6 +1289,31 @@ export const QuoteEditor: React.FC = () => {
       manualArea: undefined,
     } as Partial<QuotePiece>);
     setPieceMeasureInputs((current) => ({...current, [key]: formatMeasureInput(parsedValue)}));
+    setActivePieceMeasureInput((current) => (current === key ? null : current));
+  };
+
+  const handlePieceManualAreaFocus = (pieceId: string, value?: number) => {
+    const key = pieceManualAreaInputKey(pieceId);
+    setActivePieceMeasureInput(key);
+    setPieceMeasureInputs((current) => ({...current, [key]: value == null ? '' : formatEditableMeasureValue(value)}));
+  };
+
+  const handlePieceManualAreaChange = (pieceId: string, value: string) => {
+    const key = pieceManualAreaInputKey(pieceId);
+    setPieceMeasureInputs((current) => ({...current, [key]: value}));
+    const parsedValue = parseMeasureInput(value);
+    updatePiece(pieceId, {
+      manualFinalArea: Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : undefined,
+    });
+  };
+
+  const handlePieceManualAreaBlur = (piece: QuotePiece) => {
+    const key = pieceManualAreaInputKey(piece.id);
+    const rawValue = pieceMeasureInputs[key] || '';
+    const parsedValue = parseMeasureInput(rawValue);
+    const normalizedValue = Number.isFinite(parsedValue) && parsedValue > 0 ? roundNumber(parsedValue, 4) : undefined;
+    updatePiece(piece.id, {manualFinalArea: normalizedValue});
+    setPieceMeasureInputs((current) => ({...current, [key]: normalizedValue == null ? '' : formatMeasureInput(normalizedValue)}));
     setActivePieceMeasureInput((current) => (current === key ? null : current));
   };
 
@@ -1341,11 +1372,13 @@ export const QuoteEditor: React.FC = () => {
       name: asStair ?`Escada ${pieces.filter((piece) => piece.stair?.active).length + 1}` : `${LABELS.pieces.singular} ${pieces.length + 1}`,
       pieceStatus: status,
       pricingMode: 'automatic',
+      areaMode: 'dimensions',
       materialId: '',
       unit: 'cm',
       width: 0,
       length: 0,
       area: 0,
+      manualFinalArea: undefined,
       sides: [],
       notes: '',
       sculptedSink: {
@@ -2701,11 +2734,16 @@ export const QuoteEditor: React.FC = () => {
             )}
 
             {pieces.map((piece, pIdx) => {
-              const pieceArea = calculatePieceArea(piece).totalArea;
+              const pieceTotals = calculatePieceArea(piece);
+              const pieceArea = pieceTotals.totalArea;
               const stairDetails = calculateStairArea(piece);
               const pieceMaterial = materialWithQuotePrice(piece.materialId, piece.materialVariantKey);
               const stock = piece.materialId ?materialStock(piece.materialId, piece.materialVariantKey) : {available: 0};
               const pieceDimensions = getPieceMajorMinorSides(piece);
+              const pieceAreaMode = getPieceAreaMode(piece);
+              const isManualPieceArea = pieceAreaMode === 'manual';
+              const drawingArea = getStoredDrawingArea(piece);
+              const manualFinalArea = getStoredManualFinalArea(piece);
               const hasMaterial = Boolean(piece.materialId);
               const hasEnoughStock = hasMaterial && stock.available >= pieceArea;
               const lotInfo = hasMaterial ?materialLotInfo(piece.materialId, pieceArea, piece.materialVariantKey) : null;
@@ -2952,6 +2990,30 @@ export const QuoteEditor: React.FC = () => {
                         </div>
                       )}
                       {!piece.stair?.active && (
+                      <div className="md:col-span-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Área da peça</div>
+                        <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="inline-flex rounded-xl border border-slate-100 bg-white p-1">
+                            <button
+                              type="button"
+                              onClick={() => updatePiece(piece.id, {areaMode: 'dimensions'})}
+                              className={cn('px-3 py-2 text-[10px] font-bold uppercase rounded-lg transition-all', !isManualPieceArea ? 'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-400 hover:text-slate-700')}
+                            >
+                              Pelas medidas
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updatePiece(piece.id, {areaMode: 'manual'})}
+                              className={cn('px-3 py-2 text-[10px] font-bold uppercase rounded-lg transition-all', isManualPieceArea ? 'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-400 hover:text-slate-700')}
+                            >
+                              Informar m²
+                            </button>
+                          </div>
+                          {isManualPieceArea && <div className="text-xs font-semibold text-emerald-700">Área informada manualmente</div>}
+                        </div>
+                      </div>
+                      )}
+                      {!piece.stair?.active && !isManualPieceArea && (
                       <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Comp. (cm)</label>
                         <input
@@ -2968,7 +3030,7 @@ export const QuoteEditor: React.FC = () => {
                         />
                       </div>
                       )}
-                      {!piece.stair?.active && (
+                      {!piece.stair?.active && !isManualPieceArea && (
                       <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura (cm)</label>
                         <input
@@ -2985,6 +3047,27 @@ export const QuoteEditor: React.FC = () => {
                         />
                       </div>
                       )}
+                      {!piece.stair?.active && isManualPieceArea && (
+                      <div className="space-y-1 md:col-span-2">
+                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Área final da peça (m²)</label>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={pieceMeasureInputs[pieceManualAreaInputKey(piece.id)] || (piece.manualFinalArea == null ? '' : formatMeasureInput(piece.manualFinalArea))}
+                          onFocus={(event) => {
+                            handlePieceManualAreaFocus(piece.id, piece.manualFinalArea);
+                            event.currentTarget.select();
+                          }}
+                          onChange={(e) => handlePieceManualAreaChange(piece.id, e.target.value)}
+                          onBlur={() => handlePieceManualAreaBlur(piece)}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
+                          placeholder="0,000"
+                        />
+                        <div className="text-[11px] font-semibold text-slate-500">
+                          O m² informado passa a ser a área oficial desta peça no orçamento.
+                        </div>
+                      </div>
+                      )}
                       <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Área Total (m²)</label>
                         <div className="px-4 py-2.5 bg-slate-100 rounded-xl font-mono text-slate-600 flex flex-col items-end">
@@ -2992,25 +3075,31 @@ export const QuoteEditor: React.FC = () => {
                             <span className="text-[9px] uppercase font-bold text-slate-400">Total:</span>
                              <span className="font-bold text-slate-900">{formatMeasure(pieceArea)}</span>
                           </div>
+                          {isManualPieceArea && (
+                            <div className="text-[8px] text-slate-400 flex justify-between w-full">
+                              <span>Peça:</span>
+                              <span>{formatMeasure(manualFinalArea)}</span>
+                            </div>
+                          )}
                           {piece.sculptedSink?.active && (
                             <div className="text-[8px] text-slate-400 flex flex-col w-full">
                               <div className="flex justify-between">
                                 <span>Peça:</span>
-                                <span>{formatMeasure(calculatePieceArea(piece).mainArea)}</span>
+                                <span>{formatMeasure(pieceTotals.mainArea)}</span>
                               </div>
                               <div className="flex justify-between">
                                 <span>Cuba:</span>
-                                <span>{formatMeasure(calculatePieceArea(piece).sinkArea)}</span>
+                                <span>{formatMeasure(pieceTotals.sinkArea)}</span>
                               </div>
                             </div>
                           )}
                           {piece.wetAreaRecess?.active && (
                             <div className="text-[8px] text-slate-400 flex justify-between w-full">
                               <span>Rebaixo:</span>
-                              <span>{formatMeasure(calculatePieceArea(piece).recessArea)}</span>
+                              <span>{formatMeasure(pieceTotals.recessArea)}</span>
                             </div>
                           )}
-                          {piece.manualArea && (
+                          {!isManualPieceArea && drawingArea > 0 && (
                             <div className="w-2 h-2 bg-green-500 rounded-full mt-1" title="Calculado via desenho" />
                           )}
                         </div>

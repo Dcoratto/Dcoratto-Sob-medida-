@@ -20,6 +20,7 @@ import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {validateClientPayload} from '../lib/businessRules';
 import {CurrencyInput} from '../components/inputs/NumericInput';
 import {ClientNavigationButtons} from '../components/ClientNavigationButtons';
+import {getEffectivePieceBaseArea} from '../lib/quotePieceArea';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -105,7 +106,7 @@ const getPieceDisplayStatus = (piece: QuotePiece, quote?: Quote): QuoteStatus =>
   normalizeQuoteStatus(piece.pieceStatus || quote?.status || 'Orçamento');
 
 const getPieceAreaValue = (piece: QuotePiece) =>
-  piece.totalArea || piece.manualArea || piece.area || 0;
+  getEffectivePieceBaseArea(piece);
 
 const summarizeQuotePieces = (quote?: Quote) => {
   const pieces = quote?.pieces || [];
@@ -499,7 +500,7 @@ export const ClientsPage: React.FC = () => {
   };
   const selectedQuoteMaterialUsage = (selectedQuote?.pieces || []).reduce((map, piece) => {
     if (!piece.materialId) return map;
-    const area = piece.totalArea || piece.manualArea || piece.area || 0;
+    const area = getEffectivePieceBaseArea(piece);
     const current = map.get(piece.materialId) || {area: 0, pieces: 0};
     map.set(piece.materialId, {area: current.area + area, pieces: current.pieces + 1});
     return map;

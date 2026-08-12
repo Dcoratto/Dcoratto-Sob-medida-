@@ -19,6 +19,7 @@ import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {validateInventoryBatchQuantity, validateInventoryItemPayload, validatePurchaseSlabs} from '../lib/businessRules';
 import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
 import {supabase} from '../lib/supabase';
+import {getEffectivePieceBaseArea} from '../lib/quotePieceArea';
 
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
@@ -2393,7 +2394,7 @@ export const InventoryPage: React.FC = () => {
                     <option value="">Selecionar peça</option>
                     {(selectedLossQuote?.pieces || []).map((piece) => (
                       <option key={piece.id} value={piece.id}>
-                        {piece.name} · {formatArea(piece.totalArea || piece.manualArea || piece.area || 0)}
+                        {piece.name} · {formatArea(getEffectivePieceBaseArea(piece))}
                       </option>
                     ))}
                   </select>

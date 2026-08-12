@@ -1,5 +1,6 @@
 import { QuotePiece, QuoteCutouts, Settings, Material, SculptedSink } from '../types';
 import {getRegionalLaborMinimum} from '../lib/laborRegion';
+import {getEffectivePieceBaseArea} from '../lib/quotePieceArea';
 
 export const MATERIAL_LOSS_PERCENTAGE = 10;
 
@@ -99,13 +100,7 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
     // Area of main stone
     let mainArea = 0;
     const stairArea = calculateStairArea(piece);
-    if (piece.stair?.active) {
-      mainArea = stairArea.totalArea;
-    } else if (piece.unit === 'cm') {
-      mainArea = (piece.width * piece.length) / 10000;
-    } else {
-      mainArea = piece.width * piece.length;
-    }
+    mainArea = getEffectivePieceBaseArea(piece);
     
     // Area of side additions
     const sidesArea = piece.sides.reduce((acc, side) => {
@@ -116,12 +111,12 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
     // Sculpted sink area
     const sinkResult = piece.sculptedSink ?calculateSculptedSink(piece.sculptedSink, materialForPiece?.(piece)) : { area: 0, baseArea: 0, lossArea: 0, value: 0, additionalValue: 0 };
     const recessArea = calculateWetAreaRecess(piece);
-    const subtotalArea = (piece.manualArea || mainArea) + sidesArea + sinkResult.baseArea + recessArea;
+    const subtotalArea = mainArea + sidesArea + sinkResult.baseArea + recessArea;
     const lossPercentage = MATERIAL_LOSS_PERCENTAGE;
     const pieceLossArea = subtotalArea * (lossPercentage / 100);
 
     return { 
-      mainArea: piece.manualArea || mainArea, 
+      mainArea, 
       sidesArea, 
       sinkArea: sinkResult.baseArea,
       stairArea: stairArea.totalArea,

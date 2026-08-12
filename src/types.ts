@@ -566,6 +566,7 @@ export interface QuotePiece {
   name: string;
   pieceStatus?: QuoteStatus;
   pricingMode?: 'automatic' | 'manual';
+  areaMode?: 'dimensions' | 'manual';
   manualPrice?: number;
   materialId: string;
   materialVariantKey?: string;
@@ -578,6 +579,7 @@ export interface QuotePiece {
   width: number;
   length: number;
   area: number;
+  manualFinalArea?: number;
   manualArea?: number;
   totalArea?: number;
   largestSide?: number;

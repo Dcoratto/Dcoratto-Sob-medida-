@@ -883,6 +883,19 @@ export const QuoteEditor: React.FC = () => {
     return `${year}-${month}-${day}`;
   };
 
+  const getComparableTime = (value: unknown) => {
+    if (!value) return null;
+    const date =
+      typeof (value as {toDate?: () => Date})?.toDate === 'function'
+        ? (value as {toDate: () => Date}).toDate()
+        : value instanceof Date
+          ? value
+          : new Date(String(value));
+
+    const timestamp = date instanceof Date ? date.getTime() : Number.NaN;
+    return Number.isNaN(timestamp) ? null : timestamp;
+  };
+
 
   useEffect(() => {
     let cancelled = false;
@@ -985,11 +998,13 @@ export const QuoteEditor: React.FC = () => {
 
     // If editing, fetch initial quote
     const fetchQuote = async () => {
+      let persistedQuoteTime: number | null = null;
       if (id) {
         const docRef = doc(db, 'quotes', id);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = docSnap.data() as unknown as Quote;
+          persistedQuoteTime = getComparableTime(data.updatedAt || data.createdAt);
           setClientId(data.clientId);
           setClientSearch(data.clientName || '');
           setEnvironment(data.environment);
@@ -1048,9 +1063,19 @@ export const QuoteEditor: React.FC = () => {
         }
       }
       const {data: draft, savedAt} = loadDraftMeta<Record<string, unknown>>(quoteDraftKey);
-      setQuoteDraftRecovered(Boolean(draft));
-      setQuoteDraftSavedAt(savedAt);
-      applyDraft(draft);
+      const draftTime = getComparableTime(savedAt);
+      const shouldApplyDraft = Boolean(
+        draft && (
+          !id ||
+          persistedQuoteTime == null ||
+          (draftTime != null && draftTime > persistedQuoteTime)
+        ),
+      );
+      setQuoteDraftRecovered(shouldApplyDraft);
+      setQuoteDraftSavedAt(shouldApplyDraft ?savedAt : null);
+      if (shouldApplyDraft) {
+        applyDraft(draft);
+      }
       quoteDraftHydratedRef.current = true;
       setLoading(false);
     };

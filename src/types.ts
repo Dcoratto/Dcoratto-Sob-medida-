@@ -733,6 +733,7 @@ export interface Quote {
   materialPriceOverrides?: QuoteMaterialPriceOverride[];
   pricingSnapshot?: QuotePricingSnapshot;
   createdAt: any;
+  updatedAt?: any;
   createdBy: string;
   teamCounts?: Partial<Record<ProductionStep, number>>;
   employeeAssignments?: EmployeeAssignment[];

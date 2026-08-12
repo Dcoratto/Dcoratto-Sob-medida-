@@ -27,6 +27,7 @@ export type QuotePresentationAcceptanceSummary = {
 };
 
 export type QuotePresentationSnapshot = {
+  quoteId?: string;
   proposalCode?: string;
   versionLabel?: string;
   generatedAt?: string;
@@ -49,6 +50,7 @@ export type QuotePresentationSnapshot = {
     environment?: string;
     responsible?: string;
     pieceCount?: number;
+    materialCount?: number;
   };
   includedFeatures?: {
     materialSelected?: boolean;
@@ -61,6 +63,7 @@ export type QuotePresentationSnapshot = {
     measurementIncluded?: boolean;
   };
   material?: {
+    id?: string;
     name?: string;
     category?: string;
     materialLine?: string;
@@ -70,14 +73,30 @@ export type QuotePresentationSnapshot = {
     description?: string;
     imageUrl?: string;
   };
+  materials?: Array<{
+    id?: string;
+    name?: string;
+    category?: string;
+    materialLine?: string;
+    materialType?: string;
+    thicknessLabel?: string;
+    texture?: string;
+    description?: string;
+    imageUrl?: string;
+  }>;
   pieces?: Array<{
     id: string;
     name?: string;
     environment?: string;
+    materialId?: string;
+    materialName?: string;
     material?: string;
+    area?: number;
+    value?: number;
     dimensionsLabel?: string;
     imageUrl?: string;
     notes?: string;
+    highlights?: string[];
   }>;
   investment?: {
     label?: string;

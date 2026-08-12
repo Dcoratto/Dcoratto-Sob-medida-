@@ -269,6 +269,11 @@ const formatSimulationMethodDetail = (option: {
   return formatCurrency(option.totalPrice);
 };
 
+const normalizeLegacyPresentationText = (value?: string | null) => {
+  const normalized = String(value || '').trim();
+  return normalized || '';
+};
+
 const buildOfficialPaymentRows = (snapshot?: QuotePresentationSnapshot | null) => {
   if (!snapshot?.payment) return [];
 
@@ -313,7 +318,7 @@ export const QuotePresentationPage: React.FC = () => {
   const [payload, setPayload] = useState<PublicQuotePresentationResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState<{src: string; alt: string} | null>(null);
   const [simulatorOpen, setSimulatorOpen] = useState(false);
   const [simulationEntryInput, setSimulationEntryInput] = useState('R$ 0,00');
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'debit' | 'credit'>('all');
@@ -358,16 +363,16 @@ export const QuotePresentationPage: React.FC = () => {
   }, [simulatorOpen]);
 
   useEffect(() => {
-    if (!lightboxOpen) return;
+    if (!lightboxImage) return;
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setLightboxOpen(false);
+      if (event.key === 'Escape') setLightboxImage(null);
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [lightboxOpen]);
+  }, [lightboxImage]);
 
   useEffect(() => {
-    if (!simulatorOpen && !lightboxOpen) {
+    if (!simulatorOpen && !lightboxImage) {
       return;
     }
 
@@ -389,7 +394,7 @@ export const QuotePresentationPage: React.FC = () => {
       document.body.style.width = originalWidth;
       window.scrollTo({top: scrollY});
     };
-  }, [lightboxOpen, simulatorOpen]);
+  }, [lightboxImage, simulatorOpen]);
 
   const availablePayload = payload?.state === 'available' ? payload : null;
   const snapshot = availablePayload?.snapshot;
@@ -398,10 +403,50 @@ export const QuotePresentationPage: React.FC = () => {
   const delivery = snapshot?.delivery;
   const acceptedDisplayName = availablePayload?.meta.acceptedName || acceptedName;
   const proposalAccepted = Boolean(availablePayload?.meta.acceptedAt);
-  const materialImage = snapshot?.material?.imageUrl;
   const generatedLabel = snapshot?.generatedAt ? formatDateLong(snapshot.generatedAt) : '';
   const validUntilLabel = availablePayload?.meta.validUntil ? formatDateLong(availablePayload.meta.validUntil) : '';
   const projectArea = normalizePresentationAreaValue(investment?.totalArea);
+  const materials = useMemo(() => {
+    const source = Array.isArray(snapshot?.materials) && snapshot.materials.length
+      ? snapshot.materials
+      : snapshot?.material
+        ? [snapshot.material]
+        : [];
+
+    const seen = new Set<string>();
+    return source.filter((material) => {
+      const key = material?.id || material?.name || '';
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }, [snapshot?.material, snapshot?.materials]);
+  const projectPieces = useMemo(() => {
+    if (!Array.isArray(snapshot?.pieces)) return [];
+    return snapshot.pieces.map((piece) => ({
+      ...piece,
+      name: normalizeLegacyPresentationText(piece.name) || 'Peça',
+      environment: normalizeLegacyPresentationText(piece.environment),
+      materialName: normalizeLegacyPresentationText(piece.materialName || piece.material),
+      area: piece.area == null ? null : normalizePresentationAreaValue(piece.area),
+      value: piece.value == null ? null : Number(piece.value || 0),
+      highlights: Array.isArray(piece.highlights) ? piece.highlights.filter(Boolean) : [],
+    }));
+  }, [snapshot?.pieces]);
+  const primaryMaterialImage = materials[0]?.imageUrl;
+  const investmentCompositionRows = useMemo(() => {
+    const rows: Array<{label: string; value: number}> = [];
+    const piecesSubtotal = Number((investment as any)?.piecesSubtotal || 0);
+    const globalAdjustmentValue = Number((investment as any)?.globalAdjustmentValue || 0);
+    if (piecesSubtotal > 0) {
+      rows.push({label: 'Subtotal das peças', value: piecesSubtotal});
+    }
+    if (Math.abs(globalAdjustmentValue) > 0.009) {
+      rows.push({label: globalAdjustmentValue > 0 ? 'Ajustes globais' : 'Ajustes comerciais', value: globalAdjustmentValue});
+    }
+    rows.push({label: 'Total final', value: Number(investment?.totalPrice || 0)});
+    return rows;
+  }, [investment]);
 
   const projectLocation = [snapshot?.client?.city, snapshot?.client?.neighborhood]
     .filter(Boolean)
@@ -637,7 +682,7 @@ export const QuotePresentationPage: React.FC = () => {
             <div className="mt-1 truncate text-sm text-[#dbcbb9]">{availablePayload.meta.proposalCode}</div>
           </div>
           <div className="hidden items-center gap-4 text-xs text-[#dbcbb9] md:flex">
-            <a href="#material" className="transition hover:text-white">Material</a>
+            <a href="#material" className="transition hover:text-white">Materiais</a>
             <a href="#projeto" className="transition hover:text-white">Projeto</a>
             <a href="#investimento" className="transition hover:text-white">Investimento</a>
             <a href="#aceite" className="transition hover:text-white">{proposalAccepted ? 'Aceite' : 'Responder'}</a>
@@ -747,10 +792,20 @@ export const QuotePresentationPage: React.FC = () => {
                         <div className="mt-2 text-base leading-7 text-[#f7f1ea]">{projectLocation || snapshot?.client?.city || '-'}</div>
                       </div>
                     </div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Peças</div>
+                        <div className="mt-2 text-lg text-[#f7f1ea]">{projectPieces.length || snapshot?.summary?.pieceCount || 0}</div>
+                      </div>
+                      <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Materiais</div>
+                        <div className="mt-2 text-lg text-[#f7f1ea]">{materials.length || snapshot?.summary?.materialCount || 0}</div>
+                      </div>
+                    </div>
                     <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-4">
                       <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Próximos passos</div>
                       <div className="mt-2 text-sm leading-7 text-[#d7c7b5]">
-                        Revise o material selecionado, confira a metragem do projeto e explore as condições no simulador antes do aceite.
+                        Revise os materiais selecionados, confira as peças do projeto e explore as condições no simulador antes do aceite.
                       </div>
                     </div>
                   </div>
@@ -761,53 +816,55 @@ export const QuotePresentationPage: React.FC = () => {
         </section>
 
         <section id="material" className="border-t border-white/6 px-5 py-16 sm:py-20">
-          <div className="mx-auto grid max-w-6xl gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-center">
-            {materialImage ? (
-              <RevealBlock reducedMotion={prefersReducedMotion}>
-                <div className="group overflow-hidden rounded-[34px] border border-white/8 bg-[#15120f] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.28)]">
-                  <div className="overflow-hidden rounded-[28px] bg-[#1a1714]">
-                    <PresentationImage
-                      src={materialImage}
-                      alt={snapshot?.material?.name || 'Material selecionado'}
-                      className={cn(
-                        'h-[360px] w-full object-cover transition duration-500 group-hover:scale-[1.02]',
-                        prefersReducedMotion && 'transition-none group-hover:scale-100',
-                      )}
-                      onClick={() => setLightboxOpen(true)}
-                    />
-                  </div>
-                </div>
-              </RevealBlock>
-            ) : null}
-
-            <RevealBlock reducedMotion={prefersReducedMotion} delayMs={80}>
-              <SectionEyebrow>Material selecionado</SectionEyebrow>
-              <SectionTitle>{snapshot?.material?.name || 'Superfície escolhida'}</SectionTitle>
-              <div className="mt-6 flex flex-wrap gap-3 text-sm text-[#f0e6dc]">
-                {[
-                  snapshot?.material?.category,
-                  snapshot?.material?.materialLine,
-                  snapshot?.material?.materialType,
-                  snapshot?.material?.thicknessLabel,
-                  snapshot?.material?.texture,
-                ].filter(Boolean).map((item) => (
-                  <span key={item} className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
-                    {item}
-                  </span>
-                ))}
-              </div>
-              {snapshot?.material?.description ? (
-                <p className="mt-8 max-w-2xl text-base leading-8 text-[#d6c6b4]">{snapshot.material.description}</p>
-              ) : null}
+          <div className="mx-auto max-w-6xl">
+            <RevealBlock reducedMotion={prefersReducedMotion}>
+              <SectionEyebrow>Materiais selecionados</SectionEyebrow>
+              <SectionTitle>Superfícies reais desta versão do projeto.</SectionTitle>
             </RevealBlock>
+            <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {materials.map((material, index) => (
+                <RevealBlock reducedMotion={prefersReducedMotion} delayMs={index * 70}>
+                  <div className="overflow-hidden rounded-[30px] border border-white/8 bg-[#15120f] shadow-[0_20px_60px_rgba(0,0,0,0.2)]">
+                    {material.imageUrl ? (
+                      <div className="overflow-hidden bg-[#1a1714]">
+                        <PresentationImage
+                          src={material.imageUrl}
+                          alt={material.name || 'Material'}
+                          className="h-56 w-full object-cover"
+                          onClick={() => setLightboxImage({src: material.imageUrl!, alt: material.name || 'Material'})}
+                        />
+                      </div>
+                    ) : null}
+                    <div className="space-y-4 px-5 py-5">
+                      <div>
+                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Material</div>
+                        <div className="mt-2 text-2xl text-[#f7f1ea]">{material.name || 'Superfície selecionada'}</div>
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-sm text-[#f0e6dc]">
+                        {[material.category, material.materialLine, material.materialType, material.thicknessLabel, material.texture]
+                          .filter(Boolean)
+                          .map((item) => (
+                            <span key={item} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5">
+                              {item}
+                            </span>
+                          ))}
+                      </div>
+                      {material.description ? (
+                        <p className="text-sm leading-7 text-[#d6c6b4]">{material.description}</p>
+                      ) : null}
+                    </div>
+                  </div>
+                </RevealBlock>
+              ))}
+            </div>
           </div>
         </section>
 
         <section id="projeto" className="border-t border-white/6 px-5 py-16 sm:py-20">
           <div className="mx-auto max-w-6xl">
             <RevealBlock reducedMotion={prefersReducedMotion}>
-              <SectionEyebrow>Seu projeto</SectionEyebrow>
-              <SectionTitle>Ambiente e metragem apresentados com clareza.</SectionTitle>
+              <SectionEyebrow>Visão geral do projeto</SectionEyebrow>
+              <SectionTitle>Ambiente, metragem e composição apresentados com clareza.</SectionTitle>
             </RevealBlock>
 
             <div className="mt-10 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)_minmax(280px,0.8fr)]">
@@ -832,6 +889,63 @@ export const QuotePresentationPage: React.FC = () => {
                 </div>
               </RevealBlock>
             </div>
+
+            {projectPieces.length > 0 && (
+              <>
+                <RevealBlock reducedMotion={prefersReducedMotion} delayMs={140} className="mt-16">
+                  <SectionEyebrow>Peças do projeto</SectionEyebrow>
+                  <SectionTitle>Cada peça desta versão aparece com seu material e valor oficial.</SectionTitle>
+                </RevealBlock>
+                <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                  {projectPieces.map((piece, index) => (
+                    <RevealBlock reducedMotion={prefersReducedMotion} delayMs={index * 40}>
+                      <div className="rounded-[28px] border border-white/8 bg-[#15120f] px-5 py-5">
+                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Peça</div>
+                        <div className="mt-2 text-2xl leading-tight text-[#f7f1ea]">{piece.name}</div>
+                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                          {piece.environment ? (
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.2em] text-[#99836c]">Ambiente</div>
+                              <div className="mt-1 text-sm text-[#f1e6dc]">{piece.environment}</div>
+                            </div>
+                          ) : null}
+                          {piece.materialName ? (
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.2em] text-[#99836c]">Material</div>
+                              <div className="mt-1 text-sm text-[#f1e6dc]">{piece.materialName}</div>
+                            </div>
+                          ) : null}
+                          {piece.area != null && piece.area > 0 ? (
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.2em] text-[#99836c]">Área</div>
+                              <div className="mt-1 text-sm text-[#f1e6dc]">{formatArea(piece.area)}</div>
+                            </div>
+                          ) : null}
+                          {piece.value != null && piece.value > 0 ? (
+                            <div>
+                              <div className="text-[10px] uppercase tracking-[0.2em] text-[#99836c]">Valor</div>
+                              <div className="mt-1 text-sm text-[#f1e6dc]">{formatCurrency(piece.value)}</div>
+                            </div>
+                          ) : null}
+                        </div>
+                        {piece.highlights.length > 0 ? (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            {piece.highlights.map((item) => (
+                              <span key={item} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-[#d7c7b5]">
+                                {item}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                        {piece.notes ? (
+                          <p className="mt-4 text-sm leading-7 text-[#d6c6b4]">{piece.notes}</p>
+                        ) : null}
+                      </div>
+                    </RevealBlock>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </section>
 
@@ -850,7 +964,21 @@ export const QuotePresentationPage: React.FC = () => {
             <div className="grid gap-5">
               <RevealBlock reducedMotion={prefersReducedMotion} delayMs={60}>
                 <div className="rounded-[30px] border border-white/8 bg-[#15120f] px-6 py-7">
-                  <SectionEyebrow>Condições financeiras</SectionEyebrow>
+                  <SectionEyebrow>Composição comercial</SectionEyebrow>
+                  <div className="mt-6 space-y-4">
+                    {investmentCompositionRows.map((row) => (
+                      <div key={row.label} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">{row.label}</div>
+                        <div className="mt-2 text-xl text-[#f7f1ea]">{formatCurrency(row.value)}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </RevealBlock>
+
+              <RevealBlock reducedMotion={prefersReducedMotion} delayMs={100}>
+                <div className="rounded-[30px] border border-white/8 bg-[#15120f] px-6 py-7">
+                  <SectionEyebrow>Condição oficial de pagamento</SectionEyebrow>
                   <div className="mt-6 space-y-4">
                     {officialPaymentRows.map((row) => (
                       <div key={row.label} className="rounded-[22px] border border-white/8 bg-white/[0.03] px-4 py-4">
@@ -863,7 +991,7 @@ export const QuotePresentationPage: React.FC = () => {
                 </div>
               </RevealBlock>
 
-              <RevealBlock reducedMotion={prefersReducedMotion} delayMs={120}>
+              <RevealBlock reducedMotion={prefersReducedMotion} delayMs={140}>
                 <div className="rounded-[30px] border border-white/8 bg-[#15120f] px-6 py-7">
                   <SectionEyebrow>Planejamento</SectionEyebrow>
                   <div className="mt-5 space-y-3 text-sm leading-7 text-[#e6dacc]">
@@ -1044,18 +1172,18 @@ export const QuotePresentationPage: React.FC = () => {
         </div>
       </footer>
 
-      {materialImage && lightboxOpen && (
+      {lightboxImage && (
         <div className="proposal-print-hide fixed inset-0 z-50 bg-black/92 p-4 backdrop-blur-sm">
           <button
             type="button"
-            onClick={() => setLightboxOpen(false)}
+            onClick={() => setLightboxImage(null)}
             className="absolute right-5 top-5 rounded-full border border-white/15 p-3 text-white transition hover:border-[#e1c6a4]/45"
           >
             <X className="h-5 w-5" />
           </button>
           <div className="flex h-full items-center justify-center">
             <div className="w-full max-w-5xl">
-              <PresentationImage src={materialImage} alt={snapshot?.material?.name || 'Material'} className="max-h-[80vh] w-full rounded-[24px] object-contain" />
+              <PresentationImage src={lightboxImage.src} alt={lightboxImage.alt} className="max-h-[80vh] w-full rounded-[24px] object-contain" />
             </div>
           </div>
         </div>

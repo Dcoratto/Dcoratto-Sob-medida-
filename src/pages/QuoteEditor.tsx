@@ -807,6 +807,49 @@ export const QuoteEditor: React.FC = () => {
   const originalLinearLaborCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.laborValue, 0);
   const originalCutoutsCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.cutoutValue, 0);
   const originalSculptedLaborCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.sinkAdditionalValue, 0);
+  const piecesWithPresentationSnapshot = useMemo(
+    () => pieces.map((piece, index) => {
+      const pieceMaterial = materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey);
+      const pieceTotals = calculatePieceArea(piece);
+      const pieceBreakdown = basePiecePricingBreakdowns[index];
+      const pieceCutoutBreakdown = originalPiecePricingBreakdowns[index];
+      const highlights = [
+        pieceCutoutBreakdown?.cutoutCount ? `${pieceCutoutBreakdown.cutoutCount} recorte(s)` : null,
+        piece.sculptedSink?.active ? 'Pia esculpida' : null,
+        piece.wetAreaRecess?.active
+          ? `Rebaixo ${piece.wetAreaRecess.type === 'italiano' ? 'italiano' : 'americano'}`
+          : null,
+      ].filter(Boolean) as string[];
+
+      return {
+        ...piece,
+        presentationArea: roundNumber(pieceTotals.totalArea, 4),
+        presentationValue: Number((pieceBreakdown?.pieceSubtotalValue || 0).toFixed(2)),
+        presentationMaterialName: pieceMaterial?.name || '',
+        presentationMaterialDescription: pieceMaterial?.quoteDescription || '',
+        presentationMaterialImageUrl: imageVariantUrl(pieceMaterial, 'original')
+          || imageVariantUrl(pieceMaterial, 'medium')
+          || imageVariantUrl(pieceMaterial, 'thumbnail')
+          || pieceMaterial?.imageUrl
+          || '',
+        presentationMaterialCategory: pieceMaterial?.category || '',
+        presentationMaterialLine: piece.materialLine || pieceMaterial?.materialLine || '',
+        presentationMaterialType: piece.materialType || pieceMaterial?.materialType || '',
+        presentationThicknessLabel: piece.thicknessLabel || pieceMaterial?.thicknessLabel || '',
+        presentationTexture: piece.texture || pieceMaterial?.texture || '',
+        presentationEnvironment: environment || '',
+        presentationHighlights: highlights,
+      };
+    }),
+    [
+      basePiecePricingBreakdowns,
+      calculatePieceArea,
+      environment,
+      materialId,
+      originalPiecePricingBreakdowns,
+      pieces,
+    ],
+  );
   const resolvedLaborPricing = quotePricingMode === 'cost'
     ? {amount: 0, source: 'disabled' as const, city: '', district: ''}
     : resolveLaborAmount(effectiveQuoteSettings.laborPricing, locationContext);
@@ -1754,7 +1797,7 @@ export const QuoteEditor: React.FC = () => {
     const primaryMaterialId = pieces[0]?.materialId || materialId || '';
     const primaryMaterialVariantKey = pieces[0]?.materialVariantKey;
     const primaryMaterial = materialWithQuotePrice(primaryMaterialId, primaryMaterialVariantKey);
-    const piecesWithStatus = pieces.map((piece) => {
+    const piecesWithStatus = piecesWithPresentationSnapshot.map((piece) => {
       const parsedManualPrice = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
       return ensurePieceWorkflowStatus({
         ...piece,

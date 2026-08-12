@@ -624,6 +624,18 @@ export interface QuotePiece {
     popUpTower?: string;
     trashBin?: string;
   };
+  presentationArea?: number;
+  presentationValue?: number;
+  presentationMaterialName?: string;
+  presentationMaterialDescription?: string;
+  presentationMaterialImageUrl?: string;
+  presentationMaterialCategory?: string;
+  presentationMaterialLine?: string;
+  presentationMaterialType?: string;
+  presentationThicknessLabel?: string;
+  presentationTexture?: string;
+  presentationEnvironment?: string;
+  presentationHighlights?: string[];
 }
 
 export interface FixtureInfo {

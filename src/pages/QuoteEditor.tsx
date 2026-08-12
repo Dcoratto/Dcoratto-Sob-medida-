@@ -168,6 +168,9 @@ const cloneQuotePricingSnapshot = (source: QuotePricingSnapshot): QuotePricingSn
   },
 });
 
+const cloneStoredQuotePricingSnapshot = <T extends Partial<QuotePricingSnapshot>>(source: T): T =>
+  JSON.parse(JSON.stringify(source)) as T;
+
 const buildQuotePricingSnapshot = (settings: Settings): QuotePricingSnapshot => cloneQuotePricingSnapshot({
   laborRatePerLinearMeter: settings.laborRatePerLinearMeter,
   laborMinimumByRegion: settings.laborMinimumByRegion,
@@ -179,19 +182,48 @@ const buildQuotePricingSnapshot = (settings: Settings): QuotePricingSnapshot => 
   sculptedSinkRates: settings.sculptedSinkRates,
 });
 
-const applyQuotePricingSnapshot = (settings: Settings, snapshot?: QuotePricingSnapshot | null): Settings => {
+const applyQuotePricingSnapshot = (settings: Settings, snapshot?: Partial<QuotePricingSnapshot> | null): Settings => {
   if (!snapshot) return settings;
-  const clonedSnapshot = cloneQuotePricingSnapshot(snapshot);
+
+  const mergedSnapshot = cloneQuotePricingSnapshot({
+    laborRatePerLinearMeter:
+      snapshot.laborRatePerLinearMeter == null ? settings.laborRatePerLinearMeter : snapshot.laborRatePerLinearMeter,
+    laborMinimumByRegion: {
+      altoTiete: snapshot.laborMinimumByRegion?.altoTiete == null
+        ? settings.laborMinimumByRegion.altoTiete
+        : snapshot.laborMinimumByRegion.altoTiete,
+      saoPaulo: snapshot.laborMinimumByRegion?.saoPaulo == null
+        ? settings.laborMinimumByRegion.saoPaulo
+        : snapshot.laborMinimumByRegion.saoPaulo,
+    },
+    laborPricing: snapshot.laborPricing || settings.laborPricing,
+    deliveryPricing: snapshot.deliveryPricing || settings.deliveryPricing,
+    quoteComplexityOptions: snapshot.quoteComplexityOptions?.length
+      ? snapshot.quoteComplexityOptions
+      : settings.quoteComplexityOptions,
+    cutoutPrices: {
+      ...settings.cutoutPrices,
+      ...(snapshot.cutoutPrices || {}),
+    },
+    paymentMethods: snapshot.paymentMethods?.length
+      ? snapshot.paymentMethods
+      : settings.paymentMethods,
+    sculptedSinkRates: {
+      ...settings.sculptedSinkRates,
+      ...(snapshot.sculptedSinkRates || {}),
+    },
+  });
+
   return {
     ...settings,
-    laborRatePerLinearMeter: clonedSnapshot.laborRatePerLinearMeter,
-    laborMinimumByRegion: clonedSnapshot.laborMinimumByRegion,
-    laborPricing: clonedSnapshot.laborPricing,
-    deliveryPricing: clonedSnapshot.deliveryPricing,
-    quoteComplexityOptions: clonedSnapshot.quoteComplexityOptions,
-    cutoutPrices: clonedSnapshot.cutoutPrices,
-    paymentMethods: clonedSnapshot.paymentMethods,
-    sculptedSinkRates: clonedSnapshot.sculptedSinkRates,
+    laborRatePerLinearMeter: mergedSnapshot.laborRatePerLinearMeter,
+    laborMinimumByRegion: mergedSnapshot.laborMinimumByRegion,
+    laborPricing: mergedSnapshot.laborPricing,
+    deliveryPricing: mergedSnapshot.deliveryPricing,
+    quoteComplexityOptions: mergedSnapshot.quoteComplexityOptions,
+    cutoutPrices: mergedSnapshot.cutoutPrices,
+    paymentMethods: mergedSnapshot.paymentMethods,
+    sculptedSinkRates: mergedSnapshot.sculptedSinkRates,
   };
 };
 
@@ -355,7 +387,7 @@ export const QuoteEditor: React.FC = () => {
   const [includeLabor, setIncludeLabor] = useState(true);
   const [includeDelivery, setIncludeDelivery] = useState(true);
   const [includeComplexity, setIncludeComplexity] = useState(true);
-  const [pricingSnapshot, setPricingSnapshot] = useState<QuotePricingSnapshot | null>(null);
+  const [pricingSnapshot, setPricingSnapshot] = useState<Partial<QuotePricingSnapshot> | null>(null);
   const quoteDraftHydratedRef = useRef(false);
   const quoteDraftKey = `quote-editor-draft:${appUid || 'anonymous'}:${id || 'new'}`;
   const effectiveQuoteSettings = useMemo(
@@ -993,7 +1025,7 @@ export const QuoteEditor: React.FC = () => {
       setEmployeeAssignments(Array.isArray(draft.employeeAssignments) ? draft.employeeAssignments as EmployeeAssignment[] : []);
       setStatusHistory(Array.isArray(draft.statusHistory) ? draft.statusHistory as QuoteStatusHistory[] : []);
       setPieceMaterialSearch((draft.pieceMaterialSearch as Record<string, string>) || {});
-      setPricingSnapshot(draft.pricingSnapshot ? cloneQuotePricingSnapshot(draft.pricingSnapshot as QuotePricingSnapshot) : null);
+      setPricingSnapshot(draft.pricingSnapshot ? cloneStoredQuotePricingSnapshot(draft.pricingSnapshot as Partial<QuotePricingSnapshot>) : null);
     };
 
     // If editing, fetch initial quote
@@ -1035,7 +1067,7 @@ export const QuoteEditor: React.FC = () => {
           setIncludeLabor(typeof data.includeLabor === 'boolean' ? data.includeLabor : true);
           setIncludeDelivery(typeof data.includeDelivery === 'boolean' ? data.includeDelivery : true);
           setIncludeComplexity(typeof data.includeComplexity === 'boolean' ? data.includeComplexity : true);
-          setPricingSnapshot(data.pricingSnapshot ? cloneQuotePricingSnapshot(data.pricingSnapshot) : null);
+          setPricingSnapshot(data.pricingSnapshot ? cloneStoredQuotePricingSnapshot(data.pricingSnapshot as Partial<QuotePricingSnapshot>) : null);
           const loadedPieces = (data.pieces || []).map((piece) => ensurePieceWorkflowStatus({
             ...piece,
             materialId: piece.materialId || data.materialId || '',

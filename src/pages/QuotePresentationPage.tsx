@@ -23,6 +23,7 @@ import {
 import {
   buildQuotePaymentSimulationOptions,
   QuotePaymentMethodOption,
+  resolveQuotePaymentSimulationBase,
 } from '../lib/quotePaymentSimulation';
 import {cn, formatArea, formatCurrency} from '../lib/utils';
 
@@ -178,6 +179,57 @@ const SectionTitle = ({children}: {children: React.ReactNode}) => (
   <h2 className="mt-4 font-display text-4xl leading-tight text-[#f7f1ea] sm:text-5xl">{children}</h2>
 );
 
+const formatCurrencyInputDisplay = (value: number) => formatCurrency(Math.max(0, Number(value) || 0));
+
+const parseCurrencyInputDigits = (value: string) => {
+  const digits = value.replace(/\D/g, '');
+  return digits ? Number(digits) / 100 : 0;
+};
+
+const normalizePresentationAreaValue = (value: unknown) => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
+
+  const raw = String(value ?? '').trim();
+  if (!raw) return 0;
+
+  const sanitized = raw.replace(/m²/ig, '').trim();
+  const legacyFormattedMatch = sanitized.match(/^(\d+)\.(\d{3}),000$/);
+  if (legacyFormattedMatch) {
+    const legacyDecimalValue = Number(`${legacyFormattedMatch[1]}.${legacyFormattedMatch[2]}`);
+    if (Number.isFinite(legacyDecimalValue)) return legacyDecimalValue;
+  }
+
+  if (sanitized.includes(',')) {
+    const normalized = sanitized.replace(/\./g, '').replace(',', '.');
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  if (/^\d+\.\d+$/.test(sanitized)) {
+    const parsed = Number(sanitized);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  if (/^\d{1,3}(?:\.\d{3})+$/.test(sanitized)) {
+    const parsed = Number(sanitized.replace(/\./g, ''));
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  const parsed = Number(sanitized);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const detectPaymentGroup = (methodName: string) => {
+  const normalized = methodName
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  if (normalized.includes('debito')) return 'debit';
+  if (normalized.includes('credito') || /\d+\s*x/i.test(methodName)) return 'credit';
+  if (normalized.includes('pix') || normalized.includes('avista') || normalized.includes('a vista')) return 'cash';
+  return 'all';
+};
+
 const buildOfficialPaymentRows = (snapshot?: QuotePresentationSnapshot | null) => {
   if (!snapshot?.payment) return [];
 
@@ -224,6 +276,8 @@ export const QuotePresentationPage: React.FC = () => {
   const [error, setError] = useState('');
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [simulatorOpen, setSimulatorOpen] = useState(false);
+  const [simulationEntryInput, setSimulationEntryInput] = useState('R$ 0,00');
+  const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'debit' | 'credit'>('all');
   const [selectedSimulationMethod, setSelectedSimulationMethod] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [acceptedName, setAcceptedName] = useState('');
@@ -275,12 +329,27 @@ export const QuotePresentationPage: React.FC = () => {
 
   useEffect(() => {
     if (!simulatorOpen && !lightboxOpen) {
-      document.body.style.removeProperty('overflow');
       return;
     }
 
+    const scrollY = window.scrollY;
+    const originalOverflow = document.body.style.overflow;
+    const originalPosition = document.body.style.position;
+    const originalTop = document.body.style.top;
+    const originalWidth = document.body.style.width;
+
     document.body.style.overflow = 'hidden';
-    return () => document.body.style.removeProperty('overflow');
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.body.style.position = originalPosition;
+      document.body.style.top = originalTop;
+      document.body.style.width = originalWidth;
+      window.scrollTo({top: scrollY});
+    };
   }, [lightboxOpen, simulatorOpen]);
 
   const availablePayload = payload?.state === 'available' ? payload : null;
@@ -293,6 +362,7 @@ export const QuotePresentationPage: React.FC = () => {
   const materialImage = snapshot?.material?.imageUrl;
   const generatedLabel = snapshot?.generatedAt ? formatDateLong(snapshot.generatedAt) : '';
   const validUntilLabel = availablePayload?.meta.validUntil ? formatDateLong(availablePayload.meta.validUntil) : '';
+  const projectArea = normalizePresentationAreaValue(investment?.totalArea);
 
   const projectLocation = [snapshot?.client?.city, snapshot?.client?.neighborhood]
     .filter(Boolean)
@@ -315,46 +385,93 @@ export const QuotePresentationPage: React.FC = () => {
     [snapshot?.payment?.simulation?.availableMethods],
   );
 
-  const simulationOptions = useMemo(
-    () => buildQuotePaymentSimulationOptions({
-      officialTotalPrice: Number(investment?.totalPrice || 0),
-      paymentMode: snapshot?.payment?.mode === 'entry' ? 'entry' : 'total',
-      totalPaymentMethod: snapshot?.payment?.totalPaymentMethod || snapshot?.payment?.method,
-      remainingPaymentMethod: snapshot?.payment?.remainingPaymentMethod,
-      entryAmount: snapshot?.payment?.entryAmount,
-      commissionPercent: snapshot?.payment?.simulation?.commissionPercent,
-      negotiationDiscountPercent: snapshot?.payment?.simulation?.negotiationDiscountPercent,
-      rtPercent: snapshot?.payment?.simulation?.rtPercent,
-      paymentMethods: availablePaymentMethods,
-    }),
-    [
-      availablePaymentMethods,
-      investment?.totalPrice,
-      snapshot?.payment?.entryAmount,
-      snapshot?.payment?.method,
-      snapshot?.payment?.mode,
-      snapshot?.payment?.remainingPaymentMethod,
-      snapshot?.payment?.simulation?.commissionPercent,
-      snapshot?.payment?.simulation?.negotiationDiscountPercent,
-      snapshot?.payment?.simulation?.rtPercent,
-      snapshot?.payment?.totalPaymentMethod,
-    ],
+  const officialSimulationContext = useMemo(() => ({
+    officialTotalPrice: Number(investment?.totalPrice || 0),
+    officialPaymentMode: snapshot?.payment?.mode === 'entry' ? 'entry' : 'total',
+    officialTotalPaymentMethod: snapshot?.payment?.totalPaymentMethod || snapshot?.payment?.method,
+    officialRemainingPaymentMethod: snapshot?.payment?.remainingPaymentMethod,
+    officialEntryAmount: snapshot?.payment?.entryAmount,
+    paymentMode: snapshot?.payment?.mode === 'entry' ? 'entry' : 'total',
+    totalPaymentMethod: snapshot?.payment?.totalPaymentMethod || snapshot?.payment?.method,
+    remainingPaymentMethod: snapshot?.payment?.remainingPaymentMethod,
+    entryAmount: snapshot?.payment?.entryAmount,
+    commissionPercent: snapshot?.payment?.simulation?.commissionPercent,
+    negotiationDiscountPercent: snapshot?.payment?.simulation?.negotiationDiscountPercent,
+    rtPercent: snapshot?.payment?.simulation?.rtPercent,
+    paymentMethods: availablePaymentMethods,
+  }), [
+    availablePaymentMethods,
+    investment?.totalPrice,
+    snapshot?.payment?.entryAmount,
+    snapshot?.payment?.method,
+    snapshot?.payment?.mode,
+    snapshot?.payment?.remainingPaymentMethod,
+    snapshot?.payment?.simulation?.commissionPercent,
+    snapshot?.payment?.simulation?.negotiationDiscountPercent,
+    snapshot?.payment?.simulation?.rtPercent,
+    snapshot?.payment?.totalPaymentMethod,
+  ]);
+
+  const simulationBase = useMemo(
+    () => resolveQuotePaymentSimulationBase(officialSimulationContext),
+    [officialSimulationContext],
   );
 
   useEffect(() => {
-    if (!simulationOptions.length) {
+    const initialEntryAmount = Number(snapshot?.payment?.entryAmount || 0);
+    setSimulationEntryInput(formatCurrencyInputDisplay(initialEntryAmount));
+  }, [snapshot?.payment?.entryAmount]);
+
+  const requestedEntryAmount = useMemo(
+    () => parseCurrencyInputDigits(simulationEntryInput),
+    [simulationEntryInput],
+  );
+
+  const normalizedSimulationEntryAmount = useMemo(() => {
+    if (!simulationBase) return 0;
+    return Math.min(requestedEntryAmount, simulationBase.subtotalBeforeAdjustment);
+  }, [requestedEntryAmount, simulationBase]);
+
+  const simulationPaymentMode = normalizedSimulationEntryAmount > 0 ? 'entry' : 'total';
+  const simulationBaseBalance = useMemo(
+    () => Math.max(0, (simulationBase?.subtotalBeforeAdjustment || 0) - normalizedSimulationEntryAmount),
+    [normalizedSimulationEntryAmount, simulationBase],
+  );
+
+  const simulationOptions = useMemo(
+    () => buildQuotePaymentSimulationOptions({
+      ...officialSimulationContext,
+      simulationPaymentMode,
+      simulationEntryAmount: normalizedSimulationEntryAmount,
+    }),
+    [
+      normalizedSimulationEntryAmount,
+      officialSimulationContext,
+      simulationPaymentMode,
+    ],
+  );
+
+  const filteredSimulationOptions = useMemo(() => {
+    if (paymentFilter === 'all') return simulationOptions;
+    return simulationOptions.filter((option) => detectPaymentGroup(option.methodName) === paymentFilter);
+  }, [paymentFilter, simulationOptions]);
+
+  useEffect(() => {
+    if (!filteredSimulationOptions.length) {
       setSelectedSimulationMethod('');
       return;
     }
 
-    const currentOption = simulationOptions.find((option) => option.isCurrent);
+    const currentOption = filteredSimulationOptions.find((option) => option.isCurrent);
     setSelectedSimulationMethod((current) => {
-      if (current && simulationOptions.some((option) => option.methodName === current)) return current;
-      return currentOption?.methodName || simulationOptions[0].methodName;
+      if (current && filteredSimulationOptions.some((option) => option.methodName === current)) return current;
+      return currentOption?.methodName || filteredSimulationOptions[0].methodName;
     });
-  }, [simulationOptions]);
+  }, [filteredSimulationOptions]);
 
-  const selectedSimulation = simulationOptions.find((option) => option.methodName === selectedSimulationMethod) || simulationOptions[0] || null;
+  const selectedSimulation = filteredSimulationOptions.find((option) => option.methodName === selectedSimulationMethod)
+    || filteredSimulationOptions[0]
+    || null;
 
   const importantInfoItems = useMemo(() => {
     if (!snapshot) return [];
@@ -562,33 +679,35 @@ export const QuotePresentationPage: React.FC = () => {
             </div>
 
             <RevealBlock reducedMotion={prefersReducedMotion} delayMs={220} className="lg:justify-self-end">
-              <div className="group rounded-[36px] border border-white/8 bg-[#15120f] p-4 shadow-[0_32px_90px_rgba(0,0,0,0.34)]">
-                <div className="overflow-hidden rounded-[30px] border border-white/8 bg-[#1a1714]">
-                  {materialImage ? (
-                    <button type="button" onClick={() => setLightboxOpen(true)} className="block w-full text-left">
-                      <PresentationImage
-                        src={materialImage}
-                        alt={snapshot?.material?.name || 'Material selecionado'}
-                        priority
-                        className={cn(
-                          'h-[380px] w-full object-cover transition duration-500 group-hover:scale-[1.02]',
-                          prefersReducedMotion && 'transition-none group-hover:scale-100',
-                        )}
-                      />
-                    </button>
-                  ) : (
-                    <div className="flex h-[380px] items-center justify-center text-sm text-[#c9b8a4]">
-                      Proposta comercial D'Coratto
+              <div className="rounded-[36px] border border-white/8 bg-[#15120f] p-6 shadow-[0_32px_90px_rgba(0,0,0,0.34)]">
+                <div className="rounded-[30px] border border-white/8 bg-[#1a1714] p-6">
+                  <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Proposta comercial</div>
+                  <div className="mt-5 space-y-5">
+                    <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                      <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Código</div>
+                      <div className="mt-2 text-lg text-[#f7f1ea]">{availablePayload.meta.proposalCode}</div>
                     </div>
-                  )}
-                  <div className="flex items-center justify-between border-t border-white/8 px-5 py-4">
-                    <div>
-                      <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Material escolhido</div>
-                      <div className="mt-2 text-lg text-[#f7f1ea]">{snapshot?.material?.name || 'Projeto sob medida'}</div>
+                    <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                      <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Versão</div>
+                      <div className="mt-2 text-lg text-[#f7f1ea]">{availablePayload.meta.versionLabel}</div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Valor oficial</div>
-                      <div className="mt-2 font-display text-3xl text-[#f7f1ea]">{formatCurrency(investment?.totalPrice || 0)}</div>
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Ambiente</div>
+                        <div className="mt-2 text-base leading-7 text-[#f7f1ea]">
+                          {snapshot?.summary?.environment || snapshot?.heroSubtitle || 'Projeto sob medida'}
+                        </div>
+                      </div>
+                      <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Local</div>
+                        <div className="mt-2 text-base leading-7 text-[#f7f1ea]">{projectLocation || snapshot?.client?.city || '-'}</div>
+                      </div>
+                    </div>
+                    <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-4">
+                      <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Próximos passos</div>
+                      <div className="mt-2 text-sm leading-7 text-[#d7c7b5]">
+                        Revise o material selecionado, confira a metragem do projeto e explore as condições no simulador antes do aceite.
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -658,7 +777,7 @@ export const QuotePresentationPage: React.FC = () => {
               <RevealBlock reducedMotion={prefersReducedMotion} delayMs={100}>
                 <div className="rounded-[30px] border border-white/8 bg-[#15120f] px-6 py-7">
                   <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Área do projeto</div>
-                  <div className="mt-4 font-display text-4xl text-[#f7f1ea]">{formatArea(investment?.totalArea || 0)}</div>
+                  <div className="mt-4 font-display text-4xl text-[#f7f1ea]">{formatArea(projectArea)}</div>
                 </div>
               </RevealBlock>
 
@@ -909,53 +1028,122 @@ export const QuotePresentationPage: React.FC = () => {
 
       <aside
         className={cn(
-          'proposal-print-hide fixed inset-x-0 bottom-0 z-[60] max-h-[88vh] rounded-t-[32px] border border-white/8 bg-[#15120f] shadow-[0_-24px_60px_rgba(0,0,0,0.45)] transition duration-300 lg:inset-y-0 lg:right-0 lg:left-auto lg:max-h-none lg:w-[460px] lg:rounded-none lg:border-l',
+          'proposal-print-hide fixed inset-x-0 bottom-0 z-[60] rounded-t-[32px] border border-white/8 bg-[#15120f] shadow-[0_-24px_60px_rgba(0,0,0,0.45)] transition duration-300 lg:inset-y-0 lg:right-0 lg:left-auto lg:w-[460px] lg:rounded-none lg:border-l',
           simulatorOpen ? 'translate-y-0 lg:translate-x-0' : 'translate-y-full lg:translate-x-full lg:translate-y-0',
           prefersReducedMotion && 'transition-none',
         )}
+        style={{
+          top: 'max(env(safe-area-inset-top), 12px)',
+          maxHeight: 'calc(100dvh - env(safe-area-inset-top) - 12px)',
+        }}
         aria-hidden={!simulatorOpen}
       >
-        <div className="flex h-full flex-col">
-          <div className="flex items-center justify-between border-b border-white/8 px-5 py-4">
-            <div>
-              <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Simule sua condição</div>
-              <div className="mt-2 text-sm text-[#d8c8b5]">Valor oficial da proposta: {formatCurrency(investment?.totalPrice || 0)}</div>
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="shrink-0 border-b border-white/8 px-5 pb-4 pt-4">
+            <div className="mb-3 flex items-center justify-center lg:hidden">
+              <div className="h-1.5 w-14 rounded-full bg-white/10" />
             </div>
-            <button
-              type="button"
-              onClick={() => setSimulatorOpen(false)}
-              className="rounded-full border border-white/10 p-3 text-[#f7f1ea]"
-            >
-              <X className="h-5 w-5" />
-            </button>
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Simule sua condição</div>
+                <div className="mt-2 text-sm text-[#d8c8b5]">Valor oficial da proposta</div>
+                <div className="mt-1 text-2xl text-[#f7f1ea]">{formatCurrency(investment?.totalPrice || 0)}</div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSimulatorOpen(false)}
+                className="rounded-full border border-white/10 p-3 text-[#f7f1ea]"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-5 py-5">
-            {simulationOptions.length > 0 && selectedSimulation ? (
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 [padding-bottom:calc(env(safe-area-inset-bottom)+1.25rem)]">
+            {simulationOptions.length > 0 ? (
               <div className="space-y-6">
                 <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5">
-                  <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Formas disponíveis</div>
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Entrada</div>
                   <div className="mt-4 space-y-3">
-                    {simulationOptions.map((option) => (
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={simulationEntryInput}
+                      onChange={(event) => setSimulationEntryInput(formatCurrencyInputDisplay(parseCurrencyInputDigits(event.target.value)))}
+                      placeholder="R$ 0,00"
+                      className="w-full rounded-[18px] border border-white/10 bg-[#1a1714] px-4 py-3 text-lg text-[#f7f1ea] outline-none placeholder:text-[#8f7d67] focus:border-[#e1c6a4]/35"
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-[18px] border border-white/8 bg-[#1a1714] px-4 py-3">
+                        <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">Entrada aplicada</div>
+                        <div className="mt-2 text-lg text-[#f7f1ea]">{formatCurrency(normalizedSimulationEntryAmount)}</div>
+                      </div>
+                      <div className="rounded-[18px] border border-white/8 bg-[#1a1714] px-4 py-3">
+                        <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">Saldo base</div>
+                        <div className="mt-2 text-lg text-[#f7f1ea]">{formatCurrency(simulationBaseBalance)}</div>
+                      </div>
+                    </div>
+                    {simulationBase && requestedEntryAmount > simulationBase.subtotalBeforeAdjustment ? (
+                      <div className="text-xs leading-6 text-[#cab8a4]">
+                        A entrada foi limitada ao saldo base real desta proposta para manter a simulação fiel ao motor oficial.
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="rounded-[24px] border border-white/8 bg-white/[0.03] p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Formas disponíveis</div>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        {value: 'all' as const, label: 'Todas'},
+                        {value: 'cash' as const, label: 'À vista'},
+                        {value: 'debit' as const, label: 'Débito'},
+                        {value: 'credit' as const, label: 'Crédito'},
+                      ].map((filter) => (
+                        <button
+                          key={filter.value}
+                          type="button"
+                          onClick={() => setPaymentFilter(filter.value)}
+                          className={cn(
+                            'rounded-full border px-3 py-1.5 text-[11px] uppercase tracking-[0.2em] transition',
+                            paymentFilter === filter.value
+                              ? 'border-[#e1c6a4]/45 bg-[#201a15] text-[#f7f1ea]'
+                              : 'border-white/10 bg-[#1a1714] text-[#cab8a4]',
+                          )}
+                        >
+                          {filter.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-4 space-y-3">
+                    {filteredSimulationOptions.map((option) => (
                       <button
                         key={option.methodName}
                         type="button"
                         onClick={() => setSelectedSimulationMethod(option.methodName)}
                         className={cn(
                           'w-full rounded-[22px] border px-4 py-4 text-left transition',
-                          option.methodName === selectedSimulation.methodName
+                          option.methodName === selectedSimulation?.methodName
                             ? 'border-[#e1c6a4]/55 bg-[#201a15]'
                             : 'border-white/8 bg-[#1a1714] hover:border-[#e1c6a4]/28',
                         )}
                       >
                         <div className="flex items-start justify-between gap-4">
-                          <div>
+                          <div className="min-w-0">
                             <div className="text-base text-[#f7f1ea]">{option.methodName}</div>
+                            {option.entryAmount > 0 ? (
+                              <div className="mt-2 text-sm text-[#cab8a4]">Entrada: {formatCurrency(option.entryAmount)}</div>
+                            ) : null}
                             <div className="mt-1 text-sm text-[#cab8a4]">
                               {option.installmentCount > 1
                                 ? `${option.installmentCount}x de ${formatCurrency(option.installmentAmount)}`
                                 : `Total nesta condição: ${formatCurrency(option.totalPrice)}`}
                             </div>
+                            {option.entryAmount > 0 ? (
+                              <div className="mt-1 text-xs text-[#bca792]">Saldo base: {formatCurrency(option.financedAmount)}</div>
+                            ) : null}
                           </div>
                           {option.isCurrent ? (
                             <span className="rounded-full border border-[#e1c6a4]/24 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-[#f1dfca]">
@@ -965,40 +1153,11 @@ export const QuotePresentationPage: React.FC = () => {
                         </div>
                       </button>
                     ))}
-                  </div>
-                </div>
-
-                <div className="rounded-[24px] border border-[#e1c6a4]/18 bg-[#1a1714] p-5">
-                  <div
-                    key={selectedSimulation.methodName}
-                    className={cn(
-                      'transition duration-300 ease-out',
-                      prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-2',
-                    )}
-                  >
-                    <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Condição selecionada</div>
-                    <div className="mt-4 text-2xl text-[#f7f1ea]">{selectedSimulation.methodName}</div>
-                    {selectedSimulation.paymentMode === 'entry' && selectedSimulation.entryAmount > 0 ? (
-                      <div className="mt-5 rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
-                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Entrada</div>
-                        <div className="mt-2 text-xl text-[#f7f1ea]">{formatCurrency(selectedSimulation.entryAmount)}</div>
+                    {!filteredSimulationOptions.length ? (
+                      <div className="rounded-[18px] border border-dashed border-white/10 bg-[#1a1714] px-4 py-4 text-sm leading-7 text-[#cab8a4]">
+                        Nenhuma forma disponível para este filtro.
                       </div>
                     ) : null}
-                    <div className="mt-5 rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
-                      <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Valor final nesta condição</div>
-                      <div className="mt-2 font-display text-4xl text-[#f7f1ea]">{formatCurrency(selectedSimulation.totalPrice)}</div>
-                    </div>
-                    {selectedSimulation.installmentCount > 1 ? (
-                      <div className="mt-5 rounded-[20px] border border-white/8 bg-white/[0.03] px-4 py-4">
-                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Parcelamento</div>
-                        <div className="mt-2 text-2xl text-[#f7f1ea]">
-                          {selectedSimulation.installmentCount}x de {formatCurrency(selectedSimulation.installmentAmount)}
-                        </div>
-                      </div>
-                    ) : null}
-                    <p className="mt-5 text-sm leading-7 text-[#cab8a4]">
-                      Simulação informativa. A proposta oficial continua preservada com o valor principal exibido nesta página.
-                    </p>
                   </div>
                 </div>
               </div>
@@ -1008,6 +1167,46 @@ export const QuotePresentationPage: React.FC = () => {
               </div>
             )}
           </div>
+
+          {selectedSimulation ? (
+            <div className="shrink-0 border-t border-white/8 bg-[#15120f] px-5 py-4 [padding-bottom:calc(env(safe-area-inset-bottom)+1rem)]">
+              <div
+                key={selectedSimulation.methodName}
+                className={cn(
+                  'rounded-[24px] border border-[#e1c6a4]/18 bg-[#1a1714] p-5 transition duration-300 ease-out',
+                  prefersReducedMotion ? '' : 'animate-in fade-in slide-in-from-bottom-2',
+                )}
+              >
+                <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Condição selecionada</div>
+                <div className="mt-3 text-xl text-[#f7f1ea]">{selectedSimulation.methodName}</div>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">Entrada</div>
+                    <div className="mt-2 text-lg text-[#f7f1ea]">{formatCurrency(selectedSimulation.entryAmount)}</div>
+                  </div>
+                  <div className="rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">Saldo a financiar</div>
+                    <div className="mt-2 text-lg text-[#f7f1ea]">{formatCurrency(selectedSimulation.financedAmount)}</div>
+                  </div>
+                </div>
+                {selectedSimulation.installmentCount > 1 ? (
+                  <div className="mt-4 rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                    <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">Parcelamento</div>
+                    <div className="mt-2 text-lg text-[#f7f1ea]">
+                      {selectedSimulation.installmentCount} parcelas de {formatCurrency(selectedSimulation.installmentAmount)}
+                    </div>
+                  </div>
+                ) : null}
+                <div className="mt-4 rounded-[18px] border border-white/8 bg-white/[0.03] px-4 py-4">
+                  <div className="text-[11px] uppercase tracking-[0.22em] text-[#c9a46b]">Total final nesta condição</div>
+                  <div className="mt-2 font-display text-3xl text-[#f7f1ea]">{formatCurrency(selectedSimulation.totalPrice)}</div>
+                </div>
+                <p className="mt-4 text-sm leading-7 text-[#cab8a4]">
+                  Simulação informativa. A proposta oficial continua preservada com o valor principal exibido nesta página.
+                </p>
+              </div>
+            </div>
+          ) : null}
         </div>
       </aside>
     </div>

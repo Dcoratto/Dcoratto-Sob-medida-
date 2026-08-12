@@ -27,10 +27,16 @@ export type QuotePaymentTotals = {
 
 export type QuotePaymentSimulationContext = {
   officialTotalPrice: number;
+  officialPaymentMode?: QuotePaymentMode;
+  officialTotalPaymentMethod?: string;
+  officialRemainingPaymentMethod?: string;
+  officialEntryAmount?: number;
   paymentMode: QuotePaymentMode;
   totalPaymentMethod?: string;
   remainingPaymentMethod?: string;
   entryAmount?: number;
+  simulationPaymentMode?: QuotePaymentMode;
+  simulationEntryAmount?: number;
   commissionPercent?: number;
   negotiationDiscountPercent?: number;
   rtPercent?: number;
@@ -40,6 +46,8 @@ export type QuotePaymentSimulationContext = {
 export type QuotePaymentSimulationOption = {
   methodName: string;
   adjustment: number;
+  subtotalBeforeAdjustment: number;
+  financedAmount: number;
   totalPrice: number;
   installmentCount: number;
   installmentAmount: number;
@@ -49,6 +57,29 @@ export type QuotePaymentSimulationOption = {
 };
 
 const normalizePercent = (value?: number) => Math.max(0, Number(value) || 0);
+
+const resolveOfficialPaymentMode = (context: QuotePaymentSimulationContext): QuotePaymentMode =>
+  context.officialPaymentMode
+  || context.paymentMode
+  || ((Number(context.officialEntryAmount ?? context.entryAmount) || 0) > 0 ? 'entry' : 'total');
+
+const resolveOfficialEntryAmount = (context: QuotePaymentSimulationContext) =>
+  Math.max(0, Number(context.officialEntryAmount ?? context.entryAmount) || 0);
+
+const resolveOfficialMethodName = (context: QuotePaymentSimulationContext) => {
+  const officialPaymentMode = resolveOfficialPaymentMode(context);
+  return officialPaymentMode === 'entry'
+    ? context.officialRemainingPaymentMethod || context.remainingPaymentMethod
+    : context.officialTotalPaymentMethod || context.totalPaymentMethod;
+};
+
+const resolveSimulationEntryAmount = (context: QuotePaymentSimulationContext) =>
+  Math.max(0, Number(context.simulationEntryAmount ?? context.entryAmount ?? 0) || 0);
+
+const resolveSimulationPaymentMode = (context: QuotePaymentSimulationContext): QuotePaymentMode => {
+  if (context.simulationPaymentMode) return context.simulationPaymentMode;
+  return resolveSimulationEntryAmount(context) > 0 ? 'entry' : 'total';
+};
 
 export const parseInstallmentCountFromMethod = (value?: string) => {
   const match = String(value || '').match(/(\d{1,2})\s*x/i);
@@ -132,6 +163,10 @@ const resolvePricingMultiplier = ({
 
 export const deriveSubtotalBeforeAdjustmentFromOfficialTotal = ({
   officialTotalPrice,
+  officialPaymentMode,
+  officialTotalPaymentMethod,
+  officialRemainingPaymentMethod,
+  officialEntryAmount,
   paymentMode,
   totalPaymentMethod,
   remainingPaymentMethod,
@@ -147,13 +182,16 @@ export const deriveSubtotalBeforeAdjustmentFromOfficialTotal = ({
   const multiplier = resolvePricingMultiplier({commissionPercent, negotiationDiscountPercent, rtPercent});
   if (multiplier <= 0) return null;
 
-  const normalizedEntryAmount = Math.max(0, Number(entryAmount) || 0);
-  const currentMethodName = paymentMode === 'entry' ? remainingPaymentMethod : totalPaymentMethod;
+  const normalizedEntryAmount = Math.max(0, Number(officialEntryAmount ?? entryAmount) || 0);
+  const resolvedOfficialPaymentMode = officialPaymentMode || paymentMode || 'total';
+  const currentMethodName = resolvedOfficialPaymentMode === 'entry'
+    ? officialRemainingPaymentMethod || remainingPaymentMethod
+    : officialTotalPaymentMethod || totalPaymentMethod;
   const selectedAdjustment = findPaymentMethodAdjustment(paymentMethods || [], currentMethodName);
   const selectedAdjustmentRatio = selectedAdjustment / 100;
   const paymentAdjustedTotal = normalizedOfficialTotalPrice / multiplier;
 
-  if (paymentMode === 'entry') {
+  if (resolvedOfficialPaymentMode === 'entry') {
     const divisor = 1 + selectedAdjustmentRatio;
     if (divisor <= 0) return null;
     return (paymentAdjustedTotal + (normalizedEntryAmount * selectedAdjustmentRatio)) / divisor;
@@ -164,22 +202,44 @@ export const deriveSubtotalBeforeAdjustmentFromOfficialTotal = ({
   return paymentAdjustedTotal / divisor;
 };
 
+export const resolveQuotePaymentSimulationBase = (
+  context: QuotePaymentSimulationContext,
+) => {
+  const subtotalBeforeAdjustment = deriveSubtotalBeforeAdjustmentFromOfficialTotal(context);
+  if (subtotalBeforeAdjustment == null) return null;
+
+  const normalizedSubtotal = Math.max(0, Number(subtotalBeforeAdjustment) || 0);
+  const normalizedOfficialEntryAmount = Math.min(resolveOfficialEntryAmount(context), normalizedSubtotal);
+
+  return {
+    subtotalBeforeAdjustment: normalizedSubtotal,
+    officialPaymentMode: resolveOfficialPaymentMode(context),
+    officialEntryAmount: normalizedOfficialEntryAmount,
+    officialMethodName: resolveOfficialMethodName(context),
+  };
+};
+
 export const buildQuotePaymentSimulationOptions = (
   context: QuotePaymentSimulationContext,
 ): QuotePaymentSimulationOption[] => {
   const paymentMethods = (context.paymentMethods || []).filter((method) => method?.name?.trim());
   if (!paymentMethods.length) return [];
 
-  const subtotalBeforeAdjustment = deriveSubtotalBeforeAdjustmentFromOfficialTotal(context);
-  if (subtotalBeforeAdjustment == null) return [];
+  const simulationBase = resolveQuotePaymentSimulationBase(context);
+  if (!simulationBase) return [];
 
-  const paymentMode = context.paymentMode || 'total';
-  const currentMethodName = paymentMode === 'entry' ? context.remainingPaymentMethod : context.totalPaymentMethod;
-  const normalizedEntryAmount = Math.max(0, Number(context.entryAmount) || 0);
+  const paymentMode = resolveSimulationPaymentMode(context);
+  const normalizedEntryAmount = Math.min(
+    resolveSimulationEntryAmount(context),
+    simulationBase.subtotalBeforeAdjustment,
+  );
+  const financedAmount = Math.max(0, simulationBase.subtotalBeforeAdjustment - normalizedEntryAmount);
+  const isOfficialScenario = paymentMode === simulationBase.officialPaymentMode
+    && Math.abs(normalizedEntryAmount - simulationBase.officialEntryAmount) < 0.000001;
 
   return paymentMethods.map((method) => {
     const totals = calculateQuotePaymentTotals({
-      subtotalBeforeAdjustment,
+      subtotalBeforeAdjustment: simulationBase.subtotalBeforeAdjustment,
       paymentMode,
       entryAmount: normalizedEntryAmount,
       selectedAdjustment: method.adjustment,
@@ -198,12 +258,14 @@ export const buildQuotePaymentSimulationOptions = (
     return {
       methodName: method.name,
       adjustment: method.adjustment,
+      subtotalBeforeAdjustment: simulationBase.subtotalBeforeAdjustment,
+      financedAmount,
       totalPrice: totals.totalPrice,
       installmentCount,
       installmentAmount,
       entryAmount: normalizedEntryAmount,
       paymentMode,
-      isCurrent: method.name === currentMethodName,
+      isCurrent: isOfficialScenario && method.name === simulationBase.officialMethodName,
     };
   });
 };

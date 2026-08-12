@@ -1,8 +1,10 @@
 type PieceMeasureLike = {
   length?: number;
   width?: number;
+  manualLongestSide?: number;
   largestSide?: number;
   smallestSide?: number;
+  unit?: 'cm' | 'm';
 };
 
 const normalizeMeasure = (value?: number) => {
@@ -36,4 +38,18 @@ export const getPieceMajorMinorSides = (piece: PieceMeasureLike) => {
     major: fallback,
     minor: fallback,
   };
+};
+
+export const getEffectivePieceLongestSide = (piece: PieceMeasureLike) => {
+  const manualLongestSide = normalizeMeasure(piece.manualLongestSide);
+  if (manualLongestSide) return manualLongestSide;
+
+  return getPieceMajorMinorSides(piece).major;
+};
+
+export const getEffectivePieceLinearLength = (piece: PieceMeasureLike) => {
+  const longestSide = getEffectivePieceLongestSide(piece);
+  if (!longestSide) return 0;
+
+  return piece.unit === 'm' ? longestSide : longestSide / 100;
 };

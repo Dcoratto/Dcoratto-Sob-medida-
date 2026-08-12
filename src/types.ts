@@ -597,6 +597,7 @@ export interface QuotePiece {
   manualFinalArea?: number;
   manualArea?: number;
   totalArea?: number;
+  manualLongestSide?: number;
   largestSide?: number;
   smallestSide?: number;
   sides: PieceSide[];

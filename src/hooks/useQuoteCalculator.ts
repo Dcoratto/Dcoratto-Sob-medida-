@@ -1,6 +1,7 @@
 import { QuotePiece, QuoteCutouts, Settings, Material, SculptedSink } from '../types';
 import {getRegionalLaborMinimum} from '../lib/laborRegion';
 import {getEffectivePieceBaseArea} from '../lib/quotePieceArea';
+import {getEffectivePieceLinearLength} from '../lib/pieceDimensions';
 
 export const MATERIAL_LOSS_PERCENTAGE = 10;
 
@@ -133,9 +134,9 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
     const regionalLaborMinimum = getRegionalLaborMinimum(settings, clientLocation || {});
     return pieces.reduce((acc, p) => {
       // Labor per linear meter * largest side
-      const largestDim = p.stair?.active ?Math.max(p.stair.stepWidth || 0, (p.stair.stepCount || 0) * (p.stair.treadDepth || 0)) : p.largestSide || Math.max(p.width, p.length);
-      const unit = p.stair?.active ?p.stair.unit : p.unit;
-      const largestSideM = largestDim / (unit === 'cm' ?100 : 1);
+      const largestSideM = p.stair?.active
+        ? Math.max(p.stair.stepWidth || 0, (p.stair.stepCount || 0) * (p.stair.treadDepth || 0)) / (p.stair.unit === 'cm' ? 100 : 1)
+        : getEffectivePieceLinearLength(p);
       return acc + Math.max(settings.laborRatePerLinearMeter * largestSideM, regionalLaborMinimum);
     }, 0);
   };

@@ -109,6 +109,7 @@ export const validateQuoteBeforeSave = ({
   const MAX_DIMENSION_CM = 5000;
   const MAX_DIMENSION_M = 50;
   const MAX_PIECE_AREA = 5000;
+  const MAX_LONGEST_SIDE_CM = 5000;
 
   if (!clientId) return 'Por favor, selecione um cliente.';
   if (!selectedClient) return 'O cliente selecionado não foi encontrado. Atualize a tela e tente novamente.';
@@ -150,6 +151,13 @@ export const validateQuoteBeforeSave = ({
       const manualFinalArea = getStoredManualFinalArea(piece);
       if (!Number.isFinite(manualFinalArea) || manualFinalArea <= 0 || manualFinalArea > MAX_PIECE_AREA) {
         return `A peça "${piece.name}" está com uma área manual inválida. Informe um m² final válido antes de salvar.`;
+      }
+    }
+
+    if (piece.manualLongestSide != null) {
+      const manualLongestSide = Number(piece.manualLongestSide);
+      if (!Number.isFinite(manualLongestSide) || manualLongestSide <= 0 || manualLongestSide > MAX_LONGEST_SIDE_CM) {
+        return `A peça "${piece.name}" está com um maior lado manual inválido. Revise o valor informado antes de salvar.`;
       }
     }
 

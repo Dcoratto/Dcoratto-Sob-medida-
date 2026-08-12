@@ -25,7 +25,7 @@ import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {validateQuoteBeforeSave} from '../lib/businessRules';
-import {getPieceMajorMinorSides} from '../lib/pieceDimensions';
+import {getEffectivePieceLongestSide, getPieceMajorMinorSides} from '../lib/pieceDimensions';
 import {getInventoryItemArea} from '../lib/inventoryMetrics';
 import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {LABELS} from '../constants/labels';
@@ -108,6 +108,7 @@ const inputValuesFromPieceManualPrices = (pieces?: QuotePiece[]) =>
 
 const pieceMeasureInputKey = (pieceId: string, field: 'length' | 'width') => `${pieceId}:${field}`;
 const pieceManualAreaInputKey = (pieceId: string) => `${pieceId}:manual-final-area`;
+const pieceManualLongestSideInputKey = (pieceId: string) => `${pieceId}:manual-longest-side`;
 
 const formatPresentationDate = (value?: string | null) => {
   if (!value) return '-';
@@ -1276,6 +1277,10 @@ export const QuoteEditor: React.FC = () => {
         if (activePieceMeasureInput !== manualAreaKey) {
           next[manualAreaKey] = piece.manualFinalArea == null ? '' : formatMeasureInput(piece.manualFinalArea);
         }
+        const manualLongestSideKey = pieceManualLongestSideInputKey(piece.id);
+        if (activePieceMeasureInput !== manualLongestSideKey) {
+          next[manualLongestSideKey] = piece.manualLongestSide == null ? '' : formatMeasureInput(piece.manualLongestSide);
+        }
       });
       return next;
     });
@@ -1330,6 +1335,31 @@ export const QuoteEditor: React.FC = () => {
     const parsedValue = parseMeasureInput(rawValue);
     const normalizedValue = Number.isFinite(parsedValue) && parsedValue > 0 ? roundNumber(parsedValue, 4) : undefined;
     updatePiece(piece.id, {manualFinalArea: normalizedValue});
+    setPieceMeasureInputs((current) => ({...current, [key]: normalizedValue == null ? '' : formatMeasureInput(normalizedValue)}));
+    setActivePieceMeasureInput((current) => (current === key ? null : current));
+  };
+
+  const handlePieceManualLongestSideFocus = (pieceId: string, value?: number) => {
+    const key = pieceManualLongestSideInputKey(pieceId);
+    setActivePieceMeasureInput(key);
+    setPieceMeasureInputs((current) => ({...current, [key]: value == null ? '' : formatEditableMeasureValue(value)}));
+  };
+
+  const handlePieceManualLongestSideChange = (pieceId: string, value: string) => {
+    const key = pieceManualLongestSideInputKey(pieceId);
+    setPieceMeasureInputs((current) => ({...current, [key]: value}));
+    const parsedValue = parseMeasureInput(value);
+    updatePiece(pieceId, {
+      manualLongestSide: Number.isFinite(parsedValue) && parsedValue > 0 ? parsedValue : undefined,
+    });
+  };
+
+  const handlePieceManualLongestSideBlur = (piece: QuotePiece) => {
+    const key = pieceManualLongestSideInputKey(piece.id);
+    const rawValue = pieceMeasureInputs[key] || '';
+    const parsedValue = parseMeasureInput(rawValue);
+    const normalizedValue = Number.isFinite(parsedValue) && parsedValue > 0 ? roundNumber(parsedValue, 3) : undefined;
+    updatePiece(piece.id, {manualLongestSide: normalizedValue});
     setPieceMeasureInputs((current) => ({...current, [key]: normalizedValue == null ? '' : formatMeasureInput(normalizedValue)}));
     setActivePieceMeasureInput((current) => (current === key ? null : current));
   };
@@ -1477,6 +1507,8 @@ export const QuoteEditor: React.FC = () => {
       const next = {...current};
       delete next[pieceMeasureInputKey(id, 'length')];
       delete next[pieceMeasureInputKey(id, 'width')];
+      delete next[pieceManualAreaInputKey(id)];
+      delete next[pieceManualLongestSideInputKey(id)];
       return next;
     });
   };
@@ -2750,10 +2782,12 @@ export const QuoteEditor: React.FC = () => {
               const pieceMaterial = materialWithQuotePrice(piece.materialId, piece.materialVariantKey);
               const stock = piece.materialId ?materialStock(piece.materialId, piece.materialVariantKey) : {available: 0};
               const pieceDimensions = getPieceMajorMinorSides(piece);
+              const effectiveLongestSide = getEffectivePieceLongestSide(piece);
               const pieceAreaMode = getPieceAreaMode(piece);
               const isManualPieceArea = pieceAreaMode === 'manual';
               const drawingArea = getStoredDrawingArea(piece);
               const manualFinalArea = getStoredManualFinalArea(piece);
+              const usesManualLongestSide = Number(piece.manualLongestSide || 0) > 0;
               const pieceCutoutBreakdown = originalPiecePricingBreakdowns[pIdx];
               const pieceScopedCutouts = pieceCutoutBreakdown?.cutoutRows || [];
               const pieceScopedCutoutTotal = pieceCutoutBreakdown?.calculatedCutoutValue || 0;
@@ -3081,6 +3115,34 @@ export const QuoteEditor: React.FC = () => {
                         </div>
                       </div>
                       )}
+                      {!piece.stair?.active && (
+                      <div className={cn('space-y-1', isManualPieceArea ? 'md:col-span-1' : '')}>
+                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Maior lado da peça (cm)</label>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={pieceMeasureInputs[pieceManualLongestSideInputKey(piece.id)] || (piece.manualLongestSide == null ? '' : formatMeasureInput(piece.manualLongestSide))}
+                          onFocus={(event) => {
+                            handlePieceManualLongestSideFocus(piece.id, piece.manualLongestSide);
+                            event.currentTarget.select();
+                          }}
+                          onChange={(e) => handlePieceManualLongestSideChange(piece.id, e.target.value)}
+                          onBlur={() => handlePieceManualLongestSideBlur(piece)}
+                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
+                          placeholder={!isManualPieceArea && effectiveLongestSide > 0 ? formatMeasureInput(effectiveLongestSide) : '0,0'}
+                        />
+                        <div className="space-y-1 text-[11px] font-semibold text-slate-500">
+                          <div>Usado para cálculo da mão de obra linear.</div>
+                          {usesManualLongestSide ? (
+                            <div className="text-amber-700">Maior lado informado manualmente.</div>
+                          ) : !isManualPieceArea && effectiveLongestSide > 0 ? (
+                            <div>Sem preenchimento manual, o sistema usa {formatCentimeters(effectiveLongestSide)}.</div>
+                          ) : (
+                            <div>Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.</div>
+                          )}
+                        </div>
+                      </div>
+                      )}
                       <div className="space-y-1">
                         <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Área Total (m²)</label>
                         <div className="px-4 py-2.5 bg-slate-100 rounded-xl font-mono text-slate-600 flex flex-col items-end">
@@ -3116,6 +3178,11 @@ export const QuoteEditor: React.FC = () => {
                             <div className="w-2 h-2 bg-green-500 rounded-full mt-1" title="Calculado via desenho" />
                           )}
                         </div>
+                        {!piece.stair?.active && effectiveLongestSide > 0 && (
+                          <div className="text-[11px] font-semibold text-slate-500">
+                            Maior lado utilizado: <span className="font-mono text-slate-700">{formatCentimeters(effectiveLongestSide)}</span>
+                          </div>
+                        )}
                         <div className={cn('mt-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide', !hasMaterial ?'bg-slate-100 text-slate-500' : hasEnoughStock ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600')}>
                           {!hasMaterial ?'Selecione um material para validar o estoque' : hasEnoughStock ?`m² suficiente: ${formatArea(stock.available)} disponível` : `m² insuficiente: precisa ${formatArea(pieceArea)} e há ${formatArea(stock.available)}`}
                         </div>

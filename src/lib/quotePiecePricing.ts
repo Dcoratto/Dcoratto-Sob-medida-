@@ -1,5 +1,6 @@
 import {Settings, Quote, QuotePiece} from '../types';
 import {getRegionalLaborMinimum} from './laborRegion';
+import {getEffectivePieceLinearLength} from './pieceDimensions';
 import {
   buildCutoutCatalog,
   getCutoutLabel,
@@ -77,11 +78,9 @@ export const calculatePieceLaborValue = (
   laborRatePerLinearMeter: number,
   regionalMinimum = 0,
 ) => {
-  const largestDim = piece.stair?.active
-    ? Math.max(piece.stair.stepWidth || 0, (piece.stair.stepCount || 0) * (piece.stair.treadDepth || 0))
-    : piece.largestSide || Math.max(piece.width, piece.length);
-  const unit = piece.stair?.active ? piece.stair.unit : piece.unit;
-  const largestSideM = largestDim / (unit === 'cm' ? 100 : 1);
+  const largestSideM = piece.stair?.active
+    ? Math.max(piece.stair.stepWidth || 0, (piece.stair.stepCount || 0) * (piece.stair.treadDepth || 0)) / (piece.stair.unit === 'cm' ? 100 : 1)
+    : getEffectivePieceLinearLength(piece);
   const calculatedLabor = roundCurrency(laborRatePerLinearMeter * largestSideM);
   return roundCurrency(Math.max(calculatedLabor, regionalMinimum));
 };

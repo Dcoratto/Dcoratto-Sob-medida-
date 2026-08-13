@@ -93,6 +93,9 @@ export type QuotePresentationSnapshot = {
     material?: string;
     area?: number;
     value?: number;
+    baseValue?: number;
+    allocatedAdjustmentValue?: number;
+    presentationFinalValue?: number;
     dimensionsLabel?: string;
     imageUrl?: string;
     notes?: string;
@@ -103,6 +106,8 @@ export type QuotePresentationSnapshot = {
     description?: string;
     totalPrice?: number;
     totalArea?: number;
+    piecesSubtotal?: number;
+    globalAdjustmentValue?: number;
   };
   payment?: {
     method?: string;

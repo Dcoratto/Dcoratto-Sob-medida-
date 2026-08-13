@@ -429,15 +429,29 @@ export const QuotePresentationPage: React.FC = () => {
       environment: normalizeLegacyPresentationText(piece.environment),
       materialName: normalizeLegacyPresentationText(piece.materialName || piece.material),
       area: piece.area == null ? null : normalizePresentationAreaValue(piece.area),
-      value: piece.value == null ? null : Number(piece.value || 0),
+      value: piece.presentationFinalValue != null
+        ? Number(piece.presentationFinalValue || 0)
+        : piece.value == null
+          ? null
+          : Number(piece.value || 0),
       highlights: Array.isArray(piece.highlights) ? piece.highlights.filter(Boolean) : [],
     }));
   }, [snapshot?.pieces]);
   const primaryMaterialImage = materials[0]?.imageUrl;
+  const hasFrozenPresentationPieceValues = useMemo(
+    () => projectPieces.some((piece) => piece.presentationFinalValue != null || piece.allocatedAdjustmentValue != null || piece.baseValue != null),
+    [projectPieces],
+  );
   const investmentCompositionRows = useMemo(() => {
+    if (hasFrozenPresentationPieceValues) {
+      return [{
+        label: 'Total final',
+        value: Number(investment?.totalPrice || 0),
+      }];
+    }
     const rows: Array<{label: string; value: number}> = [];
-    const piecesSubtotal = Number((investment as any)?.piecesSubtotal || 0);
-    const globalAdjustmentValue = Number((investment as any)?.globalAdjustmentValue || 0);
+    const piecesSubtotal = Number(investment?.piecesSubtotal || 0);
+    const globalAdjustmentValue = Number(investment?.globalAdjustmentValue || 0);
     if (piecesSubtotal > 0) {
       rows.push({label: 'Subtotal das peças', value: piecesSubtotal});
     }
@@ -446,7 +460,7 @@ export const QuotePresentationPage: React.FC = () => {
     }
     rows.push({label: 'Total final', value: Number(investment?.totalPrice || 0)});
     return rows;
-  }, [investment]);
+  }, [hasFrozenPresentationPieceValues, investment]);
 
   const projectLocation = [snapshot?.client?.city, snapshot?.client?.neighborhood]
     .filter(Boolean)
@@ -823,7 +837,8 @@ export const QuotePresentationPage: React.FC = () => {
             </RevealBlock>
             <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {materials.map((material, index) => (
-                <RevealBlock reducedMotion={prefersReducedMotion} delayMs={index * 70}>
+                <React.Fragment key={material.id || `${material.name || 'material'}-${index}`}>
+                  <RevealBlock reducedMotion={prefersReducedMotion} delayMs={index * 70}>
                   <div className="overflow-hidden rounded-[30px] border border-white/8 bg-[#15120f] shadow-[0_20px_60px_rgba(0,0,0,0.2)]">
                     {material.imageUrl ? (
                       <div className="overflow-hidden bg-[#1a1714]">
@@ -854,7 +869,8 @@ export const QuotePresentationPage: React.FC = () => {
                       ) : null}
                     </div>
                   </div>
-                </RevealBlock>
+                  </RevealBlock>
+                </React.Fragment>
               ))}
             </div>
           </div>
@@ -898,7 +914,8 @@ export const QuotePresentationPage: React.FC = () => {
                 </RevealBlock>
                 <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {projectPieces.map((piece, index) => (
-                    <RevealBlock reducedMotion={prefersReducedMotion} delayMs={index * 40}>
+                    <React.Fragment key={piece.id || `${piece.name || 'piece'}-${index}`}>
+                      <RevealBlock reducedMotion={prefersReducedMotion} delayMs={index * 40}>
                       <div className="rounded-[28px] border border-white/8 bg-[#15120f] px-5 py-5">
                         <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Peça</div>
                         <div className="mt-2 text-2xl leading-tight text-[#f7f1ea]">{piece.name}</div>
@@ -941,7 +958,8 @@ export const QuotePresentationPage: React.FC = () => {
                           <p className="mt-4 text-sm leading-7 text-[#d6c6b4]">{piece.notes}</p>
                         ) : null}
                       </div>
-                    </RevealBlock>
+                      </RevealBlock>
+                    </React.Fragment>
                   ))}
                 </div>
               </>
@@ -1051,11 +1069,13 @@ export const QuotePresentationPage: React.FC = () => {
               </RevealBlock>
               <div className="mt-10 grid gap-4 md:grid-cols-2">
                 {importantInfoItems.map((item, index) => (
-                  <RevealBlock reducedMotion={prefersReducedMotion} delayMs={index * 60}>
+                  <React.Fragment key={`${item.slice(0, 24)}-${index}`}>
+                    <RevealBlock reducedMotion={prefersReducedMotion} delayMs={index * 60}>
                     <div className="rounded-[28px] border border-white/8 bg-[#15120f] px-5 py-5 text-sm leading-7 text-[#dacbbc]">
                       {item}
                     </div>
-                  </RevealBlock>
+                    </RevealBlock>
+                  </React.Fragment>
                 ))}
               </div>
             </div>

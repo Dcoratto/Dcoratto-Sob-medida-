@@ -425,9 +425,23 @@ const notifyTableListeners = (table: string) => {
   listenersByTable.get(table)?.forEach((listener) => listener());
 };
 
+const notifyAllListeners = () => {
+  snapshotCache.clear();
+  snapshotRequests.clear();
+  listenersByTable.forEach((listeners) => {
+    listeners.forEach((listener) => listener());
+  });
+};
+
 export const invalidateCollectionSnapshots = (collectionName: string) => {
   notifyTableListeners(collectionName);
 };
+
+if (typeof window !== 'undefined') {
+  supabase.auth.onAuthStateChange(() => {
+    notifyAllListeners();
+  });
+}
 
 const registerTableListener = (table: string, listener: () => void) => {
   const current = listenersByTable.get(table) || new Set<() => void>();

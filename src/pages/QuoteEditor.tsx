@@ -335,7 +335,7 @@ const normalizeFixtureCatalogItem = (item: FixtureCatalogItem): FixtureCatalogIt
 export const QuoteEditor: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, profile, appUid } = useAuth();
+  const { user, profile, appUid, loading: authLoading } = useAuth();
   const { settings, loading: settingsLoading } = useSettings();
   
   const [materials, setMaterials] = useState<Material[]>([]);
@@ -344,6 +344,7 @@ export const QuoteEditor: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [condominiums, setCondominiums] = useState<CondominiumRule[]>([]);
   const [loading, setLoading] = useState(true);
+  const [auxiliaryDataReady, setAuxiliaryDataReady] = useState(false);
   const [saving, setSaving] = useState(false);
   const [quoteDraftRecovered, setQuoteDraftRecovered] = useState(false);
   const [quoteDraftSavedAt, setQuoteDraftSavedAt] = useState<string | null>(null);
@@ -999,6 +1000,8 @@ export const QuoteEditor: React.FC = () => {
 
 
   useEffect(() => {
+    if (authLoading) return;
+
     let cancelled = false;
     let subscribeTimer: number | undefined;
     let unsubClients = () => {};
@@ -1007,6 +1010,24 @@ export const QuoteEditor: React.FC = () => {
     let unsubInventory = () => {};
     let unsubReservations = () => {};
     let unsubFixtureCatalog = () => {};
+    const auxiliaryLoadState = {
+      clients: false,
+      condominiums: false,
+      materials: false,
+      inventory: false,
+      reservations: false,
+      fixtureCatalog: false,
+    };
+
+    setLoading(true);
+    setAuxiliaryDataReady(false);
+
+    const markAuxiliaryLoaded = (key: keyof typeof auxiliaryLoadState) => {
+      auxiliaryLoadState[key] = true;
+      if (!cancelled && Object.values(auxiliaryLoadState).every(Boolean)) {
+        setAuxiliaryDataReady(true);
+      }
+    };
 
     const subscribeAuxiliaryData = () => {
       if (cancelled) return;
@@ -1015,6 +1036,9 @@ export const QuoteEditor: React.FC = () => {
         selectFields('name', 'phone', 'email', 'cpf', 'rg', 'address', 'streetAddress', 'city', 'condominiumId', 'condominiumName', 'neighborhood', 'zipCode', 'addressType', 'block', 'lot', 'tower', 'apartmentNumber'),
       ), (snap) => {
         setClients(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Client)));
+        markAuxiliaryLoaded('clients');
+      }, (error) => {
+        console.error('Erro ao carregar clientes do orcamento:', error);
       });
 
       unsubCondominiums = onSnapshot(query(
@@ -1022,6 +1046,9 @@ export const QuoteEditor: React.FC = () => {
         selectFields('name', 'city', 'allowedWeekdays', 'blockNationalHolidays', 'blockCityHolidays'),
       ), (snap) => {
         setCondominiums(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CondominiumRule)));
+        markAuxiliaryLoaded('condominiums');
+      }, (error) => {
+        console.error('Erro ao carregar condominios do orcamento:', error);
       });
 
       unsubMaterials = onSnapshot(query(
@@ -1029,6 +1056,9 @@ export const QuoteEditor: React.FC = () => {
         selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'pricePerM2', 'baseCostPerM2', 'baseMinimumSalePerM2', 'active'),
       ), (snap) => {
         setMaterials(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Material)));
+        markAuxiliaryLoaded('materials');
+      }, (error) => {
+        console.error('Erro ao carregar materiais do orcamento:', error);
       });
 
       unsubInventory = onSnapshot(query(
@@ -1036,6 +1066,9 @@ export const QuoteEditor: React.FC = () => {
         selectFields('materialId', 'materialName', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'area', 'cost', 'minimumSalePrice', 'status', 'photoUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl'),
       ), (snap) => {
         setInventory(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryItem)));
+        markAuxiliaryLoaded('inventory');
+      }, (error) => {
+        console.error('Erro ao carregar estoque do orcamento:', error);
       });
 
       unsubReservations = onSnapshot(query(
@@ -1043,6 +1076,9 @@ export const QuoteEditor: React.FC = () => {
         selectFields('quoteId', 'materialId', 'materialVariantKey', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'provider', 'materialName', 'area', 'quoteStatus', 'clientName'),
       ), (snap) => {
         setReservations(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as InventoryReservation)));
+        markAuxiliaryLoaded('reservations');
+      }, (error) => {
+        console.error('Erro ao carregar reservas do orcamento:', error);
       });
       unsubFixtureCatalog = onSnapshot(query(
         collection(db, 'fixtureCatalog'),
@@ -1051,6 +1087,9 @@ export const QuoteEditor: React.FC = () => {
         setFixtureCatalog(
           snap.docs.map((doc) => normalizeFixtureCatalogItem({ id: doc.id, ...doc.data() } as FixtureCatalogItem)),
         );
+        markAuxiliaryLoaded('fixtureCatalog');
+      }, (error) => {
+        console.error('Erro ao carregar catalogo de acabamentos do orcamento:', error);
       });
     };
 
@@ -1194,7 +1233,7 @@ export const QuoteEditor: React.FC = () => {
       unsubReservations();
       unsubFixtureCatalog();
     };
-  }, [id, quoteDraftKey]);
+  }, [authLoading, id, quoteDraftKey]);
 
   useEffect(() => {
     if (!id && !responsible && currentUserName !== 'Usuário') {
@@ -1964,7 +2003,7 @@ export const QuoteEditor: React.FC = () => {
     }
   };
 
-  if (settingsLoading) return <div>Carregando...</div>;
+  if (authLoading || settingsLoading || loading || !auxiliaryDataReady) return <div>Carregando...</div>;
 
   return (
     <div className="mx-auto max-w-7xl space-y-8 pb-32">

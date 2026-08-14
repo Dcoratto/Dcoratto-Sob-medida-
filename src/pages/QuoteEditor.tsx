@@ -59,6 +59,8 @@ import {
 } from '../lib/quoteDigital';
 
 type QuoteSidebarSectionKey = 'digital' | 'client' | 'materials' | 'pricing' | 'payment';
+type PieceEditorMode = 'draw' | 'manual' | 'stair' | null;
+type PieceEditorAccordionKey = 'finishes' | 'options';
 
 const MATERIAL_PRICE_MINIMUM_ERROR = 'O valor personalizado não pode ser menor que o valor mínimo definido para este material.';
 
@@ -284,6 +286,50 @@ const SidebarAccordionSection = ({
   );
 };
 
+const PieceEditorAccordionSection = ({
+  title,
+  description,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string;
+  description?: string;
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) => (
+  <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white">
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left"
+    >
+      <div className="min-w-0">
+        <div className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">{title}</div>
+        {description ? <p className="mt-1 text-xs text-slate-500">{description}</p> : null}
+      </div>
+      <ChevronDown className={cn('h-4 w-4 shrink-0 text-slate-400 transition-transform', open && 'rotate-180')} />
+    </button>
+    <div className={cn('grid transition-all duration-300 ease-out', open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
+      <div className="overflow-hidden">
+        <div className="border-t border-slate-100 px-4 py-4">{children}</div>
+      </div>
+    </div>
+  </section>
+);
+
+const clonePieceForEditor = (piece: QuotePiece) => JSON.parse(JSON.stringify(piece)) as QuotePiece;
+
+const inferPieceEditorMode = (piece: QuotePiece): Exclude<PieceEditorMode, null> => {
+  if (piece.stair?.active) return 'stair';
+  if (piece.drawingJson || piece.previewUrl || getStoredDrawingArea(piece) > 0) return 'draw';
+  if (getPieceAreaMode(piece) === 'manual' || getStoredManualFinalArea(piece) > 0 || Number(piece.manualLongestSide || 0) > 0) {
+    return 'manual';
+  }
+  return 'draw';
+};
+
 const PricingSwitch = ({checked, onChange, label}: {checked: boolean; onChange: (checked: boolean) => void; label: string}) => (
   <button
     type="button"
@@ -390,6 +436,19 @@ export const QuoteEditor: React.FC = () => {
   const [activePieceMeasureInput, setActivePieceMeasureInput] = useState<string | null>(null);
   const [cutouts, setCutouts] = useState<QuoteCutoutState>(EMPTY_QUOTE_CUTOUTS);
   const [showDrawing, setShowDrawing] = useState<string | null>(null);
+  const [pieceEditorOpen, setPieceEditorOpen] = useState(false);
+  const [pieceEditorPieceId, setPieceEditorPieceId] = useState<string | null>(null);
+  const [pieceEditorMode, setPieceEditorMode] = useState<PieceEditorMode>(null);
+  const [pieceEditorIsNew, setPieceEditorIsNew] = useState(false);
+  const [pieceEditorRestoreSnapshot, setPieceEditorRestoreSnapshot] = useState<{
+    piece: QuotePiece;
+    manualPriceInput?: string;
+    materialSearch?: string;
+  } | null>(null);
+  const [pieceEditorAccordionOpen, setPieceEditorAccordionOpen] = useState<Record<PieceEditorAccordionKey, boolean>>({
+    finishes: false,
+    options: false,
+  });
   const [employeeAssignments, setEmployeeAssignments] = useState<EmployeeAssignment[]>([]);
   const [statusHistory, setStatusHistory] = useState<QuoteStatusHistory[]>([]);
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
@@ -966,6 +1025,29 @@ export const QuoteEditor: React.FC = () => {
       }, {area: 0, count: 0}).count,
     };
   };
+  const activePieceIndex = pieceEditorPieceId ? pieces.findIndex((piece) => piece.id === pieceEditorPieceId) : -1;
+  const activePiece = activePieceIndex >= 0 ? pieces[activePieceIndex] : null;
+  const activePieceTotals = activePiece ? calculatePieceArea(activePiece) : null;
+  const activePieceArea = activePieceTotals?.totalArea || 0;
+  const activePieceStairDetails = activePiece ? calculateStairArea(activePiece) : null;
+  const activePieceMaterial = activePiece ? materialWithQuotePrice(activePiece.materialId, activePiece.materialVariantKey) : null;
+  const activePieceStock = activePiece?.materialId ? materialStock(activePiece.materialId, activePiece.materialVariantKey) : {available: 0};
+  const activePieceDimensions = activePiece ? getPieceMajorMinorSides(activePiece) : {major: 0, minor: 0};
+  const activePieceLongestSide = activePiece ? getEffectivePieceLongestSide(activePiece) : 0;
+  const activePieceAreaMode = activePiece ? getPieceAreaMode(activePiece) : 'dimensions';
+  const activePieceIsManualArea = activePieceAreaMode === 'manual';
+  const activePieceDrawingArea = activePiece ? getStoredDrawingArea(activePiece) : 0;
+  const activePieceManualFinalArea = activePiece ? getStoredManualFinalArea(activePiece) : 0;
+  const activePieceUsesManualLongestSide = Number(activePiece?.manualLongestSide || 0) > 0;
+  const activePiecePricingBreakdown = activePieceIndex >= 0 ? originalPiecePricingBreakdowns[activePieceIndex] : undefined;
+  const activePieceScopedCutouts = activePiecePricingBreakdown?.cutoutRows || [];
+  const activePieceScopedCutoutTotal = activePiecePricingBreakdown?.calculatedCutoutValue || 0;
+  const activePieceHasMaterial = Boolean(activePiece?.materialId);
+  const activePieceHasEnoughStock = activePieceHasMaterial && activePieceStock.available >= activePieceArea;
+  const activePieceLotInfo = activePieceHasMaterial && activePiece
+    ? materialLotInfo(activePiece.materialId, activePieceArea, activePiece.materialVariantKey)
+    : null;
+  const activePieceWorkflowStatus = normalizeQuoteStatus(activePiece?.pieceStatus || status);
   const filteredClients = clients.filter((client) => {
     const searchText = `${client.name} ${client.phone} ${client.email || ''} ${client.cpf || ''} ${client.rg || ''} ${client.address}`.toLowerCase();
     return searchText.includes(clientSearch.toLowerCase());
@@ -1532,6 +1614,113 @@ export const QuoteEditor: React.FC = () => {
     setPieces([...pieces, newPiece]);
   };
 
+  const resetPieceEditorAccordions = () => {
+    setPieceEditorAccordionOpen({
+      finishes: false,
+      options: false,
+    });
+  };
+
+  const openPieceEditor = (
+    pieceId: string,
+    options?: {
+      isNew?: boolean;
+      mode?: PieceEditorMode;
+      pieceSnapshot?: QuotePiece;
+    },
+  ) => {
+    const piece = options?.pieceSnapshot || pieces.find((item) => item.id === pieceId);
+    if (!piece) return;
+    setPieceEditorPieceId(pieceId);
+    setPieceEditorIsNew(Boolean(options?.isNew));
+    setPieceEditorMode(options && 'mode' in options ? options.mode ?? null : inferPieceEditorMode(piece));
+    setPieceEditorRestoreSnapshot(
+      options?.isNew
+        ? null
+        : {
+            piece: clonePieceForEditor(piece),
+            manualPriceInput: pieceManualPriceInputs[pieceId],
+            materialSearch: pieceMaterialSearch[pieceId],
+          },
+    );
+    setPieceMaterialPickerOpen((current) => ({...current, [pieceId]: false}));
+    resetPieceEditorAccordions();
+    setPieceEditorOpen(true);
+  };
+
+  const closePieceEditor = () => {
+    setPieceEditorOpen(false);
+    setPieceEditorPieceId(null);
+    setPieceEditorMode(null);
+    setPieceEditorIsNew(false);
+    setPieceEditorRestoreSnapshot(null);
+    setPieceMaterialPickerOpen({});
+    resetPieceEditorAccordions();
+  };
+
+  const cancelPieceEditor = () => {
+    if (!pieceEditorPieceId) {
+      closePieceEditor();
+      return;
+    }
+
+    if (pieceEditorIsNew) {
+      removePiece(pieceEditorPieceId);
+      closePieceEditor();
+      return;
+    }
+
+    if (pieceEditorRestoreSnapshot) {
+      setPieces((current) => current.map((piece) => (
+        piece.id === pieceEditorPieceId ? ensurePieceWorkflowStatus(clonePieceForEditor(pieceEditorRestoreSnapshot.piece), status) : piece
+      )));
+      setPieceManualPriceInputs((current) => {
+        const next = {...current};
+        if (pieceEditorRestoreSnapshot.manualPriceInput) next[pieceEditorPieceId] = pieceEditorRestoreSnapshot.manualPriceInput;
+        else delete next[pieceEditorPieceId];
+        return next;
+      });
+      setPieceMaterialSearch((current) => {
+        const next = {...current};
+        if (pieceEditorRestoreSnapshot.materialSearch) next[pieceEditorPieceId] = pieceEditorRestoreSnapshot.materialSearch;
+        else delete next[pieceEditorPieceId];
+        return next;
+      });
+    }
+
+    closePieceEditor();
+  };
+
+  const savePieceEditor = () => {
+    if (!pieceEditorPieceId) return;
+    setPieceMaterialPickerOpen((current) => ({...current, [pieceEditorPieceId]: false}));
+    closePieceEditor();
+  };
+
+  const startAddingPiece = () => {
+    const newPiece = buildNewPiece(false);
+    setPieces((current) => [...current, newPiece]);
+    openPieceEditor(newPiece.id, {isNew: true, mode: null, pieceSnapshot: newPiece});
+  };
+
+  const startAddingStair = () => {
+    const newPiece = buildNewPiece(true);
+    setPieces((current) => [...current, newPiece]);
+    openPieceEditor(newPiece.id, {isNew: true, mode: 'stair', pieceSnapshot: newPiece});
+  };
+
+  const applyPieceEditorMode = (mode: Exclude<PieceEditorMode, null>) => {
+    if (!pieceEditorPieceId) return;
+    setPieceEditorMode(mode);
+    if (mode === 'draw') {
+      updatePiece(pieceEditorPieceId, {areaMode: 'dimensions'});
+      return;
+    }
+    if (mode === 'manual') {
+      updatePiece(pieceEditorPieceId, {areaMode: 'manual'});
+    }
+  };
+
   const countCutouts = (drawingCutouts?: QuotePiece['cutouts']): QuoteCutoutState => {
     const counts: QuoteCutoutState = {...EMPTY_QUOTE_CUTOUTS};
     (drawingCutouts || []).forEach((item) => {
@@ -1591,6 +1780,16 @@ export const QuoteEditor: React.FC = () => {
       delete next[pieceMeasureInputKey(id, 'width')];
       delete next[pieceManualAreaInputKey(id)];
       delete next[pieceManualLongestSideInputKey(id)];
+      return next;
+    });
+    setPieceMaterialSearch((current) => {
+      const next = {...current};
+      delete next[id];
+      return next;
+    });
+    setPieceMaterialPickerOpen((current) => {
+      const next = {...current};
+      delete next[id];
       return next;
     });
   };
@@ -2830,14 +3029,14 @@ export const QuoteEditor: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
-                onClick={() => addPiece(false)}
+                onClick={startAddingPiece}
                 className="flex items-center gap-2 text-brand-primary font-bold hover:underline"
               >
                 <Plus className="w-5 h-5" /> {LABELS.pieces.add}
               </button>
               <button
                 type="button"
-                onClick={() => addPiece(true)}
+                onClick={startAddingStair}
                 className="rounded-2xl bg-brand-primary px-4 py-2 text-sm font-bold text-[#3F3A34] shadow-sm hover:bg-brand-primary/90"
               >
                 Adicionar Escada
@@ -2851,8 +3050,8 @@ export const QuoteEditor: React.FC = () => {
                 <Layers className="w-12 h-12 text-slate-300 mx-auto" />
                 <div className="text-slate-500 font-medium tracking-tight">Nenhuma peça adicionada ainda.</div>
                 <div className="flex flex-wrap items-center justify-center gap-3">
-                  <button type="button" onClick={() => addPiece(false)} className="text-brand-primary font-bold">Adicionar peça normal</button>
-                  <button type="button" onClick={() => addPiece(true)} className="text-brand-primary font-bold">Adicionar escada</button>
+                  <button type="button" onClick={startAddingPiece} className="text-brand-primary font-bold">Adicionar peça normal</button>
+                  <button type="button" onClick={startAddingStair} className="text-brand-primary font-bold">Adicionar escada</button>
                 </div>
               </div>
             )}
@@ -2877,10 +3076,72 @@ export const QuoteEditor: React.FC = () => {
               const hasEnoughStock = hasMaterial && stock.available >= pieceArea;
               const lotInfo = hasMaterial ?materialLotInfo(piece.materialId, pieceArea, piece.materialVariantKey) : null;
               const pieceWorkflowStatus = normalizeQuoteStatus(piece.pieceStatus || status);
+              const pieceMode = inferPieceEditorMode(piece);
+              const isDrawEditor = pieceEditorMode === 'draw';
+              const isManualEditor = pieceEditorMode === 'manual';
+              const isStairEditor = pieceEditorMode === 'stair';
+              const filteredPieceMaterials = filteredMaterialsForPiece(piece.id);
+              const isEditingPiece = pieceEditorOpen && pieceEditorPieceId === piece.id;
+              if (!isEditingPiece) {
+                return (
+                  <button
+                    key={piece.id}
+                    type="button"
+                    onClick={() => openPieceEditor(piece.id)}
+                    className="w-full rounded-[28px] border border-slate-100 bg-white p-5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-brand-primary/20 hover:shadow-md"
+                  >
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="min-w-0 space-y-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-primary text-xs font-bold text-[#3F3A34]">
+                            {pIdx + 1}
+                          </div>
+                          <div className="truncate font-display text-xl font-bold text-slate-900">{piece.name}</div>
+                          <span className={cn('inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase', quoteStatusColor(pieceWorkflowStatus))}>
+                            {pieceWorkflowStatus}
+                          </span>
+                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase text-slate-600">
+                            {pieceMode === 'stair' ? 'Escada' : pieceMode === 'draw' ? 'Desenho' : 'Medidas prontas'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Área</div>
+                            <div className="mt-2 font-mono text-sm font-bold text-slate-900">{formatMeasure(pieceArea)}</div>
+                          </div>
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Material</div>
+                            <div className="mt-2 truncate text-sm font-semibold text-slate-900">{pieceMaterial?.name || 'Sem material'}</div>
+                          </div>
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Valor</div>
+                            <div className="mt-2 font-mono text-sm font-bold text-slate-900">{formatCurrency(pieceCutoutBreakdown?.pieceSubtotalValue || 0)}</div>
+                          </div>
+                          <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Recortes</div>
+                            <div className="mt-2 font-mono text-sm font-bold text-slate-900">{formatCurrency(pieceScopedCutoutTotal)}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="inline-flex items-center self-start rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700">
+                        Abrir editor
+                      </div>
+                    </div>
+                  </button>
+                );
+              }
               return (
-              <div key={piece.id} className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-300">
-                <div className="bg-slate-50/50 px-8 py-4 border-b border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+              <div className="fixed inset-0 z-[90]">
+                <button type="button" aria-label="Fechar painel da peça" className="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px]" onClick={cancelPieceEditor} />
+                <div className="absolute inset-y-0 right-0 flex w-full justify-end">
+              <div key={piece.id} className="relative flex h-full w-full max-w-[min(100vw,540px)] flex-col overflow-hidden border-l border-slate-200 bg-[#FBFBFD] shadow-2xl">
+                <div className="border-b border-slate-200 bg-white/95 px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-3">
+                      <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
+                        {pieceEditorIsNew ? 'Adicionar peça' : 'Editar peça'}
+                      </div>
+                      <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-brand-primary text-[#3F3A34] text-xs font-bold rounded-lg flex items-center justify-center">
                       {pIdx + 1}
                     </div>
@@ -2888,8 +3149,19 @@ export const QuoteEditor: React.FC = () => {
                       type="text" 
                       value={piece.name}
                       onChange={(e) => updatePiece(piece.id, { name: e.target.value })}
-                      className="bg-transparent font-display font-bold text-slate-800 outline-none focus:text-brand-primary transition-all w-48"
+                      className="min-w-0 bg-transparent font-display font-bold text-slate-800 outline-none focus:text-brand-primary transition-all w-full"
                     />
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {pieceEditorMode && pieceEditorMode !== 'stair' ? (
+                          <button
+                            type="button"
+                            onClick={() => applyPieceEditorMode(pieceEditorMode === 'draw' ? 'manual' : 'draw')}
+                            className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600"
+                          >
+                            {pieceEditorMode === 'draw' ? 'Alterar para medidas prontas' : 'Alterar para desenho'}
+                          </button>
+                        ) : null}
                     <div className="hidden md:flex rounded-xl bg-white p-1 border border-slate-100">
                       <button
                         type="button"
@@ -2910,66 +3182,81 @@ export const QuoteEditor: React.FC = () => {
                       {pieceWorkflowStatus}
                     </div>
                   </div>
-                  <button 
+                    </div>
+                  <button
                     type="button"
-                    aria-label={LABELS.pieces.remove}
-                    title={LABELS.pieces.remove}
-                    onClick={() => removePiece(piece.id)} 
-                    className="p-2 text-slate-300 hover:text-red-500 transition-all"
+                    aria-label="Fechar editor da peça"
+                    title="Fechar editor da peça"
+                    onClick={cancelPieceEditor}
+                    className="rounded-2xl border border-slate-200 bg-white p-2 text-slate-400 transition-all hover:text-slate-700"
                   >
-                    <Trash2 className="w-5 h-5" />
+                    <X className="w-5 h-5" />
                   </button>
                 </div>
+                </div>
 
-                <div className="p-8 space-y-6">
-                  {/* Drawing Preview and Dimensions */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="md:col-span-1">
-                      {piece.previewUrl ?(
-                        <div className="relative group cursor-pointer" onClick={() => setShowDrawing(piece.id)}>
-                          <img 
-                            src={piece.previewUrl} 
-                            alt={piece.name} 
-                            className="w-full aspect-square object-contain bg-slate-50 rounded-2xl border border-slate-100 p-2" 
-                          />
-                          <div className="absolute inset-0 bg-brand-primary/0 group-hover:bg-brand-primary/10 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 rounded-2xl">
-                            <PenTool className="w-5 h-5 text-brand-primary" />
+                {pieceEditorMode === null ? (
+                  <div className="flex-1 overflow-y-auto px-5 py-5 pb-[calc(7rem+env(safe-area-inset-bottom))]">
+                    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="text-sm font-bold uppercase tracking-[0.18em] text-slate-500">Adicionar peça</div>
+                      <h3 className="mt-3 font-display text-2xl font-bold text-slate-900">Como você deseja cadastrar esta peça?</h3>
+                      <p className="mt-2 text-sm text-slate-500">Escolha o fluxo mais adequado para continuar sem expor todos os campos de uma vez.</p>
+                      <div className="mt-6 space-y-3">
+                        <button
+                          type="button"
+                          onClick={() => applyPieceEditorMode('draw')}
+                          className="flex w-full items-start justify-between rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-left transition-all hover:border-brand-primary/30 hover:bg-white"
+                        >
+                          <div>
+                            <div className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">Desenhar peça</div>
+                            <p className="mt-2 text-sm text-slate-500">Crie a geometria da peça e utilize as medidas do desenho no orçamento.</p>
                           </div>
-                <div className="absolute bottom-2 right-2 bg-green-500 w-3 h-3 rounded-full border-2 border-white shadow-sm" title="Desenho técnico disponível" />
-                        </div>
-                      ) : (
-                        <button 
-                          onClick={() => setShowDrawing(piece.id)}
-                          className="w-full aspect-square bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center gap-2 text-slate-400 hover:text-brand-primary hover:border-brand-primary/20 hover:bg-white transition-all"
-                        >
-                          <Pencil className="w-8 h-8 opacity-50" />
-                          <span className="text-[10px] uppercase font-bold tracking-widest">{LABELS.pieces.draw}</span>
+                          <PenTool className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary" />
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => applyPieceEditorMode('manual')}
+                          className="flex w-full items-start justify-between rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-left transition-all hover:border-brand-primary/30 hover:bg-white"
+                        >
+                          <div>
+                            <div className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">Usar medidas prontas</div>
+                            <p className="mt-2 text-sm text-slate-500">Use quando o projeto já possui medidas definidas e não é necessário desenhar a geometria.</p>
+                          </div>
+                          <ReceiptText className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary" />
+                        </button>
+                      </div>
                     </div>
-
-                    <div className="md:col-span-3 grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="md:col-span-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Medidas do desenho</div>
-                        <div className="mt-2 flex flex-wrap gap-4 text-sm font-semibold text-slate-700">
-                          <span>Largura: <span className="font-mono text-slate-900">{pieceDimensions.major > 0 ? formatCentimeters(pieceDimensions.major) : '-'}</span></span>
-                          <span>Profundidade: <span className="font-mono text-slate-900">{pieceDimensions.minor > 0 ? formatCentimeters(pieceDimensions.minor) : '-'}</span></span>
+                  </div>
+                ) : (
+                <div className="flex-1 overflow-y-auto p-5 pb-[calc(10rem+env(safe-area-inset-bottom))]">
+                  <div className="space-y-5">
+                    <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div>
+                          <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">Visão da peça</div>
+                          <h3 className="mt-2 font-display text-xl font-bold text-slate-900">
+                            {isStairEditor ? 'Fluxo de escada' : isDrawEditor ? 'Desenhar peça' : 'Usar medidas prontas'}
+                          </h3>
+                          <p className="mt-2 max-w-md text-sm text-slate-500">
+                            {isStairEditor
+                              ? 'Mantenha o orçamento de escada compacto, com os mesmos cálculos de piso, espelho, patamar e rodapé lateral.'
+                              : isDrawEditor
+                                ? 'Use o desenho técnico e os dados já existentes para chegar ao valor final da peça.'
+                                : 'Informe somente os dados finais necessários quando o projeto já tiver medidas definidas.'}
+                          </p>
+                        </div>
+                        <div className={cn('inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase', quoteStatusColor(pieceWorkflowStatus))}>
+                          {pieceWorkflowStatus}
                         </div>
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Status da peça</label>
-                        <select
-                          value={pieceWorkflowStatus}
-                          onChange={(e) => updatePiece(piece.id, {pieceStatus: normalizeQuoteStatus(e.target.value)})}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
-                        >
-                          {QUOTE_STATUSES.map((pieceStatus) => (
-                            <option key={pieceStatus} value={pieceStatus}>{pieceStatus}</option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-1 md:col-span-2">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Material da peça</label>
+                    </section>
+
+                    <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="flex flex-col gap-4">
+                        <div>
+                          <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">Material</div>
+                          <h3 className="mt-2 font-display text-lg font-bold text-slate-900">Selecione o material da peça</h3>
+                        </div>
                         <div className="relative">
                           <input
                             value={pieceMaterialSearch[piece.id] || pieceMaterial?.name || ''}
@@ -2979,7 +3266,7 @@ export const QuoteEditor: React.FC = () => {
                               updatePiece(piece.id, {materialId: '', materialVariantKey: undefined, materialLine: undefined, materialType: undefined, thicknessLabel: undefined, texture: undefined, provider: undefined});
                               setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: true}));
                             }}
-                            className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 pr-10 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
+                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
                             placeholder="Pesquisar material para esta peça..."
                           />
                           <button type="button" onClick={() => setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: !current[piece.id]}))} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
@@ -2999,7 +3286,7 @@ export const QuoteEditor: React.FC = () => {
                               >
                                 Selecionar material
                               </button>
-                              {filteredMaterialsForPiece(piece.id).map((material) => {
+                              {filteredPieceMaterials.map((material) => {
                                 const itemStock = materialStock(material.id, material.variantKey);
                                 const available = itemStock.available > 0;
                                 return (
@@ -3031,713 +3318,755 @@ export const QuoteEditor: React.FC = () => {
                                         {formatMaterialSpecs(material) || material.category || 'Sem categoria'}
                                       </span>
                                     </span>
-                                    <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase', available ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600', piece.materialId === material.id && 'bg-white/20 text-[#3F3A34]')}>
-                                      <span className={cn('h-2 w-2 rounded-full', available ?'bg-green-500' : 'bg-red-500')} />
-                                      {available ?'Disponível' : 'Indisponível'}
+                                    <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase', available ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600', piece.materialId === material.id && 'bg-white/20 text-[#3F3A34]')}>
+                                      <span className={cn('h-2 w-2 rounded-full', available ? 'bg-green-500' : 'bg-red-500')} />
+                                      {available ? 'Disponível' : 'Indisponível'}
                                     </span>
                                   </button>
                                 );
                               })}
-                              {filteredMaterialsForPiece(piece.id).length === 0 && <div className="px-3 py-3 text-sm font-semibold text-slate-400">Nenhum material encontrado.</div>}
+                              {filteredPieceMaterials.length === 0 ? <div className="px-3 py-3 text-sm font-semibold text-slate-400">Nenhum material encontrado.</div> : null}
                             </div>
                           )}
                         </div>
-                      </div>
-                      {piece.stair?.active && (
-                        <div className="md:col-span-3 rounded-3xl border border-amber-100 bg-amber-50/40 p-5 space-y-4">
-                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                            <div>
-                              <h3 className="font-display text-lg font-bold text-slate-900">Orçamento de escada</h3>
-                              <p className="text-xs text-slate-500">Calcula piso, espelho, patamar e rodapé lateral da escada.</p>
-                            </div>
-                            <select
-                              value={piece.stair.unit}
-                              onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, unit: e.target.value as 'cm' | 'm'}})}
-                              className="rounded-xl border border-amber-100 bg-white px-3 py-2 text-sm font-bold text-slate-700 outline-none"
-                            >
-                              <option value="cm">cm</option>
-                              <option value="m">m</option>
-                            </select>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                            <label className="space-y-1">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Qtd. degraus</span>
-                              <NumericInput min="0" value={piece.stair.stepCount} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, stepCount: value}})} decimals={0} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
-                            </label>
-                            <label className="space-y-1">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura degrau</span>
-                              <NumericInput min="0" value={piece.stair.stepWidth} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, stepWidth: value}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
-                            </label>
-                            <label className="space-y-1">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Profundidade piso</span>
-                              <NumericInput min="0" value={piece.stair.treadDepth} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, treadDepth: value}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
-                            </label>
-                            <label className="space-y-1">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Altura espelho</span>
-                              <NumericInput min="0" value={piece.stair.riserHeight} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, riserHeight: value}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
-                            </label>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <label className="space-y-1">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Qtd. patamares</span>
-                              <NumericInput min="0" value={piece.stair.landingCount} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, landingCount: value}})} decimals={0} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
-                            </label>
-                            <label className="space-y-1">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura patamar</span>
-                              <NumericInput min="0" value={piece.stair.landingWidth} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, landingWidth: value}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
-                            </label>
-                            <label className="space-y-1">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Profundidade patamar</span>
-                              <NumericInput min="0" value={piece.stair.landingDepth} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, landingDepth: value}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
-                            </label>
-                          </div>
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                            <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-slate-600">
-                              <input type="checkbox" checked={piece.stair.leftBaseboard} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, leftBaseboard: e.target.checked}})} className="h-4 w-4 accent-brand-primary" />
-                              Rodapé esquerdo
-                            </label>
-                            <label className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-bold text-slate-600">
-                              <input type="checkbox" checked={piece.stair.rightBaseboard} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, rightBaseboard: e.target.checked}})} className="h-4 w-4 accent-brand-primary" />
-                              Rodapé direito
-                            </label>
-                            <label className="space-y-1">
-                              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Altura rodapé</span>
-                              <NumericInput min="0" value={piece.stair.baseboardHeight} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, baseboardHeight: value}})} className="w-full rounded-xl border border-amber-100 bg-white px-3 py-2 font-mono outline-none" />
-                            </label>
-                          </div>
-
-                          <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Pisos</span><strong>{formatArea(stairDetails.treadArea)}</strong></div>
-                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Espelhos</span><strong>{formatArea(stairDetails.riserArea)}</strong></div>
-                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Patamar</span><strong>{formatArea(stairDetails.landingArea)}</strong></div>
-                            <div className="rounded-2xl bg-white p-3"><span className="block font-bold uppercase text-slate-400">Rodapé</span><strong>{formatArea(stairDetails.baseboardArea)}</strong></div>
-                            <div className="rounded-2xl bg-brand-primary p-3 text-[#3F3A34]"><span className="block font-bold uppercase text-[#5F5549]">Total escada</span><strong>{formatArea(stairDetails.totalArea)}</strong></div>
-                          </div>
+                        <div className={cn('rounded-2xl px-4 py-3 text-[11px] font-bold uppercase tracking-wide', !hasMaterial ? 'bg-slate-100 text-slate-500' : hasEnoughStock ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600')}>
+                          {!hasMaterial ? 'Selecione um material para validar o estoque' : hasEnoughStock ? `m² suficiente: ${formatArea(stock.available)} disponível` : `m² insuficiente: precisa ${formatArea(pieceArea)} e há ${formatArea(stock.available)}`}
                         </div>
-                      )}
-                      {!piece.stair?.active && (
-                      <div className="md:col-span-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Área da peça</div>
-                        <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                          <div className="inline-flex rounded-xl border border-slate-100 bg-white p-1">
-                            <button
-                              type="button"
-                              onClick={() => updatePiece(piece.id, {areaMode: 'dimensions'})}
-                              className={cn('px-3 py-2 text-[10px] font-bold uppercase rounded-lg transition-all', !isManualPieceArea ? 'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-400 hover:text-slate-700')}
-                            >
-                              Pelas medidas
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => updatePiece(piece.id, {areaMode: 'manual'})}
-                              className={cn('px-3 py-2 text-[10px] font-bold uppercase rounded-lg transition-all', isManualPieceArea ? 'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-400 hover:text-slate-700')}
-                            >
-                              Informar m²
-                            </button>
-                          </div>
-                          {isManualPieceArea && <div className="text-xs font-semibold text-emerald-700">Área informada manualmente</div>}
-                        </div>
-                      </div>
-                      )}
-                      {!piece.stair?.active && !isManualPieceArea && (
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Comp. (cm)</label>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={pieceMeasureInputs[pieceMeasureInputKey(piece.id, 'length')] || formatMeasureInput(piece.length)}
-                          onFocus={(event) => {
-                            handlePieceMeasureInputFocus(piece.id, 'length', piece.length);
-                            event.currentTarget.select();
-                          }}
-                          onChange={(e) => handlePieceMeasureInputChange(piece.id, 'length', e.target.value)}
-                          onBlur={() => handlePieceMeasureInputBlur(piece, 'length')}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                        />
-                      </div>
-                      )}
-                      {!piece.stair?.active && !isManualPieceArea && (
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura (cm)</label>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={pieceMeasureInputs[pieceMeasureInputKey(piece.id, 'width')] || formatMeasureInput(piece.width)}
-                          onFocus={(event) => {
-                            handlePieceMeasureInputFocus(piece.id, 'width', piece.width);
-                            event.currentTarget.select();
-                          }}
-                          onChange={(e) => handlePieceMeasureInputChange(piece.id, 'width', e.target.value)}
-                          onBlur={() => handlePieceMeasureInputBlur(piece, 'width')}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                        />
-                      </div>
-                      )}
-                      {!piece.stair?.active && isManualPieceArea && (
-                      <div className="space-y-1 md:col-span-2">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Área final da peça (m²)</label>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={pieceMeasureInputs[pieceManualAreaInputKey(piece.id)] || (piece.manualFinalArea == null ? '' : formatMeasureInput(piece.manualFinalArea))}
-                          onFocus={(event) => {
-                            handlePieceManualAreaFocus(piece.id, piece.manualFinalArea);
-                            event.currentTarget.select();
-                          }}
-                          onChange={(e) => handlePieceManualAreaChange(piece.id, e.target.value)}
-                          onBlur={() => handlePieceManualAreaBlur(piece)}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                          placeholder="0,000"
-                        />
-                        <div className="text-[11px] font-semibold text-slate-500">
-                          O m² informado passa a ser a área oficial desta peça no orçamento.
-                        </div>
-                      </div>
-                      )}
-                      {!piece.stair?.active && (
-                      <div className={cn('space-y-1', isManualPieceArea ? 'md:col-span-1' : '')}>
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Maior lado da peça (cm)</label>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          value={pieceMeasureInputs[pieceManualLongestSideInputKey(piece.id)] || (piece.manualLongestSide == null ? '' : formatMeasureInput(piece.manualLongestSide))}
-                          onFocus={(event) => {
-                            handlePieceManualLongestSideFocus(piece.id, piece.manualLongestSide);
-                            event.currentTarget.select();
-                          }}
-                          onChange={(e) => handlePieceManualLongestSideChange(piece.id, e.target.value)}
-                          onBlur={() => handlePieceManualLongestSideBlur(piece)}
-                          className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 font-mono"
-                          placeholder={!isManualPieceArea && effectiveLongestSide > 0 ? formatMeasureInput(effectiveLongestSide) : '0,0'}
-                        />
-                        <div className="space-y-1 text-[11px] font-semibold text-slate-500">
-                          <div>Usado para cálculo da mão de obra linear.</div>
-                          {usesManualLongestSide ? (
-                            <div className="text-amber-700">Maior lado informado manualmente.</div>
-                          ) : !isManualPieceArea && effectiveLongestSide > 0 ? (
-                            <div>Sem preenchimento manual, o sistema usa {formatCentimeters(effectiveLongestSide)}.</div>
-                          ) : (
-                            <div>Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.</div>
-                          )}
-                        </div>
-                      </div>
-                      )}
-                      <div className="space-y-1">
-                        <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Área Total (m²)</label>
-                        <div className="px-4 py-2.5 bg-slate-100 rounded-xl font-mono text-slate-600 flex flex-col items-end">
-                          <div className="flex justify-between w-full items-center">
-                            <span className="text-[9px] uppercase font-bold text-slate-400">Total:</span>
-                             <span className="font-bold text-slate-900">{formatMeasure(pieceArea)}</span>
-                          </div>
-                          {isManualPieceArea && (
-                            <div className="text-[8px] text-slate-400 flex justify-between w-full">
-                              <span>Peça:</span>
-                              <span>{formatMeasure(manualFinalArea)}</span>
-                            </div>
-                          )}
-                          {piece.sculptedSink?.active && (
-                            <div className="text-[8px] text-slate-400 flex flex-col w-full">
-                              <div className="flex justify-between">
-                                <span>Peça:</span>
-                                <span>{formatMeasure(pieceTotals.mainArea)}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span>Cuba:</span>
-                                <span>{formatMeasure(pieceTotals.sinkArea)}</span>
-                              </div>
-                            </div>
-                          )}
-                          {piece.wetAreaRecess?.active && (
-                            <div className="text-[8px] text-slate-400 flex justify-between w-full">
-                              <span>Rebaixo:</span>
-                              <span>{formatMeasure(pieceTotals.recessArea)}</span>
-                            </div>
-                          )}
-                          {!isManualPieceArea && drawingArea > 0 && (
-                            <div className="w-2 h-2 bg-green-500 rounded-full mt-1" title="Calculado via desenho" />
-                          )}
-                        </div>
-                        {!piece.stair?.active && effectiveLongestSide > 0 && (
-                          <div className="text-[11px] font-semibold text-slate-500">
-                            Maior lado utilizado: <span className="font-mono text-slate-700">{formatCentimeters(effectiveLongestSide)}</span>
-                          </div>
-                        )}
-                        <div className={cn('mt-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide', !hasMaterial ?'bg-slate-100 text-slate-500' : hasEnoughStock ?'bg-green-50 text-green-700' : 'bg-red-50 text-red-600')}>
-                          {!hasMaterial ?'Selecione um material para validar o estoque' : hasEnoughStock ?`m² suficiente: ${formatArea(stock.available)} disponível` : `m² insuficiente: precisa ${formatArea(pieceArea)} e há ${formatArea(stock.available)}`}
-                        </div>
-                        {hasMaterial && hasEnoughStock && lotInfo && (
-                          <div className={cn('mt-2 rounded-xl px-3 py-2 text-[11px] font-bold uppercase tracking-wide', lotInfo.canUseSingleLot ?'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700')}>
+                        {hasMaterial && hasEnoughStock && lotInfo ? (
+                          <div className={cn('rounded-2xl px-4 py-3 text-[11px] font-bold uppercase tracking-wide', lotInfo.canUseSingleLot ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700')}>
                             {lotInfo.canUseSingleLot
                               ? `Mesmo lote: cabe na chapa ${lotInfo.singleLot?.code || 'sem lote'} (${formatArea(lotInfo.singleLot?.availableArea || 0)})`
                               : `Lotes diferentes: precisa combinar ${lotInfo.lotCountNeeded || 2} chapas para ${formatArea(pieceArea)}`}
                           </div>
-                        )}
-                        {hasMaterial && !hasEnoughStock && (
-                          <div className="mt-2 rounded-xl bg-red-50 px-3 py-2 text-[11px] font-bold uppercase tracking-wide text-red-600">
+                        ) : null}
+                        {hasMaterial && !hasEnoughStock ? (
+                          <div className="rounded-2xl bg-red-50 px-4 py-3 text-[11px] font-bold uppercase tracking-wide text-red-600">
                             Não há lote suficiente para esta peça.
-                        </div>
-                        )}
+                          </div>
+                        ) : null}
                       </div>
-                    </div>
-                  </div>
+                    </section>
 
-                  <div className="pt-4 border-t border-slate-50 space-y-4">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                      <div>
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">Preço da peça</h3>
-                        <p className="text-xs text-slate-500">Você pode manter o cálculo automático ou informar um valor manual só para esta peça.</p>
-                      </div>
-                      <div className="flex rounded-xl bg-slate-100 p-1">
-                        <button
-                          type="button"
-                          onClick={() => updatePiece(piece.id, {pricingMode: 'automatic', manualPrice: undefined})}
-                          className={cn('px-4 py-2 text-[10px] font-bold uppercase rounded-lg transition-all', (piece.pricingMode || 'automatic') === 'automatic' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-400')}
-                        >
-                          Automático
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => updatePiece(piece.id, {pricingMode: 'manual'})}
-                          className={cn('px-4 py-2 text-[10px] font-bold uppercase rounded-lg transition-all', piece.pricingMode === 'manual' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-400')}
-                        >
-                          Manual
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-                      <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor em uso</div>
-                        <div className="mt-2 font-mono text-lg font-bold text-slate-900">
-                          {formatCurrency(basePiecePricingBreakdowns[pIdx]?.pieceSubtotalValue || 0)}
-                        </div>
-                      </div>
-                      <div className="md:col-span-2 rounded-2xl border border-slate-100 bg-slate-50 p-4">
-                        <label className="block space-y-1">
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Valor manual da peça</span>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            value={pieceManualPriceInputs[piece.id] || ''}
-                            onChange={(event) => updatePieceManualPriceInput(piece.id, event.target.value)}
-                            onBlur={() => formatPieceManualPriceInput(piece.id)}
-                            disabled={(piece.pricingMode || 'automatic') !== 'manual'}
-                            placeholder="0,00"
-                            className={cn(
-                              'w-full rounded-xl border bg-white px-4 py-2.5 text-sm font-mono outline-none transition-all focus:ring-2',
-                              (piece.pricingMode || 'automatic') !== 'manual'
-                                ? 'cursor-not-allowed border-slate-100 text-slate-400'
-                                : pieceManualPriceErrors[piece.id]
-                                  ? 'border-red-300 text-red-700 focus:ring-red-100'
-                                  : 'border-slate-200 text-slate-900 focus:ring-brand-primary/20',
-                            )}
-                          />
-                        </label>
-                        <div className={cn('mt-2 text-[11px] font-semibold', pieceManualPriceErrors[piece.id] ? 'text-red-600' : 'text-slate-500')}>
-                          {pieceManualPriceErrors[piece.id] || ((piece.pricingMode || 'automatic') === 'manual'
-                            ? 'Esse valor manual substitui o cálculo automático desta peça.'
-                            : 'Ative o modo manual para digitar um valor personalizado para esta peça.')}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Pia Esculpida Section */}
-                  <div className="pt-4 border-t border-slate-50 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <label className="text-sm font-bold text-slate-700">Pia Esculpida:</label>
-                        <div className="flex bg-slate-100 p-1 rounded-xl">
-                            <button 
-                            onClick={() => updatePiece(piece.id, { sculptedSink: { ...(piece.sculptedSink || {
-                              drainType: 'Válvula oculta', quantity: 1, width: 0, depth: 0, height: 0, unit: 'cm'
-                            }), active: true } as any })}
-                            className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", piece.sculptedSink?.active ?"bg-white text-brand-primary shadow-sm" : "text-slate-400")}
-                          >Sim</button>
-                          <button 
-                            onClick={() => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink, active: false } as any })}
-                            className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", !piece.sculptedSink?.active ?"bg-white text-brand-primary shadow-sm" : "text-slate-400")}
-                          >Não</button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {piece.sculptedSink?.active && (
-                      <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-6 space-y-6 animate-in slide-in-from-top-2">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tipo de ralo</label>
-                            <select 
-                              value={piece.sculptedSink.drainType || 'Válvula oculta'}
-                              onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, drainType: e.target.value as any } })}
-                              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium outline-none"
-                            >
-                              <option value="Válvula oculta">Válvula oculta</option>
-                              <option value="Ralo click">Ralo click</option>
-                              <option value="Ralo oculto">Ralo oculto</option>
-                            </select>
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Quantidade</label>
-                            <NumericInput
-                              min="1"
-                              value={piece.sculptedSink.quantity}
-                              onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, quantity: value } })}
-                              decimals={0}
-                              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Medida Unidade</label>
-                            <select 
-                              value={piece.sculptedSink.unit}
-                              onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, unit: e.target.value as any } })}
-                              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium outline-none"
-                            >
-                              <option value="cm">cm</option>
-                              <option value="m">m</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura Cuba ({piece.sculptedSink.unit})</label>
-                            <NumericInput
-                              value={piece.sculptedSink.width}
-                              onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, width: value } })}
-                              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Profundidade Cuba ({piece.sculptedSink.unit})</label>
-                            <NumericInput
-                              value={piece.sculptedSink.depth}
-                              onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, depth: value } })}
-                              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none"
-                            />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Altura Interna ({piece.sculptedSink.unit})</label>
-                            <NumericInput
-                              value={piece.sculptedSink.height}
-                              onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, height: value } })}
-                              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Internal Result Summary */}
-                        {piece.sculptedSink.width > 0 && (
-                          <div className="bg-white border border-slate-100 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {(() => {
-                              const pieceTotals = calculatePieceArea(piece);
-                              const pieceMaterial = materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey);
-                              const calc = calculateSculptedSink(piece.sculptedSink, pieceMaterial);
-                              return (
-                                <>
-                                  <div className="space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Área bancada</span>
-                                    <div className="text-slate-900 font-mono font-bold">{formatArea(pieceTotals.mainArea)}</div>
-                                  </div>
-                                  <div className="space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Área cuba</span>
-                                    <div className="text-slate-900 font-mono font-bold">{formatArea(calc.baseArea)}</div>
-                                  </div>
-                                  <div className="space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Perda aplicada</span>
-                                    <div className="text-slate-900 font-mono font-bold">{formatArea(pieceTotals.lossArea || 0)}</div>
-                                  </div>
-                                  <div className="space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Área final</span>
-                                    <div className="text-brand-primary font-mono font-bold">{formatArea(pieceTotals.totalArea)}</div>
-                                  </div>
-                                  <div className="space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Ralo</span>
-                                    <div className="text-slate-900 font-mono font-bold">{piece.sculptedSink.drainType || 'Válvula oculta'}</div>
-                                  </div>
-                                  <div className="space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Mão de Obra</span>
-                                    <div className="text-slate-900 font-mono font-bold">{formatCurrency(calc.laborValue + calc.extraSinkValue)}</div>
-                                  </div>
-                                  <div className="space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Valor pedra</span>
-                                    <div className="text-slate-900 font-mono font-bold">{formatCurrency(pieceTotals.totalArea * (pieceMaterial?.pricePerM2 || 0))}</div>
-                                  </div>
-                                  <div className="space-y-0.5">
-                                    <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Valor Total Pia</span>
-                                    <div className="text-brand-primary font-mono font-bold">{formatCurrency(calc.value)}</div>
-                                  </div>
-                                </>
-                              );
-                            })()}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="pt-4 border-t border-slate-50 space-y-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <label className="text-sm font-bold text-slate-700">Rebaixo área molhada:</label>
-                        <div className="flex bg-slate-100 p-1 rounded-xl">
-                          <button
-                            type="button"
-                            onClick={() => updatePiece(piece.id, { wetAreaRecess: { ...(piece.wetAreaRecess || {type: 'americano', width: 0, depth: 0, unit: 'cm'}), active: true } as any })}
-                            className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", piece.wetAreaRecess?.active ?"bg-white text-brand-primary shadow-sm" : "text-slate-400")}
-                          >Sim</button>
-                          <button
-                            type="button"
-                            onClick={() => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess, active: false } as any })}
-                            className={cn("px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all", !piece.wetAreaRecess?.active ?"bg-white text-brand-primary shadow-sm" : "text-slate-400")}
-                          >Não</button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {piece.wetAreaRecess?.active && (
-                      <div className="bg-slate-50/50 border border-slate-100 rounded-3xl p-6 space-y-4">
-                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tipo de rebaixo</label>
-                            <select
-                              value={piece.wetAreaRecess.type}
-                              onChange={(e) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, type: e.target.value as any } })}
-                              className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium outline-none"
-                            >
-                              <option value="americano">Americano</option>
-                              <option value="italiano">Italiano</option>
-                            </select>
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Largura ({piece.wetAreaRecess.unit})</label>
-                            <NumericInput value={piece.wetAreaRecess.width} onValueChange={(value) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, width: value } })} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none" />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Profundidade ({piece.wetAreaRecess.unit})</label>
-                            <NumericInput value={piece.wetAreaRecess.depth} onValueChange={(value) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, depth: value } })} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-mono outline-none" />
-                          </div>
-                          <div className="space-y-1">
-                            <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Unidade</label>
-                            <select value={piece.wetAreaRecess.unit} onChange={(e) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, unit: e.target.value as any } })} className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2 text-sm font-medium outline-none">
-                              <option value="cm">cm</option>
-                              <option value="m">m</option>
-                            </select>
-                          </div>
-                        </div>
-                        <div className="rounded-2xl border border-slate-100 bg-white p-4">
-                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">Área do rebaixo (m²)</span>
-                          <div className="text-brand-primary font-mono font-bold">{formatMeasure(calculateWetAreaRecessArea(piece))}</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="space-y-4 pt-4 border-t border-slate-50">
-                    <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                      <div>
-                        <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">Recortes da peça</h3>
-                        <p className="text-xs text-slate-500">Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.</p>
-                      </div>
-                      <select
-                        value=""
-                        onChange={(event) => {
-                          const selectedType = event.target.value as PieceScopedCutoutType;
-                          if (!selectedType) return;
-                          const existingRow = pieceScopedCutouts.find((item) => item.label === getCutoutLabel(selectedType));
-                          const nextQuantity = existingRow ? existingRow.count + 1 : 1;
-                          updatePieceManualCutoutQuantity(piece, selectedType, nextQuantity);
-                          event.currentTarget.value = '';
-                        }}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 outline-none md:w-[220px]"
-                      >
-                        <option value="">+ Adicionar recorte</option>
-                        {cutoutCatalog
-                          .filter((item) => !pieceScopedCutouts.some((row) => row.label === item.label))
-                          .map((item) => (
-                            <option key={item.type} value={item.type}>
-                              {item.label}
-                            </option>
-                          ))}
-                      </select>
-                    </div>
-
-                    {pieceScopedCutouts.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                        Nenhum recorte adicionado nesta peça.
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {pieceScopedCutouts.map((row) => {
-                          const cutoutType = cutoutCatalog.find((item) => item.label === row.label)?.type;
-                          if (!cutoutType) return null;
-                          return (
-                            <div key={row.label} className="flex flex-col gap-3 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                              <div className="min-w-0">
-                                <div className="text-sm font-semibold text-slate-900">{row.label}</div>
-                                <div className="text-xs text-slate-500">{row.count} un. · {formatCurrency(row.price)} por unidade</div>
-                              </div>
-                              <div className="flex items-center justify-between gap-3 sm:justify-end">
-                                <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white">
-                                  <button
-                                    type="button"
-                                    onClick={() => updatePieceManualCutoutQuantity(piece, cutoutType, row.count - 1)}
-                                    className="px-3 py-2 text-sm font-bold text-slate-500 transition-colors hover:text-slate-900"
-                                  >
-                                    -
-                                  </button>
-                                  <span className="min-w-[40px] px-2 text-center text-sm font-semibold text-slate-900">{row.count}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => updatePieceManualCutoutQuantity(piece, cutoutType, row.count + 1)}
-                                    className="px-3 py-2 text-sm font-bold text-slate-500 transition-colors hover:text-slate-900"
-                                  >
-                                    +
-                                  </button>
+                    {isDrawEditor ? (
+                      <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="grid gap-5 md:grid-cols-[180px_minmax(0,1fr)]">
+                          <div>
+                            {piece.previewUrl ? (
+                              <button type="button" onClick={() => setShowDrawing(piece.id)} className="group relative block w-full overflow-hidden rounded-[24px] border border-slate-200 bg-slate-50 p-2 text-left transition-all hover:border-brand-primary/30 hover:bg-white">
+                                <img src={piece.previewUrl} alt={piece.name} className="aspect-square w-full rounded-[18px] object-contain" />
+                                <div className="absolute inset-0 flex items-center justify-center rounded-[24px] bg-brand-primary/0 opacity-0 transition-all group-hover:bg-brand-primary/10 group-hover:opacity-100">
+                                  <PenTool className="h-5 w-5 text-brand-primary" />
                                 </div>
-                                <div className="min-w-[88px] text-right text-sm font-semibold text-slate-900">
-                                  {formatCurrency(row.count * row.price)}
+                                <div className="absolute bottom-4 right-4 h-3 w-3 rounded-full border-2 border-white bg-green-500 shadow-sm" title="Desenho técnico disponível" />
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setShowDrawing(piece.id)}
+                                className="flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-[24px] border-2 border-dashed border-slate-200 bg-slate-50 text-slate-400 transition-all hover:border-brand-primary/20 hover:bg-white hover:text-brand-primary"
+                              >
+                                <Pencil className="h-8 w-8 opacity-50" />
+                                <span className="text-[10px] font-bold uppercase tracking-[0.2em]">{LABELS.pieces.draw}</span>
+                              </button>
+                            )}
+                          </div>
+                          <div className="space-y-5">
+                            <div>
+                              <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">Desenho da peça</div>
+                              <h3 className="mt-2 font-display text-lg font-bold text-slate-900">Abra ou atualize a geometria</h3>
+                              <p className="mt-2 text-sm text-slate-500">O desenho continua usando o mesmo canvas, a mesma persistência e os mesmos cálculos já existentes.</p>
+                              <button
+                                type="button"
+                                onClick={() => setShowDrawing(piece.id)}
+                                className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-2 text-sm font-bold text-[#3F3A34] transition-all hover:bg-brand-primary/90"
+                              >
+                                <PenTool className="h-4 w-4" />
+                                {piece.previewUrl ? 'Editar desenho' : 'Desenhar peça'}
+                              </button>
+                            </div>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Área calculada</div>
+                                <div className="mt-2 font-mono text-base font-bold text-slate-900">{formatMeasure(pieceArea)}</div>
+                                {drawingArea > 0 ? <div className="mt-2 text-[11px] font-semibold text-emerald-700">Valor vindo do desenho técnico.</div> : null}
+                              </div>
+                              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Maior lado</div>
+                                <div className="mt-2 font-mono text-base font-bold text-slate-900">{effectiveLongestSide > 0 ? formatCentimeters(effectiveLongestSide) : '-'}</div>
+                                <div className="mt-2 text-[11px] font-semibold text-slate-500">Usado no cálculo da mão de obra linear.</div>
+                              </div>
+                              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Largura do desenho</div>
+                                <div className="mt-2 font-mono text-base font-bold text-slate-900">{pieceDimensions.major > 0 ? formatCentimeters(pieceDimensions.major) : '-'}</div>
+                              </div>
+                              <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Profundidade do desenho</div>
+                                <div className="mt-2 font-mono text-base font-bold text-slate-900">{pieceDimensions.minor > 0 ? formatCentimeters(pieceDimensions.minor) : '-'}</div>
+                              </div>
+                            </div>
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <label className="space-y-1">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Comp. (cm)</span>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={pieceMeasureInputs[pieceMeasureInputKey(piece.id, 'length')] || formatMeasureInput(piece.length)}
+                                  onFocus={(event) => {
+                                    handlePieceMeasureInputFocus(piece.id, 'length', piece.length);
+                                    event.currentTarget.select();
+                                  }}
+                                  onChange={(e) => handlePieceMeasureInputChange(piece.id, 'length', e.target.value)}
+                                  onBlur={() => handlePieceMeasureInputBlur(piece, 'length')}
+                                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
+                                />
+                              </label>
+                              <label className="space-y-1">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Largura (cm)</span>
+                                <input
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={pieceMeasureInputs[pieceMeasureInputKey(piece.id, 'width')] || formatMeasureInput(piece.width)}
+                                  onFocus={(event) => {
+                                    handlePieceMeasureInputFocus(piece.id, 'width', piece.width);
+                                    event.currentTarget.select();
+                                  }}
+                                  onChange={(e) => handlePieceMeasureInputChange(piece.id, 'width', e.target.value)}
+                                  onBlur={() => handlePieceMeasureInputBlur(piece, 'width')}
+                                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
+                                />
+                              </label>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+                    ) : null}
+
+                    {isManualEditor ? (
+                      <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="space-y-5">
+                          <div>
+                            <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">Medidas prontas</div>
+                            <h3 className="mt-2 font-display text-lg font-bold text-slate-900">Informe somente os dados finais</h3>
+                          </div>
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <label className="space-y-1 sm:col-span-2">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Área final da peça (m²)</span>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={pieceMeasureInputs[pieceManualAreaInputKey(piece.id)] || (piece.manualFinalArea == null ? '' : formatMeasureInput(piece.manualFinalArea))}
+                                onFocus={(event) => {
+                                  handlePieceManualAreaFocus(piece.id, piece.manualFinalArea);
+                                  event.currentTarget.select();
+                                }}
+                                onChange={(e) => handlePieceManualAreaChange(piece.id, e.target.value)}
+                                onBlur={() => handlePieceManualAreaBlur(piece)}
+                                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
+                                placeholder="0,000"
+                              />
+                              <div className="text-[11px] font-semibold text-slate-500">
+                                O m² informado passa a ser a área oficial desta peça no orçamento.
+                              </div>
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Maior lado da peça (cm)</span>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={pieceMeasureInputs[pieceManualLongestSideInputKey(piece.id)] || (piece.manualLongestSide == null ? '' : formatMeasureInput(piece.manualLongestSide))}
+                                onFocus={(event) => {
+                                  handlePieceManualLongestSideFocus(piece.id, piece.manualLongestSide);
+                                  event.currentTarget.select();
+                                }}
+                                onChange={(e) => handlePieceManualLongestSideChange(piece.id, e.target.value)}
+                                onBlur={() => handlePieceManualLongestSideBlur(piece)}
+                                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 font-mono outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
+                                placeholder="0,0"
+                              />
+                              <div className="text-[11px] font-semibold text-slate-500">Usado para cálculo da mão de obra linear.</div>
+                            </label>
+                            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Resumo das medidas</div>
+                              <div className="mt-2 space-y-2 text-sm text-slate-700">
+                                <div className="flex items-center justify-between gap-3">
+                                  <span>Área em uso</span>
+                                  <strong className="font-mono text-slate-900">{formatMeasure(pieceArea)}</strong>
+                                </div>
+                                <div className="flex items-center justify-between gap-3">
+                                  <span>Maior lado em uso</span>
+                                  <strong className="font-mono text-slate-900">{effectiveLongestSide > 0 ? formatCentimeters(effectiveLongestSide) : '-'}</strong>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+                    ) : null}
+
+                    {isStairEditor ? (
+                      <section className="rounded-[28px] border border-amber-200 bg-white p-5 shadow-sm">
+                        <div className="space-y-5">
+                          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div>
+                              <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-amber-700">Escada</div>
+                              <h3 className="mt-2 font-display text-lg font-bold text-slate-900">Parâmetros da escada</h3>
+                              <p className="mt-2 text-sm text-slate-500">Os cálculos de piso, espelho, patamar e rodapé lateral continuam exatamente os mesmos.</p>
+                            </div>
+                            <select
+                              value={piece.stair?.unit || 'cm'}
+                              onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, unit: e.target.value as 'cm' | 'm'}})}
+                              className="rounded-2xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-bold text-slate-700 outline-none"
+                            >
+                              <option value="cm">cm</option>
+                              <option value="m">m</option>
+                            </select>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-4">
+                            <label className="space-y-1">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Qtd. degraus</span>
+                              <NumericInput min="0" value={piece.stair?.stepCount || 0} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, stepCount: value}})} decimals={0} className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 font-mono outline-none" />
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Largura degrau</span>
+                              <NumericInput min="0" value={piece.stair?.stepWidth || 0} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, stepWidth: value}})} className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 font-mono outline-none" />
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Profundidade piso</span>
+                              <NumericInput min="0" value={piece.stair?.treadDepth || 0} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, treadDepth: value}})} className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 font-mono outline-none" />
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Altura espelho</span>
+                              <NumericInput min="0" value={piece.stair?.riserHeight || 0} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, riserHeight: value}})} className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 font-mono outline-none" />
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Qtd. patamares</span>
+                              <NumericInput min="0" value={piece.stair?.landingCount || 0} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, landingCount: value}})} decimals={0} className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 font-mono outline-none" />
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Largura patamar</span>
+                              <NumericInput min="0" value={piece.stair?.landingWidth || 0} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, landingWidth: value}})} className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 font-mono outline-none" />
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Profundidade patamar</span>
+                              <NumericInput min="0" value={piece.stair?.landingDepth || 0} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, landingDepth: value}})} className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 font-mono outline-none" />
+                            </label>
+                            <label className="space-y-1">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Altura rodapé</span>
+                              <NumericInput min="0" value={piece.stair?.baseboardHeight || 0} onValueChange={(value) => updatePiece(piece.id, {stair: {...piece.stair!, baseboardHeight: value}})} className="w-full rounded-2xl border border-amber-200 bg-amber-50 px-3 py-3 font-mono outline-none" />
+                            </label>
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-2">
+                            <label className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-slate-600">
+                              <input type="checkbox" checked={Boolean(piece.stair?.leftBaseboard)} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, leftBaseboard: e.target.checked}})} className="h-4 w-4 accent-brand-primary" />
+                              Rodapé esquerdo
+                            </label>
+                            <label className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-slate-600">
+                              <input type="checkbox" checked={Boolean(piece.stair?.rightBaseboard)} onChange={(e) => updatePiece(piece.id, {stair: {...piece.stair!, rightBaseboard: e.target.checked}})} className="h-4 w-4 accent-brand-primary" />
+                              Rodapé direito
+                            </label>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+                            <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm"><div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Pisos</div><div className="mt-2 font-mono font-bold text-slate-900">{formatArea(stairDetails.treadArea)}</div></div>
+                            <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm"><div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Espelhos</div><div className="mt-2 font-mono font-bold text-slate-900">{formatArea(stairDetails.riserArea)}</div></div>
+                            <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm"><div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Patamar</div><div className="mt-2 font-mono font-bold text-slate-900">{formatArea(stairDetails.landingArea)}</div></div>
+                            <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm"><div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Rodapé</div><div className="mt-2 font-mono font-bold text-slate-900">{formatArea(stairDetails.baseboardArea)}</div></div>
+                            <div className="rounded-2xl bg-brand-primary px-4 py-3 text-sm text-[#3F3A34]"><div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#5F5549]">Total escada</div><div className="mt-2 font-mono font-bold">{formatArea(stairDetails.totalArea)}</div></div>
+                          </div>
+                        </div>
+                      </section>
+                    ) : null}
+
+                    <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="space-y-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                          <div>
+                            <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">Preço da peça</div>
+                            <h3 className="mt-2 font-display text-lg font-bold text-slate-900">Automático ou manual</h3>
+                            <p className="mt-2 text-sm text-slate-500">O cálculo permanece exatamente o mesmo; este bloco só organiza melhor a entrada visual.</p>
+                          </div>
+                          <div className="flex rounded-xl bg-slate-100 p-1">
+                            <button
+                              type="button"
+                              onClick={() => updatePiece(piece.id, {pricingMode: 'automatic', manualPrice: undefined})}
+                              className={cn('px-4 py-2 text-[10px] font-bold uppercase rounded-lg transition-all', (piece.pricingMode || 'automatic') === 'automatic' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-400')}
+                            >
+                              Automático
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updatePiece(piece.id, {pricingMode: 'manual'})}
+                              className={cn('px-4 py-2 text-[10px] font-bold uppercase rounded-lg transition-all', piece.pricingMode === 'manual' ? 'bg-white text-brand-primary shadow-sm' : 'text-slate-400')}
+                            >
+                              Manual
+                            </button>
+                          </div>
+                        </div>
+                        <div className="grid gap-3 md:grid-cols-3">
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Valor em uso</div>
+                            <div className="mt-2 font-mono text-lg font-bold text-slate-900">
+                              {formatCurrency(basePiecePricingBreakdowns[pIdx]?.pieceSubtotalValue || 0)}
+                            </div>
+                          </div>
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+                            <label className="block space-y-1">
+                              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Valor manual da peça</span>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                value={pieceManualPriceInputs[piece.id] || ''}
+                                onChange={(event) => updatePieceManualPriceInput(piece.id, event.target.value)}
+                                onBlur={() => formatPieceManualPriceInput(piece.id)}
+                                disabled={(piece.pricingMode || 'automatic') !== 'manual'}
+                                placeholder="0,00"
+                                className={cn(
+                                  'w-full rounded-2xl border bg-white px-4 py-3 text-sm font-mono outline-none transition-all focus:ring-2',
+                                  (piece.pricingMode || 'automatic') !== 'manual'
+                                    ? 'cursor-not-allowed border-slate-100 text-slate-400'
+                                    : pieceManualPriceErrors[piece.id]
+                                      ? 'border-red-300 text-red-700 focus:ring-red-100'
+                                      : 'border-slate-200 text-slate-900 focus:ring-brand-primary/20',
+                                )}
+                              />
+                            </label>
+                            <div className={cn('mt-2 text-[11px] font-semibold', pieceManualPriceErrors[piece.id] ? 'text-red-600' : 'text-slate-500')}>
+                              {pieceManualPriceErrors[piece.id] || ((piece.pricingMode || 'automatic') === 'manual'
+                                ? 'Esse valor manual substitui o cálculo automático desta peça.'
+                                : 'Ative o modo manual para digitar um valor personalizado para esta peça.')}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </section>
+
+                    <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                      <div className="space-y-4">
+                        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                          <div>
+                            <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">Recortes</div>
+                            <h3 className="mt-2 font-display text-lg font-bold text-slate-900">Serviços adicionais da peça</h3>
+                            <p className="mt-2 text-sm text-slate-500">Os preços continuam vindo do catálogo oficial já carregado no orçamento.</p>
+                          </div>
+                          <select
+                            value=""
+                            onChange={(event) => {
+                              const selectedType = event.target.value as PieceScopedCutoutType;
+                              if (!selectedType) return;
+                              const existingRow = pieceScopedCutouts.find((item) => item.label === getCutoutLabel(selectedType));
+                              const nextQuantity = existingRow ? existingRow.count + 1 : 1;
+                              updatePieceManualCutoutQuantity(piece, selectedType, nextQuantity);
+                              event.currentTarget.value = '';
+                            }}
+                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-medium text-slate-700 outline-none md:w-[220px]"
+                          >
+                            <option value="">+ Adicionar recorte</option>
+                            {cutoutCatalog
+                              .filter((item) => !pieceScopedCutouts.some((row) => row.label === item.label))
+                              .map((item) => (
+                                <option key={item.type} value={item.type}>
+                                  {item.label}
+                                </option>
+                              ))}
+                          </select>
+                        </div>
+
+                        {pieceScopedCutouts.length === 0 ? (
+                          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                            Nenhum recorte adicionado nesta peça.
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {pieceScopedCutouts.map((row) => {
+                              const cutoutType = cutoutCatalog.find((item) => item.label === row.label)?.type;
+                              if (!cutoutType) return null;
+                              return (
+                                <div key={row.label} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                                  <div className="min-w-0">
+                                    <div className="text-sm font-semibold text-slate-900">{row.label}</div>
+                                    <div className="text-xs text-slate-500">{row.count} un. · {formatCurrency(row.price)} por unidade</div>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-3 sm:justify-end">
+                                    <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white">
+                                      <button
+                                        type="button"
+                                        onClick={() => updatePieceManualCutoutQuantity(piece, cutoutType, row.count - 1)}
+                                        className="px-3 py-2 text-sm font-bold text-slate-500 transition-colors hover:text-slate-900"
+                                      >
+                                        -
+                                      </button>
+                                      <span className="min-w-[40px] px-2 text-center text-sm font-semibold text-slate-900">{row.count}</span>
+                                      <button
+                                        type="button"
+                                        onClick={() => updatePieceManualCutoutQuantity(piece, cutoutType, row.count + 1)}
+                                        className="px-3 py-2 text-sm font-bold text-slate-500 transition-colors hover:text-slate-900"
+                                      >
+                                        +
+                                      </button>
+                                    </div>
+                                    <div className="min-w-[88px] text-right text-sm font-semibold text-slate-900">
+                                      {formatCurrency(row.count * row.price)}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => updatePieceManualCutoutQuantity(piece, cutoutType, 0)}
+                                      className="rounded-xl p-2 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
+                                      aria-label={`Remover ${row.label}`}
+                                      title={`Remover ${row.label}`}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+                              <span className="font-semibold text-slate-600">Subtotal de recortes da peça</span>
+                              <strong className="font-mono text-slate-900">{formatCurrency(pieceScopedCutoutTotal)}</strong>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </section>
+
+                    <PieceEditorAccordionSection
+                      title="Acabamentos / Complementos"
+                      description="Frontão, saia, virada, guarnição, pia esculpida e rebaixo continuam disponíveis aqui."
+                      open={pieceEditorAccordionOpen.finishes}
+                      onToggle={() => setPieceEditorAccordionOpen((current) => ({...current, finishes: !current.finishes}))}
+                    >
+                      <div className="space-y-5">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => addSide(piece.id, 'frontao')}
+                            className="rounded-xl bg-brand-primary/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-primary transition-all hover:bg-brand-primary/15"
+                          >
+                            + Frontão
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addSide(piece.id, 'saia')}
+                            className="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 transition-all hover:bg-slate-200"
+                          >
+                            + Saia
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addSide(piece.id, 'virada')}
+                            className="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 transition-all hover:bg-slate-200"
+                          >
+                            + Virada
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addSide(piece.id, 'pe')}
+                            className="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 transition-all hover:bg-slate-200"
+                          >
+                            + Pé de bancada
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => addSide(piece.id, 'guarnicao')}
+                            className="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 transition-all hover:bg-slate-200"
+                          >
+                            + Guarnição
+                          </button>
+                        </div>
+
+                        {piece.sides.length > 0 ? (
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            {piece.sides.map((side, sIdx) => (
+                              <div key={sIdx} className="grid grid-cols-1 gap-3 rounded-[20px] border border-slate-200 bg-slate-50 p-4 sm:grid-cols-[minmax(0,1fr)_72px_36px] sm:items-end">
+                                <div className="min-w-0 space-y-1">
+                                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Tipo / Medida</span>
+                                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-[96px_minmax(0,1fr)]">
+                                    <select
+                                      value={side.type}
+                                      onChange={(e) => {
+                                        const newSides = [...piece.sides];
+                                        newSides[sIdx].type = e.target.value as any;
+                                        newSides[sIdx].height =
+                                          e.target.value === 'frontao' ? settings.defaultFrontonHeight :
+                                          e.target.value === 'saia' ? settings.defaultSkirtHeight :
+                                          settings.defaultTurnHeight;
+                                        updatePiece(piece.id, { sides: newSides });
+                                      }}
+                                      className="min-w-0 rounded-lg border border-slate-200 bg-white p-1 text-xs"
+                                    >
+                                      <option value="frontao">Frontão</option>
+                                      <option value="saia">Saia</option>
+                                      <option value="virada">Virada</option>
+                                      <option value="pe">Pé de bancada</option>
+                                      <option value="guarnicao">Guarnição</option>
+                                    </select>
+                                    <select
+                                      value={side.side}
+                                      onChange={(e) => {
+                                        const newSides = [...piece.sides];
+                                        const selectedSide = sideOptionsForPiece(piece).find((option) => option.value === e.target.value);
+                                        newSides[sIdx].side = e.target.value;
+                                        newSides[sIdx].sideLabel = selectedSide?.label;
+                                        newSides[sIdx].length = selectedSide?.length || 0;
+                                        updatePiece(piece.id, { sides: newSides });
+                                      }}
+                                      className="min-w-0 rounded-lg border border-slate-200 bg-white p-1 text-xs"
+                                    >
+                                      {sideOptionsForPiece(piece).map((option) => (
+                                        <option key={option.value} value={option.value}>{option.label}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                </div>
+                                <div className="space-y-1 sm:w-16">
+                                  <span className="text-[10px] font-bold uppercase text-slate-400">{sideDimensionLabel(side.type)}</span>
+                                  <NumericInput
+                                    value={side.height}
+                                    onValueChange={(value) => {
+                                      const newSides = [...piece.sides];
+                                      newSides[sIdx].height = value;
+                                      updatePiece(piece.id, { sides: newSides });
+                                    }}
+                                    className="w-full rounded-lg border border-slate-200 bg-white p-1 text-center text-xs"
+                                  />
                                 </div>
                                 <button
                                   type="button"
-                                  onClick={() => updatePieceManualCutoutQuantity(piece, cutoutType, 0)}
-                                  className="rounded-xl p-2 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
-                                  aria-label={`Remover ${row.label}`}
-                                  title={`Remover ${row.label}`}
+                                  aria-label="Remover lado"
+                                  title="Remover lado"
+                                  onClick={() => {
+                                    const newSides = [...piece.sides];
+                                    newSides.splice(sIdx, 1);
+                                    updatePiece(piece.id, { sides: newSides });
+                                  }}
+                                  className="rounded-lg p-2 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </button>
                               </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
+                            Nenhum acabamento adicionado nesta peça.
+                          </div>
+                        )}
+
+                        <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <label className="text-sm font-bold text-slate-700">Pia esculpida</label>
+                            <div className="flex rounded-xl bg-white p-1">
+                              <button
+                                type="button"
+                                onClick={() => updatePiece(piece.id, { sculptedSink: { ...(piece.sculptedSink || {drainType: 'Válvula oculta', quantity: 1, width: 0, depth: 0, height: 0, unit: 'cm'}), active: true } as any })}
+                                className={cn('px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', piece.sculptedSink?.active ? 'bg-brand-primary text-[#3F3A34]' : 'text-slate-400')}
+                              >
+                                Sim
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink, active: false } as any })}
+                                className={cn('px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', !piece.sculptedSink?.active ? 'bg-brand-primary text-[#3F3A34]' : 'text-slate-400')}
+                              >
+                                Não
+                              </button>
                             </div>
-                          );
-                        })}
-                        <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white px-4 py-3 text-sm">
-                          <span className="font-semibold text-slate-600">Subtotal de recortes da peça</span>
-                          <strong className="font-mono text-slate-900">{formatCurrency(pieceScopedCutoutTotal)}</strong>
+                          </div>
+                          {piece.sculptedSink?.active ? (
+                            <div className="mt-4 space-y-4">
+                              <div className="grid gap-4 md:grid-cols-4">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Tipo de ralo</label>
+                                  <select value={piece.sculptedSink.drainType || 'Válvula oculta'} onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, drainType: e.target.value as any } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium outline-none">
+                                    <option value="Válvula oculta">Válvula oculta</option>
+                                    <option value="Ralo click">Ralo click</option>
+                                    <option value="Ralo oculto">Ralo oculto</option>
+                                  </select>
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Quantidade</label>
+                                  <NumericInput min="1" value={piece.sculptedSink.quantity} onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, quantity: value } })} decimals={0} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono outline-none" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Medida unidade</label>
+                                  <select value={piece.sculptedSink.unit} onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, unit: e.target.value as any } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium outline-none">
+                                    <option value="cm">cm</option>
+                                    <option value="m">m</option>
+                                  </select>
+                                </div>
+                              </div>
+                              <div className="grid gap-4 md:grid-cols-3">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Largura cuba ({piece.sculptedSink.unit})</label>
+                                  <NumericInput value={piece.sculptedSink.width} onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, width: value } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono outline-none" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Profundidade cuba ({piece.sculptedSink.unit})</label>
+                                  <NumericInput value={piece.sculptedSink.depth} onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, depth: value } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono outline-none" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Altura interna ({piece.sculptedSink.unit})</label>
+                                  <NumericInput value={piece.sculptedSink.height} onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, height: value } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono outline-none" />
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
+                        </div>
+
+                        <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <label className="text-sm font-bold text-slate-700">Rebaixo área molhada</label>
+                            <div className="flex rounded-xl bg-white p-1">
+                              <button
+                                type="button"
+                                onClick={() => updatePiece(piece.id, { wetAreaRecess: { ...(piece.wetAreaRecess || {type: 'americano', width: 0, depth: 0, unit: 'cm'}), active: true } as any })}
+                                className={cn('px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', piece.wetAreaRecess?.active ? 'bg-brand-primary text-[#3F3A34]' : 'text-slate-400')}
+                              >
+                                Sim
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess, active: false } as any })}
+                                className={cn('px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', !piece.wetAreaRecess?.active ? 'bg-brand-primary text-[#3F3A34]' : 'text-slate-400')}
+                              >
+                                Não
+                              </button>
+                            </div>
+                          </div>
+                          {piece.wetAreaRecess?.active ? (
+                            <div className="mt-4 space-y-4">
+                              <div className="grid gap-4 md:grid-cols-4">
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Tipo de rebaixo</label>
+                                  <select value={piece.wetAreaRecess.type} onChange={(e) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, type: e.target.value as any } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium outline-none">
+                                    <option value="americano">Americano</option>
+                                    <option value="italiano">Italiano</option>
+                                  </select>
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Largura ({piece.wetAreaRecess.unit})</label>
+                                  <NumericInput value={piece.wetAreaRecess.width} onValueChange={(value) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, width: value } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono outline-none" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Profundidade ({piece.wetAreaRecess.unit})</label>
+                                  <NumericInput value={piece.wetAreaRecess.depth} onValueChange={(value) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, depth: value } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono outline-none" />
+                                </div>
+                                <div className="space-y-1">
+                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Unidade</label>
+                                  <select value={piece.wetAreaRecess.unit} onChange={(e) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, unit: e.target.value as any } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium outline-none">
+                                    <option value="cm">cm</option>
+                                    <option value="m">m</option>
+                                  </select>
+                                </div>
+                              </div>
+                              <div className="rounded-2xl border border-slate-200 bg-white p-4">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Área do rebaixo (m²)</span>
+                                <div className="mt-2 font-mono font-bold text-brand-primary">{formatMeasure(calculateWetAreaRecessArea(piece))}</div>
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </PieceEditorAccordionSection>
 
-                  {/* Adicionais - Frontão, Saia, etc */}
-                  <div className="space-y-4 pt-4 border-t border-slate-50">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest">Acabamentos / Complementos</h3>
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => addSide(piece.id, 'frontao')}
-                          className="px-3 py-2 rounded-xl bg-brand-primary/10 text-brand-primary text-[10px] font-bold uppercase tracking-widest hover:bg-brand-primary/15 transition-all"
-                        >
-                        + Frontão
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => addSide(piece.id, 'saia')}
-                          className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
-                        >
-                          + Saia
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => addSide(piece.id, 'virada')}
-                          className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
-                        >
-                          + Virada
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => addSide(piece.id, 'pe')}
-                          className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
-                        >
-                        + Pé de bancada
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => addSide(piece.id, 'guarnicao')}
-                          className="px-3 py-2 rounded-xl bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 transition-all"
-                        >
-                        + Guarnição
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {piece.sides.map((side, sIdx) => (
-                        <div key={sIdx} className="grid grid-cols-1 gap-3 rounded-[20px] border border-slate-100 bg-slate-50 p-4 sm:grid-cols-[minmax(0,1fr)_72px_36px] sm:items-end">
-                          <div className="min-w-0 space-y-1">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">Tipo / Medida</span>
-                            <div className="grid grid-cols-1 gap-2 sm:grid-cols-[96px_minmax(0,1fr)]">
-                              <select 
-                                value={side.type}
-                                onChange={(e) => {
-                                  const newSides = [...piece.sides];
-                                  newSides[sIdx].type = e.target.value as any;
-                                  newSides[sIdx].height =
-                                    e.target.value === 'frontao' ? settings.defaultFrontonHeight :
-                                    e.target.value === 'saia' ? settings.defaultSkirtHeight :
-                                    settings.defaultTurnHeight;
-                                  updatePiece(piece.id, { sides: newSides });
-                                }}
-                                className="min-w-0 bg-white border border-slate-200 rounded-lg text-xs p-1"
-                              >
-                              <option value="frontao">Frontão</option>
-                                <option value="saia">Saia</option>
-                                <option value="virada">Virada</option>
-                              <option value="pe">Pé de bancada</option>
-                              <option value="guarnicao">Guarnição</option>
-                              </select>
-                              <select 
-                                value={side.side}
-                                onChange={(e) => {
-                                  const newSides = [...piece.sides];
-                                  const selectedSide = sideOptionsForPiece(piece).find(option => option.value === e.target.value);
-                                  newSides[sIdx].side = e.target.value;
-                                  newSides[sIdx].sideLabel = selectedSide?.label;
-                                  newSides[sIdx].length = selectedSide?.length || 0;
-                                  updatePiece(piece.id, { sides: newSides });
-                                }}
-                                className="min-w-0 bg-white border border-slate-200 rounded-lg text-xs p-1"
-                              >
-                                {sideOptionsForPiece(piece).map(option => (
-                                  <option key={option.value} value={option.value}>{option.label}</option>
-                                ))}
-                              </select>
-                            </div>
-                          </div>
-                          <div className="space-y-1 sm:w-16">
-                            <span className="text-[10px] text-slate-400 font-bold uppercase">{sideDimensionLabel(side.type)}</span>
-                            <NumericInput
-                              value={side.height}
-                              onValueChange={(value) => {
-                                const newSides = [...piece.sides];
-                                newSides[sIdx].height = value;
-                                updatePiece(piece.id, { sides: newSides });
-                              }}
-                              className="w-full bg-white border border-slate-200 rounded-lg text-xs p-1 text-center"
-                            />
-                          </div>
-                          <button 
-                            type="button"
-                            aria-label="Remover lado"
-                            title="Remover lado"
-                            onClick={() => {
-                              const newSides = [...piece.sides];
-                              newSides.splice(sIdx, 1);
-                              updatePiece(piece.id, { sides: newSides });
-                            }}
-                            className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
+                    <PieceEditorAccordionSection
+                      title="Mais opções"
+                      description="Campos menos frequentes, sem impactar o fluxo principal do cadastro."
+                      open={pieceEditorAccordionOpen.options}
+                      onToggle={() => setPieceEditorAccordionOpen((current) => ({...current, options: !current.options}))}
+                    >
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <label className="space-y-1">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Status da peça</span>
+                          <select
+                            value={pieceWorkflowStatus}
+                            onChange={(e) => updatePiece(piece.id, {pieceStatus: normalizeQuoteStatus(e.target.value)})}
+                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
                           >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
+                            {QUOTE_STATUSES.map((pieceStatus) => (
+                              <option key={pieceStatus} value={pieceStatus}>{pieceStatus}</option>
+                            ))}
+                          </select>
+                        </label>
+                        {!isStairEditor ? (
+                          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Maior lado em uso</div>
+                            <div className="mt-2 font-mono text-base font-bold text-slate-900">{effectiveLongestSide > 0 ? formatCentimeters(effectiveLongestSide) : '-'}</div>
+                            <div className="mt-2 text-[11px] font-semibold text-slate-500">
+                              {usesManualLongestSide ? 'Prioridade atual: maior lado manual.' : drawingArea > 0 ? 'Prioridade atual: desenho salvo.' : 'Prioridade atual: medidas lineares da peça.'}
+                            </div>
+                          </div>
+                        ) : null}
+                        <label className="space-y-1 md:col-span-2">
+                          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Observações</span>
+                          <textarea
+                            value={piece.notes || ''}
+                            onChange={(e) => updatePiece(piece.id, {notes: e.target.value})}
+                            className="min-h-[110px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
+                            placeholder="Observações internas da peça..."
+                          />
+                        </label>
+                      </div>
+                    </PieceEditorAccordionSection>
+                  </div>
+                </div>
+                )}
+                <div className="border-t border-slate-200 bg-white/95 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Área</div>
+                        <div className="mt-2 font-mono font-bold text-slate-900">{formatMeasure(pieceArea)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Material</div>
+                        <div className="mt-2 truncate font-semibold text-slate-900">{pieceMaterial?.name || 'Sem material'}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Valor da peça</div>
+                        <div className="mt-2 font-mono font-bold text-slate-900">{formatCurrency(pieceCutoutBreakdown?.pieceSubtotalValue || 0)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Recortes</div>
+                        <div className="mt-2 font-mono font-bold text-slate-900">{formatCurrency(pieceScopedCutoutTotal)}</div>
+                      </div>
                     </div>
                   </div>
+                  <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
+                    {!pieceEditorIsNew ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          removePiece(piece.id);
+                          closePieceEditor();
+                        }}
+                        className="rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-600 transition-all hover:bg-red-100"
+                      >
+                        Excluir
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={cancelPieceEditor}
+                      className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-all hover:bg-slate-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={savePieceEditor}
+                      disabled={pieceEditorMode == null}
+                      className={cn(
+                        'rounded-2xl px-4 py-2 text-sm font-bold transition-all',
+                        pieceEditorMode == null
+                          ? 'cursor-not-allowed bg-slate-200 text-slate-400'
+                          : 'bg-brand-primary text-[#3F3A34] hover:bg-brand-primary/90',
+                      )}
+                    >
+                      {pieceEditorIsNew ? 'Adicionar peça' : 'Salvar'}
+                    </button>
+                  </div>
+                </div>
+              </div>
                 </div>
               </div>
               );

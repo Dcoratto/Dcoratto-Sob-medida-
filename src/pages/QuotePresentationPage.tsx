@@ -438,29 +438,10 @@ export const QuotePresentationPage: React.FC = () => {
     }));
   }, [snapshot?.pieces]);
   const primaryMaterialImage = materials[0]?.imageUrl;
-  const hasFrozenPresentationPieceValues = useMemo(
-    () => projectPieces.some((piece) => piece.presentationFinalValue != null || piece.allocatedAdjustmentValue != null || piece.baseValue != null),
-    [projectPieces],
-  );
-  const investmentCompositionRows = useMemo(() => {
-    if (hasFrozenPresentationPieceValues) {
-      return [{
-        label: 'Total final',
-        value: Number(investment?.totalPrice || 0),
-      }];
-    }
-    const rows: Array<{label: string; value: number}> = [];
-    const piecesSubtotal = Number(investment?.piecesSubtotal || 0);
-    const globalAdjustmentValue = Number(investment?.globalAdjustmentValue || 0);
-    if (piecesSubtotal > 0) {
-      rows.push({label: 'Subtotal das peças', value: piecesSubtotal});
-    }
-    if (Math.abs(globalAdjustmentValue) > 0.009) {
-      rows.push({label: globalAdjustmentValue > 0 ? 'Ajustes globais' : 'Ajustes comerciais', value: globalAdjustmentValue});
-    }
-    rows.push({label: 'Total final', value: Number(investment?.totalPrice || 0)});
-    return rows;
-  }, [hasFrozenPresentationPieceValues, investment]);
+  const investmentCompositionRows = useMemo(() => ([{
+    label: 'Total final',
+    value: Number(investment?.totalPrice || 0),
+  }]), [investment]);
 
   const projectLocation = [snapshot?.client?.city, snapshot?.client?.neighborhood]
     .filter(Boolean)

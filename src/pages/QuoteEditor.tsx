@@ -3030,16 +3030,16 @@ export const QuoteEditor: React.FC = () => {
               <button
                 type="button"
                 onClick={startAddingPiece}
-                className="flex items-center gap-2 text-brand-primary font-bold hover:underline"
+                className="inline-flex items-center gap-2 rounded-2xl border border-brand-primary/20 bg-brand-primary px-4 py-2 text-sm font-bold text-[#3F3A34] shadow-sm transition-all hover:bg-brand-primary/90"
               >
-                <Plus className="w-5 h-5" /> {LABELS.pieces.add}
+                <Plus className="w-5 h-5" /> Criar peça
               </button>
               <button
                 type="button"
                 onClick={startAddingStair}
                 className="rounded-2xl bg-brand-primary px-4 py-2 text-sm font-bold text-[#3F3A34] shadow-sm hover:bg-brand-primary/90"
               >
-                Adicionar Escada
+                Criar escada
               </button>
             </div>
           </div>
@@ -3049,10 +3049,7 @@ export const QuoteEditor: React.FC = () => {
               <div className="bg-slate-50 border-2 border-dashed border-slate-200 p-12 rounded-[32px] text-center space-y-4">
                 <Layers className="w-12 h-12 text-slate-300 mx-auto" />
                 <div className="text-slate-500 font-medium tracking-tight">Nenhuma peça adicionada ainda.</div>
-                <div className="flex flex-wrap items-center justify-center gap-3">
-                  <button type="button" onClick={startAddingPiece} className="text-brand-primary font-bold">Adicionar peça normal</button>
-                  <button type="button" onClick={startAddingStair} className="text-brand-primary font-bold">Adicionar escada</button>
-                </div>
+                <p className="text-sm text-slate-500">Use os botões acima para criar uma peça comum ou iniciar o cadastro de uma escada.</p>
               </div>
             )}
 
@@ -3131,10 +3128,13 @@ export const QuoteEditor: React.FC = () => {
                 );
               }
               return (
-              <div className="fixed inset-0 z-[90]">
+              <div className="fixed inset-0 z-[90] px-3 py-3 sm:px-6 sm:py-6">
                 <button type="button" aria-label="Fechar painel da peça" className="absolute inset-0 bg-slate-950/45 backdrop-blur-[2px]" onClick={cancelPieceEditor} />
-                <div className="absolute inset-y-0 right-0 flex w-full justify-end">
-              <div key={piece.id} className="relative flex h-full w-full max-w-[min(100vw,540px)] flex-col overflow-hidden border-l border-slate-200 bg-[#FBFBFD] shadow-2xl">
+                <div className="relative flex h-full w-full items-center justify-center">
+              <div
+                key={piece.id}
+                className="relative flex h-full max-h-full w-full max-w-[1040px] flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-[#FBFBFD] shadow-2xl sm:max-h-[calc(100vh-3rem)]"
+              >
                 <div className="border-b border-slate-200 bg-white/95 px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 space-y-3">
@@ -4072,44 +4072,6 @@ export const QuoteEditor: React.FC = () => {
               );
             })}
           </div>
-
-          <section className="rounded-[28px] border border-slate-100 bg-white p-4 shadow-sm space-y-6 sm:rounded-[32px] sm:p-6 lg:p-8">
-            <div>
-              <h2 className="font-display font-bold text-xl text-slate-800">Resumo de recortes do orçamento</h2>
-              <p className="mt-1 text-sm text-slate-500">Os recortes são cadastrados dentro de cada peça. Aqui fica apenas a consolidação do orçamento.</p>
-            </div>
-            {!pieces.length ?(
-              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
-                Adicione ao menos uma peça para visualizar o resumo consolidado dos recortes.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {cutoutCatalog
-                  .map((item) => ({
-                    ...item,
-                    quantity: Number(effectiveQuoteCutouts[item.type] || 0),
-                  }))
-                  .filter((item) => item.quantity > 0)
-                  .map((item) => (
-                    <div key={item.type} className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                      <div>
-                        <div className="text-sm font-semibold text-slate-900">{item.label}</div>
-                        <div className="text-xs text-slate-500">{item.quantity} un. · {formatCurrency(item.unitPrice)} por unidade</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold text-slate-900">{formatCurrency(item.quantity * item.unitPrice)}</div>
-                        <div className="text-[11px] text-slate-400">{item.quantity} no orçamento</div>
-                      </div>
-                    </div>
-                  ))}
-                {Object.values(effectiveQuoteCutouts).every((value) => !value) && (
-                  <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                    Nenhum recorte consolidado no orçamento.
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
 
           <section className="rounded-[28px] border border-slate-100 bg-white p-4 shadow-sm space-y-4 sm:rounded-[32px] sm:p-6 lg:p-8">
             <h2 className="font-display font-bold text-xl text-slate-800">Observações Comerciais</h2>

@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { doc, getDoc, setDoc, addDoc, collection, Timestamp, onSnapshot, query, selectFields } from '../lib/firestore';
 import { db } from '../lib/firestore';
 import { useSettings } from '../hooks/useSettings';
-import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuoteMaterialPriceOverride, QuotePiece, QuotePricingSnapshot, QuoteStatus, QuoteStatusHistory, Settings } from '../types';
+import { Client, CondominiumRule, EmployeeAssignment, FixtureCatalogItem, FixtureCategory, InventoryItem, InventoryReservation, Material, PieceSide, Quote, QuoteMaterialPriceOverride, QuotePiece, QuotePieceKind, QuotePricingSnapshot, QuoteStatus, QuoteStatusHistory, Settings } from '../types';
 import {MATERIAL_LOSS_PERCENTAGE, useQuoteCalculator} from '../hooks/useQuoteCalculator';
 import {
   ArrowLeft, Save, Plus, Trash2, Pencil,
@@ -61,6 +61,7 @@ import {
 type QuoteSidebarSectionKey = 'digital' | 'client' | 'materials' | 'pricing' | 'payment';
 type PieceEditorMode = 'draw' | 'manual' | 'stair' | null;
 type PieceEditorAccordionKey = 'finishes' | 'options';
+type PieceKindChoice = QuotePieceKind;
 
 const MATERIAL_PRICE_MINIMUM_ERROR = 'O valor personalizado não pode ser menor que o valor mínimo definido para este material.';
 
@@ -320,6 +321,26 @@ const PieceEditorAccordionSection = ({
 );
 
 const clonePieceForEditor = (piece: QuotePiece) => JSON.parse(JSON.stringify(piece)) as QuotePiece;
+
+const getPieceKindLabel = (kind?: QuotePieceKind) => {
+  if (kind === 'escada') return 'Escada';
+  if (kind === 'soleira_baguete') return 'Soleira / Baguete';
+  return 'Bancada';
+};
+
+const getPieceDefaultName = (kind: QuotePieceKind | undefined, pieces: QuotePiece[]) => {
+  if (kind === 'escada') return `Escada ${pieces.filter((piece) => piece.stair?.active).length + 1}`;
+  if (kind === 'soleira_baguete') {
+    return `Soleira / Baguete ${pieces.filter((piece) => piece.kind === 'soleira_baguete').length + 1}`;
+  }
+  return `${LABELS.pieces.singular} ${pieces.length + 1}`;
+};
+
+const inferPieceKind = (piece: QuotePiece): QuotePieceKind => {
+  if (piece.stair?.active) return 'escada';
+  if (piece.kind === 'soleira_baguete') return 'soleira_baguete';
+  return 'bancada';
+};
 
 const inferPieceEditorMode = (piece: QuotePiece): Exclude<PieceEditorMode, null> => {
   if (piece.stair?.active) return 'stair';
@@ -1580,7 +1601,8 @@ export const QuoteEditor: React.FC = () => {
   const buildNewPiece = (asStair = false, overrides: Partial<QuotePiece> = {}): QuotePiece => {
     const newPiece: QuotePiece = {
       id: Math.random().toString(36).substr(2, 9),
-      name: asStair ?`Escada ${pieces.filter((piece) => piece.stair?.active).length + 1}` : `${LABELS.pieces.singular} ${pieces.length + 1}`,
+      name: getPieceDefaultName(asStair ? 'escada' : undefined, pieces),
+      kind: asStair ? 'escada' : undefined,
       pieceStatus: status,
       pricingMode: 'automatic',
       areaMode: 'dimensions',
@@ -1709,15 +1731,63 @@ export const QuoteEditor: React.FC = () => {
     openPieceEditor(newPiece.id, {isNew: true, mode: 'stair', pieceSnapshot: newPiece});
   };
 
+  const applyInitialPieceKind = (kind: PieceKindChoice) => {
+    if (!pieceEditorPieceId) return;
+    const currentPiece = pieces.find((piece) => piece.id === pieceEditorPieceId);
+    if (!currentPiece) return;
+
+    const nextName = pieceEditorIsNew
+      ? getPieceDefaultName(kind, pieces.filter((piece) => piece.id !== pieceEditorPieceId))
+      : currentPiece.name;
+
+    if (kind === 'escada') {
+      updatePiece(pieceEditorPieceId, {
+        kind,
+        name: nextName,
+        areaMode: 'dimensions',
+        stair: {...defaultStairConfig(), ...(currentPiece.stair || {}), active: true},
+        sculptedSink: {...currentPiece.sculptedSink, active: false} as any,
+        wetAreaRecess: {...currentPiece.wetAreaRecess, active: false} as any,
+      });
+      return;
+    }
+
+    updatePiece(pieceEditorPieceId, {
+      kind,
+      name: nextName,
+      stair: currentPiece.stair ? {...currentPiece.stair, active: false} : currentPiece.stair,
+    });
+  };
+
   const applyPieceEditorMode = (mode: Exclude<PieceEditorMode, null>) => {
     if (!pieceEditorPieceId) return;
+    const currentPiece = pieces.find((piece) => piece.id === pieceEditorPieceId);
+    if (!currentPiece) return;
+
+    if (currentPiece.kind === 'escada') {
+      updatePiece(pieceEditorPieceId, {
+        kind: 'escada',
+        stair: {...defaultStairConfig(), ...(currentPiece.stair || {}), active: true},
+        sculptedSink: {...currentPiece.sculptedSink, active: false} as any,
+        wetAreaRecess: {...currentPiece.wetAreaRecess, active: false} as any,
+      });
+      setPieceEditorMode('stair');
+      return;
+    }
+
     setPieceEditorMode(mode);
     if (mode === 'draw') {
-      updatePiece(pieceEditorPieceId, {areaMode: 'dimensions'});
+      updatePiece(pieceEditorPieceId, {
+        areaMode: 'dimensions',
+        stair: currentPiece.stair ? {...currentPiece.stair, active: false} : currentPiece.stair,
+      });
       return;
     }
     if (mode === 'manual') {
-      updatePiece(pieceEditorPieceId, {areaMode: 'manual'});
+      updatePiece(pieceEditorPieceId, {
+        areaMode: 'manual',
+        stair: currentPiece.stair ? {...currentPiece.stair, active: false} : currentPiece.stair,
+      });
     }
   };
 
@@ -1768,7 +1838,7 @@ export const QuoteEditor: React.FC = () => {
     if (removedPiece?.cutouts?.length) {
       applyCutoutDiff(removedPiece.cutouts, []);
     }
-    setPieces(pieces.filter(p => p.id !== id));
+    setPieces((current) => current.filter((piece) => piece.id !== id));
     setPieceManualPriceInputs((current) => {
       const next = {...current};
       delete next[id];
@@ -3074,11 +3144,13 @@ export const QuoteEditor: React.FC = () => {
               const lotInfo = hasMaterial ?materialLotInfo(piece.materialId, pieceArea, piece.materialVariantKey) : null;
               const pieceWorkflowStatus = normalizeQuoteStatus(piece.pieceStatus || status);
               const pieceMode = inferPieceEditorMode(piece);
+              const pieceKind = inferPieceKind(piece);
               const isDrawEditor = pieceEditorMode === 'draw';
               const isManualEditor = pieceEditorMode === 'manual';
               const isStairEditor = pieceEditorMode === 'stair';
               const filteredPieceMaterials = filteredMaterialsForPiece(piece.id);
               const isEditingPiece = pieceEditorOpen && pieceEditorPieceId === piece.id;
+              const selectedInitialKind = piece.kind;
               if (!isEditingPiece) {
                 return (
                   <button
@@ -3096,6 +3168,9 @@ export const QuoteEditor: React.FC = () => {
                           <div className="truncate font-display text-xl font-bold text-slate-900">{piece.name}</div>
                           <span className={cn('inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase', quoteStatusColor(pieceWorkflowStatus))}>
                             {pieceWorkflowStatus}
+                          </span>
+                          <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase text-slate-600">
+                            {getPieceKindLabel(pieceKind)}
                           </span>
                           <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase text-slate-600">
                             {pieceMode === 'stair' ? 'Escada' : pieceMode === 'draw' ? 'Desenho' : 'Medidas prontas'}
@@ -3133,98 +3208,178 @@ export const QuoteEditor: React.FC = () => {
                 <div className="relative flex h-full w-full items-center justify-center">
               <div
                 key={piece.id}
-                className="relative flex h-full max-h-full w-full max-w-[1040px] flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-[#FBFBFD] shadow-2xl sm:max-h-[calc(100vh-3rem)]"
+                className={cn(
+                  'relative flex w-full flex-col overflow-hidden rounded-[32px] border border-slate-200 bg-[#FBFBFD] shadow-2xl',
+                  pieceEditorMode === null
+                    ? 'max-w-[680px] max-h-[min(100vh-1.5rem,760px)]'
+                    : 'h-full max-h-full max-w-[1040px] sm:max-h-[calc(100vh-3rem)]',
+                )}
               >
-                <div className="border-b border-slate-200 bg-white/95 px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 space-y-3">
-                      <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
-                        {pieceEditorIsNew ? 'Adicionar peça' : 'Editar peça'}
+                {pieceEditorMode === null ? (
+                  <div className="border-b border-slate-200 bg-white/95 px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">Criar peça</div>
+                        <h2 className="mt-3 font-display text-2xl font-bold text-slate-900">Escolha o tipo e a forma de cadastro</h2>
+                        <p className="mt-2 max-w-xl text-sm text-slate-500">Defina primeiro a classificação da peça e como ela será cadastrada. O restante do formulário aparece só depois dessa escolha.</p>
                       </div>
-                      <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-brand-primary text-[#3F3A34] text-xs font-bold rounded-lg flex items-center justify-center">
-                      {pIdx + 1}
-                    </div>
-                    <input 
-                      type="text" 
-                      value={piece.name}
-                      onChange={(e) => updatePiece(piece.id, { name: e.target.value })}
-                      className="min-w-0 bg-transparent font-display font-bold text-slate-800 outline-none focus:text-brand-primary transition-all w-full"
-                    />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {pieceEditorMode && pieceEditorMode !== 'stair' ? (
-                          <button
-                            type="button"
-                            onClick={() => applyPieceEditorMode(pieceEditorMode === 'draw' ? 'manual' : 'draw')}
-                            className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600"
-                          >
-                            {pieceEditorMode === 'draw' ? 'Alterar para medidas prontas' : 'Alterar para desenho'}
-                          </button>
-                        ) : null}
-                    <div className="hidden md:flex rounded-xl bg-white p-1 border border-slate-100">
                       <button
                         type="button"
-                        onClick={() => updatePiece(piece.id, {stair: {...(piece.stair || defaultStairConfig()), active: false}})}
-                        className={cn('px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', !piece.stair?.active ?'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-400 hover:text-slate-700')}
+                        aria-label="Fechar editor da peça"
+                        title="Fechar editor da peça"
+                        onClick={cancelPieceEditor}
+                        className="rounded-2xl border border-slate-200 bg-white p-2 text-slate-400 transition-all hover:text-slate-700"
                       >
-                        Peça
+                        <X className="w-5 h-5" />
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => updatePiece(piece.id, {stair: {...defaultStairConfig(), ...(piece.stair || {}), active: true}, sculptedSink: {...piece.sculptedSink, active: false} as any, wetAreaRecess: {...piece.wetAreaRecess, active: false} as any})}
-                        className={cn('px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', piece.stair?.active ?'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-400 hover:text-slate-700')}
-                      >
-                        Escada
-                      </button>
-                    </div>
-                    <div className={cn('hidden md:inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase', quoteStatusColor(pieceWorkflowStatus))}>
-                      {pieceWorkflowStatus}
                     </div>
                   </div>
+                ) : (
+                  <div className="border-b border-slate-200 bg-white/95 px-5 py-4 pt-[max(1rem,env(safe-area-inset-top))] backdrop-blur">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 space-y-3">
+                        <div className="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
+                          {pieceEditorIsNew ? 'Adicionar peça' : 'Editar peça'}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-brand-primary text-[#3F3A34] text-xs font-bold rounded-lg flex items-center justify-center">
+                            {pIdx + 1}
+                          </div>
+                          <input
+                            type="text"
+                            value={piece.name}
+                            onChange={(e) => updatePiece(piece.id, { name: e.target.value })}
+                            className="min-w-0 bg-transparent font-display font-bold text-slate-800 outline-none focus:text-brand-primary transition-all w-full"
+                          />
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {pieceEditorMode && pieceEditorMode !== 'stair' ? (
+                            <button
+                              type="button"
+                              onClick={() => applyPieceEditorMode(pieceEditorMode === 'draw' ? 'manual' : 'draw')}
+                              className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600"
+                            >
+                              {pieceEditorMode === 'draw' ? 'Alterar para medidas prontas' : 'Alterar para desenho'}
+                            </button>
+                          ) : null}
+                          <div className="hidden md:flex rounded-xl bg-white p-1 border border-slate-100">
+                            <button
+                              type="button"
+                              onClick={() => updatePiece(piece.id, {stair: {...(piece.stair || defaultStairConfig()), active: false}, kind: piece.kind === 'soleira_baguete' ? 'soleira_baguete' : 'bancada'})}
+                              className={cn('px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', !piece.stair?.active ?'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-400 hover:text-slate-700')}
+                            >
+                              Peça
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => updatePiece(piece.id, {kind: 'escada', stair: {...defaultStairConfig(), ...(piece.stair || {}), active: true}, sculptedSink: {...piece.sculptedSink, active: false} as any, wetAreaRecess: {...piece.wetAreaRecess, active: false} as any})}
+                              className={cn('px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', piece.stair?.active ?'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-400 hover:text-slate-700')}
+                            >
+                              Escada
+                            </button>
+                          </div>
+                          <div className="hidden md:inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase text-slate-600">
+                            {getPieceKindLabel(pieceKind)}
+                          </div>
+                          <div className={cn('hidden md:inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase', quoteStatusColor(pieceWorkflowStatus))}>
+                            {pieceWorkflowStatus}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        aria-label="Fechar editor da peça"
+                        title="Fechar editor da peça"
+                        onClick={cancelPieceEditor}
+                        className="rounded-2xl border border-slate-200 bg-white p-2 text-slate-400 transition-all hover:text-slate-700"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
                     </div>
-                  <button
-                    type="button"
-                    aria-label="Fechar editor da peça"
-                    title="Fechar editor da peça"
-                    onClick={cancelPieceEditor}
-                    className="rounded-2xl border border-slate-200 bg-white p-2 text-slate-400 transition-all hover:text-slate-700"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                </div>
+                  </div>
+                )}
 
                 {pieceEditorMode === null ? (
-                  <div className="flex-1 overflow-y-auto px-5 py-5 pb-[calc(7rem+env(safe-area-inset-bottom))]">
-                    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-                      <div className="text-sm font-bold uppercase tracking-[0.18em] text-slate-500">Adicionar peça</div>
-                      <h3 className="mt-3 font-display text-2xl font-bold text-slate-900">Como você deseja cadastrar esta peça?</h3>
-                      <p className="mt-2 text-sm text-slate-500">Escolha o fluxo mais adequado para continuar sem expor todos os campos de uma vez.</p>
-                      <div className="mt-6 space-y-3">
-                        <button
-                          type="button"
-                          onClick={() => applyPieceEditorMode('draw')}
-                          className="flex w-full items-start justify-between rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-left transition-all hover:border-brand-primary/30 hover:bg-white"
-                        >
-                          <div>
-                            <div className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">Desenhar peça</div>
-                            <p className="mt-2 text-sm text-slate-500">Crie a geometria da peça e utilize as medidas do desenho no orçamento.</p>
-                          </div>
-                          <PenTool className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => applyPieceEditorMode('manual')}
-                          className="flex w-full items-start justify-between rounded-[24px] border border-slate-200 bg-slate-50 px-4 py-4 text-left transition-all hover:border-brand-primary/30 hover:bg-white"
-                        >
-                          <div>
-                            <div className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">Usar medidas prontas</div>
-                            <p className="mt-2 text-sm text-slate-500">Use quando o projeto já possui medidas definidas e não é necessário desenhar a geometria.</p>
-                          </div>
-                          <ReceiptText className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary" />
-                        </button>
-                      </div>
+                  <div className="overflow-y-auto px-5 py-5">
+                    <div className="space-y-5">
+                      <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">1. Que tipo de peça é?</div>
+                        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                          {([
+                            {key: 'bancada', label: 'Bancada', description: 'Peça padrão do orçamento.', icon: Building2},
+                            {key: 'escada', label: 'Escada', description: 'Reutiliza o fluxo oficial já existente.', icon: Layers},
+                            {key: 'soleira_baguete', label: 'Soleira / Baguete', description: 'Classificação leve dentro da própria peça.', icon: Wrench},
+                          ] as const).map(({key, label, description, icon: Icon}) => {
+                            const selected = selectedInitialKind === key;
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => applyInitialPieceKind(key)}
+                                className={cn(
+                                  'rounded-[24px] border px-4 py-4 text-left transition-all',
+                                  selected ? 'border-brand-primary bg-brand-primary/10 shadow-sm' : 'border-slate-200 bg-slate-50 hover:border-brand-primary/30 hover:bg-white',
+                                )}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <div className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">{label}</div>
+                                    <p className="mt-2 text-sm text-slate-500">{description}</p>
+                                  </div>
+                                  <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl', selected ? 'bg-brand-primary text-[#3F3A34]' : 'bg-white text-slate-500')}>
+                                    <Icon className="h-5 w-5" />
+                                  </div>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </section>
+
+                      <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">2. Como essa peça será cadastrada?</div>
+                        <p className="mt-2 text-sm text-slate-500">
+                          {selectedInitialKind === 'escada'
+                            ? 'Escadas seguem o fluxo oficial já existente. Escolha abaixo apenas para avançar pela porta de entrada simplificada.'
+                            : 'Escolha o fluxo mais adequado para continuar sem expor todos os campos de uma vez.'}
+                        </p>
+                        <div className="mt-6 space-y-3">
+                          <button
+                            type="button"
+                            onClick={() => applyPieceEditorMode('draw')}
+                            disabled={!selectedInitialKind}
+                            className={cn(
+                              'flex w-full items-start justify-between rounded-[24px] border px-4 py-4 text-left transition-all',
+                              selectedInitialKind
+                                ? 'border-slate-200 bg-slate-50 hover:border-brand-primary/30 hover:bg-white'
+                                : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400',
+                            )}
+                          >
+                            <div>
+                              <div className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">Desenhar a peça</div>
+                              <p className="mt-2 text-sm text-slate-500">Criar a geometria da peça e utilizar as medidas do desenho.</p>
+                            </div>
+                            <PenTool className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => applyPieceEditorMode('manual')}
+                            disabled={!selectedInitialKind}
+                            className={cn(
+                              'flex w-full items-start justify-between rounded-[24px] border px-4 py-4 text-left transition-all',
+                              selectedInitialKind
+                                ? 'border-slate-200 bg-slate-50 hover:border-brand-primary/30 hover:bg-white'
+                                : 'cursor-not-allowed border-slate-200 bg-slate-100 text-slate-400',
+                            )}
+                          >
+                            <div>
+                              <div className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">Usar medidas prontas</div>
+                              <p className="mt-2 text-sm text-slate-500">Informar manualmente as medidas de uma peça já definida.</p>
+                            </div>
+                            <ReceiptText className="mt-0.5 h-5 w-5 shrink-0 text-brand-primary" />
+                          </button>
+                        </div>
+                      </section>
                     </div>
                   </div>
                 ) : (
@@ -4010,62 +4165,70 @@ export const QuoteEditor: React.FC = () => {
                   </div>
                 </div>
                 )}
-                <div className="border-t border-slate-200 bg-white/95 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
-                    <div className="grid grid-cols-2 gap-3 text-sm">
-                      <div>
-                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Área</div>
-                        <div className="mt-2 font-mono font-bold text-slate-900">{formatMeasure(pieceArea)}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Material</div>
-                        <div className="mt-2 truncate font-semibold text-slate-900">{pieceMaterial?.name || 'Sem material'}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Valor da peça</div>
-                        <div className="mt-2 font-mono font-bold text-slate-900">{formatCurrency(pieceCutoutBreakdown?.pieceSubtotalValue || 0)}</div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Recortes</div>
-                        <div className="mt-2 font-mono font-bold text-slate-900">{formatCurrency(pieceScopedCutoutTotal)}</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
-                    {!pieceEditorIsNew ? (
+                {pieceEditorMode === null ? (
+                  <div className="border-t border-slate-200 bg-white/95 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
+                    <div className="flex items-center justify-end">
                       <button
                         type="button"
-                        onClick={() => {
-                          removePiece(piece.id);
-                          closePieceEditor();
-                        }}
-                        className="rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-600 transition-all hover:bg-red-100"
+                        onClick={cancelPieceEditor}
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-all hover:bg-slate-50"
                       >
-                        Excluir
+                        Cancelar
                       </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      onClick={cancelPieceEditor}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-all hover:bg-slate-50"
-                    >
-                      Cancelar
-                    </button>
-                    <button
-                      type="button"
-                      onClick={savePieceEditor}
-                      disabled={pieceEditorMode == null}
-                      className={cn(
-                        'rounded-2xl px-4 py-2 text-sm font-bold transition-all',
-                        pieceEditorMode == null
-                          ? 'cursor-not-allowed bg-slate-200 text-slate-400'
-                          : 'bg-brand-primary text-[#3F3A34] hover:bg-brand-primary/90',
-                      )}
-                    >
-                      {pieceEditorIsNew ? 'Adicionar peça' : 'Salvar'}
-                    </button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="border-t border-slate-200 bg-white/95 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                      <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Área</div>
+                          <div className="mt-2 font-mono font-bold text-slate-900">{formatMeasure(pieceArea)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Material</div>
+                          <div className="mt-2 truncate font-semibold text-slate-900">{pieceMaterial?.name || 'Sem material'}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Valor da peça</div>
+                          <div className="mt-2 font-mono font-bold text-slate-900">{formatCurrency(pieceCutoutBreakdown?.pieceSubtotalValue || 0)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Recortes</div>
+                          <div className="mt-2 font-mono font-bold text-slate-900">{formatCurrency(pieceScopedCutoutTotal)}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
+                      {!pieceEditorIsNew ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            removePiece(piece.id);
+                            closePieceEditor();
+                          }}
+                          className="rounded-2xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-bold text-red-600 transition-all hover:bg-red-100"
+                        >
+                          Excluir
+                        </button>
+                      ) : null}
+                      <button
+                        type="button"
+                        onClick={cancelPieceEditor}
+                        className="rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition-all hover:bg-slate-50"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={savePieceEditor}
+                        className="rounded-2xl bg-brand-primary px-4 py-2 text-sm font-bold text-[#3F3A34] transition-all hover:bg-brand-primary/90"
+                      >
+                        {pieceEditorIsNew ? 'Adicionar peça' : 'Salvar'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
                 </div>
               </div>

@@ -60,7 +60,6 @@ import {
 
 type QuoteSidebarSectionKey = 'digital' | 'client' | 'materials' | 'pricing' | 'payment';
 type PieceEditorMode = 'draw' | 'manual' | 'stair' | null;
-type PieceEditorAccordionKey = 'finishes' | 'options';
 type PieceKindChoice = QuotePieceKind;
 
 const MATERIAL_PRICE_MINIMUM_ERROR = 'O valor personalizado não pode ser menor que o valor mínimo definido para este material.';
@@ -287,39 +286,6 @@ const SidebarAccordionSection = ({
   );
 };
 
-const PieceEditorAccordionSection = ({
-  title,
-  description,
-  open,
-  onToggle,
-  children,
-}: {
-  title: string;
-  description?: string;
-  open: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) => (
-  <section className="overflow-hidden rounded-[24px] border border-slate-200 bg-white">
-    <button
-      type="button"
-      onClick={onToggle}
-      className="flex w-full items-center justify-between gap-3 px-4 py-4 text-left"
-    >
-      <div className="min-w-0">
-        <div className="text-sm font-bold uppercase tracking-[0.18em] text-slate-700">{title}</div>
-        {description ? <p className="mt-1 text-xs text-slate-500">{description}</p> : null}
-      </div>
-      <ChevronDown className={cn('h-4 w-4 shrink-0 text-slate-400 transition-transform', open && 'rotate-180')} />
-    </button>
-    <div className={cn('grid transition-all duration-300 ease-out', open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
-      <div className="overflow-hidden">
-        <div className="border-t border-slate-100 px-4 py-4">{children}</div>
-      </div>
-    </div>
-  </section>
-);
-
 const clonePieceForEditor = (piece: QuotePiece) => JSON.parse(JSON.stringify(piece)) as QuotePiece;
 
 const getPieceKindLabel = (kind?: QuotePieceKind) => {
@@ -466,10 +432,6 @@ export const QuoteEditor: React.FC = () => {
     manualPriceInput?: string;
     materialSearch?: string;
   } | null>(null);
-  const [pieceEditorAccordionOpen, setPieceEditorAccordionOpen] = useState<Record<PieceEditorAccordionKey, boolean>>({
-    finishes: false,
-    options: false,
-  });
   const [employeeAssignments, setEmployeeAssignments] = useState<EmployeeAssignment[]>([]);
   const [statusHistory, setStatusHistory] = useState<QuoteStatusHistory[]>([]);
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
@@ -1636,13 +1598,6 @@ export const QuoteEditor: React.FC = () => {
     setPieces([...pieces, newPiece]);
   };
 
-  const resetPieceEditorAccordions = () => {
-    setPieceEditorAccordionOpen({
-      finishes: false,
-      options: false,
-    });
-  };
-
   const openPieceEditor = (
     pieceId: string,
     options?: {
@@ -1666,7 +1621,6 @@ export const QuoteEditor: React.FC = () => {
           },
     );
     setPieceMaterialPickerOpen((current) => ({...current, [pieceId]: false}));
-    resetPieceEditorAccordions();
     setPieceEditorOpen(true);
   };
 
@@ -1677,7 +1631,6 @@ export const QuoteEditor: React.FC = () => {
     setPieceEditorIsNew(false);
     setPieceEditorRestoreSnapshot(null);
     setPieceMaterialPickerOpen({});
-    resetPieceEditorAccordions();
   };
 
   const cancelPieceEditor = () => {
@@ -1749,6 +1702,7 @@ export const QuoteEditor: React.FC = () => {
         sculptedSink: {...currentPiece.sculptedSink, active: false} as any,
         wetAreaRecess: {...currentPiece.wetAreaRecess, active: false} as any,
       });
+      setPieceEditorMode('stair');
       return;
     }
 
@@ -3135,7 +3089,6 @@ export const QuoteEditor: React.FC = () => {
               const isManualPieceArea = pieceAreaMode === 'manual';
               const drawingArea = getStoredDrawingArea(piece);
               const manualFinalArea = getStoredManualFinalArea(piece);
-              const usesManualLongestSide = Number(piece.manualLongestSide || 0) > 0;
               const pieceCutoutBreakdown = originalPiecePricingBreakdowns[pIdx];
               const pieceScopedCutouts = pieceCutoutBreakdown?.cutoutRows || [];
               const pieceScopedCutoutTotal = pieceCutoutBreakdown?.calculatedCutoutValue || 0;
@@ -3253,35 +3206,10 @@ export const QuoteEditor: React.FC = () => {
                           />
                         </div>
                         <div className="flex flex-wrap gap-2">
-                          {pieceEditorMode && pieceEditorMode !== 'stair' ? (
-                            <button
-                              type="button"
-                              onClick={() => applyPieceEditorMode(pieceEditorMode === 'draw' ? 'manual' : 'draw')}
-                              className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600"
-                            >
-                              {pieceEditorMode === 'draw' ? 'Alterar para medidas prontas' : 'Alterar para desenho'}
-                            </button>
-                          ) : null}
-                          <div className="hidden md:flex rounded-xl bg-white p-1 border border-slate-100">
-                            <button
-                              type="button"
-                              onClick={() => updatePiece(piece.id, {stair: {...(piece.stair || defaultStairConfig()), active: false}, kind: piece.kind === 'soleira_baguete' ? 'soleira_baguete' : 'bancada'})}
-                              className={cn('px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', !piece.stair?.active ?'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-400 hover:text-slate-700')}
-                            >
-                              Peça
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => updatePiece(piece.id, {kind: 'escada', stair: {...defaultStairConfig(), ...(piece.stair || {}), active: true}, sculptedSink: {...piece.sculptedSink, active: false} as any, wetAreaRecess: {...piece.wetAreaRecess, active: false} as any})}
-                              className={cn('px-3 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', piece.stair?.active ?'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-400 hover:text-slate-700')}
-                            >
-                              Escada
-                            </button>
-                          </div>
-                          <div className="hidden md:inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase text-slate-600">
+                          <div className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-bold uppercase text-slate-600">
                             {getPieceKindLabel(pieceKind)}
                           </div>
-                          <div className={cn('hidden md:inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase', quoteStatusColor(pieceWorkflowStatus))}>
+                          <div className={cn('inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase', quoteStatusColor(pieceWorkflowStatus))}>
                             {pieceWorkflowStatus}
                           </div>
                         </div>
@@ -3336,12 +3264,11 @@ export const QuoteEditor: React.FC = () => {
                         </div>
                       </section>
 
+                      {selectedInitialKind !== 'escada' ? (
                       <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                         <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">2. Como essa peça será cadastrada?</div>
                         <p className="mt-2 text-sm text-slate-500">
-                          {selectedInitialKind === 'escada'
-                            ? 'Escadas seguem o fluxo oficial já existente. Escolha abaixo apenas para avançar pela porta de entrada simplificada.'
-                            : 'Escolha o fluxo mais adequado para continuar sem expor todos os campos de uma vez.'}
+                          Escolha o fluxo mais adequado para continuar sem expor todos os campos de uma vez.
                         </p>
                         <div className="mt-6 space-y-3">
                           <button
@@ -3380,32 +3307,12 @@ export const QuoteEditor: React.FC = () => {
                           </button>
                         </div>
                       </section>
+                      ) : null}
                     </div>
                   </div>
                 ) : (
                 <div className="flex-1 overflow-y-auto p-5 pb-[calc(10rem+env(safe-area-inset-bottom))]">
                   <div className="space-y-5">
-                    <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">Visão da peça</div>
-                          <h3 className="mt-2 font-display text-xl font-bold text-slate-900">
-                            {isStairEditor ? 'Fluxo de escada' : isDrawEditor ? 'Desenhar peça' : 'Usar medidas prontas'}
-                          </h3>
-                          <p className="mt-2 max-w-md text-sm text-slate-500">
-                            {isStairEditor
-                              ? 'Mantenha o orçamento de escada compacto, com os mesmos cálculos de piso, espelho, patamar e rodapé lateral.'
-                              : isDrawEditor
-                                ? 'Use o desenho técnico e os dados já existentes para chegar ao valor final da peça.'
-                                : 'Informe somente os dados finais necessários quando o projeto já tiver medidas definidas.'}
-                          </p>
-                        </div>
-                        <div className={cn('inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase', quoteStatusColor(pieceWorkflowStatus))}>
-                          {pieceWorkflowStatus}
-                        </div>
-                      </div>
-                    </section>
-
                     <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                       <div className="flex flex-col gap-4">
                         <div>
@@ -3794,6 +3701,7 @@ export const QuoteEditor: React.FC = () => {
                       </div>
                     </section>
 
+                    {isManualEditor ? (
                     <section className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm">
                       <div className="space-y-4">
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -3882,286 +3790,7 @@ export const QuoteEditor: React.FC = () => {
                         )}
                       </div>
                     </section>
-
-                    <PieceEditorAccordionSection
-                      title="Acabamentos / Complementos"
-                      description="Frontão, saia, virada, guarnição, pia esculpida e rebaixo continuam disponíveis aqui."
-                      open={pieceEditorAccordionOpen.finishes}
-                      onToggle={() => setPieceEditorAccordionOpen((current) => ({...current, finishes: !current.finishes}))}
-                    >
-                      <div className="space-y-5">
-                        <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => addSide(piece.id, 'frontao')}
-                            className="rounded-xl bg-brand-primary/10 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-brand-primary transition-all hover:bg-brand-primary/15"
-                          >
-                            + Frontão
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addSide(piece.id, 'saia')}
-                            className="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 transition-all hover:bg-slate-200"
-                          >
-                            + Saia
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addSide(piece.id, 'virada')}
-                            className="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 transition-all hover:bg-slate-200"
-                          >
-                            + Virada
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addSide(piece.id, 'pe')}
-                            className="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 transition-all hover:bg-slate-200"
-                          >
-                            + Pé de bancada
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => addSide(piece.id, 'guarnicao')}
-                            className="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-600 transition-all hover:bg-slate-200"
-                          >
-                            + Guarnição
-                          </button>
-                        </div>
-
-                        {piece.sides.length > 0 ? (
-                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                            {piece.sides.map((side, sIdx) => (
-                              <div key={sIdx} className="grid grid-cols-1 gap-3 rounded-[20px] border border-slate-200 bg-slate-50 p-4 sm:grid-cols-[minmax(0,1fr)_72px_36px] sm:items-end">
-                                <div className="min-w-0 space-y-1">
-                                  <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Tipo / Medida</span>
-                                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-[96px_minmax(0,1fr)]">
-                                    <select
-                                      value={side.type}
-                                      onChange={(e) => {
-                                        const newSides = [...piece.sides];
-                                        newSides[sIdx].type = e.target.value as any;
-                                        newSides[sIdx].height =
-                                          e.target.value === 'frontao' ? settings.defaultFrontonHeight :
-                                          e.target.value === 'saia' ? settings.defaultSkirtHeight :
-                                          settings.defaultTurnHeight;
-                                        updatePiece(piece.id, { sides: newSides });
-                                      }}
-                                      className="min-w-0 rounded-lg border border-slate-200 bg-white p-1 text-xs"
-                                    >
-                                      <option value="frontao">Frontão</option>
-                                      <option value="saia">Saia</option>
-                                      <option value="virada">Virada</option>
-                                      <option value="pe">Pé de bancada</option>
-                                      <option value="guarnicao">Guarnição</option>
-                                    </select>
-                                    <select
-                                      value={side.side}
-                                      onChange={(e) => {
-                                        const newSides = [...piece.sides];
-                                        const selectedSide = sideOptionsForPiece(piece).find((option) => option.value === e.target.value);
-                                        newSides[sIdx].side = e.target.value;
-                                        newSides[sIdx].sideLabel = selectedSide?.label;
-                                        newSides[sIdx].length = selectedSide?.length || 0;
-                                        updatePiece(piece.id, { sides: newSides });
-                                      }}
-                                      className="min-w-0 rounded-lg border border-slate-200 bg-white p-1 text-xs"
-                                    >
-                                      {sideOptionsForPiece(piece).map((option) => (
-                                        <option key={option.value} value={option.value}>{option.label}</option>
-                                      ))}
-                                    </select>
-                                  </div>
-                                </div>
-                                <div className="space-y-1 sm:w-16">
-                                  <span className="text-[10px] font-bold uppercase text-slate-400">{sideDimensionLabel(side.type)}</span>
-                                  <NumericInput
-                                    value={side.height}
-                                    onValueChange={(value) => {
-                                      const newSides = [...piece.sides];
-                                      newSides[sIdx].height = value;
-                                      updatePiece(piece.id, { sides: newSides });
-                                    }}
-                                    className="w-full rounded-lg border border-slate-200 bg-white p-1 text-center text-xs"
-                                  />
-                                </div>
-                                <button
-                                  type="button"
-                                  aria-label="Remover lado"
-                                  title="Remover lado"
-                                  onClick={() => {
-                                    const newSides = [...piece.sides];
-                                    newSides.splice(sIdx, 1);
-                                    updatePiece(piece.id, { sides: newSides });
-                                  }}
-                                  className="rounded-lg p-2 text-slate-400 transition-all hover:bg-red-50 hover:text-red-500"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-500">
-                            Nenhum acabamento adicionado nesta peça.
-                          </div>
-                        )}
-
-                        <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <label className="text-sm font-bold text-slate-700">Pia esculpida</label>
-                            <div className="flex rounded-xl bg-white p-1">
-                              <button
-                                type="button"
-                                onClick={() => updatePiece(piece.id, { sculptedSink: { ...(piece.sculptedSink || {drainType: 'Válvula oculta', quantity: 1, width: 0, depth: 0, height: 0, unit: 'cm'}), active: true } as any })}
-                                className={cn('px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', piece.sculptedSink?.active ? 'bg-brand-primary text-[#3F3A34]' : 'text-slate-400')}
-                              >
-                                Sim
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink, active: false } as any })}
-                                className={cn('px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', !piece.sculptedSink?.active ? 'bg-brand-primary text-[#3F3A34]' : 'text-slate-400')}
-                              >
-                                Não
-                              </button>
-                            </div>
-                          </div>
-                          {piece.sculptedSink?.active ? (
-                            <div className="mt-4 space-y-4">
-                              <div className="grid gap-4 md:grid-cols-4">
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Tipo de ralo</label>
-                                  <select value={piece.sculptedSink.drainType || 'Válvula oculta'} onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, drainType: e.target.value as any } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium outline-none">
-                                    <option value="Válvula oculta">Válvula oculta</option>
-                                    <option value="Ralo click">Ralo click</option>
-                                    <option value="Ralo oculto">Ralo oculto</option>
-                                  </select>
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Quantidade</label>
-                                  <NumericInput min="1" value={piece.sculptedSink.quantity} onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, quantity: value } })} decimals={0} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono outline-none" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Medida unidade</label>
-                                  <select value={piece.sculptedSink.unit} onChange={(e) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, unit: e.target.value as any } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium outline-none">
-                                    <option value="cm">cm</option>
-                                    <option value="m">m</option>
-                                  </select>
-                                </div>
-                              </div>
-                              <div className="grid gap-4 md:grid-cols-3">
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Largura cuba ({piece.sculptedSink.unit})</label>
-                                  <NumericInput value={piece.sculptedSink.width} onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, width: value } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono outline-none" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Profundidade cuba ({piece.sculptedSink.unit})</label>
-                                  <NumericInput value={piece.sculptedSink.depth} onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, depth: value } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono outline-none" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Altura interna ({piece.sculptedSink.unit})</label>
-                                  <NumericInput value={piece.sculptedSink.height} onValueChange={(value) => updatePiece(piece.id, { sculptedSink: { ...piece.sculptedSink!, height: value } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono outline-none" />
-                                </div>
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-
-                        <div className="rounded-[24px] border border-slate-200 bg-slate-50 p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <label className="text-sm font-bold text-slate-700">Rebaixo área molhada</label>
-                            <div className="flex rounded-xl bg-white p-1">
-                              <button
-                                type="button"
-                                onClick={() => updatePiece(piece.id, { wetAreaRecess: { ...(piece.wetAreaRecess || {type: 'americano', width: 0, depth: 0, unit: 'cm'}), active: true } as any })}
-                                className={cn('px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', piece.wetAreaRecess?.active ? 'bg-brand-primary text-[#3F3A34]' : 'text-slate-400')}
-                              >
-                                Sim
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess, active: false } as any })}
-                                className={cn('px-4 py-1 text-[10px] font-bold uppercase rounded-lg transition-all', !piece.wetAreaRecess?.active ? 'bg-brand-primary text-[#3F3A34]' : 'text-slate-400')}
-                              >
-                                Não
-                              </button>
-                            </div>
-                          </div>
-                          {piece.wetAreaRecess?.active ? (
-                            <div className="mt-4 space-y-4">
-                              <div className="grid gap-4 md:grid-cols-4">
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Tipo de rebaixo</label>
-                                  <select value={piece.wetAreaRecess.type} onChange={(e) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, type: e.target.value as any } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium outline-none">
-                                    <option value="americano">Americano</option>
-                                    <option value="italiano">Italiano</option>
-                                  </select>
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Largura ({piece.wetAreaRecess.unit})</label>
-                                  <NumericInput value={piece.wetAreaRecess.width} onValueChange={(value) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, width: value } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono outline-none" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Profundidade ({piece.wetAreaRecess.unit})</label>
-                                  <NumericInput value={piece.wetAreaRecess.depth} onValueChange={(value) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, depth: value } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-mono outline-none" />
-                                </div>
-                                <div className="space-y-1">
-                                  <label className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Unidade</label>
-                                  <select value={piece.wetAreaRecess.unit} onChange={(e) => updatePiece(piece.id, { wetAreaRecess: { ...piece.wetAreaRecess!, unit: e.target.value as any } })} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium outline-none">
-                                    <option value="cm">cm</option>
-                                    <option value="m">m</option>
-                                  </select>
-                                </div>
-                              </div>
-                              <div className="rounded-2xl border border-slate-200 bg-white p-4">
-                                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Área do rebaixo (m²)</span>
-                                <div className="mt-2 font-mono font-bold text-brand-primary">{formatMeasure(calculateWetAreaRecessArea(piece))}</div>
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
-                    </PieceEditorAccordionSection>
-
-                    <PieceEditorAccordionSection
-                      title="Mais opções"
-                      description="Campos menos frequentes, sem impactar o fluxo principal do cadastro."
-                      open={pieceEditorAccordionOpen.options}
-                      onToggle={() => setPieceEditorAccordionOpen((current) => ({...current, options: !current.options}))}
-                    >
-                      <div className="grid gap-4 md:grid-cols-2">
-                        <label className="space-y-1">
-                          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Status da peça</span>
-                          <select
-                            value={pieceWorkflowStatus}
-                            onChange={(e) => updatePiece(piece.id, {pieceStatus: normalizeQuoteStatus(e.target.value)})}
-                            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-brand-primary/20"
-                          >
-                            {QUOTE_STATUSES.map((pieceStatus) => (
-                              <option key={pieceStatus} value={pieceStatus}>{pieceStatus}</option>
-                            ))}
-                          </select>
-                        </label>
-                        {!isStairEditor ? (
-                          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-                            <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Maior lado em uso</div>
-                            <div className="mt-2 font-mono text-base font-bold text-slate-900">{effectiveLongestSide > 0 ? formatCentimeters(effectiveLongestSide) : '-'}</div>
-                            <div className="mt-2 text-[11px] font-semibold text-slate-500">
-                              {usesManualLongestSide ? 'Prioridade atual: maior lado manual.' : drawingArea > 0 ? 'Prioridade atual: desenho salvo.' : 'Prioridade atual: medidas lineares da peça.'}
-                            </div>
-                          </div>
-                        ) : null}
-                        <label className="space-y-1 md:col-span-2">
-                          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">Observações</span>
-                          <textarea
-                            value={piece.notes || ''}
-                            onChange={(e) => updatePiece(piece.id, {notes: e.target.value})}
-                            className="min-h-[110px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
-                            placeholder="Observações internas da peça..."
-                          />
-                        </label>
-                      </div>
-                    </PieceEditorAccordionSection>
+                    ) : null}
                   </div>
                 </div>
                 )}

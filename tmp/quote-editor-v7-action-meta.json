@@ -1,0 +1,40 @@
+{
+  "before": {
+    "id": "5e0f8ec2-d735-41fa-a8a6-9961c3cc0174",
+    "version_number": 6,
+    "public_token": "f42bd558f488ed15879eb669e6d1ec34a7f2"
+  },
+  "after": {
+    "id": "da93e7e4-dbd1-4b8c-91fb-63ad6a4bfca8",
+    "version_number": 7,
+    "public_token": "a7123658cefeae0b9c5ee67004baff5556fb",
+    "status": "GERADO"
+  },
+  "failedRequests": [],
+  "consoleLogs": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    }
+  ]
+}

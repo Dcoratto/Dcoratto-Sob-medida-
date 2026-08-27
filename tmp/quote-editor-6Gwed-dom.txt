@@ -1,0 +1,1047 @@
+- complementary:
+  - generic "D'Coratto Sob Medida":
+    - img "D'Coratto Sob Medida"
+  - navigation:
+    - link "Dashboard":
+      - /url: /
+      - generic: Dashboard
+    - link "Orçamentos":
+      - /url: /quotes
+      - generic: Orçamentos
+    - link "Projetos":
+      - /url: /projects
+      - generic: Projetos
+    - link "Instalacao":
+      - /url: /installation
+      - generic: Instalacao
+    - link "Clientes":
+      - /url: /clients
+      - generic: Clientes
+    - link "Gestao de Crise":
+      - /url: /crisis
+      - generic: Gestao de Crise
+    - link "Calendário":
+      - /url: /calendar
+      - generic: Calendário
+    - link "Histórico":
+      - /url: /history
+      - generic: Histórico
+    - link "Relatórios":
+      - /url: /reports
+      - generic: Relatórios
+    - link "Materiais":
+      - /url: /materials
+      - generic: Materiais
+    - link "Estoque":
+      - /url: /inventory
+      - generic: Estoque
+    - link "Almoxarifado":
+      - /url: /warehouse
+      - generic: Almoxarifado
+    - link "Admin":
+      - /url: /admin
+      - generic: Admin
+  - link "B Brian Takiya Administrativo":
+    - /url: /profile
+    - generic: B
+    - paragraph: Brian Takiya
+    - paragraph: Administrativo
+  - button "Sair":
+    - text: Sair
+- main:
+  - textbox "Busca global por cliente, orçamento, lote, pedra ou fornecedor..."
+  - generic: Ctrl K
+  - button:
+  - heading "Editar Orçamento" [level=1]
+  - paragraph: Configure as peças, materiais e condições.
+  - button "Salvar Orçamento":
+    - text: Salvar Orçamento
+  - generic: Salvo automaticamente as 14:48
+  - generic: Resumo Financeiro
+  - generic: R$ 618,30
+  - generic: Valor final do orçamento
+  - generic: Área final total
+  - strong: 23,8 m²
+  - generic: Pedra base
+  - strong: R$ 0,00
+  - generic: Perda material
+  - strong: R$ 0,00
+  - generic: Recortes
+  - strong: R$ 540,00
+  - generic: Pia esculpida
+  - strong: R$ 0,00
+  - generic: Mão de obra
+  - strong: R$ 0,00
+  - generic: Subtotal produção
+  - strong: R$ 540,00
+  - generic: Entrega
+  - strong: R$ 0,00
+  - generic: Complexidade (0%)
+  - strong: R$ 0,00
+  - generic: Ajuste pagamento (0%)
+  - strong: R$ 0,00
+  - generic: Comissão (2%)
+  - strong: R$ 10,80
+  - generic: Descontos (0%)
+  - strong: "-R$ 0,00"
+  - generic: Acréscimos (12.5%)
+  - strong: R$ 67,50
+  - generic: Total final
+  - strong: R$ 618,30
+  - button "Proposta Digital V5 · VISUALIZADO VISUALIZADO":
+    - generic: Proposta Digital
+    - generic: V5 · VISUALIZADO
+    - generic: VISUALIZADO
+  - generic: Versão atual
+  - generic: V5 · DC-WWJO5Z-V5
+  - generic: Status
+  - generic: VISUALIZADO
+  - generic: Gerada em
+  - generic: 13/08/2026
+  - generic: Validade
+  - generic: 28/08/2026
+  - generic: Visualizada
+  - generic: 13/08/2026
+  - button "Visualizar":
+    - text: Visualizar
+  - button "Copiar link":
+    - text: Copiar link
+  - button "WhatsApp":
+    - text: WhatsApp
+  - button "Nova versão":
+    - text: Nova versão
+  - button "Revogar link":
+    - text: Revogar link
+  - button "Histórico de versões":
+    - text: Histórico de versões
+  - generic: V5
+  - generic: VISUALIZADO
+  - generic: 13/08/2026 · validade 28/08/2026
+  - generic: V4
+  - generic: VISUALIZADO
+  - generic: 12/08/2026 · validade 27/08/2026
+  - generic: V3
+  - generic: VISUALIZADO
+  - generic: 12/08/2026 · validade 27/08/2026
+  - generic: V2
+  - generic: VISUALIZADO
+  - generic: 12/08/2026 · validade 27/08/2026
+  - generic: V1
+  - generic: REVOGADO
+  - generic: 12/08/2026 · validade 27/08/2026
+  - button "Cliente Selecione o cliente para este orçamento.":
+    - generic: Cliente
+    - paragraph: Selecione o cliente para este orçamento.
+  - text: Nome
+  - textbox "Pesquisar cliente...": AMANDA E ALEX
+  - button:
+  - text: Ambiente
+  - 'textbox "Ex: Cozinha"'
+  - text: Responsável
+  - textbox "Responsável": Brian Takiya
+  - text: Prazo (dias)
+  - textbox: "15"
+  - text: Validade (dias)
+  - textbox: "15"
+  - text: Data da medição
+  - textbox
+  - text: Data da entrega
+  - textbox
+  - text: Observações
+  - textbox "Informações de atendimento, instalação e observações gerais..."
+  - button "Materiais Resumo dos materiais selecionados nas peças do orçamento.":
+    - generic: Materiais
+    - paragraph: Resumo dos materiais selecionados nas peças do orçamento.
+  - generic: Selecione materiais nas peças para visualizar os dados aqui.
+  - button "Precificação Custos, regras automáticas e margens do orçamento.":
+    - generic: Precificação
+    - paragraph: Custos, regras automáticas e margens do orçamento.
+  - heading "Componentes do orçamento" [level=3]
+  - generic: Material
+  - generic: Sempre ativo
+  - generic: R$ 0,00
+  - generic: Perda de material
+  - generic: 10% · Ativo
+  - generic: R$ 0,00
+  - switch "Alternar perda de material" [checked]
+  - generic: Recortes
+  - generic: Ativo
+  - generic: R$ 540,00
+  - switch "Alternar recortes" [checked]
+  - generic: Pia esculpida
+  - generic: Ativo
+  - generic: R$ 0,00
+  - switch "Alternar pia esculpida" [checked]
+  - generic: Mão de obra
+  - generic: Linear
+  - generic: R$ 0,00
+  - switch "Alternar mão de obra" [checked]
+  - generic: Entrega
+  - generic: Padrão
+  - generic: R$ 0,00
+  - switch "Alternar entrega" [checked]
+  - generic: Complexidade
+  - generic: Normal · 0%
+  - generic: R$ 0,00
+  - switch "Alternar complexidade" [checked]
+  - button "Normal 0%":
+    - generic: Normal
+    - generic: 0%
+  - button "Baixa +1%":
+    - generic: Baixa
+    - generic: +1%
+  - button "Media +5%":
+    - generic: Media
+    - generic: +5%
+  - button "Alta +10%":
+    - generic: Alta
+    - generic: +10%
+  - generic: Ajuste de materiais neste orçamento
+  - generic: Selecione materiais nas peças para personalizar valores.
+  - text: Comissão (%)
+  - spinbutton "Comissão (%)": "2"
+  - text: Descontos (%)
+  - spinbutton "Descontos (%)": "0"
+  - text: Acréscimos (%)
+  - spinbutton "Acréscimos (%)": "12.5"
+  - button "Forma de Pagamento Condição comercial, parcelas, entrada e observações financeiras.":
+    - generic: Forma de Pagamento
+    - paragraph: Condição comercial, parcelas, entrada e observações financeiras.
+  - button "Valor total"
+  - button "Entrada + restante"
+  - combobox:
+    - option "Selecionar forma de pagamento" [selected]
+    - option "À vista (Dinheiro/Pix) (0%)"
+    - option "Cartão de Débito (0%)"
+    - option "CRÉDITO 1X (+2.5%)"
+    - option "CRÉDITO 2X (+3.75%)"
+    - option "CRÉDITO 3X (+5%)"
+    - option "CRÉDITO 4X (+6.3%)"
+    - option "CRÉDITO 5X (+7.6%)"
+    - option "CRÉDITO 6X (+8.9%)"
+    - option "CRÉDITO 7X (+10.2%)"
+    - option "CRÉDITO 8X (+11.5%)"
+    - option "CRÉDITO 9X (+12.9%)"
+    - option "CRÉDITO 10X (+14.2%)"
+    - option "CRÉDITO 11X (+15.6%)"
+    - option "CRÉDITO 12X (+17%)"
+  - text: Parcelas
+  - textbox: "1"
+  - text: Valor de cada parcela
+  - generic: R$ 618,30
+  - textbox "Observações de pagamento..."
+  - heading "Peças do Orçamento" [level=2]
+  - button "Adicionar Peça":
+    - text: Adicionar Peça
+  - button "Adicionar Escada"
+  - generic: "1"
+  - textbox: LAVABO
+  - button "Peça"
+  - button "Escada"
+  - generic: Orçamento
+  - button "Remover peça":
+  - button "Desenhar Peça":
+    - generic: Desenhar Peça
+  - generic: Medidas do desenho
+  - generic: "Largura: -"
+  - generic: "Profundidade: -"
+  - text: Status da peça
+  - combobox:
+    - option "Orçamento" [selected]
+    - option "Orçamento Aprovado"
+    - option "Medição"
+    - option "Projeto"
+    - option "Projeto Aprovado"
+    - option "Corte"
+    - option "Acabamento"
+    - option "Montagem"
+    - option "Produção Finalizada"
+    - option "Conferência Final"
+    - option "Entrega"
+    - option "Finalizado"
+  - text: Material da peça
+  - textbox "Pesquisar material para esta peça..."
+  - button:
+  - generic: Área da peça
+  - button "Pelas medidas"
+  - button "Informar m²"
+  - generic: Área informada manualmente
+  - text: Área final da peça (m²)
+  - textbox "0,000": 1,170
+  - generic: O m² informado passa a ser a área oficial desta peça no orçamento.
+  - text: Maior lado da peça (cm)
+  - textbox "0,0"
+  - generic: Usado para cálculo da mão de obra linear.
+  - generic: Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+  - text: Área Total (m²)
+  - generic: "Total:"
+  - generic: 1,170
+  - generic: "Peça:"
+  - generic: 1,170
+  - generic: "m² insuficiente: precisa 1,2 m² e há 0,0 m²"
+  - generic: Não há lote suficiente para esta peça.
+  - heading "Preço da peça" [level=3]
+  - paragraph: Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+  - button "Automático"
+  - button "Manual"
+  - generic: Valor em uso
+  - generic: R$ 30,00
+  - text: Valor manual da peça
+  - textbox "Valor manual da peça" [disabled]:
+    - /placeholder: 0,00
+  - generic: Ative o modo manual para digitar um valor personalizado para esta peça.
+  - generic: "Pia Esculpida:"
+  - button "Sim"
+  - button "Não"
+  - generic: "Rebaixo área molhada:"
+  - button "Sim"
+  - button "Não"
+  - heading "Recortes da peça" [level=3]
+  - paragraph: Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+  - combobox:
+    - option "+ Adicionar recorte" [selected]
+    - option "Cooktop"
+    - option "Cuba embutida"
+    - option "Cuba sobreposta"
+    - option "Lixeira"
+    - option "Torre tomada"
+    - option "Rebaixo americano"
+    - option "Rebaixo italiano"
+  - generic: Furo torneira
+  - generic: 1 un. · R$ 30,00 por unidade
+  - button "-"
+  - generic: "1"
+  - button "+"
+  - generic: R$ 30,00
+  - button "Remover Furo torneira":
+  - generic: Subtotal de recortes da peça
+  - strong: R$ 30,00
+  - heading "Acabamentos / Complementos" [level=3]
+  - button "+ Frontão"
+  - button "+ Saia"
+  - button "+ Virada"
+  - button "+ Pé de bancada"
+  - button "+ Guarnição"
+  - generic: "2"
+  - textbox: ÁREA GOURMET
+  - button "Peça"
+  - button "Escada"
+  - generic: Orçamento
+  - button "Remover peça":
+  - button "Desenhar Peça":
+    - generic: Desenhar Peça
+  - generic: Medidas do desenho
+  - generic: "Largura: -"
+  - generic: "Profundidade: -"
+  - text: Status da peça
+  - combobox:
+    - option "Orçamento" [selected]
+    - option "Orçamento Aprovado"
+    - option "Medição"
+    - option "Projeto"
+    - option "Projeto Aprovado"
+    - option "Corte"
+    - option "Acabamento"
+    - option "Montagem"
+    - option "Produção Finalizada"
+    - option "Conferência Final"
+    - option "Entrega"
+    - option "Finalizado"
+  - text: Material da peça
+  - textbox "Pesquisar material para esta peça..."
+  - button:
+  - generic: Área da peça
+  - button "Pelas medidas"
+  - button "Informar m²"
+  - generic: Área informada manualmente
+  - text: Área final da peça (m²)
+  - textbox "0,000": 10,260
+  - generic: O m² informado passa a ser a área oficial desta peça no orçamento.
+  - text: Maior lado da peça (cm)
+  - textbox "0,0"
+  - generic: Usado para cálculo da mão de obra linear.
+  - generic: Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+  - text: Área Total (m²)
+  - generic: "Total:"
+  - generic: 10,260
+  - generic: "Peça:"
+  - generic: 10,260
+  - generic: "m² insuficiente: precisa 10,3 m² e há 0,0 m²"
+  - generic: Não há lote suficiente para esta peça.
+  - heading "Preço da peça" [level=3]
+  - paragraph: Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+  - button "Automático"
+  - button "Manual"
+  - generic: Valor em uso
+  - generic: R$ 0,00
+  - text: Valor manual da peça
+  - textbox "Valor manual da peça" [disabled]:
+    - /placeholder: 0,00
+  - generic: Ative o modo manual para digitar um valor personalizado para esta peça.
+  - generic: "Pia Esculpida:"
+  - button "Sim"
+  - button "Não"
+  - generic: "Rebaixo área molhada:"
+  - button "Sim"
+  - button "Não"
+  - heading "Recortes da peça" [level=3]
+  - paragraph: Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+  - combobox:
+    - option "+ Adicionar recorte" [selected]
+    - option "Cooktop"
+    - option "Cuba embutida"
+    - option "Cuba sobreposta"
+    - option "Furo torneira"
+    - option "Lixeira"
+    - option "Torre tomada"
+    - option "Rebaixo americano"
+    - option "Rebaixo italiano"
+  - generic: Nenhum recorte adicionado nesta peça.
+  - heading "Acabamentos / Complementos" [level=3]
+  - button "+ Frontão"
+  - button "+ Saia"
+  - button "+ Virada"
+  - button "+ Pé de bancada"
+  - button "+ Guarnição"
+  - generic: "3"
+  - textbox: BANCADA COZINHA
+  - button "Peça"
+  - button "Escada"
+  - generic: Orçamento
+  - button "Remover peça":
+  - button "Desenhar Peça":
+    - generic: Desenhar Peça
+  - generic: Medidas do desenho
+  - generic: "Largura: -"
+  - generic: "Profundidade: -"
+  - text: Status da peça
+  - combobox:
+    - option "Orçamento" [selected]
+    - option "Orçamento Aprovado"
+    - option "Medição"
+    - option "Projeto"
+    - option "Projeto Aprovado"
+    - option "Corte"
+    - option "Acabamento"
+    - option "Montagem"
+    - option "Produção Finalizada"
+    - option "Conferência Final"
+    - option "Entrega"
+    - option "Finalizado"
+  - text: Material da peça
+  - textbox "Pesquisar material para esta peça..."
+  - button:
+  - generic: Área da peça
+  - button "Pelas medidas"
+  - button "Informar m²"
+  - generic: Área informada manualmente
+  - text: Área final da peça (m²)
+  - textbox "0,000": 5,460
+  - generic: O m² informado passa a ser a área oficial desta peça no orçamento.
+  - text: Maior lado da peça (cm)
+  - textbox "0,0"
+  - generic: Usado para cálculo da mão de obra linear.
+  - generic: Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+  - text: Área Total (m²)
+  - generic: "Total:"
+  - generic: 5,460
+  - generic: "Peça:"
+  - generic: 5,460
+  - generic: "m² insuficiente: precisa 5,5 m² e há 0,0 m²"
+  - generic: Não há lote suficiente para esta peça.
+  - heading "Preço da peça" [level=3]
+  - paragraph: Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+  - button "Automático"
+  - button "Manual"
+  - generic: Valor em uso
+  - generic: R$ 120,00
+  - text: Valor manual da peça
+  - textbox "Valor manual da peça" [disabled]:
+    - /placeholder: 0,00
+  - generic: Ative o modo manual para digitar um valor personalizado para esta peça.
+  - generic: "Pia Esculpida:"
+  - button "Sim"
+  - button "Não"
+  - generic: "Rebaixo área molhada:"
+  - button "Sim"
+  - button "Não"
+  - heading "Recortes da peça" [level=3]
+  - paragraph: Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+  - combobox:
+    - option "+ Adicionar recorte" [selected]
+    - option "Cuba sobreposta"
+    - option "Furo torneira"
+    - option "Lixeira"
+    - option "Torre tomada"
+    - option "Rebaixo americano"
+    - option "Rebaixo italiano"
+  - generic: Cooktop
+  - generic: 1 un. · R$ 60,00 por unidade
+  - button "-"
+  - generic: "1"
+  - button "+"
+  - generic: R$ 60,00
+  - button "Remover Cooktop":
+  - generic: Cuba embutida
+  - generic: 1 un. · R$ 60,00 por unidade
+  - button "-"
+  - generic: "1"
+  - button "+"
+  - generic: R$ 60,00
+  - button "Remover Cuba embutida":
+  - generic: Subtotal de recortes da peça
+  - strong: R$ 120,00
+  - heading "Acabamentos / Complementos" [level=3]
+  - button "+ Frontão"
+  - button "+ Saia"
+  - button "+ Virada"
+  - button "+ Pé de bancada"
+  - button "+ Guarnição"
+  - generic: "4"
+  - textbox: LAVANDERIA
+  - button "Peça"
+  - button "Escada"
+  - generic: Orçamento
+  - button "Remover peça":
+  - button "Desenhar Peça":
+    - generic: Desenhar Peça
+  - generic: Medidas do desenho
+  - generic: "Largura: -"
+  - generic: "Profundidade: -"
+  - text: Status da peça
+  - combobox:
+    - option "Orçamento" [selected]
+    - option "Orçamento Aprovado"
+    - option "Medição"
+    - option "Projeto"
+    - option "Projeto Aprovado"
+    - option "Corte"
+    - option "Acabamento"
+    - option "Montagem"
+    - option "Produção Finalizada"
+    - option "Conferência Final"
+    - option "Entrega"
+    - option "Finalizado"
+  - text: Material da peça
+  - textbox "Pesquisar material para esta peça..."
+  - button:
+  - generic: Área da peça
+  - button "Pelas medidas"
+  - button "Informar m²"
+  - generic: Área informada manualmente
+  - text: Área final da peça (m²)
+  - textbox "0,000": 0,840
+  - generic: O m² informado passa a ser a área oficial desta peça no orçamento.
+  - text: Maior lado da peça (cm)
+  - textbox "0,0"
+  - generic: Usado para cálculo da mão de obra linear.
+  - generic: Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+  - text: Área Total (m²)
+  - generic: "Total:"
+  - generic: 0,840
+  - generic: "Peça:"
+  - generic: 0,840
+  - generic: "m² insuficiente: precisa 0,8 m² e há 0,0 m²"
+  - generic: Não há lote suficiente para esta peça.
+  - heading "Preço da peça" [level=3]
+  - paragraph: Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+  - button "Automático"
+  - button "Manual"
+  - generic: Valor em uso
+  - generic: R$ 90,00
+  - text: Valor manual da peça
+  - textbox "Valor manual da peça" [disabled]:
+    - /placeholder: 0,00
+  - generic: Ative o modo manual para digitar um valor personalizado para esta peça.
+  - generic: "Pia Esculpida:"
+  - button "Sim"
+  - button "Não"
+  - generic: "Rebaixo área molhada:"
+  - button "Sim"
+  - button "Não"
+  - heading "Recortes da peça" [level=3]
+  - paragraph: Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+  - combobox:
+    - option "+ Adicionar recorte" [selected]
+    - option "Cooktop"
+    - option "Cuba sobreposta"
+    - option "Lixeira"
+    - option "Torre tomada"
+    - option "Rebaixo americano"
+    - option "Rebaixo italiano"
+  - generic: Cuba embutida
+  - generic: 1 un. · R$ 60,00 por unidade
+  - button "-"
+  - generic: "1"
+  - button "+"
+  - generic: R$ 60,00
+  - button "Remover Cuba embutida":
+  - generic: Furo torneira
+  - generic: 1 un. · R$ 30,00 por unidade
+  - button "-"
+  - generic: "1"
+  - button "+"
+  - generic: R$ 30,00
+  - button "Remover Furo torneira":
+  - generic: Subtotal de recortes da peça
+  - strong: R$ 90,00
+  - heading "Acabamentos / Complementos" [level=3]
+  - button "+ Frontão"
+  - button "+ Saia"
+  - button "+ Virada"
+  - button "+ Pé de bancada"
+  - button "+ Guarnição"
+  - generic: "5"
+  - textbox: BANHEIRO ARTHUR
+  - button "Peça"
+  - button "Escada"
+  - generic: Orçamento
+  - button "Remover peça":
+  - button "Desenhar Peça":
+    - generic: Desenhar Peça
+  - generic: Medidas do desenho
+  - generic: "Largura: -"
+  - generic: "Profundidade: -"
+  - text: Status da peça
+  - combobox:
+    - option "Orçamento" [selected]
+    - option "Orçamento Aprovado"
+    - option "Medição"
+    - option "Projeto"
+    - option "Projeto Aprovado"
+    - option "Corte"
+    - option "Acabamento"
+    - option "Montagem"
+    - option "Produção Finalizada"
+    - option "Conferência Final"
+    - option "Entrega"
+    - option "Finalizado"
+  - text: Material da peça
+  - textbox "Pesquisar material para esta peça..."
+  - button:
+  - generic: Área da peça
+  - button "Pelas medidas"
+  - button "Informar m²"
+  - generic: Área informada manualmente
+  - text: Área final da peça (m²)
+  - textbox "0,000": 0,760
+  - generic: O m² informado passa a ser a área oficial desta peça no orçamento.
+  - text: Maior lado da peça (cm)
+  - textbox "0,0"
+  - generic: Usado para cálculo da mão de obra linear.
+  - generic: Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+  - text: Área Total (m²)
+  - generic: "Total:"
+  - generic: 0,760
+  - generic: "Peça:"
+  - generic: 0,760
+  - generic: "m² insuficiente: precisa 0,8 m² e há 0,0 m²"
+  - generic: Não há lote suficiente para esta peça.
+  - heading "Preço da peça" [level=3]
+  - paragraph: Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+  - button "Automático"
+  - button "Manual"
+  - generic: Valor em uso
+  - generic: R$ 90,00
+  - text: Valor manual da peça
+  - textbox "Valor manual da peça" [disabled]:
+    - /placeholder: 0,00
+  - generic: Ative o modo manual para digitar um valor personalizado para esta peça.
+  - generic: "Pia Esculpida:"
+  - button "Sim"
+  - button "Não"
+  - generic: "Rebaixo área molhada:"
+  - button "Sim"
+  - button "Não"
+  - heading "Recortes da peça" [level=3]
+  - paragraph: Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+  - combobox:
+    - option "+ Adicionar recorte" [selected]
+    - option "Cooktop"
+    - option "Cuba sobreposta"
+    - option "Lixeira"
+    - option "Torre tomada"
+    - option "Rebaixo americano"
+    - option "Rebaixo italiano"
+  - generic: Cuba embutida
+  - generic: 1 un. · R$ 60,00 por unidade
+  - button "-"
+  - generic: "1"
+  - button "+"
+  - generic: R$ 60,00
+  - button "Remover Cuba embutida":
+  - generic: Furo torneira
+  - generic: 1 un. · R$ 30,00 por unidade
+  - button "-"
+  - generic: "1"
+  - button "+"
+  - generic: R$ 30,00
+  - button "Remover Furo torneira":
+  - generic: Subtotal de recortes da peça
+  - strong: R$ 90,00
+  - heading "Acabamentos / Complementos" [level=3]
+  - button "+ Frontão"
+  - button "+ Saia"
+  - button "+ Virada"
+  - button "+ Pé de bancada"
+  - button "+ Guarnição"
+  - generic: "6"
+  - textbox: BANHO CASAL
+  - button "Peça"
+  - button "Escada"
+  - generic: Orçamento
+  - button "Remover peça":
+  - button "Desenhar Peça":
+    - generic: Desenhar Peça
+  - generic: Medidas do desenho
+  - generic: "Largura: -"
+  - generic: "Profundidade: -"
+  - text: Status da peça
+  - combobox:
+    - option "Orçamento" [selected]
+    - option "Orçamento Aprovado"
+    - option "Medição"
+    - option "Projeto"
+    - option "Projeto Aprovado"
+    - option "Corte"
+    - option "Acabamento"
+    - option "Montagem"
+    - option "Produção Finalizada"
+    - option "Conferência Final"
+    - option "Entrega"
+    - option "Finalizado"
+  - text: Material da peça
+  - textbox "Pesquisar material para esta peça..."
+  - button:
+  - generic: Área da peça
+  - button "Pelas medidas"
+  - button "Informar m²"
+  - generic: Área informada manualmente
+  - text: Área final da peça (m²)
+  - textbox "0,000": 1,260
+  - generic: O m² informado passa a ser a área oficial desta peça no orçamento.
+  - text: Maior lado da peça (cm)
+  - textbox "0,0"
+  - generic: Usado para cálculo da mão de obra linear.
+  - generic: Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+  - text: Área Total (m²)
+  - generic: "Total:"
+  - generic: 1,260
+  - generic: "Peça:"
+  - generic: 1,260
+  - generic: "m² insuficiente: precisa 1,3 m² e há 0,0 m²"
+  - generic: Não há lote suficiente para esta peça.
+  - heading "Preço da peça" [level=3]
+  - paragraph: Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+  - button "Automático"
+  - button "Manual"
+  - generic: Valor em uso
+  - generic: R$ 120,00
+  - text: Valor manual da peça
+  - textbox "Valor manual da peça" [disabled]:
+    - /placeholder: 0,00
+  - generic: Ative o modo manual para digitar um valor personalizado para esta peça.
+  - generic: "Pia Esculpida:"
+  - button "Sim"
+  - button "Não"
+  - generic: "Rebaixo área molhada:"
+  - button "Sim"
+  - button "Não"
+  - heading "Recortes da peça" [level=3]
+  - paragraph: Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+  - combobox:
+    - option "+ Adicionar recorte" [selected]
+    - option "Cooktop"
+    - option "Cuba embutida"
+    - option "Cuba sobreposta"
+    - option "Lixeira"
+    - option "Torre tomada"
+    - option "Rebaixo americano"
+    - option "Rebaixo italiano"
+  - generic: Furo torneira
+  - generic: 4 un. · R$ 30,00 por unidade
+  - button "-"
+  - generic: "4"
+  - button "+"
+  - generic: R$ 120,00
+  - button "Remover Furo torneira":
+  - generic: Subtotal de recortes da peça
+  - strong: R$ 120,00
+  - heading "Acabamentos / Complementos" [level=3]
+  - button "+ Frontão"
+  - button "+ Saia"
+  - button "+ Virada"
+  - button "+ Pé de bancada"
+  - button "+ Guarnição"
+  - generic: "7"
+  - textbox: NICHO
+  - button "Peça"
+  - button "Escada"
+  - generic: Orçamento
+  - button "Remover peça":
+  - button "Desenhar Peça":
+    - generic: Desenhar Peça
+  - generic: Medidas do desenho
+  - generic: "Largura: -"
+  - generic: "Profundidade: -"
+  - text: Status da peça
+  - combobox:
+    - option "Orçamento" [selected]
+    - option "Orçamento Aprovado"
+    - option "Medição"
+    - option "Projeto"
+    - option "Projeto Aprovado"
+    - option "Corte"
+    - option "Acabamento"
+    - option "Montagem"
+    - option "Produção Finalizada"
+    - option "Conferência Final"
+    - option "Entrega"
+    - option "Finalizado"
+  - text: Material da peça
+  - textbox "Pesquisar material para esta peça..."
+  - button:
+  - generic: Área da peça
+  - button "Pelas medidas"
+  - button "Informar m²"
+  - generic: Área informada manualmente
+  - text: Área final da peça (m²)
+  - textbox "0,000": 1,280
+  - generic: O m² informado passa a ser a área oficial desta peça no orçamento.
+  - text: Maior lado da peça (cm)
+  - textbox "0,0"
+  - generic: Usado para cálculo da mão de obra linear.
+  - generic: Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+  - text: Área Total (m²)
+  - generic: "Total:"
+  - generic: 1,280
+  - generic: "Peça:"
+  - generic: 1,280
+  - generic: "m² insuficiente: precisa 1,3 m² e há 0,0 m²"
+  - generic: Não há lote suficiente para esta peça.
+  - heading "Preço da peça" [level=3]
+  - paragraph: Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+  - button "Automático"
+  - button "Manual"
+  - generic: Valor em uso
+  - generic: R$ 0,00
+  - text: Valor manual da peça
+  - textbox "Valor manual da peça" [disabled]:
+    - /placeholder: 0,00
+  - generic: Ative o modo manual para digitar um valor personalizado para esta peça.
+  - generic: "Pia Esculpida:"
+  - button "Sim"
+  - button "Não"
+  - generic: "Rebaixo área molhada:"
+  - button "Sim"
+  - button "Não"
+  - heading "Recortes da peça" [level=3]
+  - paragraph: Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+  - combobox:
+    - option "+ Adicionar recorte" [selected]
+    - option "Cooktop"
+    - option "Cuba embutida"
+    - option "Cuba sobreposta"
+    - option "Furo torneira"
+    - option "Lixeira"
+    - option "Torre tomada"
+    - option "Rebaixo americano"
+    - option "Rebaixo italiano"
+  - generic: Nenhum recorte adicionado nesta peça.
+  - heading "Acabamentos / Complementos" [level=3]
+  - button "+ Frontão"
+  - button "+ Saia"
+  - button "+ Virada"
+  - button "+ Pé de bancada"
+  - button "+ Guarnição"
+  - generic: "8"
+  - textbox: BANHEIRA
+  - button "Peça"
+  - button "Escada"
+  - generic: Orçamento
+  - button "Remover peça":
+  - button "Desenhar Peça":
+    - generic: Desenhar Peça
+  - generic: Medidas do desenho
+  - generic: "Largura: -"
+  - generic: "Profundidade: -"
+  - text: Status da peça
+  - combobox:
+    - option "Orçamento" [selected]
+    - option "Orçamento Aprovado"
+    - option "Medição"
+    - option "Projeto"
+    - option "Projeto Aprovado"
+    - option "Corte"
+    - option "Acabamento"
+    - option "Montagem"
+    - option "Produção Finalizada"
+    - option "Conferência Final"
+    - option "Entrega"
+    - option "Finalizado"
+  - text: Material da peça
+  - textbox "Pesquisar material para esta peça..."
+  - button:
+  - generic: Área da peça
+  - button "Pelas medidas"
+  - button "Informar m²"
+  - generic: Área informada manualmente
+  - text: Área final da peça (m²)
+  - textbox "0,000": 1,950
+  - generic: O m² informado passa a ser a área oficial desta peça no orçamento.
+  - text: Maior lado da peça (cm)
+  - textbox "0,0"
+  - generic: Usado para cálculo da mão de obra linear.
+  - generic: Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+  - text: Área Total (m²)
+  - generic: "Total:"
+  - generic: 1,950
+  - generic: "Peça:"
+  - generic: 1,950
+  - generic: "m² insuficiente: precisa 2,0 m² e há 0,0 m²"
+  - generic: Não há lote suficiente para esta peça.
+  - heading "Preço da peça" [level=3]
+  - paragraph: Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+  - button "Automático"
+  - button "Manual"
+  - generic: Valor em uso
+  - generic: R$ 90,00
+  - text: Valor manual da peça
+  - textbox "Valor manual da peça" [disabled]:
+    - /placeholder: 0,00
+  - generic: Ative o modo manual para digitar um valor personalizado para esta peça.
+  - generic: "Pia Esculpida:"
+  - button "Sim"
+  - button "Não"
+  - generic: "Rebaixo área molhada:"
+  - button "Sim"
+  - button "Não"
+  - heading "Recortes da peça" [level=3]
+  - paragraph: Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+  - combobox:
+    - option "+ Adicionar recorte" [selected]
+    - option "Cooktop"
+    - option "Cuba sobreposta"
+    - option "Lixeira"
+    - option "Torre tomada"
+    - option "Rebaixo americano"
+    - option "Rebaixo italiano"
+  - generic: Cuba embutida
+  - generic: 1 un. · R$ 60,00 por unidade
+  - button "-"
+  - generic: "1"
+  - button "+"
+  - generic: R$ 60,00
+  - button "Remover Cuba embutida":
+  - generic: Furo torneira
+  - generic: 1 un. · R$ 30,00 por unidade
+  - button "-"
+  - generic: "1"
+  - button "+"
+  - generic: R$ 30,00
+  - button "Remover Furo torneira":
+  - generic: Subtotal de recortes da peça
+  - strong: R$ 90,00
+  - heading "Acabamentos / Complementos" [level=3]
+  - button "+ Frontão"
+  - button "+ Saia"
+  - button "+ Virada"
+  - button "+ Pé de bancada"
+  - button "+ Guarnição"
+  - generic: "9"
+  - textbox: BANHO STELLA
+  - button "Peça"
+  - button "Escada"
+  - generic: Orçamento
+  - button "Remover peça":
+  - button "Desenhar Peça":
+    - generic: Desenhar Peça
+  - generic: Medidas do desenho
+  - generic: "Largura: -"
+  - generic: "Profundidade: -"
+  - text: Status da peça
+  - combobox:
+    - option "Orçamento" [selected]
+    - option "Orçamento Aprovado"
+    - option "Medição"
+    - option "Projeto"
+    - option "Projeto Aprovado"
+    - option "Corte"
+    - option "Acabamento"
+    - option "Montagem"
+    - option "Produção Finalizada"
+    - option "Conferência Final"
+    - option "Entrega"
+    - option "Finalizado"
+  - text: Material da peça
+  - textbox "Pesquisar material para esta peça..."
+  - button:
+  - generic: Área da peça
+  - button "Pelas medidas"
+  - button "Informar m²"
+  - generic: Área informada manualmente
+  - text: Área final da peça (m²)
+  - textbox "0,000": 0,850
+  - generic: O m² informado passa a ser a área oficial desta peça no orçamento.
+  - text: Maior lado da peça (cm)
+  - textbox "0,0"
+  - generic: Usado para cálculo da mão de obra linear.
+  - generic: Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+  - text: Área Total (m²)
+  - generic: "Total:"
+  - generic: 0,850
+  - generic: "Peça:"
+  - generic: 0,850
+  - generic: "m² insuficiente: precisa 0,9 m² e há 0,0 m²"
+  - generic: Não há lote suficiente para esta peça.
+  - heading "Preço da peça" [level=3]
+  - paragraph: Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+  - button "Automático"
+  - button "Manual"
+  - generic: Valor em uso
+  - generic: R$ 0,00
+  - text: Valor manual da peça
+  - textbox "Valor manual da peça" [disabled]:
+    - /placeholder: 0,00
+  - generic: Ative o modo manual para digitar um valor personalizado para esta peça.
+  - generic: "Pia Esculpida:"
+  - button "Sim"
+  - button "Não"
+  - generic: "Rebaixo área molhada:"
+  - button "Sim"
+  - button "Não"
+  - heading "Recortes da peça" [level=3]
+  - paragraph: Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+  - combobox:
+    - option "+ Adicionar recorte" [selected]
+    - option "Cooktop"
+    - option "Cuba embutida"
+    - option "Cuba sobreposta"
+    - option "Furo torneira"
+    - option "Lixeira"
+    - option "Torre tomada"
+    - option "Rebaixo americano"
+    - option "Rebaixo italiano"
+  - generic: Nenhum recorte adicionado nesta peça.
+  - heading "Acabamentos / Complementos" [level=3]
+  - button "+ Frontão"
+  - button "+ Saia"
+  - button "+ Virada"
+  - button "+ Pé de bancada"
+  - button "+ Guarnição"
+  - heading "Resumo de recortes do orçamento" [level=2]
+  - paragraph: Os recortes são cadastrados dentro de cada peça. Aqui fica apenas a consolidação do orçamento.
+  - generic: Cooktop
+  - generic: 1 un. · R$ 60,00 por unidade
+  - generic: R$ 60,00
+  - generic: 1 no orçamento
+  - generic: Cuba embutida
+  - generic: 4 un. · R$ 60,00 por unidade
+  - generic: R$ 240,00
+  - generic: 4 no orçamento
+  - generic: Furo torneira
+  - generic: 8 un. · R$ 30,00 por unidade
+  - generic: R$ 240,00
+  - generic: 8 no orçamento
+  - heading "Observações Comerciais" [level=2]
+  - textbox "Informações sobre entrega, instalação, etc..."

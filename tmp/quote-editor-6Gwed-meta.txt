@@ -1,0 +1,4 @@
+{
+  "title": "D'Coratto Sob Medida",
+  "url": "http://127.0.0.1:3000/quotes/edit/6GwedfBlscnCYnWWjO5z"
+}

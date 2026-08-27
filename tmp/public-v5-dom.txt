@@ -1,0 +1,285 @@
+- banner:
+  - generic: D'Coratto Sob Medida
+  - generic: DC-WWJO5Z-V5
+  - link "Materiais":
+    - /url: "#material"
+  - link "Projeto":
+    - /url: "#projeto"
+  - link "Investimento":
+    - /url: "#investimento"
+  - link "Responder":
+    - /url: "#aceite"
+  - link "Aceitar":
+    - /url: "#aceite"
+    - text: Aceitar
+- main:
+  - generic: D'Coratto
+  - heading "AMANDA E ALEX" [level=1]
+  - paragraph: Proposta desenvolvida especialmente para o seu projeto.
+  - generic: DC-WWJO5Z-V5 · V5
+  - generic: 13 de agosto de 2026
+  - generic: Válida até 28 de agosto de 2026
+  - link "Ver investimento":
+    - /url: "#investimento"
+    - text: Ver investimento
+  - button "Simule as formas de pagamento"
+  - generic: Proposta comercial
+  - generic: Código
+  - generic: DC-WWJO5Z-V5
+  - generic: Versão
+  - generic: V5
+  - generic: Ambiente
+  - generic: Projeto sob medida para o seu ambiente
+  - generic: Local
+  - generic: Praia Grande · Canto forte
+  - generic: Peças
+  - generic: "9"
+  - generic: Materiais
+  - generic: "4"
+  - generic: Próximos passos
+  - generic: Revise os materiais selecionados, confira as peças do projeto e explore as condições no simulador antes do aceite.
+  - generic: Materiais selecionados
+  - heading "Superfícies reais desta versão do projeto." [level=2]
+  - img "Dekton Bergen"
+  - generic: Material
+  - generic: Dekton Bergen
+  - generic: Mármore
+  - generic: Premium
+  - generic: Chapa
+  - generic: 2cm
+  - img "Dekton Entzo"
+  - generic: Material
+  - generic: Dekton Entzo
+  - generic: Mármore
+  - generic: Premium
+  - generic: Chapa
+  - generic: 2cm
+  - img "Quartzo branco"
+  - generic: Material
+  - generic: Quartzo branco
+  - generic: Quartzo
+  - generic: Premium
+  - generic: Chapa
+  - generic: 2cm
+  - generic: Polido
+  - img "Taj Mahal"
+  - generic: Material
+  - generic: Taj Mahal
+  - generic: Lâmina Ultracompacta
+  - generic: Premium
+  - generic: Lamina
+  - generic: 12mm
+  - generic: Acetinado
+  - generic: Visão geral do projeto
+  - heading "Ambiente, metragem e composição apresentados com clareza." [level=2]
+  - generic: Ambiente
+  - generic: Projeto sob medida para o seu ambiente
+  - generic: Área do projeto
+  - generic: 23,8 m²
+  - generic: Local
+  - generic: Praia Grande · Canto forte
+  - generic: Peças do projeto
+  - heading "Cada peça desta versão aparece com seu material e valor oficial." [level=2]
+  - generic: Peça
+  - generic: LAVABO
+  - generic: Material
+  - generic: Dekton Entzo
+  - generic: Área
+  - generic: 1,2 m²
+  - generic: Valor
+  - generic: R$ 3.633,60
+  - generic: 1 recorte(s)
+  - generic: Peça
+  - generic: ÁREA GOURMET
+  - generic: Material
+  - generic: Dekton Bergen
+  - generic: Área
+  - generic: 10,3 m²
+  - generic: Valor
+  - generic: R$ 31.600,80
+  - generic: Peça
+  - generic: BANCADA COZINHA
+  - generic: Material
+  - generic: Taj Mahal
+  - generic: Área
+  - generic: 5,5 m²
+  - generic: Valor
+  - generic: R$ 16.936,80
+  - generic: 2 recorte(s)
+  - generic: Peça
+  - generic: LAVANDERIA
+  - generic: Material
+  - generic: Taj Mahal
+  - generic: Área
+  - generic: 0,8 m²
+  - generic: Valor
+  - generic: R$ 2.677,20
+  - generic: 2 recorte(s)
+  - generic: Peça
+  - generic: BANHEIRO ARTHUR
+  - generic: Material
+  - generic: Quartzo branco
+  - generic: Área
+  - generic: 0,8 m²
+  - generic: Valor
+  - generic: R$ 1.344,00
+  - generic: 2 recorte(s)
+  - generic: Peça
+  - generic: BANHO CASAL
+  - generic: Material
+  - generic: Taj Mahal
+  - generic: Área
+  - generic: 1,3 m²
+  - generic: Valor
+  - generic: R$ 4.000,80
+  - generic: 4 recorte(s)
+  - generic: Peça
+  - generic: NICHO
+  - generic: Material
+  - generic: Taj Mahal
+  - generic: Área
+  - generic: 1,3 m²
+  - generic: Valor
+  - generic: R$ 3.942,40
+  - generic: Peça
+  - generic: BANHEIRA
+  - generic: Material
+  - generic: Taj Mahal
+  - generic: Área
+  - generic: 2,0 m²
+  - generic: Valor
+  - generic: R$ 6.096,00
+  - generic: 2 recorte(s)
+  - generic: Peça
+  - generic: BANHO STELLA
+  - generic: Material
+  - generic: Quartzo branco
+  - generic: Área
+  - generic: 0,9 m²
+  - generic: Valor
+  - generic: R$ 1.402,50
+  - generic: Investimento
+  - generic: R$ 82.021,04
+  - paragraph: Este é o valor oficial desta proposta, fiel ao orçamento salvo e à versão pública compartilhada.
+  - generic: Composição comercial
+  - generic: Subtotal das peças
+  - generic: R$ 71.634,10
+  - generic: Ajustes globais
+  - generic: R$ 10.386,94
+  - generic: Total final
+  - generic: R$ 82.021,04
+  - generic: Condição oficial de pagamento
+  - generic: Condição atual
+  - generic: A combinar
+  - generic: Planejamento
+  - generic: Prazo estimado de 15 dias.
+  - generic: Entrega contemplada nesta proposta.
+  - generic: Instalação contemplada nesta proposta.
+  - generic: Simule as formas de pagamento
+  - heading "Veja como esta proposta se comporta em outras condições." [level=2]
+  - paragraph: A simulação reutiliza a mesma lógica financeira oficial do orçamento e não altera esta proposta.
+  - generic: Simulação
+  - generic: Abra o simulador para comparar Pix, parcelamentos e demais condições disponíveis nesta versão.
+  - button "Simule as formas de pagamento":
+    - text: Simule as formas de pagamento
+  - generic: Informações importantes
+  - heading "Condições e observações desta versão." [level=2]
+  - generic: Proposta válida até 28 de agosto de 2026.
+  - generic: Orçamento sujeito a confirmação de medidas no local.
+  - generic: Pronto para iniciar seu projeto?
+  - heading "Aceite esta proposta quando estiver pronto." [level=2]
+  - generic: Ao confirmar, esta versão pública preserva exatamente as condições comerciais exibidas aqui.
+  - generic: Valor oficial
+  - generic: R$ 82.021,04
+  - generic: Validade
+  - generic: 28/08/2026
+  - generic: Aceite digital
+  - generic: Confirme seu nome para registrar o aceite desta versão.
+  - button "Aceitar proposta":
+    - text: Aceitar proposta
+- contentinfo:
+  - generic: D'Coratto Sob Medida
+  - generic: Soluções em Rochas e Superfícies Sob Medida
+  - generic: "Responsável pela proposta: Brian Takiya"
+  - text: (11) 96264-3566
+  - generic: "W.B DE JESUS PLANEJADO E DECORACAO CNPJ: 32.445.695/0001-01 Estrada da Pedreira , 544 Parquelândia-Mogi das Cruzes-SP"
+  - text: Válida até 28/08/2026
+- complementary:
+  - generic: Simule seu pagamento
+  - generic: Valor da proposta
+  - generic: R$ 82.021,04
+  - button:
+  - generic: Entrada
+  - textbox:
+    - /placeholder: R$ 0,00
+    - text: R$ 0,00
+  - generic: Saldo após entrada
+  - generic: R$ 71.634,10
+  - generic: Formas disponíveis
+  - button: Todas
+  - button: À vista
+  - button: Débito
+  - button: Crédito
+  - button:
+    - generic: À vista / Pix
+    - generic: R$ 82.021,04
+    - generic: "Total: R$ 82.021,04"
+  - button:
+    - generic: Débito
+    - generic: R$ 82.021,04
+    - generic: "Total: R$ 82.021,04"
+  - button:
+    - generic: Crédito 1x
+    - generic: R$ 84.071,57
+    - generic: "Total: R$ 84.071,57"
+  - button:
+    - generic: Crédito 2x
+    - generic: 2x de R$ 42.548,41
+    - generic: "Total: R$ 85.096,83"
+  - button:
+    - generic: Crédito 3x
+    - generic: 3x de R$ 28.707,36
+    - generic: "Total: R$ 86.122,09"
+  - button:
+    - generic: Crédito 4x
+    - generic: 4x de R$ 21.797,09
+    - generic: "Total: R$ 87.188,37"
+  - button:
+    - generic: Crédito 5x
+    - generic: 5x de R$ 17.650,93
+    - generic: "Total: R$ 88.254,64"
+  - button:
+    - generic: Crédito 6x
+    - generic: 6x de R$ 14.886,82
+    - generic: "Total: R$ 89.320,91"
+  - button:
+    - generic: Crédito 7x
+    - generic: 7x de R$ 12.912,46
+    - generic: "Total: R$ 90.387,19"
+  - button:
+    - generic: Crédito 8x
+    - generic: 8x de R$ 11.431,68
+    - generic: "Total: R$ 91.453,46"
+  - button:
+    - generic: Crédito 9x
+    - generic: 9x de R$ 10.289,08
+    - generic: "Total: R$ 92.601,75"
+  - button:
+    - generic: Crédito 10x
+    - generic: 10x de R$ 9.366,80
+    - generic: "Total: R$ 93.668,03"
+  - button:
+    - generic: Crédito 11x
+    - generic: 11x de R$ 8.619,67
+    - generic: "Total: R$ 94.816,32"
+  - button:
+    - generic: Crédito 12x
+    - generic: 12x de R$ 7.997,05
+    - generic: "Total: R$ 95.964,62"
+  - generic: Resumo da simulação
+  - generic: Entrada R$ 0,00
+  - generic: À vista / Pix
+  - generic: Total
+  - generic: R$ 82.021,04
+  - generic: "Saldo financiado: R$ 71.634,10"
+  - generic: Simulação não altera o valor oficial da proposta.

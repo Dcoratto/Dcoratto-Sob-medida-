@@ -1,0 +1,197 @@
+- complementary:
+  - generic "D'Coratto Sob Medida":
+    - img "D'Coratto Sob Medida"
+  - navigation:
+    - link "Dashboard":
+      - /url: /
+      - generic: Dashboard
+    - link "Orçamentos":
+      - /url: /quotes
+      - generic: Orçamentos
+    - link "Projetos":
+      - /url: /projects
+      - generic: Projetos
+    - link "Instalacao":
+      - /url: /installation
+      - generic: Instalacao
+    - link "Clientes":
+      - /url: /clients
+      - generic: Clientes
+    - link "Gestao de Crise":
+      - /url: /crisis
+      - generic: Gestao de Crise
+    - link "Calendário":
+      - /url: /calendar
+      - generic: Calendário
+    - link "Histórico":
+      - /url: /history
+      - generic: Histórico
+    - link "Relatórios":
+      - /url: /reports
+      - generic: Relatórios
+    - link "Materiais":
+      - /url: /materials
+      - generic: Materiais
+    - link "Estoque":
+      - /url: /inventory
+      - generic: Estoque
+    - link "Almoxarifado":
+      - /url: /warehouse
+      - generic: Almoxarifado
+    - link "Admin":
+      - /url: /admin
+      - generic: Admin
+  - link "B Brian Takiya Administrativo":
+    - /url: /profile
+    - generic: B
+    - paragraph: Brian Takiya
+    - paragraph: Administrativo
+  - button "Sair":
+    - text: Sair
+- main:
+  - textbox "Busca global por cliente, orçamento, lote, pedra ou fornecedor..."
+  - generic: Ctrl K
+  - heading "Painel de Controle" [level=1]
+  - paragraph: Veja um resumo das atividades da D'Coratto.
+  - textbox "Busca rápida por cliente, orçamento, lote, pedra ou fornecedor..."
+  - button "Orçamentos 15":
+    - generic: Orçamentos
+    - generic: "15"
+  - button "Projetos 43":
+    - generic: Projetos
+    - generic: "43"
+  - button "Clientes 44":
+    - generic: Clientes
+    - generic: "44"
+  - button "Materiais 33":
+    - generic: Materiais
+    - generic: "33"
+  - button "Itens em Estoque 13":
+    - generic: Itens em Estoque
+    - generic: "13"
+  - heading "Alertas de prazo" [level=3]
+  - paragraph: Clientes com prazo vencendo ou vencido.
+  - button "Nenhum prazo crítico no momento."
+  - heading "Contagem regressiva" [level=3]
+  - paragraph: Próximas medições e entregas do calendário.
+  - button "Nenhuma medição ou entrega futura cadastrada."
+  - heading "Quadro de avisos da equipe" [level=2]:
+    - text: Quadro de avisos da equipe
+  - paragraph: Anotações compartilhadas ou direcionadas para usuários no dashboard.
+  - combobox:
+    - option "Aviso para toda a equipe" [selected]
+    - option "Brian Kenji"
+    - option "Brian Takiya"
+    - option "Brian Takiya"
+    - option "brian_takiya77"
+    - option "Bruno Makoto Hirakawa"
+    - option "DANILO SILVA"
+    - option "Fabio Duarte"
+    - option "fabioduarte232"
+    - option "Isabella Vituriano da Silva"
+    - option "Johnny ferraz de lima"
+    - option "Karina Santos"
+    - option "Vinicius Souza"
+  - textbox "Escreva um aviso para a equipe..."
+  - generic: 0/280
+  - button "Publicar aviso" [disabled]:
+    - text: Publicar aviso
+  - generic: Nenhum aviso publicado ainda.
+  - heading "Controle de clientes" [level=2]
+  - paragraph: Resumo interno de qualidade, produção e entrega.
+  - button "Abrir clientes"
+  - button "Orçamento 18":
+    - generic: Orçamento
+    - generic: "18"
+  - button "Orçamento Aprovado 2":
+    - generic: Orçamento Aprovado
+    - generic: "2"
+  - button "Produção 3":
+    - generic: Produção
+    - generic: "3"
+  - button "Conferência/Entrega 2":
+    - generic: Conferência/Entrega
+    - generic: "2"
+  - button "Finalizado 16":
+    - generic: Finalizado
+    - generic: "16"
+  - heading "Orçamentos Recentes" [level=2]
+  - button "Abrir orçamentos":
+  - table:
+    - rowgroup:
+      - row "Cliente / Projeto Status Valor":
+        - columnheader "Cliente / Projeto"
+        - columnheader "Status"
+        - columnheader "Valor"
+    - rowgroup:
+      - row "AMANDA E ALEX Orçamento R$ 82.021,04":
+        - cell "AMANDA E ALEX":
+          - generic: AMANDA E ALEX
+        - cell "Orçamento":
+          - generic: Orçamento
+        - cell "R$ 82.021,04"
+      - row "ANDRESSA E ALEXANDRE COZINHA Orçamento R$ 13.093,19":
+        - cell "ANDRESSA E ALEXANDRE COZINHA":
+          - generic: ANDRESSA E ALEXANDRE
+          - generic: COZINHA
+        - cell "Orçamento":
+          - generic: Orçamento
+        - cell "R$ 13.093,19"
+      - row "CAMILA SBI LAVABO Orçamento Aprovado R$ 7.091,00":
+        - cell "CAMILA SBI LAVABO":
+          - generic: CAMILA SBI
+          - generic: LAVABO
+        - cell "Orçamento Aprovado":
+          - generic: Orçamento Aprovado
+        - cell "R$ 7.091,00"
+      - row "GABRIEL UVA Orçamento Aprovado R$ 3.362,59":
+        - cell "GABRIEL UVA":
+          - generic: GABRIEL UVA
+        - cell "Orçamento Aprovado":
+          - generic: Orçamento Aprovado
+        - cell "R$ 3.362,59"
+      - row "DIEGO ARUA INDICAÇÃO Orçamento R$ 52.651,65":
+        - cell "DIEGO ARUA INDICAÇÃO":
+          - generic: DIEGO ARUA INDICAÇÃO
+        - cell "Orçamento":
+          - generic: Orçamento
+        - cell "R$ 52.651,65"
+  - 'button "Compra pendente para orçamento aprovado 6 material(is) com falta de área: 55.820,6 m²"':
+    - heading "Compra pendente para orçamento aprovado" [level=3]
+    - paragraph: "6 material(is) com falta de área: 55.820,6 m²"
+  - button "Em Aberto Você possui 13 orçamentos aguardando aprovado.":
+    - heading "Em Aberto" [level=3]
+    - paragraph: Você possui 13 orçamentos aguardando aprovado.
+  - generic: Resumo de Vendas
+  - generic: R$ 912.215,92
+  - generic: Total em orçamentos fechados
+  - button "Ver Relatório Detalhado"
+  - heading "Alertas operacionais" [level=2]
+  - paragraph: Pontos que precisam de atenção para manter comercial, estoque e produção integrados.
+  - button "Ver relatórios"
+  - button "Prioridade alta Pedras sem preço final de venda 8 pedra(s) do estoque ainda não têm preço final configurado em Materiais.":
+    - generic: Prioridade alta
+    - generic: Pedras sem preço final de venda
+    - generic: 8 pedra(s) do estoque ainda não têm preço final configurado em Materiais.
+  - button "Atenção Chapas sem localização no pátio 13 chapa(s) estão sem cavalete definido.":
+    - generic: Atenção
+    - generic: Chapas sem localização no pátio
+    - generic: 13 chapa(s) estão sem cavalete definido.
+  - button "Informativo Reservas de estoque em andamento 22 reserva(s) seguem vinculadas a orçamentos em andamento.":
+    - generic: Informativo
+    - generic: Reservas de estoque em andamento
+    - generic: 22 reserva(s) seguem vinculadas a orçamentos em andamento.
+  - heading "Ações rápidas" [level=2]
+  - paragraph: Atalhos para as tarefas mais frequentes da operação.
+  - button "Novo cliente Abrir cadastro manual":
+    - generic: Novo cliente
+    - generic: Abrir cadastro manual
+  - button "Novo orçamento Criar orçamento agora":
+    - generic: Novo orçamento
+    - generic: Criar orçamento agora
+  - button "Entrada no estoque Lançar chapa recebida":
+    - generic: Entrada no estoque
+    - generic: Lançar chapa recebida
+  - button "Pátio de chapas Localizar e mover material":
+    - generic: Pátio de chapas
+    - generic: Localizar e mover material

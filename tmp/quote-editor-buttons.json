@@ -1,0 +1,1127 @@
+[
+  {
+    "text": "",
+    "aria": "Abrir menu",
+    "disabled": false
+  },
+  {
+    "text": "Sair",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Salvar Orçamento",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Proposta Digital\nV6 · VISUALIZADO\nVISUALIZADO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Visualizar",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Copiar link",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "WhatsApp",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Nova versão",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Revogar link",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Histórico de versões",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Cliente\n\nSelecione o cliente para este orçamento.",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Materiais\n\nResumo dos materiais selecionados nas peças do orçamento.",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Precificação\n\nCustos, regras automáticas e margens do orçamento.",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Alternar perda de material",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Alternar recortes",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Alternar pia esculpida",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Alternar mão de obra",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Alternar entrega",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Alternar complexidade",
+    "disabled": false
+  },
+  {
+    "text": "Normal\n0%",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Baixa\n+1%",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Media\n+5%",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Alta\n+10%",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Forma de Pagamento\n\nCondição comercial, parcelas, entrada e observações financeiras.",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Valor total",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Entrada + restante",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Valor total",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Entrada + restante",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Adicionar Peça",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "Adicionar Escada",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "ESCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover peça",
+    "disabled": false
+  },
+  {
+    "text": "DESENHAR PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PELAS MEDIDAS",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "INFORMAR M²",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "AUTOMÁTICO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "MANUAL",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "-",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover Furo torneira",
+    "disabled": false
+  },
+  {
+    "text": "+ FRONTÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ SAIA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ VIRADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ PÉ DE BANCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ GUARNIÇÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "ESCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover peça",
+    "disabled": false
+  },
+  {
+    "text": "DESENHAR PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PELAS MEDIDAS",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "INFORMAR M²",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "AUTOMÁTICO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "MANUAL",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ FRONTÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ SAIA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ VIRADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ PÉ DE BANCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ GUARNIÇÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "ESCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover peça",
+    "disabled": false
+  },
+  {
+    "text": "DESENHAR PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PELAS MEDIDAS",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "INFORMAR M²",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "AUTOMÁTICO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "MANUAL",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "-",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover Cooktop",
+    "disabled": false
+  },
+  {
+    "text": "-",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover Cuba embutida",
+    "disabled": false
+  },
+  {
+    "text": "+ FRONTÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ SAIA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ VIRADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ PÉ DE BANCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ GUARNIÇÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "ESCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover peça",
+    "disabled": false
+  },
+  {
+    "text": "DESENHAR PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PELAS MEDIDAS",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "INFORMAR M²",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "AUTOMÁTICO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "MANUAL",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "-",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover Cuba embutida",
+    "disabled": false
+  },
+  {
+    "text": "-",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover Furo torneira",
+    "disabled": false
+  },
+  {
+    "text": "+ FRONTÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ SAIA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ VIRADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ PÉ DE BANCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ GUARNIÇÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "ESCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover peça",
+    "disabled": false
+  },
+  {
+    "text": "DESENHAR PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PELAS MEDIDAS",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "INFORMAR M²",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "AUTOMÁTICO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "MANUAL",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "-",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover Cuba embutida",
+    "disabled": false
+  },
+  {
+    "text": "-",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover Furo torneira",
+    "disabled": false
+  },
+  {
+    "text": "+ FRONTÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ SAIA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ VIRADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ PÉ DE BANCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ GUARNIÇÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "ESCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover peça",
+    "disabled": false
+  },
+  {
+    "text": "DESENHAR PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PELAS MEDIDAS",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "INFORMAR M²",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "AUTOMÁTICO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "MANUAL",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "-",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover Furo torneira",
+    "disabled": false
+  },
+  {
+    "text": "+ FRONTÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ SAIA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ VIRADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ PÉ DE BANCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ GUARNIÇÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "ESCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover peça",
+    "disabled": false
+  },
+  {
+    "text": "DESENHAR PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PELAS MEDIDAS",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "INFORMAR M²",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "AUTOMÁTICO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "MANUAL",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ FRONTÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ SAIA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ VIRADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ PÉ DE BANCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ GUARNIÇÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "ESCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover peça",
+    "disabled": false
+  },
+  {
+    "text": "DESENHAR PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PELAS MEDIDAS",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "INFORMAR M²",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "AUTOMÁTICO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "MANUAL",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "-",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover Cuba embutida",
+    "disabled": false
+  },
+  {
+    "text": "-",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover Furo torneira",
+    "disabled": false
+  },
+  {
+    "text": "+ FRONTÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ SAIA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ VIRADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ PÉ DE BANCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ GUARNIÇÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "ESCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "Remover peça",
+    "disabled": false
+  },
+  {
+    "text": "DESENHAR PEÇA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "PELAS MEDIDAS",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "INFORMAR M²",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "AUTOMÁTICO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "MANUAL",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "SIM",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "NÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ FRONTÃO",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ SAIA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ VIRADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ PÉ DE BANCADA",
+    "aria": "",
+    "disabled": false
+  },
+  {
+    "text": "+ GUARNIÇÃO",
+    "aria": "",
+    "disabled": false
+  }
+]

@@ -1,0 +1,96 @@
+{
+  "title": "D'Coratto Sob Medida",
+  "url": "http://localhost:3000/quotes/edit/6GwedfBlscnCYnWWjO5z",
+  "totals": [
+    "R$ 82.021,04",
+    "R$ 64.631,00",
+    "R$ 6.463,10",
+    "R$ 540,00",
+    "R$ 0,00",
+    "R$ 0,00",
+    "R$ 71.634,10",
+    "R$ 0,00",
+    "R$ 0,00",
+    "R$ 0,00",
+    "R$ 1.432,68",
+    "R$ 0,00",
+    "R$ 8.954,26",
+    "R$ 82.021,04",
+    "R$ 64.631,00",
+    "R$ 6.463,10",
+    "R$ 540,00",
+    "R$ 0,00",
+    "R$ 0,00",
+    "R$ 0,00",
+    "R$ 0,00",
+    "R$ 82.021,04",
+    "R$ 3.633,60",
+    "R$ 30,00",
+    "R$ 30,00",
+    "R$ 30,00",
+    "R$ 31.600,80",
+    "R$ 16.936,80",
+    "R$ 60,00",
+    "R$ 60,00",
+    "R$ 60,00",
+    "R$ 60,00",
+    "R$ 120,00",
+    "R$ 2.677,20",
+    "R$ 60,00",
+    "R$ 60,00",
+    "R$ 30,00",
+    "R$ 30,00",
+    "R$ 90,00",
+    "R$ 1.344,00",
+    "R$ 60,00",
+    "R$ 60,00",
+    "R$ 30,00",
+    "R$ 30,00",
+    "R$ 90,00",
+    "R$ 4.000,80",
+    "R$ 30,00",
+    "R$ 120,00",
+    "R$ 120,00",
+    "R$ 3.942,40",
+    "R$ 6.096,00",
+    "R$ 60,00",
+    "R$ 60,00",
+    "R$ 30,00",
+    "R$ 30,00",
+    "R$ 90,00",
+    "R$ 1.402,50",
+    "R$ 60,00",
+    "R$ 60,00",
+    "R$ 60,00",
+    "R$ 240,00",
+    "R$ 30,00",
+    "R$ 240,00"
+  ],
+  "consoleLogs": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    }
+  ],
+  "failedRequests": []
+}

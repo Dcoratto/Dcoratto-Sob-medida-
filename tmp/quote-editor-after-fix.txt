@@ -1,0 +1,949 @@
+Dashboard
+Orçamentos
+Projetos
+Instalacao
+Clientes
+Gestao de Crise
+Calendário
+Histórico
+Relatórios
+Materiais
+Estoque
+Almoxarifado
+Admin
+B
+
+Brian Takiya
+
+Administrativo
+
+Sair
+CTRL K
+Editar Orçamento
+
+Configure as peças, materiais e condições.
+
+Salvar Orçamento
+Salvo automaticamente as 15:31
+RESUMO FINANCEIRO
+R$ 82.021,04
+Valor final do orçamento
+Área final total
+23,8 m²
+Pedra base
+R$ 64.631,00
+Perda material
+R$ 6.463,10
+Recortes
+R$ 540,00
+Pia esculpida
+R$ 0,00
+Mão de obra
+R$ 0,00
+Subtotal produção
+R$ 71.634,10
+Entrega
+R$ 0,00
+Complexidade (0%)
+R$ 0,00
+Ajuste pagamento (0%)
+R$ 0,00
+Comissão (2%)
+R$ 1.432,68
+Descontos (0%)
+-R$ 0,00
+Acréscimos (12.5%)
+R$ 8.954,26
+Total final
+R$ 82.021,04
+Proposta Digital
+V6 · VISUALIZADO
+VISUALIZADO
+VERSÃO ATUAL
+V6 · DC-WWJO5Z-V6
+STATUS
+VISUALIZADO
+GERADA EM
+13/08/2026
+VALIDADE
+28/08/2026
+VISUALIZADA
+13/08/2026
+Visualizar
+Copiar link
+WhatsApp
+Nova versão
+Revogar link
+Histórico de versões
+V6
+VISUALIZADO
+13/08/2026 · validade 28/08/2026
+V5
+VISUALIZADO
+13/08/2026 · validade 28/08/2026
+V4
+VISUALIZADO
+12/08/2026 · validade 27/08/2026
+V3
+VISUALIZADO
+12/08/2026 · validade 27/08/2026
+V2
+VISUALIZADO
+12/08/2026 · validade 27/08/2026
+V1
+REVOGADO
+12/08/2026 · validade 27/08/2026
+Cliente
+
+Selecione o cliente para este orçamento.
+
+NOME
+CIDADE
+Praia Grande
+BAIRRO
+Canto forte
+AMBIENTE
+RESPONSÁVEL
+PRAZO (DIAS)
+VALIDADE (DIAS)
+DATA DA MEDIÇÃO
+DATA DA ENTREGA
+OBSERVAÇÕES
+Materiais
+
+Resumo dos materiais selecionados nas peças do orçamento.
+
+Dekton Entzo
+Premium | Chapa | 2cm
+Aplicado em: LAVABO
+Dekton Bergen
+Premium | Chapa | 2cm
+Aplicado em: ÁREA GOURMET
+Taj Mahal
+Premium | Lamina | 6mm | Polido
+Aplicado em: BANCADA COZINHA
+Taj Mahal
+Premium | Lamina | 12mm | Acetinado
+Aplicado em: LAVANDERIA, BANHO CASAL, NICHO, BANHEIRA
+Quartzo branco
+Premium | Chapa | 2cm | Polido
+Aplicado em: BANHEIRO ARTHUR, BANHO STELLA
+Precificação
+
+Custos, regras automáticas e margens do orçamento.
+
+Componentes do orçamento
+Material
+Sempre ativo
+R$ 64.631,00
+Perda de material
+10% · Ativo
+R$ 6.463,10
+Recortes
+Ativo
+R$ 540,00
+Pia esculpida
+Ativo
+R$ 0,00
+Mão de obra
+Linear
+R$ 0,00
+Entrega
+Padrão
+R$ 0,00
+Complexidade
+Normal · 0%
+R$ 0,00
+Normal
+0%
+Baixa
++1%
+Media
++5%
+Alta
++10%
+Ajuste de materiais neste orçamento
+Dekton Entzo
+Premium | Chapa | 2cm
+VÁLIDO
+Dekton Bergen
+Premium | Chapa | 2cm
+VÁLIDO
+Taj Mahal
+Premium | Lamina | 6mm | Polido
+VÁLIDO
+Taj Mahal
+Premium | Lamina | 12mm | Acetinado
+VÁLIDO
+Quartzo branco
+Premium | Chapa | 2cm | Polido
+VÁLIDO
+COMISSÃO (%)
+DESCONTOS (%)
+ACRÉSCIMOS (%)
+Forma de Pagamento
+
+Condição comercial, parcelas, entrada e observações financeiras.
+
+Valor total
+Entrada + restante
+Selecionar forma de pagamento
+À vista (Dinheiro/Pix) (0%)
+Cartão de Débito (0%)
+CRÉDITO 1X (+2.5%)
+CRÉDITO 2X (+3.75%)
+CRÉDITO 3X (+5%)
+CRÉDITO 4X (+6.3%)
+CRÉDITO 5X (+7.6%)
+CRÉDITO 6X (+8.9%)
+CRÉDITO 7X (+10.2%)
+CRÉDITO 8X (+11.5%)
+CRÉDITO 9X (+12.9%)
+CRÉDITO 10X (+14.2%)
+CRÉDITO 11X (+15.6%)
+CRÉDITO 12X (+17%)
+PARCELAS
+VALOR DE CADA PARCELA
+R$ 82.021,04
+Peças do Orçamento
+Adicionar Peça
+Adicionar Escada
+1
+PEÇA
+ESCADA
+ORÇAMENTO
+DESENHAR PEÇA
+MEDIDAS DO DESENHO
+Largura: -
+Profundidade: -
+STATUS DA PEÇA
+Orçamento
+Orçamento Aprovado
+Medição
+Projeto
+Projeto Aprovado
+Corte
+Acabamento
+Montagem
+Produção Finalizada
+Conferência Final
+Entrega
+Finalizado
+MATERIAL DA PEÇA
+ÁREA DA PEÇA
+PELAS MEDIDAS
+INFORMAR M²
+Área informada manualmente
+ÁREA FINAL DA PEÇA (M²)
+O m² informado passa a ser a área oficial desta peça no orçamento.
+MAIOR LADO DA PEÇA (CM)
+Usado para cálculo da mão de obra linear.
+Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+ÁREA TOTAL (M²)
+TOTAL:
+1,170
+Peça:
+1,170
+M² SUFICIENTE: 9,0 M² DISPONÍVEL
+MESMO LOTE: CABE NA CHAPA SEM LOTE (9,0 M²)
+PREÇO DA PEÇA
+
+Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+
+AUTOMÁTICO
+MANUAL
+VALOR EM USO
+R$ 3.633,60
+VALOR MANUAL DA PEÇA
+Ative o modo manual para digitar um valor personalizado para esta peça.
+Pia Esculpida:
+SIM
+NÃO
+Rebaixo área molhada:
+SIM
+NÃO
+RECORTES DA PEÇA
+
+Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+
++ Adicionar recorte
+Cooktop
+Cuba embutida
+Cuba sobreposta
+Lixeira
+Torre tomada
+Rebaixo americano
+Rebaixo italiano
+Furo torneira
+1 un. · R$ 30,00 por unidade
+-
+1
++
+R$ 30,00
+Subtotal de recortes da peça
+R$ 30,00
+ACABAMENTOS / COMPLEMENTOS
++ FRONTÃO
++ SAIA
++ VIRADA
++ PÉ DE BANCADA
++ GUARNIÇÃO
+2
+PEÇA
+ESCADA
+ORÇAMENTO
+DESENHAR PEÇA
+MEDIDAS DO DESENHO
+Largura: -
+Profundidade: -
+STATUS DA PEÇA
+Orçamento
+Orçamento Aprovado
+Medição
+Projeto
+Projeto Aprovado
+Corte
+Acabamento
+Montagem
+Produção Finalizada
+Conferência Final
+Entrega
+Finalizado
+MATERIAL DA PEÇA
+ÁREA DA PEÇA
+PELAS MEDIDAS
+INFORMAR M²
+Área informada manualmente
+ÁREA FINAL DA PEÇA (M²)
+O m² informado passa a ser a área oficial desta peça no orçamento.
+MAIOR LADO DA PEÇA (CM)
+Usado para cálculo da mão de obra linear.
+Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+ÁREA TOTAL (M²)
+TOTAL:
+10,260
+Peça:
+10,260
+M² INSUFICIENTE: PRECISA 10,3 M² E HÁ 9,0 M²
+NÃO HÁ LOTE SUFICIENTE PARA ESTA PEÇA.
+PREÇO DA PEÇA
+
+Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+
+AUTOMÁTICO
+MANUAL
+VALOR EM USO
+R$ 31.600,80
+VALOR MANUAL DA PEÇA
+Ative o modo manual para digitar um valor personalizado para esta peça.
+Pia Esculpida:
+SIM
+NÃO
+Rebaixo área molhada:
+SIM
+NÃO
+RECORTES DA PEÇA
+
+Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+
++ Adicionar recorte
+Cooktop
+Cuba embutida
+Cuba sobreposta
+Furo torneira
+Lixeira
+Torre tomada
+Rebaixo americano
+Rebaixo italiano
+Nenhum recorte adicionado nesta peça.
+ACABAMENTOS / COMPLEMENTOS
++ FRONTÃO
++ SAIA
++ VIRADA
++ PÉ DE BANCADA
++ GUARNIÇÃO
+3
+PEÇA
+ESCADA
+ORÇAMENTO
+DESENHAR PEÇA
+MEDIDAS DO DESENHO
+Largura: -
+Profundidade: -
+STATUS DA PEÇA
+Orçamento
+Orçamento Aprovado
+Medição
+Projeto
+Projeto Aprovado
+Corte
+Acabamento
+Montagem
+Produção Finalizada
+Conferência Final
+Entrega
+Finalizado
+MATERIAL DA PEÇA
+ÁREA DA PEÇA
+PELAS MEDIDAS
+INFORMAR M²
+Área informada manualmente
+ÁREA FINAL DA PEÇA (M²)
+O m² informado passa a ser a área oficial desta peça no orçamento.
+MAIOR LADO DA PEÇA (CM)
+Usado para cálculo da mão de obra linear.
+Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+ÁREA TOTAL (M²)
+TOTAL:
+5,460
+Peça:
+5,460
+M² INSUFICIENTE: PRECISA 5,5 M² E HÁ 0,0 M²
+NÃO HÁ LOTE SUFICIENTE PARA ESTA PEÇA.
+PREÇO DA PEÇA
+
+Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+
+AUTOMÁTICO
+MANUAL
+VALOR EM USO
+R$ 16.936,80
+VALOR MANUAL DA PEÇA
+Ative o modo manual para digitar um valor personalizado para esta peça.
+Pia Esculpida:
+SIM
+NÃO
+Rebaixo área molhada:
+SIM
+NÃO
+RECORTES DA PEÇA
+
+Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+
++ Adicionar recorte
+Cuba sobreposta
+Furo torneira
+Lixeira
+Torre tomada
+Rebaixo americano
+Rebaixo italiano
+Cooktop
+1 un. · R$ 60,00 por unidade
+-
+1
++
+R$ 60,00
+Cuba embutida
+1 un. · R$ 60,00 por unidade
+-
+1
++
+R$ 60,00
+Subtotal de recortes da peça
+R$ 120,00
+ACABAMENTOS / COMPLEMENTOS
++ FRONTÃO
++ SAIA
++ VIRADA
++ PÉ DE BANCADA
++ GUARNIÇÃO
+4
+PEÇA
+ESCADA
+ORÇAMENTO
+DESENHAR PEÇA
+MEDIDAS DO DESENHO
+Largura: -
+Profundidade: -
+STATUS DA PEÇA
+Orçamento
+Orçamento Aprovado
+Medição
+Projeto
+Projeto Aprovado
+Corte
+Acabamento
+Montagem
+Produção Finalizada
+Conferência Final
+Entrega
+Finalizado
+MATERIAL DA PEÇA
+ÁREA DA PEÇA
+PELAS MEDIDAS
+INFORMAR M²
+Área informada manualmente
+ÁREA FINAL DA PEÇA (M²)
+O m² informado passa a ser a área oficial desta peça no orçamento.
+MAIOR LADO DA PEÇA (CM)
+Usado para cálculo da mão de obra linear.
+Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+ÁREA TOTAL (M²)
+TOTAL:
+0,840
+Peça:
+0,840
+M² SUFICIENTE: 5.408,0 M² DISPONÍVEL
+MESMO LOTE: CABE NA CHAPA SEM LOTE (5.408,0 M²)
+PREÇO DA PEÇA
+
+Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+
+AUTOMÁTICO
+MANUAL
+VALOR EM USO
+R$ 2.677,20
+VALOR MANUAL DA PEÇA
+Ative o modo manual para digitar um valor personalizado para esta peça.
+Pia Esculpida:
+SIM
+NÃO
+Rebaixo área molhada:
+SIM
+NÃO
+RECORTES DA PEÇA
+
+Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+
++ Adicionar recorte
+Cooktop
+Cuba sobreposta
+Lixeira
+Torre tomada
+Rebaixo americano
+Rebaixo italiano
+Cuba embutida
+1 un. · R$ 60,00 por unidade
+-
+1
++
+R$ 60,00
+Furo torneira
+1 un. · R$ 30,00 por unidade
+-
+1
++
+R$ 30,00
+Subtotal de recortes da peça
+R$ 90,00
+ACABAMENTOS / COMPLEMENTOS
++ FRONTÃO
++ SAIA
++ VIRADA
++ PÉ DE BANCADA
++ GUARNIÇÃO
+5
+PEÇA
+ESCADA
+ORÇAMENTO
+DESENHAR PEÇA
+MEDIDAS DO DESENHO
+Largura: -
+Profundidade: -
+STATUS DA PEÇA
+Orçamento
+Orçamento Aprovado
+Medição
+Projeto
+Projeto Aprovado
+Corte
+Acabamento
+Montagem
+Produção Finalizada
+Conferência Final
+Entrega
+Finalizado
+MATERIAL DA PEÇA
+ÁREA DA PEÇA
+PELAS MEDIDAS
+INFORMAR M²
+Área informada manualmente
+ÁREA FINAL DA PEÇA (M²)
+O m² informado passa a ser a área oficial desta peça no orçamento.
+MAIOR LADO DA PEÇA (CM)
+Usado para cálculo da mão de obra linear.
+Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+ÁREA TOTAL (M²)
+TOTAL:
+0,760
+Peça:
+0,760
+M² INSUFICIENTE: PRECISA 0,8 M² E HÁ 0,0 M²
+NÃO HÁ LOTE SUFICIENTE PARA ESTA PEÇA.
+PREÇO DA PEÇA
+
+Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+
+AUTOMÁTICO
+MANUAL
+VALOR EM USO
+R$ 1.344,00
+VALOR MANUAL DA PEÇA
+Ative o modo manual para digitar um valor personalizado para esta peça.
+Pia Esculpida:
+SIM
+NÃO
+Rebaixo área molhada:
+SIM
+NÃO
+RECORTES DA PEÇA
+
+Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+
++ Adicionar recorte
+Cooktop
+Cuba sobreposta
+Lixeira
+Torre tomada
+Rebaixo americano
+Rebaixo italiano
+Cuba embutida
+1 un. · R$ 60,00 por unidade
+-
+1
++
+R$ 60,00
+Furo torneira
+1 un. · R$ 30,00 por unidade
+-
+1
++
+R$ 30,00
+Subtotal de recortes da peça
+R$ 90,00
+ACABAMENTOS / COMPLEMENTOS
++ FRONTÃO
++ SAIA
++ VIRADA
++ PÉ DE BANCADA
++ GUARNIÇÃO
+6
+PEÇA
+ESCADA
+ORÇAMENTO
+DESENHAR PEÇA
+MEDIDAS DO DESENHO
+Largura: -
+Profundidade: -
+STATUS DA PEÇA
+Orçamento
+Orçamento Aprovado
+Medição
+Projeto
+Projeto Aprovado
+Corte
+Acabamento
+Montagem
+Produção Finalizada
+Conferência Final
+Entrega
+Finalizado
+MATERIAL DA PEÇA
+ÁREA DA PEÇA
+PELAS MEDIDAS
+INFORMAR M²
+Área informada manualmente
+ÁREA FINAL DA PEÇA (M²)
+O m² informado passa a ser a área oficial desta peça no orçamento.
+MAIOR LADO DA PEÇA (CM)
+Usado para cálculo da mão de obra linear.
+Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+ÁREA TOTAL (M²)
+TOTAL:
+1,260
+Peça:
+1,260
+M² SUFICIENTE: 5.408,0 M² DISPONÍVEL
+MESMO LOTE: CABE NA CHAPA SEM LOTE (5.408,0 M²)
+PREÇO DA PEÇA
+
+Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+
+AUTOMÁTICO
+MANUAL
+VALOR EM USO
+R$ 4.000,80
+VALOR MANUAL DA PEÇA
+Ative o modo manual para digitar um valor personalizado para esta peça.
+Pia Esculpida:
+SIM
+NÃO
+Rebaixo área molhada:
+SIM
+NÃO
+RECORTES DA PEÇA
+
+Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+
++ Adicionar recorte
+Cooktop
+Cuba embutida
+Cuba sobreposta
+Lixeira
+Torre tomada
+Rebaixo americano
+Rebaixo italiano
+Furo torneira
+4 un. · R$ 30,00 por unidade
+-
+4
++
+R$ 120,00
+Subtotal de recortes da peça
+R$ 120,00
+ACABAMENTOS / COMPLEMENTOS
++ FRONTÃO
++ SAIA
++ VIRADA
++ PÉ DE BANCADA
++ GUARNIÇÃO
+7
+PEÇA
+ESCADA
+ORÇAMENTO
+DESENHAR PEÇA
+MEDIDAS DO DESENHO
+Largura: -
+Profundidade: -
+STATUS DA PEÇA
+Orçamento
+Orçamento Aprovado
+Medição
+Projeto
+Projeto Aprovado
+Corte
+Acabamento
+Montagem
+Produção Finalizada
+Conferência Final
+Entrega
+Finalizado
+MATERIAL DA PEÇA
+ÁREA DA PEÇA
+PELAS MEDIDAS
+INFORMAR M²
+Área informada manualmente
+ÁREA FINAL DA PEÇA (M²)
+O m² informado passa a ser a área oficial desta peça no orçamento.
+MAIOR LADO DA PEÇA (CM)
+Usado para cálculo da mão de obra linear.
+Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+ÁREA TOTAL (M²)
+TOTAL:
+1,280
+Peça:
+1,280
+M² SUFICIENTE: 5.408,0 M² DISPONÍVEL
+MESMO LOTE: CABE NA CHAPA SEM LOTE (5.408,0 M²)
+PREÇO DA PEÇA
+
+Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+
+AUTOMÁTICO
+MANUAL
+VALOR EM USO
+R$ 3.942,40
+VALOR MANUAL DA PEÇA
+Ative o modo manual para digitar um valor personalizado para esta peça.
+Pia Esculpida:
+SIM
+NÃO
+Rebaixo área molhada:
+SIM
+NÃO
+RECORTES DA PEÇA
+
+Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+
++ Adicionar recorte
+Cooktop
+Cuba embutida
+Cuba sobreposta
+Furo torneira
+Lixeira
+Torre tomada
+Rebaixo americano
+Rebaixo italiano
+Nenhum recorte adicionado nesta peça.
+ACABAMENTOS / COMPLEMENTOS
++ FRONTÃO
++ SAIA
++ VIRADA
++ PÉ DE BANCADA
++ GUARNIÇÃO
+8
+PEÇA
+ESCADA
+ORÇAMENTO
+DESENHAR PEÇA
+MEDIDAS DO DESENHO
+Largura: -
+Profundidade: -
+STATUS DA PEÇA
+Orçamento
+Orçamento Aprovado
+Medição
+Projeto
+Projeto Aprovado
+Corte
+Acabamento
+Montagem
+Produção Finalizada
+Conferência Final
+Entrega
+Finalizado
+MATERIAL DA PEÇA
+ÁREA DA PEÇA
+PELAS MEDIDAS
+INFORMAR M²
+Área informada manualmente
+ÁREA FINAL DA PEÇA (M²)
+O m² informado passa a ser a área oficial desta peça no orçamento.
+MAIOR LADO DA PEÇA (CM)
+Usado para cálculo da mão de obra linear.
+Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+ÁREA TOTAL (M²)
+TOTAL:
+1,950
+Peça:
+1,950
+M² SUFICIENTE: 5.408,0 M² DISPONÍVEL
+MESMO LOTE: CABE NA CHAPA SEM LOTE (5.408,0 M²)
+PREÇO DA PEÇA
+
+Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+
+AUTOMÁTICO
+MANUAL
+VALOR EM USO
+R$ 6.096,00
+VALOR MANUAL DA PEÇA
+Ative o modo manual para digitar um valor personalizado para esta peça.
+Pia Esculpida:
+SIM
+NÃO
+Rebaixo área molhada:
+SIM
+NÃO
+RECORTES DA PEÇA
+
+Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+
++ Adicionar recorte
+Cooktop
+Cuba sobreposta
+Lixeira
+Torre tomada
+Rebaixo americano
+Rebaixo italiano
+Cuba embutida
+1 un. · R$ 60,00 por unidade
+-
+1
++
+R$ 60,00
+Furo torneira
+1 un. · R$ 30,00 por unidade
+-
+1
++
+R$ 30,00
+Subtotal de recortes da peça
+R$ 90,00
+ACABAMENTOS / COMPLEMENTOS
++ FRONTÃO
++ SAIA
++ VIRADA
++ PÉ DE BANCADA
++ GUARNIÇÃO
+9
+PEÇA
+ESCADA
+ORÇAMENTO
+DESENHAR PEÇA
+MEDIDAS DO DESENHO
+Largura: -
+Profundidade: -
+STATUS DA PEÇA
+Orçamento
+Orçamento Aprovado
+Medição
+Projeto
+Projeto Aprovado
+Corte
+Acabamento
+Montagem
+Produção Finalizada
+Conferência Final
+Entrega
+Finalizado
+MATERIAL DA PEÇA
+ÁREA DA PEÇA
+PELAS MEDIDAS
+INFORMAR M²
+Área informada manualmente
+ÁREA FINAL DA PEÇA (M²)
+O m² informado passa a ser a área oficial desta peça no orçamento.
+MAIOR LADO DA PEÇA (CM)
+Usado para cálculo da mão de obra linear.
+Se não houver desenho ou medidas suficientes, informe aqui o maior lado real da peça.
+ÁREA TOTAL (M²)
+TOTAL:
+0,850
+Peça:
+0,850
+M² INSUFICIENTE: PRECISA 0,9 M² E HÁ 0,0 M²
+NÃO HÁ LOTE SUFICIENTE PARA ESTA PEÇA.
+PREÇO DA PEÇA
+
+Você pode manter o cálculo automático ou informar um valor manual só para esta peça.
+
+AUTOMÁTICO
+MANUAL
+VALOR EM USO
+R$ 1.402,50
+VALOR MANUAL DA PEÇA
+Ative o modo manual para digitar um valor personalizado para esta peça.
+Pia Esculpida:
+SIM
+NÃO
+Rebaixo área molhada:
+SIM
+NÃO
+RECORTES DA PEÇA
+
+Defina os serviços de recorte específicos desta peça usando os valores oficiais do sistema.
+
++ Adicionar recorte
+Cooktop
+Cuba embutida
+Cuba sobreposta
+Furo torneira
+Lixeira
+Torre tomada
+Rebaixo americano
+Rebaixo italiano
+Nenhum recorte adicionado nesta peça.
+ACABAMENTOS / COMPLEMENTOS
++ FRONTÃO
++ SAIA
++ VIRADA
++ PÉ DE BANCADA
++ GUARNIÇÃO
+Resumo de recortes do orçamento
+
+Os recortes são cadastrados dentro de cada peça. Aqui fica apenas a consolidação do orçamento.
+
+Cooktop
+1 un. · R$ 60,00 por unidade
+R$ 60,00
+1 no orçamento
+Cuba embutida
+4 un. · R$ 60,00 por unidade
+R$ 240,00
+4 no orçamento
+Furo torneira
+8 un. · R$ 30,00 por unidade
+R$ 240,00
+8 no orçamento
+Observações Comerciais

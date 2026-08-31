@@ -10,6 +10,7 @@ export const loadInstallationPage = () => import('../pages/InstallationPage');
 export const loadInventoryPage = () => import('../pages/InventoryPage');
 export const loadWarehousePage = () => import('../pages/WarehousePage');
 export const loadEmployeesPage = () => import('../pages/EmployeesPage');
+export const loadVehiclesPage = () => import('../pages/VehiclesPage');
 export const loadMaterialsPage = () => import('../pages/MaterialsPage');
 export const loadAdminPage = () => import('../pages/AdminPage');
 export const loadProfilePage = () => import('../pages/ProfilePage');
@@ -32,6 +33,7 @@ export const preloadRoute = (path: string) => {
   if (path.startsWith('/inventory')) return loadInventoryPage();
   if (path.startsWith('/warehouse')) return loadWarehousePage();
   if (path.startsWith('/employees')) return loadEmployeesPage();
+  if (path.startsWith('/vehicles')) return loadVehiclesPage();
   if (path.startsWith('/admin')) return loadAdminPage();
   if (path.startsWith('/profile')) return loadProfilePage();
   if (path.startsWith('/auth/confirm')) return loadAuthCallbackPage();

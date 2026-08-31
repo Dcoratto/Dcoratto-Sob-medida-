@@ -9,6 +9,7 @@ export type PermissionMap = {
   estoque: { visualizar: boolean; adicionar: boolean; editar: boolean; excluir: boolean; movimentar: boolean; };
   almoxarifado: { visualizar: boolean; editar: boolean; movimentar: boolean; comprar: boolean; };
   funcionarios: { visualizar: boolean; cadastrar: boolean; editar: boolean; jornada: boolean; apontar: boolean; };
+  veiculos: { visualizar: boolean; cadastrar: boolean; editar: boolean; usar: boolean; };
   relatorios: { visualizar: boolean; exportar: boolean; verFaturamento: boolean; verProdutividade: boolean; };
   admin: { visualizarUsuarios: boolean; alterarPermissoes: boolean; excluirUsuarios: boolean; };
   cliente: { visualizar: boolean; editarDados: boolean; alterarEtapa: boolean; anexarArquivos: boolean; avaliarFuncionarios: boolean; verValores: boolean; };
@@ -449,6 +450,8 @@ export type EmployeeStatus = 'ATIVO' | 'INATIVO' | 'FERIAS' | 'AFASTADO';
 export interface Employee {
   id: string;
   empresaId?: string;
+  accessUserId?: string;
+  authUserId?: string;
   name: string;
   role: EmployeeRole;
   displayName?: string;
@@ -594,6 +597,113 @@ export interface EmployeeOperationalOverview {
   currentSession: EmployeeActivitySession | null;
   today: EmployeeOperationalSummary;
   month: EmployeeOperationalSummary;
+}
+
+export type VehicleStatus = 'DISPONIVEL' | 'EM_USO' | 'MANUTENCAO' | 'INDISPONIVEL' | 'INATIVO';
+export type VehicleFuelLevel = 'RESERVA' | 'UM_QUARTO' | 'METADE' | 'TRES_QUARTOS' | 'CHEIO';
+export type VehicleOccurrenceSeverity = 'LEVE' | 'ATENCAO' | 'IMPEDE_USO';
+export type VehicleUsageStatus = 'ATIVA' | 'CONCLUIDA';
+export type VehicleOccurrenceStage = 'SAIDA' | 'DEVOLUCAO' | 'AVULSA';
+
+export interface Vehicle {
+  id: string;
+  empresaId?: string;
+  internalName: string;
+  brand?: string | null;
+  model?: string | null;
+  plate?: string | null;
+  year?: number | null;
+  vehicleType: string;
+  status: VehicleStatus;
+  currentOdometerKm: number;
+  notes?: string | null;
+  photoUrl?: string | null;
+  thumbnailUrl?: string | null;
+  mediumUrl?: string | null;
+  originalUrl?: string | null;
+  registrationDueDate?: string | null;
+  relevantDueDate?: string | null;
+  documentationNotes?: string | null;
+  createdByUid?: string | null;
+  createdByName?: string | null;
+  updatedByUid?: string | null;
+  updatedByName?: string | null;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+export interface VehiclePurpose {
+  id: string;
+  empresaId?: string;
+  purposeKey: string;
+  label: string;
+  requiresClientLink: boolean;
+  active: boolean;
+  sortOrder: number;
+}
+
+export interface VehicleOccurrence {
+  id: string;
+  empresaId?: string;
+  vehicleId: string;
+  usageSessionId?: string | null;
+  stage: VehicleOccurrenceStage;
+  severity: VehicleOccurrenceSeverity;
+  description: string;
+  photoUrl?: string | null;
+  thumbnailUrl?: string | null;
+  mediumUrl?: string | null;
+  originalUrl?: string | null;
+  preventsUse: boolean;
+  reportedByUid?: string | null;
+  reportedByName?: string | null;
+  createdAt?: any;
+}
+
+export interface VehicleUsageSession {
+  id: string;
+  empresaId?: string;
+  vehicleId: string;
+  employeeId: string;
+  actorUid: string;
+  actorName: string;
+  purposeKey: string;
+  purposeLabel: string;
+  clientId?: string | null;
+  quoteId?: string | null;
+  clientNameSnapshot?: string | null;
+  quoteLabelSnapshot?: string | null;
+  startNotes?: string | null;
+  endNotes?: string | null;
+  startOdometerKm: number;
+  endOdometerKm?: number | null;
+  distanceKm?: number | null;
+  startFuelLevel: VehicleFuelLevel;
+  endFuelLevel?: VehicleFuelLevel | null;
+  startChecklist: Record<string, boolean>;
+  endChecklist?: Record<string, boolean> | null;
+  status: VehicleUsageStatus;
+  startedAt: string;
+  endedAt?: string | null;
+  returnActorUid?: string | null;
+  returnActorName?: string | null;
+  finalVehicleStatus?: VehicleStatus | null;
+  startRequestKey?: string | null;
+  finishRequestKey?: string | null;
+  vehicle?: Pick<Vehicle, 'id' | 'internalName' | 'vehicleType' | 'status' | 'currentOdometerKm' | 'plate' | 'thumbnailUrl'> | null;
+  employee?: Pick<Employee, 'id' | 'name' | 'displayName' | 'role' | 'status'> | null;
+  client?: Pick<Client, 'id' | 'name' | 'city'> | null;
+  quote?: Pick<Quote, 'id' | 'environment' | 'clientName' | 'status'> | null;
+  occurrences?: VehicleOccurrence[];
+}
+
+export interface VehicleOperationalOverview {
+  vehicle: Vehicle;
+  currentSession: VehicleUsageSession | null;
+  lastSession: VehicleUsageSession | null;
+  openOccurrenceCount: number;
+  monthUsageCount: number;
+  monthDistanceKm: number;
 }
 
 export type ProductionStep = 'medicao' | 'corte' | 'acabamento' | 'instalacao' | 'entrega';

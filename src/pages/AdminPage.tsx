@@ -16,6 +16,7 @@ import {useSettings} from '../hooks/useSettings';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
+import {AdminVehiclesPanel} from '../components/admin/AdminVehiclesPanel';
 
 const employeeRoles: EmployeeRole[] = ['Vendedor', 'Medidor', 'Cortador', 'Acabador', 'Instalador', 'Entregador', 'Administrativo'];
 const slugify = (value: string) =>
@@ -1166,6 +1167,14 @@ export const AdminPage: React.FC = () => {
         icon={<Building2 className="h-5 w-5" />}
       >
         <SettingsPage module="company" embedded />
+      </AdminAccordionSection>
+
+      <AdminAccordionSection
+        title="Veículos"
+        description="Cadastro e acompanhamento operacional da frota."
+        icon={<Truck className="h-5 w-5" />}
+      >
+        <AdminVehiclesPanel />
       </AdminAccordionSection>
 
       <AdminAccordionSection

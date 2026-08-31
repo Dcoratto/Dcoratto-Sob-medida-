@@ -25,7 +25,9 @@ import {
   QuotePaymentMethodOption,
   resolveQuotePaymentSimulationBase,
 } from '../lib/quotePaymentSimulation';
-import {cn, formatArea, formatCurrency} from '../lib/utils';
+import {cn, formatCurrency} from '../lib/utils';
+
+const BUSINESS_TIME_ZONE = 'America/Sao_Paulo';
 
 const formatDateLong = (value?: string | null) => {
   if (!value) return '';
@@ -43,6 +45,44 @@ const formatDateShort = (value?: string | null) => {
   } catch {
     return '';
   }
+};
+
+const getCalendarDateInTimeZone = (value: Date | string, timeZone = BUSINESS_TIME_ZONE) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+
+  const year = Number(parts.find((part) => part.type === 'year')?.value || 0);
+  const month = Number(parts.find((part) => part.type === 'month')?.value || 0);
+  const day = Number(parts.find((part) => part.type === 'day')?.value || 0);
+
+  if (!year || !month || !day) return null;
+  return {year, month, day};
+};
+
+const isDateAfterCommercialValidity = (value?: string | null) => {
+  if (!value) return false;
+
+  const validUntilDate = getCalendarDateInTimeZone(value);
+  const currentDate = getCalendarDateInTimeZone(new Date());
+
+  if (!validUntilDate || !currentDate) return false;
+
+  if (currentDate.year !== validUntilDate.year) {
+    return currentDate.year > validUntilDate.year;
+  }
+
+  if (currentDate.month !== validUntilDate.month) {
+    return currentDate.month > validUntilDate.month;
+  }
+
+  return currentDate.day > validUntilDate.day;
 };
 
 const usePrefersReducedMotion = () => {
@@ -276,40 +316,10 @@ const normalizeLegacyPresentationText = (value?: string | null) => {
 
 const buildOfficialPaymentRows = (snapshot?: QuotePresentationSnapshot | null) => {
   if (!snapshot?.payment) return [];
-
-  const rows: Array<{label: string; value: string; auxiliary?: string}> = [];
-  const installmentCount = Number(snapshot.payment.installmentCount || 0);
-  const installmentAmount = Number(snapshot.payment.installmentAmount || 0);
-  const paymentMode = snapshot.payment.mode === 'entry' ? 'entry' : 'total';
-
-  if (paymentMode === 'entry') {
-    if (snapshot.payment.entryAmount) {
-      rows.push({
-        label: 'Entrada',
-        value: formatCurrency(snapshot.payment.entryAmount),
-      });
-    }
-
-    rows.push({
-      label: 'Saldo',
-      value: snapshot.payment.remainingPaymentMethod || 'A combinar',
-      auxiliary: installmentCount > 1 && installmentAmount > 0
-        ? `${installmentCount}x de ${formatCurrency(installmentAmount)}`
-        : undefined,
-    });
-
-    return rows;
-  }
-
-  rows.push({
+  return [{
     label: 'Condição atual',
-    value: snapshot.payment.totalPaymentMethod || snapshot.payment.method || 'A combinar',
-    auxiliary: installmentCount > 1 && installmentAmount > 0
-      ? `${installmentCount}x de ${formatCurrency(installmentAmount)}`
-      : undefined,
-  });
-
-  return rows;
+    value: 'À vista',
+  }];
 };
 
 export const QuotePresentationPage: React.FC = () => {
@@ -405,7 +415,18 @@ export const QuotePresentationPage: React.FC = () => {
   const proposalAccepted = Boolean(availablePayload?.meta.acceptedAt);
   const generatedLabel = snapshot?.generatedAt ? formatDateLong(snapshot.generatedAt) : '';
   const validUntilLabel = availablePayload?.meta.validUntil ? formatDateLong(availablePayload.meta.validUntil) : '';
-  const projectArea = normalizePresentationAreaValue(investment?.totalArea);
+  const proposalExpired = Boolean(
+    availablePayload
+    && (
+      availablePayload.status === 'EXPIRADO'
+      || isDateAfterCommercialValidity(availablePayload.meta.validUntil || snapshot?.validUntil || null)
+    ),
+  );
+  const validityBadgeLabel = validUntilLabel
+    ? proposalExpired
+      ? `Proposta expirada em ${validUntilLabel}`
+      : `Válida até ${validUntilLabel}`
+    : '';
   const materials = useMemo(() => {
     const source = Array.isArray(snapshot?.materials) && snapshot.materials.length
       ? snapshot.materials
@@ -560,12 +581,16 @@ export const QuotePresentationPage: React.FC = () => {
   const importantInfoItems = useMemo(() => {
     if (!snapshot) return [];
     return [
-      snapshot.validUntil ? `Proposta válida até ${formatDateLong(snapshot.validUntil)}.` : null,
+      snapshot.validUntil
+        ? proposalExpired
+          ? `Proposta expirada em ${formatDateLong(snapshot.validUntil)}. Entre em contato com a D'Coratto para atualizar as condicoes comerciais.`
+          : `Proposta válida até ${formatDateLong(snapshot.validUntil)}.`
+        : null,
       snapshot.notes?.commercialNotes || null,
       snapshot.notes?.defaultNotes || null,
       snapshot.payment?.notes || null,
     ].filter(Boolean) as string[];
-  }, [snapshot]);
+  }, [proposalExpired, snapshot]);
 
   const handleAccept = async () => {
     if (!acceptedName.trim()) {
@@ -674,7 +699,7 @@ export const QuotePresentationPage: React.FC = () => {
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-4">
           <div className="min-w-0">
             <div className="truncate text-[11px] uppercase tracking-[0.34em] text-[#c9a46b]">{company?.name || "D'Coratto Sob Medida"}</div>
-            <div className="mt-1 truncate text-sm text-[#dbcbb9]">{availablePayload.meta.proposalCode}</div>
+            <div className="mt-1 truncate text-sm text-[#dbcbb9]">{availablePayload.meta.versionLabel}</div>
           </div>
           <div className="hidden items-center gap-4 text-xs text-[#dbcbb9] md:flex">
             <a href="#material" className="transition hover:text-white">Materiais</a>
@@ -728,17 +753,31 @@ export const QuotePresentationPage: React.FC = () => {
 
               <RevealBlock reducedMotion={prefersReducedMotion} delayMs={700} className="mt-8">
                 <div className="flex flex-wrap gap-3 text-sm text-[#e9ddd1]">
-                  <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
-                    {availablePayload.meta.proposalCode} · {availablePayload.meta.versionLabel}
-                  </span>
+                  <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">{availablePayload.meta.versionLabel}</span>
                   {generatedLabel ? (
                     <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">{generatedLabel}</span>
                   ) : null}
-                  {validUntilLabel ? (
-                    <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">Válida até {validUntilLabel}</span>
+                  {validityBadgeLabel ? (
+                    <span className={cn(
+                      'rounded-full border px-4 py-2',
+                      proposalExpired
+                        ? 'border-amber-400/25 bg-amber-500/10 text-amber-100'
+                        : 'border-white/10 bg-white/5',
+                    )}
+                    >
+                      {validityBadgeLabel}
+                    </span>
                   ) : null}
                 </div>
               </RevealBlock>
+
+              {proposalExpired ? (
+                <RevealBlock reducedMotion={prefersReducedMotion} delayMs={760} className="mt-6">
+                  <div className="max-w-2xl rounded-[28px] border border-amber-400/20 bg-amber-500/10 px-5 py-4 text-sm leading-7 text-amber-50">
+                    Proposta expirada. Os valores desta proposta nao estao mais vigentes. Entre em contato com seu vendedor para solicitar uma atualizacao comercial.
+                  </div>
+                </RevealBlock>
+              ) : null}
 
               <RevealBlock reducedMotion={prefersReducedMotion} delayMs={820} className="mt-10">
                 <div className="flex flex-wrap gap-3">
@@ -767,10 +806,6 @@ export const QuotePresentationPage: React.FC = () => {
                 <div className="rounded-[30px] border border-white/8 bg-[#1a1714] p-6">
                   <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Proposta comercial</div>
                   <div className="mt-5 space-y-5">
-                    <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-4">
-                      <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Código</div>
-                      <div className="mt-2 text-lg text-[#f7f1ea]">{availablePayload.meta.proposalCode}</div>
-                    </div>
                     <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-4">
                       <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Versão</div>
                       <div className="mt-2 text-lg text-[#f7f1ea]">{availablePayload.meta.versionLabel}</div>
@@ -861,10 +896,10 @@ export const QuotePresentationPage: React.FC = () => {
           <div className="mx-auto max-w-6xl">
             <RevealBlock reducedMotion={prefersReducedMotion}>
               <SectionEyebrow>Visão geral do projeto</SectionEyebrow>
-              <SectionTitle>Ambiente, metragem e composição apresentados com clareza.</SectionTitle>
+              <SectionTitle>Ambiente e composição apresentados com clareza.</SectionTitle>
             </RevealBlock>
 
-            <div className="mt-10 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)_minmax(280px,0.8fr)]">
+            <div className="mt-10 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)]">
               <RevealBlock reducedMotion={prefersReducedMotion} delayMs={40}>
                 <div className="rounded-[30px] border border-white/8 bg-[#15120f] px-6 py-7">
                   <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Ambiente</div>
@@ -873,13 +908,6 @@ export const QuotePresentationPage: React.FC = () => {
               </RevealBlock>
 
               <RevealBlock reducedMotion={prefersReducedMotion} delayMs={100}>
-                <div className="rounded-[30px] border border-white/8 bg-[#15120f] px-6 py-7">
-                  <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Área do projeto</div>
-                  <div className="mt-4 font-display text-4xl text-[#f7f1ea]">{formatArea(projectArea)}</div>
-                </div>
-              </RevealBlock>
-
-              <RevealBlock reducedMotion={prefersReducedMotion} delayMs={160}>
                 <div className="rounded-[30px] border border-white/8 bg-[#15120f] px-6 py-7">
                   <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Local</div>
                   <div className="mt-4 text-lg leading-8 text-[#f7f1ea]">{projectLocation || snapshot?.client?.city || '-'}</div>
@@ -911,12 +939,6 @@ export const QuotePresentationPage: React.FC = () => {
                             <div>
                               <div className="text-[10px] uppercase tracking-[0.2em] text-[#99836c]">Material</div>
                               <div className="mt-1 text-sm text-[#f1e6dc]">{piece.materialName}</div>
-                            </div>
-                          ) : null}
-                          {piece.area != null && piece.area > 0 ? (
-                            <div>
-                              <div className="text-[10px] uppercase tracking-[0.2em] text-[#99836c]">Área</div>
-                              <div className="mt-1 text-sm text-[#f1e6dc]">{formatArea(piece.area)}</div>
                             </div>
                           ) : null}
                           {piece.value != null && piece.value > 0 ? (
@@ -955,7 +977,7 @@ export const QuotePresentationPage: React.FC = () => {
                 <SectionEyebrow>Investimento</SectionEyebrow>
                 <div className="mt-6 font-display text-5xl text-[#f7f1ea] sm:text-6xl">{formatCurrency(investment?.totalPrice || 0)}</div>
                 <p className="mt-5 max-w-2xl text-base leading-8 text-[#d4c4b2]">
-                  Este é o valor oficial desta proposta, fiel ao orçamento salvo e à versão pública compartilhada.
+                  Este é o valor oficial à vista desta proposta, fiel ao orçamento salvo e à versão pública compartilhada.
                 </p>
               </div>
             </RevealBlock>
@@ -1071,16 +1093,22 @@ export const QuotePresentationPage: React.FC = () => {
               <div className="mt-6 max-w-2xl text-base leading-8 text-[#d4c4b2]">
                 {proposalAccepted
                   ? `Aceite registrado${acceptedDisplayName ? ` por ${acceptedDisplayName}` : ''} em ${formatDateLong(availablePayload.meta.acceptedAt)}.`
-                  : 'Ao confirmar, esta versão pública preserva exatamente as condições comerciais exibidas aqui.'}
+                  : proposalExpired
+                    ? 'Esta versao permanece consultavel, mas a condicao comercial expirou. Fale com a D\'Coratto para receber uma atualizacao.'
+                    : 'Ao confirmar, esta versão pública preserva exatamente as condições comerciais exibidas aqui.'}
               </div>
               <div className="mt-8 grid gap-4 sm:grid-cols-2">
                 <div className="rounded-[28px] border border-white/8 bg-[#15120f] px-5 py-5">
-                  <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Valor oficial</div>
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Valor à vista</div>
                   <div className="mt-3 font-display text-4xl text-[#f7f1ea]">{formatCurrency(investment?.totalPrice || 0)}</div>
                 </div>
                 <div className="rounded-[28px] border border-white/8 bg-[#15120f] px-5 py-5">
                   <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Validade</div>
-                  <div className="mt-3 text-2xl text-[#f7f1ea]">{formatDateShort(availablePayload.meta.validUntil) || '-'}</div>
+                  <div className={cn('mt-3 text-2xl', proposalExpired ? 'text-amber-200' : 'text-[#f7f1ea]')}>
+                    {proposalExpired
+                      ? `Expirada em ${formatDateShort(availablePayload.meta.validUntil) || '-'}`
+                      : formatDateShort(availablePayload.meta.validUntil) || '-'}
+                  </div>
                 </div>
               </div>
               {acceptanceMessage && (
@@ -1109,9 +1137,15 @@ export const QuotePresentationPage: React.FC = () => {
                   <div className="space-y-4">
                     <div className="text-[11px] uppercase tracking-[0.26em] text-[#c9a46b]">Aceite digital</div>
                     <div className="text-sm leading-7 text-[#d3c3b1]">
-                      Confirme seu nome para registrar o aceite desta versão.
+                      {proposalExpired
+                        ? 'Esta proposta segue disponivel para consulta, mas o aceite foi desabilitado porque a validade comercial expirou.'
+                        : 'Confirme seu nome para registrar o aceite desta versão.'}
                     </div>
-                    {confirming ? (
+                    {proposalExpired ? (
+                      <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-4 py-4 text-sm leading-7 text-amber-100">
+                        Solicite uma nova versao comercial atualizada para prosseguir com o aceite.
+                      </div>
+                    ) : confirming ? (
                       <>
                         <input
                           value={acceptedName}
@@ -1168,7 +1202,18 @@ export const QuotePresentationPage: React.FC = () => {
           <div className="space-y-3 text-sm text-[#d5c6b4] md:text-right">
             {company?.phone && <div className="flex items-center gap-2 md:justify-end"><Phone className="h-4 w-4 text-[#c9a46b]" /> {company.phone}</div>}
             {company?.address && <div className="flex items-start gap-2 md:justify-end"><MapPin className="mt-1 h-4 w-4 shrink-0 text-[#c9a46b]" /> <span className="whitespace-pre-line">{company.address}</span></div>}
-            {availablePayload.meta.validUntil && <div className="flex items-center gap-2 md:justify-end"><CalendarClock className="h-4 w-4 text-[#c9a46b]" /> Válida até {formatDateShort(availablePayload.meta.validUntil)}</div>}
+            {availablePayload.meta.validUntil && (
+              <div className={cn(
+                'flex items-center gap-2 md:justify-end',
+                proposalExpired && 'text-amber-100',
+              )}
+              >
+                <CalendarClock className={cn('h-4 w-4 text-[#c9a46b]', proposalExpired && 'text-amber-300')} />
+                {proposalExpired
+                  ? `Proposta expirada em ${formatDateShort(availablePayload.meta.validUntil)}`
+                  : `Válida até ${formatDateShort(availablePayload.meta.validUntil)}`}
+              </div>
+            )}
           </div>
         </div>
       </footer>

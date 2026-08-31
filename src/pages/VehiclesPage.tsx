@@ -114,6 +114,8 @@ const buildChecklistState = (items: readonly {key: string}[]) =>
 const checklistComplete = (checklist: Record<string, boolean>, items: readonly {key: string}[]) =>
   items.every((item) => Boolean(checklist[item.key]));
 
+const checklistLabel = (key: string) => key.replace(/_/g, ' ').replace(/^./, (value) => value.toUpperCase());
+
 const createRequestKey = () =>
   typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
     ? crypto.randomUUID()
@@ -624,6 +626,24 @@ export const VehiclesPage: React.FC = () => {
                   </div>
                 </div>
               )}
+              <details className="mt-4 rounded-[24px] border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
+                <summary className="cursor-pointer font-medium text-slate-900">Ver checklists</summary>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {[
+                    {label: 'Saída', values: session.startChecklist},
+                    {label: 'Devolução', values: session.endChecklist},
+                  ].filter((item) => item.values).map((item) => (
+                    <div key={item.label}>
+                      <div className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">{item.label}</div>
+                      <ul className="mt-2 space-y-1 text-xs">
+                        {Object.entries(item.values || {}).map(([key, checked]) => (
+                          <li key={key} className={checked ? 'text-emerald-700' : 'text-red-700'}>{checked ? '✓' : '✕'} {checklistLabel(key)}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </details>
             </div>
           ))}
         </div>

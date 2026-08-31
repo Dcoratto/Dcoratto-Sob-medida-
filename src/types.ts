@@ -8,6 +8,7 @@ export type PermissionMap = {
   materiais: { visualizar: boolean; editar: boolean; };
   estoque: { visualizar: boolean; adicionar: boolean; editar: boolean; excluir: boolean; movimentar: boolean; };
   almoxarifado: { visualizar: boolean; editar: boolean; movimentar: boolean; comprar: boolean; };
+  funcionarios: { visualizar: boolean; cadastrar: boolean; editar: boolean; jornada: boolean; apontar: boolean; };
   relatorios: { visualizar: boolean; exportar: boolean; verFaturamento: boolean; verProdutividade: boolean; };
   admin: { visualizarUsuarios: boolean; alterarPermissoes: boolean; excluirUsuarios: boolean; };
   cliente: { visualizar: boolean; editarDados: boolean; alterarEtapa: boolean; anexarArquivos: boolean; avaliarFuncionarios: boolean; verValores: boolean; };
@@ -441,16 +442,158 @@ export interface CondominiumRule {
   createdAt?: any;
 }
 
-export type EmployeeRole = 'Vendedor' | 'Medidor' | 'Cortador' | 'Acabador' | 'Instalador' | 'Entregador' | 'Administrativo';
+export type EmployeeRole = string;
+
+export type EmployeeStatus = 'ATIVO' | 'INATIVO' | 'FERIAS' | 'AFASTADO';
 
 export interface Employee {
   id: string;
   empresaId?: string;
   name: string;
   role: EmployeeRole;
+  displayName?: string;
+  status?: EmployeeStatus;
+  admissionDate?: string;
   phone?: string;
+  notes?: string;
+  photoUrl?: string;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  originalUrl?: string;
   active: boolean;
+  createdByUid?: string;
+  createdByName?: string;
+  updatedAt?: any;
   createdAt?: any;
+}
+
+export type EmployeeFunctionKey =
+  | 'medicao'
+  | 'projeto'
+  | 'corte'
+  | 'acabamento'
+  | 'colagem'
+  | 'montagem'
+  | 'instalacao'
+  | 'conferencia'
+  | 'motorista'
+  | 'ajudante'
+  | 'administrativo'
+  | 'comercial'
+  | 'outros';
+
+export interface EmployeeFunction {
+  id: string;
+  empresaId?: string;
+  employeeId: string;
+  functionKey: EmployeeFunctionKey | string;
+  functionLabel: string;
+  linkedProductionStep?: ProductionStep | null;
+  isPrimary?: boolean;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+export interface EmployeeWorkSchedule {
+  id: string;
+  empresaId?: string;
+  employeeId: string;
+  weekday: number;
+  isWorkingDay: boolean;
+  startTime?: string | null;
+  endTime?: string | null;
+  breakMinutes: number;
+  expectedMinutes: number;
+  notes?: string | null;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+export type EmployeeAttendanceStatus = 'PRESENTE' | 'AUSENTE' | 'FOLGA' | 'FERIAS' | 'AFASTADO';
+
+export interface EmployeeAttendanceRecord {
+  id: string;
+  empresaId?: string;
+  employeeId: string;
+  workDate: string;
+  status: EmployeeAttendanceStatus;
+  checkInAt?: string | null;
+  breakStartAt?: string | null;
+  breakEndAt?: string | null;
+  checkOutAt?: string | null;
+  workedMinutes: number;
+  expectedMinutes: number;
+  overtimeMinutes: number;
+  notes?: string | null;
+  createdByUid?: string;
+  createdByName?: string;
+  updatedByUid?: string;
+  updatedByName?: string;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+export type EmployeeActivityStatus = 'ATIVA' | 'PAUSADA' | 'FINALIZADA';
+
+export interface EmployeeActivityPause {
+  id: string;
+  empresaId?: string;
+  sessionId: string;
+  startedAt: string;
+  endedAt?: string | null;
+  notes?: string | null;
+  startedByUid?: string;
+  startedByName?: string;
+  endedByUid?: string;
+  endedByName?: string;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
+export interface EmployeeActivitySession {
+  id: string;
+  empresaId?: string;
+  employeeId: string;
+  clientId?: string | null;
+  quoteId?: string | null;
+  functionKey: EmployeeFunctionKey | string;
+  functionLabel: string;
+  linkedProductionStep?: ProductionStep | null;
+  pieceId?: string | null;
+  pieceLabel?: string | null;
+  notes?: string | null;
+  completionNotes?: string | null;
+  status: EmployeeActivityStatus;
+  startedAt: string;
+  endedAt?: string | null;
+  activePauseStartedAt?: string | null;
+  pausedTotalSeconds: number;
+  productiveSeconds?: number;
+  createdByUid?: string;
+  createdByName?: string;
+  updatedAt?: any;
+  createdAt?: any;
+  employee?: Pick<Employee, 'id' | 'name' | 'displayName' | 'role' | 'status' | 'photoUrl' | 'thumbnailUrl'> | null;
+  client?: {id: string; name: string; city?: string} | null;
+  quote?: {id: string; clientName?: string; environment?: string; status?: QuoteStatus} | null;
+  pauses?: EmployeeActivityPause[];
+}
+
+export interface EmployeeOperationalSummary {
+  workedMinutes: number;
+  productiveMinutes: number;
+  idleMinutes: number;
+  overtimeMinutes: number;
+  completedActivities: number;
+}
+
+export interface EmployeeOperationalOverview {
+  employee: Employee;
+  functions: EmployeeFunction[];
+  attendanceToday: EmployeeAttendanceRecord | null;
+  currentSession: EmployeeActivitySession | null;
+  today: EmployeeOperationalSummary;
+  month: EmployeeOperationalSummary;
 }
 
 export type ProductionStep = 'medicao' | 'corte' | 'acabamento' | 'instalacao' | 'entrega';

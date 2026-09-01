@@ -1,4 +1,5 @@
 import React from 'react';
+import {Link} from 'react-router-dom';
 import {
   AlertTriangle,
   CarFront,
@@ -155,6 +156,7 @@ export const VehiclesPage: React.FC = () => {
   }), [accessUser, profile, user]);
   const canManage = hasPermission('veiculos', 'cadastrar') || hasPermission('veiculos', 'editar');
   const canUse = hasPermission('veiculos', 'usar');
+  const canViewReports = hasPermission('veiculos', 'verRelatorios');
 
   const [feedback, setFeedback] = React.useState<Feedback>(null);
   const [search, setSearch] = React.useState('');
@@ -254,13 +256,6 @@ export const VehiclesPage: React.FC = () => {
 
   const activeSessions = React.useMemo(() => history.filter((item) => item.status === 'ATIVA'), [history]);
   const myActiveSessionIds = React.useMemo(() => new Set(activeSessions.map((item) => item.id)), [activeSessions]);
-  const summary = React.useMemo(() => ({
-    total: overview.length,
-    available: overview.filter((item) => item.vehicle.status === 'DISPONIVEL').length,
-    inUse: overview.filter((item) => item.vehicle.status === 'EM_USO').length,
-    attention: overview.filter((item) => item.vehicle.status === 'MANUTENCAO' || item.vehicle.status === 'INDISPONIVEL' || item.openOccurrenceCount > 0).length,
-  }), [overview]);
-
   const selectedPurpose = React.useMemo(
     () => purposes.find((item) => item.purposeKey === selectedPurposeKey) || null,
     [purposes, selectedPurposeKey],
@@ -377,6 +372,7 @@ export const VehiclesPage: React.FC = () => {
           <p className="mt-1 text-slate-500">Controle operacional da frota com retirada, devolução, quilometragem, finalidade e ocorrências.</p>
         </div>
         <div className="flex flex-wrap gap-3">
+          {canViewReports && <Link to="/vehicles/reports" className={secondaryButton}>Relatórios</Link>}
           <button type="button" onClick={() => refresh()} className={secondaryButton}>
             <RefreshCcw className="h-4 w-4" />
             Atualizar
@@ -389,27 +385,6 @@ export const VehiclesPage: React.FC = () => {
           {feedback.message}
         </div>
       )}
-
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          {label: 'Veículos cadastrados', value: String(summary.total), icon: CarFront},
-          {label: 'Disponíveis', value: String(summary.available), icon: CheckCircle2},
-          {label: 'Em uso agora', value: String(summary.inUse), icon: Truck},
-          {label: 'Pedem atenção', value: String(summary.attention), icon: ShieldAlert},
-        ].map((item) => (
-          <div key={item.label} className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-xs font-medium uppercase tracking-[0.22em] text-slate-400">{item.label}</div>
-                <div className="mt-3 text-3xl font-semibold text-slate-900">{item.value}</div>
-              </div>
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-primary/10 text-brand-primary">
-                <item.icon className="h-5 w-5" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </section>
 
       {activeSessions.length > 0 && (
         <section className="rounded-[32px] border border-slate-100 bg-white p-5 shadow-sm">
@@ -871,4 +846,66 @@ export const VehiclesPage: React.FC = () => {
       </Modal>
     </div>
   );
+};
+
+export const VehicleReportsPage: React.FC = () => {
+  const [overview, setOverview] = React.useState<VehicleOperationalOverview[]>([]);
+  const [history, setHistory] = React.useState<VehicleUsageSession[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [feedback, setFeedback] = React.useState<Feedback>(null);
+  const [status, setStatus] = React.useState<VehicleUsageSession['status'] | ''>('');
+  const [dateFrom, setDateFrom] = React.useState('');
+  const [dateTo, setDateTo] = React.useState('');
+
+  const reload = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      const [vehicles, sessions] = await Promise.all([
+        listVehicleOperationalOverview(''),
+        listVehicleUsageHistory({limit: 100, status, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined}),
+      ]);
+      setOverview(vehicles);
+      setHistory(sessions);
+    } catch (error) {
+      setFeedback({type: 'error', message: (error as Error).message});
+    } finally { setLoading(false); }
+  }, [dateFrom, dateTo, status]);
+  React.useEffect(() => { void reload(); }, [reload]);
+
+  const metrics = React.useMemo(() => ({
+    total: overview.length,
+    available: overview.filter((item) => item.vehicle.status === 'DISPONIVEL').length,
+    inUse: overview.filter((item) => item.vehicle.status === 'EM_USO').length,
+    attention: overview.filter((item) => item.vehicle.status === 'MANUTENCAO' || item.vehicle.status === 'INDISPONIVEL' || item.openOccurrenceCount > 0).length,
+    distance: history.reduce((total, item) => total + (item.distanceKm || 0), 0),
+  }), [history, overview]);
+
+  return <div className="space-y-6 pb-10">
+    <header className="flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-3xl font-semibold text-slate-900">Relatórios de veículos</h1><p className="mt-1 text-slate-500">Indicadores derivados das utilizações reais da frota.</p></div><Link to="/vehicles" className={secondaryButton}>Voltar à operação</Link></header>
+    {feedback && <div className="rounded-2xl bg-red-50 px-4 py-3 text-sm text-red-700">{feedback.message}</div>}
+    <section className="grid gap-3 rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm md:grid-cols-4">
+      <Field label="Status">
+        <select value={status} onChange={(event) => setStatus(event.target.value as VehicleUsageSession['status'] | '')} className={inputClass}>
+          <option value="">Todos</option>
+          <option value="ATIVA">Em andamento</option>
+          <option value="CONCLUIDA">Concluidas</option>
+        </select>
+      </Field>
+      <Field label="De">
+        <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className={inputClass} />
+      </Field>
+      <Field label="Até">
+        <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className={inputClass} />
+      </Field>
+      <div className="flex items-end">
+        <button type="button" className={`${secondaryButton} w-full`} onClick={() => void reload()}><RefreshCcw className="h-4 w-4" /> Atualizar</button>
+      </div>
+    </section>
+    {loading ? <div className="py-20 text-center"><Loader2 className="mx-auto h-6 w-6 animate-spin text-brand-primary" /></div> : <>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{[
+        ['Veículos', metrics.total], ['Disponíveis', metrics.available], ['Em uso', metrics.inUse], ['Pedem atenção', metrics.attention], ['KM no filtro', formatKm(metrics.distance)],
+      ].map(([label, value]) => <div key={String(label)} className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm"><p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">{label}</p><p className="mt-3 text-3xl font-semibold text-slate-900">{value}</p></div>)}</section>
+      <section className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm"><h2 className="text-lg font-semibold text-slate-900">Utilizações recentes</h2><div className="mt-4 space-y-3">{history.map((session) => <article key={session.id} className="rounded-2xl bg-slate-50 p-4 text-sm"><strong className="text-slate-900">{session.vehicle?.internalName || 'Veículo'} · {session.purposeLabel}</strong><p className="mt-1 text-slate-500">{session.employee?.displayName || session.employee?.name || 'Funcionário'} · {formatDateTime(session.startedAt)} · {session.distanceKm == null ? 'Em andamento' : formatKm(session.distanceKm)}</p></article>)}{history.length === 0 && <p className="py-6 text-center text-sm text-slate-500">Nenhuma utilização encontrada.</p>}</div></section>
+    </>}
+  </div>;
 };

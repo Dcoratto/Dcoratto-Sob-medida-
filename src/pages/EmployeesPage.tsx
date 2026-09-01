@@ -1,4 +1,5 @@
 import React from 'react';
+import {Link} from 'react-router-dom';
 import {
   Briefcase,
   CalendarClock,
@@ -23,6 +24,9 @@ import {deleteObject, getDownloadURL, imageVariantUrl, ref as storageRef, storag
 import {optimizeImageFile} from '../lib/imageUtils';
 import {
   finishEmployeeActivity,
+  finishMyOvertime,
+  finishMyWorkday,
+  getMyEmployeeOperation,
   listActivityTargets,
   listEmployeeActivityHistory,
   listEmployeeAttendanceHistory,
@@ -33,11 +37,14 @@ import {
   resumeEmployeeActivity,
   saveEmployeeAttendance,
   saveEmployeeProfile,
+  startMyOvertime,
+  startMyWorkday,
   startEmployeeActivity,
   type EmployeeActivityTarget,
   type EmployeeFunctionCatalogItem,
   type EmployeeProfileDraft,
   type WorkforceActor,
+  type MyEmployeeOperation,
 } from '../lib/employeeWorkforce';
 import type {
   Employee,
@@ -192,7 +199,7 @@ const Modal: React.FC<{title: string; open: boolean; onClose: () => void; childr
   );
 };
 
-export const EmployeesPage: React.FC = () => {
+export const EmployeeReportsPage: React.FC = () => {
   const {accessUser, profile, user, hasPermission} = useAuth();
   const actor = React.useMemo<WorkforceActor>(() => ({
     uid: accessUser?.uid || user?.id || '',
@@ -1145,3 +1152,225 @@ export const EmployeesPage: React.FC = () => {
     </div>
   );
 };
+
+const requestKey = () => crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+const MyEmployeeOperationPage: React.FC = () => {
+  const {accessUser, profile, user, hasPermission} = useAuth();
+  const actor = React.useMemo<WorkforceActor>(() => ({
+    uid: accessUser?.uid || user?.id || '',
+    name: accessUser?.nome || profile?.name || user?.email?.split('@')[0] || 'Usuario',
+  }), [accessUser, profile, user]);
+  const [operation, setOperation] = React.useState<MyEmployeeOperation | null>(null);
+  const [loading, setLoading] = React.useState(true);
+  const [saving, setSaving] = React.useState(false);
+  const [feedback, setFeedback] = React.useState<Feedback>(null);
+  const [nowMs, setNowMs] = React.useState(Date.now());
+  const [catalog, setCatalog] = React.useState<EmployeeFunctionCatalogItem[]>([]);
+  const [activityModalOpen, setActivityModalOpen] = React.useState(false);
+  const [activityDraft, setActivityDraft] = React.useState({quoteSearch: '', quoteId: '', clientId: '', functionKey: '', pieceId: '', notes: ''});
+  const [activityTargets, setActivityTargets] = React.useState<EmployeeActivityTarget[]>([]);
+  const [activityTargetsLoading, setActivityTargetsLoading] = React.useState(false);
+
+  const reload = React.useCallback(async () => {
+    setLoading(true);
+    try {
+      setOperation(await getMyEmployeeOperation());
+    } catch (error) {
+      setFeedback({type: 'error', message: (error as Error).message});
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => { void reload(); }, [reload]);
+  React.useEffect(() => {
+    let active = true;
+    listEmployeeFunctionCatalog()
+      .then((rows) => {
+        if (!active) return;
+        setCatalog(rows);
+        setActivityDraft((current) => current.functionKey ? current : {...current, functionKey: rows[0]?.key || ''});
+      })
+      .catch((error) => setFeedback({type: 'error', message: (error as Error).message}));
+    return () => { active = false; };
+  }, []);
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setNowMs(Date.now()), 30000);
+    return () => window.clearInterval(timer);
+  }, []);
+  React.useEffect(() => {
+    const normalized = activityDraft.quoteSearch.trim();
+    if (normalized.length < 2) {
+      setActivityTargets([]);
+      return;
+    }
+    let active = true;
+    setActivityTargetsLoading(true);
+    listActivityTargets(normalized)
+      .then((rows) => active && setActivityTargets(rows))
+      .catch((error) => active && setFeedback({type: 'error', message: (error as Error).message}))
+      .finally(() => active && setActivityTargetsLoading(false));
+    return () => { active = false; };
+  }, [activityDraft.quoteSearch]);
+
+  const perform = async (action: () => Promise<unknown>, message: string) => {
+    setSaving(true);
+    try {
+      await action();
+      setFeedback({type: 'success', message});
+      await reload();
+    } catch (error) {
+      setFeedback({type: 'error', message: (error as Error).message});
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const resetActivityDraft = () => setActivityDraft({quoteSearch: '', quoteId: '', clientId: '', functionKey: catalog[0]?.key || '', pieceId: '', notes: ''});
+
+  const openActivityModal = () => {
+    resetActivityDraft();
+    setActivityModalOpen(true);
+  };
+
+  const selectedActivityTarget = React.useMemo(() => activityTargets.find((item) => item.id === activityDraft.quoteId) || null, [activityDraft.quoteId, activityTargets]);
+
+  const handleStartMyActivity = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!operation?.employee.id || !activityDraft.functionKey) return;
+    await perform(
+      () => startEmployeeActivity({
+        employeeId: operation.employee.id,
+        clientId: activityDraft.clientId,
+        quoteId: activityDraft.quoteId,
+        functionKey: activityDraft.functionKey,
+        pieceId: activityDraft.pieceId || undefined,
+        pieceLabel: selectedActivityTarget?.pieces.find((piece) => piece.id === activityDraft.pieceId)?.label,
+        notes: activityDraft.notes,
+      }, actor),
+      'Atividade iniciada com sucesso.',
+    );
+    setActivityModalOpen(false);
+  };
+
+  if (loading) return <div className="py-20 text-center text-slate-500"><Loader2 className="mx-auto h-6 w-6 animate-spin text-brand-primary" /></div>;
+  if (!operation) return <div className="rounded-3xl border border-red-100 bg-red-50 p-6 text-red-700">Não foi possível carregar sua operação.</div>;
+
+  const attendance = operation.attendance;
+  const overtime = operation.overtime;
+  const isWorking = Boolean(attendance?.checkInAt && !attendance?.checkOutAt);
+  const regularDone = Boolean(attendance?.checkOutAt);
+  const canTrackActivity = hasPermission('funcionarios', 'apontar');
+  const canOperateActivity = canTrackActivity && (isWorking || Boolean(overtime));
+  const activityMinutes = operation.activity ? runtimeActivityMinutes({startedAt: operation.activity.startedAt, endedAt: null, activePauseStartedAt: operation.activity.activePauseStartedAt || null, pausedTotalSeconds: operation.activity.pausedTotalSeconds} as EmployeeActivitySession, nowMs) : 0;
+
+  return (
+    <div className="mx-auto max-w-3xl space-y-5 pb-10">
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm text-slate-500">{new Intl.DateTimeFormat('pt-BR', {weekday: 'long', day: '2-digit', month: 'long'}).format(new Date())}</p>
+          <h1 className="mt-1 text-3xl font-semibold text-slate-900">Olá, {operation.employee.displayName || operation.employee.name}</h1>
+        </div>
+        {hasPermission('funcionarios', 'verRelatorios') && <Link className={secondaryButton} to="/employees/reports">Relatórios</Link>}
+      </header>
+
+      {feedback && <div className={cn('rounded-2xl px-4 py-3 text-sm font-medium', feedback.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700')}>{feedback.message}</div>}
+
+      <section className="rounded-[30px] border border-slate-100 bg-white p-6 shadow-sm">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Meu expediente</p>
+            <h2 className="mt-2 text-xl font-semibold text-slate-900">{operation.schedule.isWorkingDay ? `${operation.schedule.startTime || '--:--'} → ${operation.schedule.endTime || '--:--'}` : 'Você não trabalha hoje'}</h2>
+          </div>
+          <Clock3 className="h-6 w-6 text-brand-primary" />
+        </div>
+        {operation.schedule.isWorkingDay && <div className="mt-6 grid gap-3 text-sm sm:grid-cols-3">
+          <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-400">Entrada</span><strong className="mt-1 block text-slate-900">{formatClock(attendance?.checkInAt)}</strong></div>
+          <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-400">Saída</span><strong className="mt-1 block text-slate-900">{formatClock(attendance?.checkOutAt)}</strong></div>
+          <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-400">Status</span><strong className="mt-1 block text-slate-900">{isWorking ? 'Trabalhando' : regularDone ? 'Expediente finalizado' : 'Ainda não iniciou'}</strong></div>
+        </div>}
+        {operation.schedule.isWorkingDay && <div className="mt-6">
+          {!attendance?.checkInAt && <button disabled={saving} className={`${primaryButton} h-14 w-full text-base`} onClick={() => void perform(() => startMyWorkday(requestKey()), 'Expediente iniciado com sucesso.')}>INICIAR EXPEDIENTE</button>}
+          {isWorking && <button disabled={saving} className={`${primaryButton} h-14 w-full text-base`} onClick={() => void perform(() => finishMyWorkday(requestKey()), 'Expediente finalizado com sucesso.')}>FINALIZAR EXPEDIENTE</button>}
+          {regularDone && !overtime && <button disabled={saving} className={`${secondaryButton} h-14 w-full text-base`} onClick={() => void perform(() => startMyOvertime(requestKey()), 'Hora extra iniciada com sucesso.')}>INICIAR HORA EXTRA</button>}
+          {overtime && <button disabled={saving} className={`${primaryButton} h-14 w-full text-base`} onClick={() => void perform(() => finishMyOvertime(overtime.id, requestKey()), 'Hora extra finalizada com sucesso.')}>FINALIZAR HORA EXTRA</button>}
+        </div>}
+      </section>
+
+      <section className="rounded-[30px] border border-slate-100 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Minha atividade</p>
+            {operation.activity ? (
+              <div className="mt-3">
+                <h2 className="text-xl font-semibold text-slate-900">{operation.activity.functionLabel}</h2>
+                <p className="mt-1 text-sm text-slate-500">{operation.activity.clientName || operation.activity.quoteLabel || 'Sem cliente vinculado'} · {formatMinutes(activityMinutes)}</p>
+              </div>
+            ) : (
+              <div className="mt-3">
+                <h2 className="text-xl font-semibold text-slate-900">Nenhuma atividade em andamento</h2>
+                <p className="mt-1 text-sm text-slate-500">{canOperateActivity ? 'Escolha a etapa e vincule uma obra se fizer sentido.' : 'Inicie o expediente para liberar apontamentos de produção.'}</p>
+              </div>
+            )}
+          </div>
+          {canOperateActivity && !operation.activity && <button disabled={saving || catalog.length === 0} className={primaryButton} onClick={openActivityModal}><PlayCircle className="h-4 w-4" /> Iniciar</button>}
+        </div>
+        {operation.activity && canTrackActivity && (
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+            {operation.activity.status === 'ATIVA' && <button disabled={saving} className={secondaryButton} onClick={() => void perform(() => pauseEmployeeActivity(operation.activity!.id, actor), 'Atividade pausada.') }><PauseCircle className="h-4 w-4" /> Pausar</button>}
+            {operation.activity.status === 'PAUSADA' && <button disabled={saving} className={secondaryButton} onClick={() => void perform(() => resumeEmployeeActivity(operation.activity!.id, actor), 'Atividade retomada.') }><PlayCircle className="h-4 w-4" /> Retomar</button>}
+            <button disabled={saving} className={primaryButton} onClick={() => void perform(() => finishEmployeeActivity(operation.activity!.id, actor), 'Atividade finalizada.') }><CheckCircle2 className="h-4 w-4" /> Finalizar</button>
+          </div>
+        )}
+      </section>
+
+      <Modal title="Iniciar atividade" open={activityModalOpen} onClose={() => setActivityModalOpen(false)} wide>
+        <form className="space-y-5" onSubmit={handleStartMyActivity}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Etapa">
+              <select required value={activityDraft.functionKey} onChange={(event) => setActivityDraft((current) => ({...current, functionKey: event.target.value}))} className={inputClass}>
+                <option value="">Selecione</option>
+                {catalog.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Buscar obra">
+              <input value={activityDraft.quoteSearch} onChange={(event) => setActivityDraft((current) => ({...current, quoteSearch: event.target.value, quoteId: '', clientId: '', pieceId: ''}))} className={inputClass} placeholder="Cliente ou ambiente" />
+            </Field>
+          </div>
+
+          {activityDraft.quoteSearch.trim().length >= 2 && (
+            <div className="grid gap-2">
+              {activityTargetsLoading ? <div className="rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">Buscando obras...</div> : activityTargets.map((item) => (
+                <button key={item.id} type="button" className={cn('rounded-2xl border px-4 py-3 text-left text-sm', activityDraft.quoteId === item.id ? 'border-brand-primary bg-brand-primary/10' : 'border-slate-200 bg-white')} onClick={() => {
+                  setActivityDraft((current) => ({...current, quoteId: item.id, clientId: item.clientId, quoteSearch: `${item.clientName} · ${item.environment}`, pieceId: ''}));
+                }}>
+                  <strong className="text-slate-900">{item.clientName}</strong>
+                  <span className="ml-2 text-slate-500">{item.environment}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <Field label="Peça / serviço">
+            <select value={activityDraft.pieceId} onChange={(event) => setActivityDraft((current) => ({...current, pieceId: event.target.value}))} className={inputClass} disabled={!selectedActivityTarget}>
+              <option value="">Sem peça específica</option>
+              {selectedActivityTarget?.pieces.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+            </select>
+          </Field>
+
+          <Field label="Observação">
+            <textarea value={activityDraft.notes} onChange={(event) => setActivityDraft((current) => ({...current, notes: event.target.value}))} className={textareaClass} />
+          </Field>
+
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button type="button" className={secondaryButton} onClick={() => setActivityModalOpen(false)}>Cancelar</button>
+            <button type="submit" className={primaryButton} disabled={saving || !activityDraft.functionKey}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />} Iniciar atividade</button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+export const EmployeesPage: React.FC = () => <MyEmployeeOperationPage />;

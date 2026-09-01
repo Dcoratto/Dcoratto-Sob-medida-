@@ -8,8 +8,8 @@ export type PermissionMap = {
   materiais: { visualizar: boolean; editar: boolean; };
   estoque: { visualizar: boolean; adicionar: boolean; editar: boolean; excluir: boolean; movimentar: boolean; };
   almoxarifado: { visualizar: boolean; editar: boolean; movimentar: boolean; comprar: boolean; };
-  funcionarios: { visualizar: boolean; cadastrar: boolean; editar: boolean; jornada: boolean; apontar: boolean; };
-  veiculos: { visualizar: boolean; cadastrar: boolean; editar: boolean; usar: boolean; };
+  funcionarios: { visualizar: boolean; cadastrar: boolean; editar: boolean; jornada: boolean; apontar: boolean; verRelatorios: boolean; };
+  veiculos: { visualizar: boolean; cadastrar: boolean; editar: boolean; usar: boolean; verRelatorios: boolean; };
   relatorios: { visualizar: boolean; exportar: boolean; verFaturamento: boolean; verProdutividade: boolean; };
   admin: { visualizarUsuarios: boolean; alterarPermissoes: boolean; excluirUsuarios: boolean; };
   cliente: { visualizar: boolean; editarDados: boolean; alterarEtapa: boolean; anexarArquivos: boolean; avaliarFuncionarios: boolean; verValores: boolean; };
@@ -527,6 +527,9 @@ export interface EmployeeAttendanceRecord {
   workedMinutes: number;
   expectedMinutes: number;
   overtimeMinutes: number;
+  scheduledStartTime?: string | null;
+  scheduledEndTime?: string | null;
+  scheduledBreakMinutes?: number;
   notes?: string | null;
   createdByUid?: string;
   createdByName?: string;
@@ -534,6 +537,15 @@ export interface EmployeeAttendanceRecord {
   updatedByName?: string;
   createdAt?: any;
   updatedAt?: any;
+}
+
+export interface EmployeeOvertimeSession {
+  id: string;
+  employeeId: string;
+  workDate: string;
+  startedAt: string;
+  endedAt?: string | null;
+  status: 'ATIVA' | 'CONCLUIDA';
 }
 
 export type EmployeeActivityStatus = 'ATIVA' | 'PAUSADA' | 'FINALIZADA';

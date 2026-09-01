@@ -85,6 +85,14 @@ export type EmployeeActivityTarget = {
   pieces: Array<{id: string; label: string}>;
 };
 
+export type MyEmployeeOperation = {
+  employee: {id: string; name: string; displayName?: string | null};
+  schedule: {isWorkingDay: boolean; startTime?: string | null; endTime?: string | null; breakMinutes: number};
+  attendance: EmployeeAttendanceRecord | null;
+  overtime: {id: string; startedAt: string; endedAt?: string | null; status: 'ATIVA' | 'CONCLUIDA'} | null;
+  activity: {id: string; status: EmployeeActivitySession['status']; functionLabel: string; clientName?: string | null; quoteLabel?: string | null; startedAt: string; pausedTotalSeconds: number; activePauseStartedAt?: string | null} | null;
+};
+
 type OverviewRow = {
   employee_id: string;
   empresa_id: string;
@@ -606,3 +614,30 @@ export const listActivityTargets = async (search = ''): Promise<EmployeeActivity
       : [],
   }));
 };
+
+export const getMyEmployeeOperation = async (): Promise<MyEmployeeOperation> => {
+  const data = ensureSuccess(await supabase.rpc('get_my_employee_operation')) as any;
+  if (!data?.employee?.id) throw new Error('Seu usuário não está vinculado a um funcionário. Peça ao administrador para concluir o vínculo.');
+  return {
+    employee: data.employee,
+    schedule: data.schedule || {isWorkingDay: false, breakMinutes: 0},
+    attendance: data.attendance ? {
+      id: data.attendance.id,
+      employeeId: data.employee.id,
+      workDate: data.attendance.workDate,
+      status: data.attendance.status,
+      checkInAt: data.attendance.checkInAt || null,
+      checkOutAt: data.attendance.checkOutAt || null,
+      workedMinutes: Number(data.attendance.workedMinutes) || 0,
+      expectedMinutes: Number(data.attendance.expectedMinutes) || 0,
+      overtimeMinutes: 0,
+    } : null,
+    overtime: data.overtime || null,
+    activity: data.activity || null,
+  };
+};
+
+export const startMyWorkday = async (requestKey: string) => ensureSuccess(await supabase.rpc('start_my_workday', {p_request_key: requestKey}));
+export const finishMyWorkday = async (requestKey: string) => ensureSuccess(await supabase.rpc('finish_my_workday', {p_request_key: requestKey}));
+export const startMyOvertime = async (requestKey: string) => ensureSuccess(await supabase.rpc('start_my_overtime', {p_request_key: requestKey}));
+export const finishMyOvertime = async (sessionId: string, requestKey: string) => ensureSuccess(await supabase.rpc('finish_my_overtime', {p_session_id: sessionId, p_request_key: requestKey}));

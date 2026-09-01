@@ -63,6 +63,8 @@ export type EmployeeAttendanceDraft = {
   breakStartAt?: string | null;
   breakEndAt?: string | null;
   checkOutAt?: string | null;
+  overtimeStartAt?: string | null;
+  overtimeEndAt?: string | null;
   notes?: string;
 };
 
@@ -487,7 +489,7 @@ export const saveEmployeeProfile = async (input: EmployeeProfileDraft, actor: Wo
 };
 
 export const saveEmployeeAttendance = async (input: EmployeeAttendanceDraft, actor: WorkforceActor) => {
-  const data = ensureSuccess(await supabase.rpc('save_employee_attendance', {
+  const data = ensureSuccess(await supabase.rpc('save_employee_attendance_manual', {
     p_employee_id: input.employeeId,
     p_work_date: input.workDate,
     p_status: input.status,
@@ -495,6 +497,8 @@ export const saveEmployeeAttendance = async (input: EmployeeAttendanceDraft, act
     p_break_start_at: input.breakStartAt || null,
     p_break_end_at: input.breakEndAt || null,
     p_check_out_at: input.checkOutAt || null,
+    p_overtime_start_at: input.overtimeStartAt || null,
+    p_overtime_end_at: input.overtimeEndAt || null,
     p_notes: input.notes || null,
     p_actor_uid: actor.uid,
     p_actor_name: actor.name,
@@ -513,10 +517,20 @@ export const saveEmployeeAttendance = async (input: EmployeeAttendanceDraft, act
     workedMinutes: Number(data.worked_minutes) || 0,
     expectedMinutes: Number(data.expected_minutes) || 0,
     overtimeMinutes: Number(data.overtime_minutes) || 0,
+    recordedSource: data.recorded_source || undefined,
+    manualReason: data.manual_reason || null,
     notes: data.notes || null,
     createdAt: data.created_at,
     updatedAt: data.updated_at,
   } as EmployeeAttendanceRecord;
+};
+
+export const archiveEmployee = async (employeeId: string, actor: WorkforceActor) => {
+  return ensureSuccess(await supabase.rpc('archive_employee', {
+    p_employee_id: employeeId,
+    p_actor_uid: actor.uid,
+    p_actor_name: actor.name,
+  }));
 };
 
 const mapSessionRow = (data: any): EmployeeActivitySession => ({
@@ -627,10 +641,13 @@ export const getMyEmployeeOperation = async (): Promise<MyEmployeeOperation> => 
       workDate: data.attendance.workDate,
       status: data.attendance.status,
       checkInAt: data.attendance.checkInAt || null,
+      breakStartAt: data.attendance.breakStartAt || null,
+      breakEndAt: data.attendance.breakEndAt || null,
       checkOutAt: data.attendance.checkOutAt || null,
       workedMinutes: Number(data.attendance.workedMinutes) || 0,
       expectedMinutes: Number(data.attendance.expectedMinutes) || 0,
       overtimeMinutes: 0,
+      recordedSource: data.attendance.recordedSource || undefined,
     } : null,
     overtime: data.overtime || null,
     activity: data.activity || null,
@@ -638,6 +655,8 @@ export const getMyEmployeeOperation = async (): Promise<MyEmployeeOperation> => 
 };
 
 export const startMyWorkday = async (requestKey: string) => ensureSuccess(await supabase.rpc('start_my_workday', {p_request_key: requestKey}));
+export const startMyBreak = async (requestKey: string) => ensureSuccess(await supabase.rpc('start_my_break', {p_request_key: requestKey}));
+export const resumeMyWorkday = async (requestKey: string) => ensureSuccess(await supabase.rpc('resume_my_workday', {p_request_key: requestKey}));
 export const finishMyWorkday = async (requestKey: string) => ensureSuccess(await supabase.rpc('finish_my_workday', {p_request_key: requestKey}));
 export const startMyOvertime = async (requestKey: string) => ensureSuccess(await supabase.rpc('start_my_overtime', {p_request_key: requestKey}));
 export const finishMyOvertime = async (sessionId: string, requestKey: string) => ensureSuccess(await supabase.rpc('finish_my_overtime', {p_session_id: sessionId, p_request_key: requestKey}));

@@ -17,12 +17,14 @@ import {
   UserRound,
   Users,
   X,
+  Trash2,
 } from 'lucide-react';
 import {useAuth} from '../contexts/AuthContext';
 import {cn} from '../lib/utils';
 import {deleteObject, getDownloadURL, imageVariantUrl, ref as storageRef, storage, storagePath, uploadDataUrl} from '../lib/storage';
 import {optimizeImageFile} from '../lib/imageUtils';
 import {
+  archiveEmployee,
   finishEmployeeActivity,
   finishMyOvertime,
   finishMyWorkday,
@@ -35,8 +37,10 @@ import {
   listEmployeeSchedules,
   pauseEmployeeActivity,
   resumeEmployeeActivity,
+  resumeMyWorkday,
   saveEmployeeAttendance,
   saveEmployeeProfile,
+  startMyBreak,
   startMyOvertime,
   startMyWorkday,
   startEmployeeActivity,
@@ -77,7 +81,7 @@ const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 type Feedback = {type: 'success' | 'error'; message: string} | null;
 type HistoryPeriod = 'today' | 'week' | 'month' | 'custom';
-type EmployeeAdminTab = 'reports' | 'team';
+type WorkdayStep = 'start' | 'break' | 'resume' | 'finish' | 'overtimeStart' | 'overtimeFinish' | 'done';
 
 const formatMinutes = (value: number) => {
   const total = Math.max(0, Math.round(value || 0));
@@ -175,6 +179,16 @@ const runtimeActivityMinutes = (session: EmployeeActivitySession | null, nowMs: 
   return Math.floor(totalSeconds / 60);
 };
 
+const resolveWorkdayStep = (attendance: EmployeeAttendanceRecord | null, overtime: MyEmployeeOperation['overtime']): WorkdayStep => {
+  if (overtime?.status === 'ATIVA') return 'overtimeFinish';
+  if (!attendance?.checkInAt) return 'start';
+  if (!attendance.checkOutAt && attendance.breakStartAt && !attendance.breakEndAt) return 'resume';
+  if (!attendance.checkOutAt && !attendance.breakEndAt) return 'break';
+  if (!attendance.checkOutAt) return 'finish';
+  if (!overtime) return 'overtimeStart';
+  return 'done';
+};
+
 const Field: React.FC<{label: string; children: React.ReactNode}> = ({label, children}) => (
   <label className="block">
     <span className="mb-1.5 block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">{label}</span>
@@ -211,7 +225,6 @@ export const EmployeeReportsPage: React.FC = () => {
   const canManageSchedule = hasPermission('funcionarios', 'jornada');
 
   const [feedback, setFeedback] = React.useState<Feedback>(null);
-  const [adminTab, setAdminTab] = React.useState<EmployeeAdminTab>('reports');
   const [search, setSearch] = React.useState('');
   const deferredSearch = React.useDeferredValue(search);
   const [loading, setLoading] = React.useState(true);
@@ -235,6 +248,8 @@ export const EmployeeReportsPage: React.FC = () => {
     breakStartAt: '',
     breakEndAt: '',
     checkOutAt: '',
+    overtimeStartAt: '',
+    overtimeEndAt: '',
     notes: '',
   });
   const [savingAttendance, setSavingAttendance] = React.useState(false);
@@ -454,6 +469,8 @@ export const EmployeeReportsPage: React.FC = () => {
       breakStartAt: toLocalDateTimeInput(record?.breakStartAt),
       breakEndAt: toLocalDateTimeInput(record?.breakEndAt),
       checkOutAt: toLocalDateTimeInput(record?.checkOutAt),
+      overtimeStartAt: '',
+      overtimeEndAt: '',
       notes: record?.notes || '',
     });
   };
@@ -471,10 +488,12 @@ export const EmployeeReportsPage: React.FC = () => {
         breakStartAt: fromLocalDateTimeInput(attendanceDraft.breakStartAt),
         breakEndAt: fromLocalDateTimeInput(attendanceDraft.breakEndAt),
         checkOutAt: fromLocalDateTimeInput(attendanceDraft.checkOutAt),
+        overtimeStartAt: fromLocalDateTimeInput(attendanceDraft.overtimeStartAt),
+        overtimeEndAt: fromLocalDateTimeInput(attendanceDraft.overtimeEndAt),
         notes: attendanceDraft.notes,
       }, actor);
       setAttendanceModalEmployee(null);
-      setFeedback({type: 'success', message: 'Jornada atualizada.'});
+      setFeedback({type: 'success', message: 'Expediente manual atualizado.'});
       setRefreshKey((value) => value + 1);
       if (detailEmployee?.employee.id === attendanceModalEmployee.employee.id) {
         await reloadDetail(attendanceModalEmployee.employee.id);
@@ -483,6 +502,23 @@ export const EmployeeReportsPage: React.FC = () => {
       setFeedback({type: 'error', message: (error as Error).message});
     } finally {
       setSavingAttendance(false);
+    }
+  };
+
+  const handleArchiveEmployee = async () => {
+    if (!employeeDraft.id) return;
+    const confirmed = window.confirm('Excluir funcionário? Ele será inativado para preservar histórico operacional, relatórios e vínculos existentes.');
+    if (!confirmed) return;
+    setSavingEmployee(true);
+    try {
+      await archiveEmployee(employeeDraft.id, actor);
+      setEmployeeModalOpen(false);
+      setFeedback({type: 'success', message: 'Funcionário inativado com histórico preservado.'});
+      setRefreshKey((value) => value + 1);
+    } catch (error) {
+      setFeedback({type: 'error', message: (error as Error).message});
+    } finally {
+      setSavingEmployee(false);
     }
   };
 
@@ -507,7 +543,6 @@ export const EmployeeReportsPage: React.FC = () => {
       pieceId: '',
       notes: '',
     });
-    void loadTargets('');
   };
 
   const handleStartActivity = async (event: React.FormEvent) => {
@@ -515,7 +550,7 @@ export const EmployeeReportsPage: React.FC = () => {
     if (!activityModalEmployee) return;
     const target = activityTargets.find((item) => item.id === activityDraft.quoteId);
     if (!target) {
-      setFeedback({type: 'error', message: 'Selecione a obra vinculada antes de iniciar.'});
+      setFeedback({type: 'error', message: 'Selecione o cliente antes de iniciar.'});
       return;
     }
     if (!activityDraft.functionKey) {
@@ -604,7 +639,6 @@ export const EmployeeReportsPage: React.FC = () => {
     () => activityTargets.find((item) => item.id === activityDraft.quoteId) || null,
     [activityDraft.quoteId, activityTargets],
   );
-  const isTeamTab = adminTab === 'team';
 
   return (
     <div className="space-y-6 pb-20">
@@ -621,7 +655,7 @@ export const EmployeeReportsPage: React.FC = () => {
             <RefreshCcw className="h-4 w-4" />
             Atualizar
           </button>
-          {isTeamTab && canManage && (
+          {canManage && (
             <button type="button" className={primaryButton} onClick={openCreateEmployee}>
               <Plus className="h-4 w-4" />
               Novo funcionário
@@ -629,25 +663,6 @@ export const EmployeeReportsPage: React.FC = () => {
           )}
         </div>
       </header>
-
-      <section className="flex flex-wrap gap-2 rounded-[28px] border border-slate-100 bg-white p-2 shadow-sm">
-        {[
-          {key: 'reports' as const, label: 'Relatórios'},
-          {key: 'team' as const, label: 'Funcionários'},
-        ].map((item) => (
-          <button
-            key={item.key}
-            type="button"
-            onClick={() => setAdminTab(item.key)}
-            className={cn(
-              'inline-flex h-11 items-center justify-center rounded-2xl px-4 text-sm font-medium transition',
-              adminTab === item.key ? 'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-600 hover:bg-slate-50',
-            )}
-          >
-            {item.label}
-          </button>
-        ))}
-      </section>
 
       {feedback && (
         <div className={cn(
@@ -658,7 +673,7 @@ export const EmployeeReportsPage: React.FC = () => {
         </div>
       )}
 
-      {adminTab === 'reports' && <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           {label: 'Equipe cadastrada', value: String(summary.total), icon: Users},
           {label: 'Trabalhando agora', value: String(summary.activeNow), icon: PlayCircle},
@@ -677,7 +692,7 @@ export const EmployeeReportsPage: React.FC = () => {
             </div>
           </div>
         ))}
-      </section>}
+      </section>
 
       <section className="rounded-[32px] border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
         <div className="relative max-w-xl">
@@ -763,12 +778,12 @@ export const EmployeeReportsPage: React.FC = () => {
 
               <div className="mt-5 flex flex-wrap gap-2">
                 <button type="button" className={secondaryButton} onClick={() => setDetailEmployee(item)}>Detalhes</button>
-                {isTeamTab && canManage && <button type="button" className={secondaryButton} onClick={() => void openEditEmployee(item)}>Editar</button>}
-                {isTeamTab && canManageSchedule && <button type="button" className={secondaryButton} onClick={() => openAttendanceModal(item)}><CalendarClock className="h-4 w-4" /> Jornada</button>}
-                {isTeamTab && canTrack && !item.currentSession && item.employee.status === 'ATIVO' && <button type="button" className={primaryButton} onClick={() => openActivityModal(item)}><PlayCircle className="h-4 w-4" /> Iniciar</button>}
-                {isTeamTab && canTrack && item.currentSession?.status === 'ATIVA' && <button type="button" className={secondaryButton} onClick={() => void handlePauseActivity(item)}><PauseCircle className="h-4 w-4" /> Pausar</button>}
-                {isTeamTab && canTrack && item.currentSession?.status === 'PAUSADA' && <button type="button" className={secondaryButton} onClick={() => void handleResumeActivity(item)}><TimerReset className="h-4 w-4" /> Retomar</button>}
-                {isTeamTab && canTrack && item.currentSession && <button type="button" className={primaryButton} onClick={() => void handleFinishActivity(item)}><CheckCircle2 className="h-4 w-4" /> Finalizar</button>}
+                {canManage && <button type="button" className={secondaryButton} onClick={() => void openEditEmployee(item)}>Editar</button>}
+                {canManageSchedule && <button type="button" className={secondaryButton} onClick={() => openAttendanceModal(item)}><CalendarClock className="h-4 w-4" /> Expediente manual</button>}
+                {canTrack && !item.currentSession && item.employee.status === 'ATIVO' && <button type="button" className={primaryButton} onClick={() => openActivityModal(item)}><PlayCircle className="h-4 w-4" /> Iniciar atividade</button>}
+                {canTrack && item.currentSession?.status === 'ATIVA' && <button type="button" className={secondaryButton} onClick={() => void handlePauseActivity(item)}><PauseCircle className="h-4 w-4" /> Pausar atividade</button>}
+                {canTrack && item.currentSession?.status === 'PAUSADA' && <button type="button" className={secondaryButton} onClick={() => void handleResumeActivity(item)}><TimerReset className="h-4 w-4" /> Retomar atividade</button>}
+                {canTrack && item.currentSession && <button type="button" className={primaryButton} onClick={() => void handleFinishActivity(item)}><CheckCircle2 className="h-4 w-4" /> Finalizar atividade</button>}
               </div>
             </article>
           );
@@ -919,24 +934,38 @@ export const EmployeeReportsPage: React.FC = () => {
                   </label>
                   <input type="time" value={item.startTime} disabled={!item.isWorkingDay} onChange={(event) => setEmployeeDraft((value) => ({...value, schedule: value.schedule.map((entry, entryIndex) => entryIndex === index ? {...entry, startTime: event.target.value} : entry)}))} className={inputClass} />
                   <input type="time" value={item.endTime} disabled={!item.isWorkingDay} onChange={(event) => setEmployeeDraft((value) => ({...value, schedule: value.schedule.map((entry, entryIndex) => entryIndex === index ? {...entry, endTime: event.target.value} : entry)}))} className={inputClass} />
-                  <input type="number" min={0} max={720} value={item.breakMinutes} disabled={!item.isWorkingDay} onChange={(event) => setEmployeeDraft((value) => ({...value, schedule: value.schedule.map((entry, entryIndex) => entryIndex === index ? {...entry, breakMinutes: Number(event.target.value) || 0} : entry)}))} className={inputClass} placeholder="Intervalo (min)" />
+                  <label className="block">
+                    <span className="mb-1 block text-[10px] font-medium uppercase tracking-[0.16em] text-slate-400">Intervalo (minutos)</span>
+                    <input type="number" min={0} max={720} value={item.breakMinutes} disabled={!item.isWorkingDay} onChange={(event) => setEmployeeDraft((value) => ({...value, schedule: value.schedule.map((entry, entryIndex) => entryIndex === index ? {...entry, breakMinutes: Number(event.target.value) || 0} : entry)}))} className={inputClass} />
+                  </label>
                 </div>
               ))}
             </div>
           </section>
 
-          <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
-            <button type="button" className={secondaryButton} onClick={() => setEmployeeModalOpen(false)}>Cancelar</button>
-            <button type="submit" className={primaryButton} disabled={savingEmployee}>
-              {savingEmployee ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-              Salvar funcionário
-            </button>
+          <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-between">
+            {employeeDraft.id && canManage ? (
+              <button type="button" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50" onClick={() => void handleArchiveEmployee()} disabled={savingEmployee}>
+                <Trash2 className="h-4 w-4" />
+                Excluir funcionário
+              </button>
+            ) : <span />}
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" className={secondaryButton} onClick={() => setEmployeeModalOpen(false)}>Cancelar</button>
+              <button type="submit" className={primaryButton} disabled={savingEmployee}>
+                {savingEmployee ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Salvar funcionário
+              </button>
+            </div>
           </div>
         </form>
       </Modal>
 
-      <Modal title={`Jornada de ${attendanceModalEmployee?.employee.displayName || attendanceModalEmployee?.employee.name || ''}`} open={Boolean(attendanceModalEmployee)} onClose={() => setAttendanceModalEmployee(null)}>
+      <Modal title={`Expediente manual de ${attendanceModalEmployee?.employee.displayName || attendanceModalEmployee?.employee.name || ''}`} open={Boolean(attendanceModalEmployee)} onClose={() => setAttendanceModalEmployee(null)}>
         <form onSubmit={handleSaveAttendance} className="space-y-4">
+          <p className="rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            Use esta área apenas para correções administrativas. O registro fica marcado internamente como manual e auditável.
+          </p>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Data"><input type="date" value={attendanceDraft.workDate} onChange={(event) => setAttendanceDraft((value) => ({...value, workDate: event.target.value}))} className={inputClass} /></Field>
             <Field label="Status">
@@ -944,17 +973,23 @@ export const EmployeeReportsPage: React.FC = () => {
                 {attendanceStatusOptions.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
               </select>
             </Field>
-            <Field label="Entrada"><input type="datetime-local" value={attendanceDraft.checkInAt} onChange={(event) => setAttendanceDraft((value) => ({...value, checkInAt: event.target.value}))} className={inputClass} /></Field>
-            <Field label="Início do intervalo"><input type="datetime-local" value={attendanceDraft.breakStartAt} onChange={(event) => setAttendanceDraft((value) => ({...value, breakStartAt: event.target.value}))} className={inputClass} /></Field>
-            <Field label="Fim do intervalo"><input type="datetime-local" value={attendanceDraft.breakEndAt} onChange={(event) => setAttendanceDraft((value) => ({...value, breakEndAt: event.target.value}))} className={inputClass} /></Field>
-            <Field label="Saída"><input type="datetime-local" value={attendanceDraft.checkOutAt} onChange={(event) => setAttendanceDraft((value) => ({...value, checkOutAt: event.target.value}))} className={inputClass} /></Field>
+            {attendanceDraft.status === 'PRESENTE' && (
+              <>
+                <Field label="Entrada"><input type="datetime-local" value={attendanceDraft.checkInAt} onChange={(event) => setAttendanceDraft((value) => ({...value, checkInAt: event.target.value}))} className={inputClass} /></Field>
+                <Field label="Início do intervalo"><input type="datetime-local" value={attendanceDraft.breakStartAt} onChange={(event) => setAttendanceDraft((value) => ({...value, breakStartAt: event.target.value}))} className={inputClass} /></Field>
+                <Field label="Retorno do intervalo"><input type="datetime-local" value={attendanceDraft.breakEndAt} onChange={(event) => setAttendanceDraft((value) => ({...value, breakEndAt: event.target.value}))} className={inputClass} /></Field>
+                <Field label="Saída"><input type="datetime-local" value={attendanceDraft.checkOutAt} onChange={(event) => setAttendanceDraft((value) => ({...value, checkOutAt: event.target.value}))} className={inputClass} /></Field>
+                <Field label="Início da hora extra"><input type="datetime-local" value={attendanceDraft.overtimeStartAt} onChange={(event) => setAttendanceDraft((value) => ({...value, overtimeStartAt: event.target.value}))} className={inputClass} /></Field>
+                <Field label="Fim da hora extra"><input type="datetime-local" value={attendanceDraft.overtimeEndAt} onChange={(event) => setAttendanceDraft((value) => ({...value, overtimeEndAt: event.target.value}))} className={inputClass} /></Field>
+              </>
+            )}
             <div className="sm:col-span-2"><Field label="Observações"><textarea value={attendanceDraft.notes} onChange={(event) => setAttendanceDraft((value) => ({...value, notes: event.target.value}))} className={textareaClass} /></Field></div>
           </div>
           <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
             <button type="button" className={secondaryButton} onClick={() => setAttendanceModalEmployee(null)}>Cancelar</button>
             <button type="submit" className={primaryButton} disabled={savingAttendance}>
               {savingAttendance ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarClock className="h-4 w-4" />}
-              Salvar jornada
+              Salvar expediente manual
             </button>
           </div>
         </form>
@@ -962,7 +997,7 @@ export const EmployeeReportsPage: React.FC = () => {
 
       <Modal title={`Iniciar atividade de ${activityModalEmployee?.employee.displayName || activityModalEmployee?.employee.name || ''}`} open={Boolean(activityModalEmployee)} onClose={() => setActivityModalEmployee(null)}>
         <form onSubmit={handleStartActivity} className="space-y-4">
-          <Field label="Buscar obra / cliente">
+          <Field label="Buscar cliente">
             <div className="flex gap-2">
               <input value={activityDraft.quoteSearch} onChange={(event) => setActivityDraft((value) => ({...value, quoteSearch: event.target.value}))} className={inputClass} placeholder="Ex.: Maria, cozinha, varanda..." />
               <button type="button" className={secondaryButton} onClick={() => void loadTargets(activityDraft.quoteSearch)} disabled={loadingTargets}>
@@ -971,28 +1006,28 @@ export const EmployeeReportsPage: React.FC = () => {
             </div>
           </Field>
 
-          <Field label="Obra vinculada">
-            <select value={activityDraft.quoteId} onChange={(event) => setActivityDraft((value) => ({...value, quoteId: event.target.value, pieceId: ''}))} className={inputClass}>
-              <option value="">Selecione</option>
+          {activityTargets.length > 0 && (
+            <div className="grid gap-2">
               {activityTargets.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.clientName} · {item.environment}
-                </option>
+                <button key={item.id} type="button" className={cn('rounded-2xl border px-4 py-3 text-left text-sm', activityDraft.quoteId === item.id ? 'border-brand-primary bg-brand-primary/10' : 'border-slate-200 bg-white')} onClick={() => setActivityDraft((value) => ({...value, quoteId: item.id, pieceId: ''}))}>
+                  <strong className="text-slate-900">{item.clientName}</strong>
+                  <span className="ml-2 text-slate-500">{item.environment}</span>
+                </button>
               ))}
-            </select>
-          </Field>
+            </div>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Etapa / função">
-              <select value={activityDraft.functionKey} onChange={(event) => setActivityDraft((value) => ({...value, functionKey: event.target.value}))} className={inputClass}>
-                <option value="">Selecione</option>
-                {catalog.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
-              </select>
-            </Field>
             <Field label="Peça / serviço">
               <select value={activityDraft.pieceId} onChange={(event) => setActivityDraft((value) => ({...value, pieceId: event.target.value}))} className={inputClass} disabled={!activeActivityTarget}>
                 <option value="">Sem peça específica</option>
                 {activeActivityTarget?.pieces.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+              </select>
+            </Field>
+            <Field label="Etapa / função">
+              <select value={activityDraft.functionKey} onChange={(event) => setActivityDraft((value) => ({...value, functionKey: event.target.value}))} className={inputClass}>
+                <option value="">Selecione</option>
+                {catalog.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
               </select>
             </Field>
           </div>
@@ -1001,7 +1036,7 @@ export const EmployeeReportsPage: React.FC = () => {
 
           <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
             <button type="button" className={secondaryButton} onClick={() => setActivityModalEmployee(null)}>Cancelar</button>
-            <button type="submit" className={primaryButton} disabled={savingActivity}>
+            <button type="submit" className={primaryButton} disabled={savingActivity || !activeActivityTarget || !activityDraft.functionKey}>
               {savingActivity ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />}
               Iniciar atividade
             </button>
@@ -1263,12 +1298,12 @@ const MyEmployeeOperationPage: React.FC = () => {
 
   const handleStartMyActivity = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!operation?.employee.id || !activityDraft.functionKey) return;
+    if (!operation?.employee.id || !activityDraft.functionKey || !selectedActivityTarget) return;
     await perform(
       () => startEmployeeActivity({
         employeeId: operation.employee.id,
-        clientId: activityDraft.clientId,
-        quoteId: activityDraft.quoteId,
+        clientId: selectedActivityTarget.clientId,
+        quoteId: selectedActivityTarget.id,
         functionKey: activityDraft.functionKey,
         pieceId: activityDraft.pieceId || undefined,
         pieceLabel: selectedActivityTarget?.pieces.find((piece) => piece.id === activityDraft.pieceId)?.label,
@@ -1284,10 +1319,12 @@ const MyEmployeeOperationPage: React.FC = () => {
 
   const attendance = operation.attendance;
   const overtime = operation.overtime;
-  const isWorking = Boolean(attendance?.checkInAt && !attendance?.checkOutAt);
+  const workdayStep = resolveWorkdayStep(attendance, overtime);
+  const isWorking = workdayStep === 'break' || workdayStep === 'finish';
   const regularDone = Boolean(attendance?.checkOutAt);
+  const inBreak = workdayStep === 'resume';
   const canTrackActivity = hasPermission('funcionarios', 'apontar');
-  const canOperateActivity = canTrackActivity && (isWorking || Boolean(overtime));
+  const canOperateActivity = canTrackActivity && !inBreak && (isWorking || Boolean(overtime));
   const activityMinutes = operation.activity ? runtimeActivityMinutes({startedAt: operation.activity.startedAt, endedAt: null, activePauseStartedAt: operation.activity.activePauseStartedAt || null, pausedTotalSeconds: operation.activity.pausedTotalSeconds} as EmployeeActivitySession, nowMs) : 0;
 
   return (
@@ -1310,16 +1347,20 @@ const MyEmployeeOperationPage: React.FC = () => {
           </div>
           <Clock3 className="h-6 w-6 text-brand-primary" />
         </div>
-        {operation.schedule.isWorkingDay && <div className="mt-6 grid gap-3 text-sm sm:grid-cols-3">
+        {operation.schedule.isWorkingDay && <div className="mt-6 grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-400">Entrada</span><strong className="mt-1 block text-slate-900">{formatClock(attendance?.checkInAt)}</strong></div>
+          <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-400">Intervalo</span><strong className="mt-1 block text-slate-900">{attendance?.breakStartAt ? `${formatClock(attendance.breakStartAt)} → ${formatClock(attendance.breakEndAt)}` : '--:--'}</strong></div>
           <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-400">Saída</span><strong className="mt-1 block text-slate-900">{formatClock(attendance?.checkOutAt)}</strong></div>
-          <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-400">Status</span><strong className="mt-1 block text-slate-900">{isWorking ? 'Trabalhando' : regularDone ? 'Expediente finalizado' : 'Ainda não iniciou'}</strong></div>
+          <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-400">Status</span><strong className="mt-1 block text-slate-900">{inBreak ? 'Em intervalo' : isWorking ? 'Trabalhando' : regularDone ? (overtime ? 'Hora extra' : 'Expediente finalizado') : 'Ainda não iniciou'}</strong></div>
         </div>}
         {operation.schedule.isWorkingDay && <div className="mt-6">
-          {!attendance?.checkInAt && <button disabled={saving} className={`${primaryButton} h-14 w-full text-base`} onClick={() => void perform(() => startMyWorkday(requestKey()), 'Expediente iniciado com sucesso.')}>INICIAR EXPEDIENTE</button>}
-          {isWorking && <button disabled={saving} className={`${primaryButton} h-14 w-full text-base`} onClick={() => void perform(() => finishMyWorkday(requestKey()), 'Expediente finalizado com sucesso.')}>FINALIZAR EXPEDIENTE</button>}
-          {regularDone && !overtime && <button disabled={saving} className={`${secondaryButton} h-14 w-full text-base`} onClick={() => void perform(() => startMyOvertime(requestKey()), 'Hora extra iniciada com sucesso.')}>INICIAR HORA EXTRA</button>}
-          {overtime && <button disabled={saving} className={`${primaryButton} h-14 w-full text-base`} onClick={() => void perform(() => finishMyOvertime(overtime.id, requestKey()), 'Hora extra finalizada com sucesso.')}>FINALIZAR HORA EXTRA</button>}
+          {workdayStep === 'start' && <button disabled={saving} className={`${primaryButton} h-14 w-full text-base`} onClick={() => void perform(() => startMyWorkday(requestKey()), 'Expediente iniciado com sucesso.')}>INICIAR EXPEDIENTE</button>}
+          {workdayStep === 'break' && <button disabled={saving} className={`${primaryButton} h-14 w-full text-base`} onClick={() => void perform(() => startMyBreak(requestKey()), 'Intervalo iniciado com sucesso.')}>INICIAR INTERVALO</button>}
+          {workdayStep === 'resume' && <button disabled={saving} className={`${primaryButton} h-14 w-full text-base`} onClick={() => void perform(() => resumeMyWorkday(requestKey()), 'Expediente retomado com sucesso.')}>RETOMAR EXPEDIENTE</button>}
+          {workdayStep === 'finish' && <button disabled={saving} className={`${primaryButton} h-14 w-full text-base`} onClick={() => void perform(() => finishMyWorkday(requestKey()), 'Expediente finalizado com sucesso.')}>FINALIZAR EXPEDIENTE</button>}
+          {workdayStep === 'overtimeStart' && <button disabled={saving} className={`${secondaryButton} h-14 w-full text-base`} onClick={() => void perform(() => startMyOvertime(requestKey()), 'Hora extra iniciada com sucesso.')}>INICIAR HORA EXTRA</button>}
+          {workdayStep === 'overtimeFinish' && overtime && <button disabled={saving} className={`${primaryButton} h-14 w-full text-base`} onClick={() => void perform(() => finishMyOvertime(overtime.id, requestKey()), 'Hora extra finalizada com sucesso.')}>FINALIZAR HORA EXTRA</button>}
+          {workdayStep === 'done' && <div className="rounded-2xl bg-emerald-50 px-4 py-3 text-center text-sm font-medium text-emerald-700">Dia concluído</div>}
         </div>}
       </section>
 
@@ -1335,7 +1376,7 @@ const MyEmployeeOperationPage: React.FC = () => {
             ) : (
               <div className="mt-3">
                 <h2 className="text-xl font-semibold text-slate-900">Nenhuma atividade em andamento</h2>
-                <p className="mt-1 text-sm text-slate-500">{canOperateActivity ? 'Escolha a etapa e vincule uma obra se fizer sentido.' : 'Inicie o expediente para liberar apontamentos de produção.'}</p>
+                <p className="mt-1 text-sm text-slate-500">{canOperateActivity ? 'Busque o cliente, escolha a peça/serviço e informe a etapa.' : 'Inicie o expediente para liberar apontamentos de produção.'}</p>
               </div>
             )}
           </div>
@@ -1352,14 +1393,8 @@ const MyEmployeeOperationPage: React.FC = () => {
 
       <Modal title="Iniciar atividade" open={activityModalOpen} onClose={() => setActivityModalOpen(false)} wide>
         <form className="space-y-5" onSubmit={handleStartMyActivity}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Etapa">
-              <select required value={activityDraft.functionKey} onChange={(event) => setActivityDraft((current) => ({...current, functionKey: event.target.value}))} className={inputClass}>
-                <option value="">Selecione</option>
-                {catalog.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
-              </select>
-            </Field>
-            <Field label="Buscar obra">
+          <div className="grid gap-4">
+            <Field label="Buscar cliente">
               <input value={activityDraft.quoteSearch} onChange={(event) => setActivityDraft((current) => ({...current, quoteSearch: event.target.value, quoteId: '', clientId: '', pieceId: ''}))} className={inputClass} placeholder="Cliente ou ambiente" />
             </Field>
           </div>
@@ -1384,13 +1419,20 @@ const MyEmployeeOperationPage: React.FC = () => {
             </select>
           </Field>
 
+          <Field label="Etapa / função">
+            <select required value={activityDraft.functionKey} onChange={(event) => setActivityDraft((current) => ({...current, functionKey: event.target.value}))} className={inputClass}>
+              <option value="">Selecione</option>
+              {catalog.map((item) => <option key={item.key} value={item.key}>{item.label}</option>)}
+            </select>
+          </Field>
+
           <Field label="Observação">
             <textarea value={activityDraft.notes} onChange={(event) => setActivityDraft((current) => ({...current, notes: event.target.value}))} className={textareaClass} />
           </Field>
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button type="button" className={secondaryButton} onClick={() => setActivityModalOpen(false)}>Cancelar</button>
-            <button type="submit" className={primaryButton} disabled={saving || !activityDraft.functionKey}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />} Iniciar atividade</button>
+            <button type="submit" className={primaryButton} disabled={saving || !selectedActivityTarget || !activityDraft.functionKey}>{saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4" />} Iniciar atividade</button>
           </div>
         </form>
       </Modal>

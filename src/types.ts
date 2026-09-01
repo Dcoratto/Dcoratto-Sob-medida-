@@ -530,6 +530,8 @@ export interface EmployeeAttendanceRecord {
   scheduledStartTime?: string | null;
   scheduledEndTime?: string | null;
   scheduledBreakMinutes?: number;
+  recordedSource?: 'SELF' | 'MANUAL';
+  manualReason?: string | null;
   notes?: string | null;
   createdByUid?: string;
   createdByName?: string;
@@ -546,6 +548,7 @@ export interface EmployeeOvertimeSession {
   startedAt: string;
   endedAt?: string | null;
   status: 'ATIVA' | 'CONCLUIDA';
+  recordedSource?: 'SELF' | 'MANUAL';
 }
 
 export type EmployeeActivityStatus = 'ATIVA' | 'PAUSADA' | 'FINALIZADA';

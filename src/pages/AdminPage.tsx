@@ -1,12 +1,12 @@
 import React, {useEffect, useRef, useState} from 'react';
-import {addDoc, collection, doc, getDocs, onSnapshot, orderBy, query, selectFields, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from '../lib/firestore';
+import {collection, doc, getDocs, onSnapshot, orderBy, query, selectFields, serverTimestamp, setDoc, Timestamp, updateDoc, writeBatch} from '../lib/firestore';
 import {deleteObject, getDownloadURL, imageVariantUrl, ref as storageRef, storagePath, uploadBytes, uploadDataUrl} from '../lib/storage';
-import {AlertTriangle, BriefcaseBusiness, Building2, CheckCircle2, ChevronDown, CreditCard, Factory, Home, Mail, Package, Pencil, Plus, ShieldAlert, Trash2, Truck, XCircle} from 'lucide-react';
+import {AlertTriangle, Building2, CheckCircle2, ChevronDown, CreditCard, Factory, Home, Mail, Package, Pencil, ShieldAlert, Trash2, Truck, XCircle} from 'lucide-react';
 import {db} from '../lib/firestore';
 import {storage} from '../lib/storage';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {useAuth} from '../contexts/AuthContext';
-import {AccessRole, AccessUser, Employee, EmployeeRole, FixtureCatalogItem, FixtureCategory, InventoryItem, Material, PermissionMap, Quote} from '../types';
+import {AccessRole, AccessUser, FixtureCatalogItem, FixtureCategory, InventoryItem, Material, PermissionMap, Quote} from '../types';
 import {cn, formatCentimeters} from '../lib/utils';
 import { SettingsPage } from './SettingsPage';
 import {ACCESS_ROLES, ACTION_LABELS, getDefaultPermissions, hasPermission, isMasterAdmin, mergePermissions, MODULE_LABELS, roleLabel} from '../lib/permissions';
@@ -18,7 +18,6 @@ import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {AdminVehiclesPanel} from '../components/admin/AdminVehiclesPanel';
 
-const employeeRoles: EmployeeRole[] = ['Vendedor', 'Medidor', 'Cortador', 'Acabador', 'Instalador', 'Entregador', 'Administrativo'];
 const slugify = (value: string) =>
   value
     .trim()
@@ -151,22 +150,14 @@ export const AdminPage: React.FC = () => {
   const {isAdmin, accessUser, user: authUser, isMasterAdmin: masterAdmin} = useAuth();
   const {settings} = useSettings();
   const [users, setUsers] = useState<AccessUser[]>([]);
-  const [employees, setEmployees] = useState<Employee[]>([]);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
   const [loading, setLoading] = useState(true);
-  const [savingEmployee, setSavingEmployee] = useState(false);
-  const [employeeError, setEmployeeError] = useState('');
   const [resetConfirmation, setResetConfirmation] = useState('');
   const [resettingData, setResettingData] = useState(false);
   const [resetMessage, setResetMessage] = useState('');
   const [resetError, setResetError] = useState('');
-  const [employeeForm, setEmployeeForm] = useState<{name: string; role: EmployeeRole; phone: string}>({
-    name: '',
-    role: 'Medidor',
-    phone: '',
-  });
   const [fixtureCatalog, setFixtureCatalog] = useState<FixtureCatalogItem[]>([]);
   const [savingMaterial, setSavingMaterial] = useState(false);
   const [materialError, setMaterialError] = useState('');
@@ -214,16 +205,12 @@ export const AdminPage: React.FC = () => {
     manualFileName: '',
     notes: '',
   });
-  const [employeeDraftRecovered, setEmployeeDraftRecovered] = useState(false);
   const [materialDraftRecovered, setMaterialDraftRecovered] = useState(false);
   const [fixtureDraftRecovered, setFixtureDraftRecovered] = useState(false);
-  const [employeeDraftSavedAt, setEmployeeDraftSavedAt] = useState<string | null>(null);
   const [materialDraftSavedAt, setMaterialDraftSavedAt] = useState<string | null>(null);
   const [fixtureDraftSavedAt, setFixtureDraftSavedAt] = useState<string | null>(null);
-  const employeeDraftLoadedRef = useRef(false);
   const materialDraftLoadedRef = useRef(false);
   const fixtureDraftLoadedRef = useRef(false);
-  const employeeDraftKey = `admin-employee-draft:${accessUser?.uid || 'anonymous'}`;
   const materialDraftKey = `admin-material-draft:${accessUser?.uid || 'anonymous'}`;
   const fixtureDraftKey = `admin-fixture-draft:${accessUser?.uid || 'anonymous'}`;
 
@@ -286,26 +273,6 @@ export const AdminPage: React.FC = () => {
   }, [editingFixture, fixtureDraftKey, fixtureForm]);
 
   useEffect(() => {
-    if (employeeDraftLoadedRef.current) return;
-    const {data: draft, savedAt} = loadDraftMeta<typeof employeeForm>(employeeDraftKey);
-    if (draft) {
-      setEmployeeForm({...employeeForm, ...draft});
-      setEmployeeDraftRecovered(true);
-      setEmployeeDraftSavedAt(savedAt);
-    } else {
-      setEmployeeDraftRecovered(false);
-      setEmployeeDraftSavedAt(null);
-    }
-    employeeDraftLoadedRef.current = true;
-  }, [employeeDraftKey]);
-
-  useEffect(() => {
-    if (!employeeDraftLoadedRef.current) return;
-    const savedAt = saveDraft(employeeDraftKey, employeeForm);
-    if (savedAt) setEmployeeDraftSavedAt(savedAt);
-  }, [employeeDraftKey, employeeForm]);
-
-  useEffect(() => {
     const q = query(
       collection(db, 'materials'),
       selectFields('name', 'provider', 'category', 'materialLine', 'materialType', 'thicknessLabel', 'texture', 'quoteDescription', 'imageUrl', 'thumbnailUrl', 'mediumUrl', 'originalUrl', 'baseCostPerM2', 'marginPercentage', 'pricePerM2', 'active'),
@@ -339,26 +306,6 @@ export const AdminPage: React.FC = () => {
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setFixtureCatalog(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as FixtureCatalogItem)));
     });
-    return unsubscribe;
-  }, []);
-
-  useEffect(() => {
-    const q = query(
-      collection(db, 'employees'),
-      selectFields('name', 'role', 'phone', 'active'),
-      orderBy('name', 'asc'),
-    );
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        setEmployees(snapshot.docs.map((item) => ({id: item.id, ...item.data()} as Employee)));
-        setEmployeeError('');
-      },
-      (error) => {
-        console.error('Erro ao carregar funcionários:', error);
-        setEmployeeError('Não foi possível carregar os funcionários agora.');
-      },
-    );
     return unsubscribe;
   }, []);
 
@@ -420,49 +367,6 @@ export const AdminPage: React.FC = () => {
     setUsers((prev) => prev.filter((user) => user.uid !== target.uid));
   };
 
-  const addEmployee = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const employeeName = employeeForm.name.trim();
-    if (!employeeName) {
-      setEmployeeError('Informe o nome do funcionário antes de adicionar.');
-      return;
-    }
-
-    setSavingEmployee(true);
-    setEmployeeError('');
-    try {
-      await addDoc(collection(db, 'employees'), {
-        name: employeeName,
-        role: employeeForm.role,
-        phone: employeeForm.phone.trim(),
-        active: true,
-        createdAt: Timestamp.now(),
-      });
-      clearDraft(employeeDraftKey);
-      setEmployeeDraftRecovered(false);
-      setEmployeeDraftSavedAt(null);
-      employeeDraftLoadedRef.current = true;
-      setEmployeeForm({name: '', role: 'Medidor', phone: ''});
-    } catch (error) {
-      console.error('Erro ao adicionar funcionário:', error);
-      setEmployeeError('Não foi possível adicionar o funcionário. Confira sua conexão e tente novamente.');
-    } finally {
-      setSavingEmployee(false);
-    }
-  };
-
-  const toggleEmployee = async (employee: Employee) => {
-    await updateDoc(doc(db, 'employees', employee.id), {active: !employee.active});
-  };
-
-  const deleteEmployee = async (employeeId: string) => {
-    const confirmed = window.confirm('Tem certeza que deseja excluir este funcionário?');
-    if (!confirmed) return;
-    const ok = await deleteFirestoreDoc('employees', employeeId);
-    if (!ok) return;
-    setEmployees((prev) => prev.filter((employee) => employee.id !== employeeId));
-  };
-
   const resetMaterialForm = () => {
     materialDraftLoadedRef.current = true;
     setMaterialDraftRecovered(false);
@@ -522,15 +426,6 @@ export const AdminPage: React.FC = () => {
     setFixtureManualFile(null);
     setFixtureError('');
     clearDraft(fixtureDraftKey);
-  };
-
-  const clearEmployeeDraftState = () => {
-    clearDraft(employeeDraftKey);
-    employeeDraftLoadedRef.current = true;
-    setEmployeeDraftRecovered(false);
-    setEmployeeDraftSavedAt(null);
-    setEmployeeError('');
-    setEmployeeForm({name: '', role: 'Medidor', phone: ''});
   };
 
   const startEditingFixture = (item: FixtureCatalogItem) => {
@@ -826,96 +721,13 @@ export const AdminPage: React.FC = () => {
     <div className="space-y-6 pb-20">
       <header>
         <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Administração</h1>
-        <p className="text-slate-500 mt-1">Gerencie usuários, permissões e funcionários da produção.</p>
+        <p className="text-slate-500 mt-1">Gerencie usuários, permissões, catálogos e configurações do sistema.</p>
       </header>
-
-      <AdminAccordionSection
-        title="Funcionários"
-        description="Cadastre a equipe para vincular responsáveis e avaliações aos projetos."
-        defaultOpen
-      >
-        <section className="space-y-6">
-        <div className="flex items-center justify-end gap-4">
-          <BriefcaseBusiness className="w-6 h-6 text-brand-primary" />
-        </div>
-
-        <div className="space-y-2">
-        {employeeDraftRecovered && (
-          <DraftNotice
-            message="Recuperamos o último preenchimento do cadastro de funcionário para você continuar sem retrabalho."
-            savedAt={employeeDraftSavedAt}
-            onClear={clearEmployeeDraftState}
-          />
-        )}
-        <form onSubmit={addEmployee} className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_180px_180px_auto] gap-3">
-          <input
-            value={employeeForm.name}
-            onChange={(event) => {
-              setEmployeeError('');
-              setEmployeeForm((form) => ({...form, name: event.target.value}));
-            }}
-            placeholder="Nome do funcionário"
-            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20"
-          />
-          <select
-            value={employeeForm.role}
-            onChange={(event) => setEmployeeForm((form) => ({...form, role: event.target.value as EmployeeRole}))}
-            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20"
-          >
-            {employeeRoles.map((role) => (
-              <option key={role} value={role}>{role}</option>
-            ))}
-          </select>
-          <input
-            value={employeeForm.phone}
-            onChange={(event) => setEmployeeForm((form) => ({...form, phone: event.target.value}))}
-            placeholder="Telefone"
-            className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20"
-          />
-          <button type="submit" disabled={savingEmployee} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 font-bold text-[#3F3A34] shadow-lg shadow-brand-primary/20 disabled:cursor-not-allowed disabled:opacity-60">
-            <Plus className="w-4 h-4" />
-            {savingEmployee ?'Adicionando...' : 'Adicionar'}
-          </button>
-        </form>
-        <DraftAutosaveStatus savedAt={employeeDraftSavedAt} />
-        {employeeError && (
-          <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
-            {employeeError}
-          </div>
-        )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-          {employees.map((employee) => (
-            <div key={employee.id} className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 flex items-center justify-between gap-3">
-              <div>
-                <div className="font-bold text-slate-900">{employee.name}</div>
-                <div className="text-xs text-slate-400">{employee.role}{employee.phone ?` · ${employee.phone}` : ''}</div>
-              </div>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => toggleEmployee(employee)}
-                  className={cn('rounded-full px-3 py-1 text-[10px] font-bold uppercase', employee.active ?'bg-green-50 text-green-700' : 'bg-slate-200 text-slate-500')}
-                >
-                  {employee.active ?'Ativo' : 'Inativo'}
-                </button>
-                <button type="button" onClick={() => deleteEmployee(employee.id)} className="rounded-lg p-2 text-slate-400 hover:bg-red-50 hover:text-red-600">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          ))}
-          {employees.length === 0 && (
-            <div className="rounded-2xl bg-slate-50 p-5 text-sm font-semibold text-slate-400">Nenhum funcionário cadastrado.</div>
-          )}
-        </div>
-        </section>
-      </AdminAccordionSection>
 
       <AdminAccordionSection
         title="Catálogo de pedras e chapas"
         description="Gerencie pedras e as opções de chapas no mesmo lugar."
+        defaultOpen
       >
         <section className="space-y-6">
         {editingMaterial && (

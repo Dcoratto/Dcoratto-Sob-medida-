@@ -77,6 +77,7 @@ const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 type Feedback = {type: 'success' | 'error'; message: string} | null;
 type HistoryPeriod = 'today' | 'week' | 'month' | 'custom';
+type EmployeeAdminTab = 'reports' | 'team';
 
 const formatMinutes = (value: number) => {
   const total = Math.max(0, Math.round(value || 0));
@@ -210,6 +211,7 @@ export const EmployeeReportsPage: React.FC = () => {
   const canManageSchedule = hasPermission('funcionarios', 'jornada');
 
   const [feedback, setFeedback] = React.useState<Feedback>(null);
+  const [adminTab, setAdminTab] = React.useState<EmployeeAdminTab>('reports');
   const [search, setSearch] = React.useState('');
   const deferredSearch = React.useDeferredValue(search);
   const [loading, setLoading] = React.useState(true);
@@ -602,20 +604,24 @@ export const EmployeeReportsPage: React.FC = () => {
     () => activityTargets.find((item) => item.id === activityDraft.quoteId) || null,
     [activityDraft.quoteId, activityTargets],
   );
+  const isTeamTab = adminTab === 'team';
 
   return (
     <div className="space-y-6 pb-20">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-3xl font-display font-bold tracking-tight text-slate-900">Funcionários</h1>
-          <p className="mt-1 max-w-3xl text-slate-500">Cadastro, jornada, presença e apontamento operacional da equipe com base pronta para produtividade, horas trabalhadas e custos futuros.</p>
+          <h1 className="text-3xl font-display font-bold tracking-tight text-slate-900">Administração de Funcionários</h1>
+          <p className="mt-1 max-w-3xl text-slate-500">Relatórios, cadastro, jornada e gestão da equipe em um único lugar.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Link type="button" className={secondaryButton} to="/employees">
+            Voltar à operação
+          </Link>
           <button type="button" className={secondaryButton} onClick={() => setRefreshKey((value) => value + 1)}>
             <RefreshCcw className="h-4 w-4" />
             Atualizar
           </button>
-          {canManage && (
+          {isTeamTab && canManage && (
             <button type="button" className={primaryButton} onClick={openCreateEmployee}>
               <Plus className="h-4 w-4" />
               Novo funcionário
@@ -623,6 +629,25 @@ export const EmployeeReportsPage: React.FC = () => {
           )}
         </div>
       </header>
+
+      <section className="flex flex-wrap gap-2 rounded-[28px] border border-slate-100 bg-white p-2 shadow-sm">
+        {[
+          {key: 'reports' as const, label: 'Relatórios'},
+          {key: 'team' as const, label: 'Funcionários'},
+        ].map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            onClick={() => setAdminTab(item.key)}
+            className={cn(
+              'inline-flex h-11 items-center justify-center rounded-2xl px-4 text-sm font-medium transition',
+              adminTab === item.key ? 'bg-brand-primary text-[#3F3A34] shadow-sm' : 'text-slate-600 hover:bg-slate-50',
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
+      </section>
 
       {feedback && (
         <div className={cn(
@@ -633,7 +658,7 @@ export const EmployeeReportsPage: React.FC = () => {
         </div>
       )}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {adminTab === 'reports' && <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           {label: 'Equipe cadastrada', value: String(summary.total), icon: Users},
           {label: 'Trabalhando agora', value: String(summary.activeNow), icon: PlayCircle},
@@ -652,7 +677,7 @@ export const EmployeeReportsPage: React.FC = () => {
             </div>
           </div>
         ))}
-      </section>
+      </section>}
 
       <section className="rounded-[32px] border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
         <div className="relative max-w-xl">
@@ -738,12 +763,12 @@ export const EmployeeReportsPage: React.FC = () => {
 
               <div className="mt-5 flex flex-wrap gap-2">
                 <button type="button" className={secondaryButton} onClick={() => setDetailEmployee(item)}>Detalhes</button>
-                {canManage && <button type="button" className={secondaryButton} onClick={() => void openEditEmployee(item)}>Editar</button>}
-                {canManageSchedule && <button type="button" className={secondaryButton} onClick={() => openAttendanceModal(item)}><CalendarClock className="h-4 w-4" /> Jornada</button>}
-                {canTrack && !item.currentSession && item.employee.status === 'ATIVO' && <button type="button" className={primaryButton} onClick={() => openActivityModal(item)}><PlayCircle className="h-4 w-4" /> Iniciar</button>}
-                {canTrack && item.currentSession?.status === 'ATIVA' && <button type="button" className={secondaryButton} onClick={() => void handlePauseActivity(item)}><PauseCircle className="h-4 w-4" /> Pausar</button>}
-                {canTrack && item.currentSession?.status === 'PAUSADA' && <button type="button" className={secondaryButton} onClick={() => void handleResumeActivity(item)}><TimerReset className="h-4 w-4" /> Retomar</button>}
-                {canTrack && item.currentSession && <button type="button" className={primaryButton} onClick={() => void handleFinishActivity(item)}><CheckCircle2 className="h-4 w-4" /> Finalizar</button>}
+                {isTeamTab && canManage && <button type="button" className={secondaryButton} onClick={() => void openEditEmployee(item)}>Editar</button>}
+                {isTeamTab && canManageSchedule && <button type="button" className={secondaryButton} onClick={() => openAttendanceModal(item)}><CalendarClock className="h-4 w-4" /> Jornada</button>}
+                {isTeamTab && canTrack && !item.currentSession && item.employee.status === 'ATIVO' && <button type="button" className={primaryButton} onClick={() => openActivityModal(item)}><PlayCircle className="h-4 w-4" /> Iniciar</button>}
+                {isTeamTab && canTrack && item.currentSession?.status === 'ATIVA' && <button type="button" className={secondaryButton} onClick={() => void handlePauseActivity(item)}><PauseCircle className="h-4 w-4" /> Pausar</button>}
+                {isTeamTab && canTrack && item.currentSession?.status === 'PAUSADA' && <button type="button" className={secondaryButton} onClick={() => void handleResumeActivity(item)}><TimerReset className="h-4 w-4" /> Retomar</button>}
+                {isTeamTab && canTrack && item.currentSession && <button type="button" className={primaryButton} onClick={() => void handleFinishActivity(item)}><CheckCircle2 className="h-4 w-4" /> Finalizar</button>}
               </div>
             </article>
           );
@@ -1272,7 +1297,7 @@ const MyEmployeeOperationPage: React.FC = () => {
           <p className="text-sm text-slate-500">{new Intl.DateTimeFormat('pt-BR', {weekday: 'long', day: '2-digit', month: 'long'}).format(new Date())}</p>
           <h1 className="mt-1 text-3xl font-semibold text-slate-900">Olá, {operation.employee.displayName || operation.employee.name}</h1>
         </div>
-        {hasPermission('funcionarios', 'verRelatorios') && <Link className={secondaryButton} to="/employees/reports">Relatórios</Link>}
+        {hasPermission('funcionarios', 'verRelatorios') && <Link className={secondaryButton} to="/employees/reports">Administração de Funcionários</Link>}
       </header>
 
       {feedback && <div className={cn('rounded-2xl px-4 py-3 text-sm font-medium', feedback.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700')}>{feedback.message}</div>}

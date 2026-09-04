@@ -47,16 +47,24 @@ export type QuotePaymentSimulationOption = {
   methodName: string;
   adjustment: number;
   subtotalBeforeAdjustment: number;
+  balanceBeforeAdjustment: number;
   financedAmount: number;
   totalPrice: number;
   installmentCount: number;
   installmentAmount: number;
+  lastInstallmentAmount: number;
+  installmentTotalAmount: number;
   entryAmount: number;
   paymentMode: QuotePaymentMode;
   isCurrent: boolean;
 };
 
 const normalizePercent = (value?: number) => Math.max(0, Number(value) || 0);
+const toCents = (value: number) => Math.round((Number(value) || 0) * 100);
+const fromCents = (value: number) => value / 100;
+const applyPercentToCents = (amountCents: number, percent: number) => (
+  Math.round(amountCents * ((Number(percent) || 0) / 100))
+);
 
 const resolveOfficialPaymentMode = (context: QuotePaymentSimulationContext): QuotePaymentMode =>
   context.officialPaymentMode
@@ -74,7 +82,7 @@ const resolveOfficialMethodName = (context: QuotePaymentSimulationContext) => {
 };
 
 const resolveSimulationEntryAmount = (context: QuotePaymentSimulationContext) =>
-  Math.max(0, Number(context.simulationEntryAmount ?? context.entryAmount ?? 0) || 0);
+  Number(context.simulationEntryAmount ?? context.entryAmount ?? 0) || 0;
 
 const resolveSimulationPaymentMode = (context: QuotePaymentSimulationContext): QuotePaymentMode => {
   if (context.simulationPaymentMode) return context.simulationPaymentMode;
@@ -100,33 +108,33 @@ export const calculateQuotePaymentTotals = ({
   negotiationDiscountPercent,
   rtPercent,
 }: QuotePaymentTotalsInput): QuotePaymentTotals => {
-  const normalizedSubtotal = Math.max(0, Number(subtotalBeforeAdjustment) || 0);
-  const normalizedEntryAmount = Math.min(Math.max(Number(entryAmount) || 0, 0), normalizedSubtotal);
+  const normalizedSubtotalCents = Math.max(0, toCents(subtotalBeforeAdjustment));
+  const normalizedEntryAmountCents = Math.min(Math.max(toCents(entryAmount), 0), normalizedSubtotalCents);
   const normalizedAdjustment = Number(selectedAdjustment) || 0;
-  const financedAmount = Math.max(0, normalizedSubtotal - normalizedEntryAmount);
-  const adjustmentBase = paymentMode === 'entry' ? financedAmount : normalizedSubtotal;
-  const adjustmentValue = adjustmentBase * (normalizedAdjustment / 100);
-  const paymentAdjustedTotal = normalizedSubtotal + adjustmentValue;
+  const financedAmountCents = Math.max(0, normalizedSubtotalCents - normalizedEntryAmountCents);
+  const adjustmentBaseCents = paymentMode === 'entry' ? financedAmountCents : normalizedSubtotalCents;
+  const adjustmentValueCents = applyPercentToCents(adjustmentBaseCents, normalizedAdjustment);
+  const paymentAdjustedTotalCents = normalizedSubtotalCents + adjustmentValueCents;
   const normalizedCommissionPercent = normalizePercent(commissionPercent);
   const normalizedNegotiationDiscountPercent = normalizePercent(negotiationDiscountPercent);
   const normalizedRtPercent = normalizePercent(rtPercent);
-  const commissionValue = paymentAdjustedTotal * (normalizedCommissionPercent / 100);
-  const negotiationDiscountValue = paymentAdjustedTotal * (normalizedNegotiationDiscountPercent / 100);
-  const rtValue = paymentAdjustedTotal * (normalizedRtPercent / 100);
-  const totalPrice = paymentAdjustedTotal + commissionValue - negotiationDiscountValue + rtValue;
+  const commissionValueCents = applyPercentToCents(paymentAdjustedTotalCents, normalizedCommissionPercent);
+  const negotiationDiscountValueCents = applyPercentToCents(paymentAdjustedTotalCents, normalizedNegotiationDiscountPercent);
+  const rtValueCents = applyPercentToCents(paymentAdjustedTotalCents, normalizedRtPercent);
+  const totalPriceCents = paymentAdjustedTotalCents + commissionValueCents - negotiationDiscountValueCents + rtValueCents;
 
   return {
-    adjustmentBase,
-    adjustmentValue,
-    paymentAdjustedTotal,
-    commissionValue,
-    negotiationDiscountValue,
-    rtValue,
-    totalPrice,
+    adjustmentBase: fromCents(adjustmentBaseCents),
+    adjustmentValue: fromCents(adjustmentValueCents),
+    paymentAdjustedTotal: fromCents(paymentAdjustedTotalCents),
+    commissionValue: fromCents(commissionValueCents),
+    negotiationDiscountValue: fromCents(negotiationDiscountValueCents),
+    rtValue: fromCents(rtValueCents),
+    totalPrice: fromCents(totalPriceCents),
   };
 };
 
-export const calculateQuoteInstallmentAmount = ({
+export const calculateQuoteInstallmentBreakdown = ({
   totalPrice,
   paymentMode,
   entryAmount,
@@ -140,10 +148,33 @@ export const calculateQuoteInstallmentAmount = ({
   const normalizedTotalPrice = Math.max(0, Number(totalPrice) || 0);
   const normalizedEntryAmount = Math.max(0, Number(entryAmount) || 0);
   const normalizedInstallmentCount = Math.max(1, Number(installmentCount) || 1);
+  const installmentBaseCents = paymentMode === 'entry'
+    ? Math.max(0, toCents(normalizedTotalPrice) - toCents(normalizedEntryAmount))
+    : toCents(normalizedTotalPrice);
+  const regularInstallmentCents = Math.floor(installmentBaseCents / normalizedInstallmentCount);
+  const remainderCents = installmentBaseCents - (regularInstallmentCents * normalizedInstallmentCount);
+
+  return {
+    installmentAmount: fromCents(regularInstallmentCents),
+    lastInstallmentAmount: fromCents(regularInstallmentCents + remainderCents),
+    installmentTotalAmount: fromCents(installmentBaseCents),
+  };
+};
+
+export const calculateQuoteInstallmentAmount = ({
+  totalPrice,
+  paymentMode,
+  entryAmount,
+  installmentCount,
+}: Parameters<typeof calculateQuoteInstallmentBreakdown>[0]) => {
+  const normalizedTotalPrice = Math.max(0, Number(totalPrice) || 0);
+  const normalizedEntryAmount = Math.max(0, Number(entryAmount) || 0);
+  const normalizedInstallmentCount = Math.max(1, Number(installmentCount) || 1);
   const installmentBase = paymentMode === 'entry'
     ? Math.max(0, normalizedTotalPrice - normalizedEntryAmount)
     : normalizedTotalPrice;
-  return normalizedInstallmentCount > 0 ? installmentBase / normalizedInstallmentCount : installmentBase;
+
+  return installmentBase / normalizedInstallmentCount;
 };
 
 const resolvePricingMultiplier = ({
@@ -219,6 +250,27 @@ export const resolveQuotePaymentSimulationBase = (
   };
 };
 
+export const validateQuoteSimulationEntryAmount = ({
+  entryAmount,
+  subtotalBeforeAdjustment,
+}: {
+  entryAmount: number;
+  subtotalBeforeAdjustment: number;
+}) => {
+  const entryAmountCents = toCents(entryAmount);
+  const subtotalBeforeAdjustmentCents = Math.max(0, toCents(subtotalBeforeAdjustment));
+
+  if (entryAmountCents < 0) {
+    return 'A entrada não pode ser negativa.';
+  }
+
+  if (entryAmountCents > subtotalBeforeAdjustmentCents) {
+    return 'A entrada não pode ser maior que o valor base da proposta.';
+  }
+
+  return '';
+};
+
 export const buildQuotePaymentSimulationOptions = (
   context: QuotePaymentSimulationContext,
 ): QuotePaymentSimulationOption[] => {
@@ -229,11 +281,13 @@ export const buildQuotePaymentSimulationOptions = (
   if (!simulationBase) return [];
 
   const paymentMode = resolveSimulationPaymentMode(context);
-  const normalizedEntryAmount = Math.min(
-    resolveSimulationEntryAmount(context),
-    simulationBase.subtotalBeforeAdjustment,
-  );
-  const financedAmount = Math.max(0, simulationBase.subtotalBeforeAdjustment - normalizedEntryAmount);
+  const normalizedEntryAmount = resolveSimulationEntryAmount(context);
+  if (validateQuoteSimulationEntryAmount({
+    entryAmount: normalizedEntryAmount,
+    subtotalBeforeAdjustment: simulationBase.subtotalBeforeAdjustment,
+  })) return [];
+
+  const balanceBeforeAdjustment = Math.max(0, simulationBase.subtotalBeforeAdjustment - normalizedEntryAmount);
   const isOfficialScenario = paymentMode === simulationBase.officialPaymentMode
     && Math.abs(normalizedEntryAmount - simulationBase.officialEntryAmount) < 0.000001;
 
@@ -248,21 +302,27 @@ export const buildQuotePaymentSimulationOptions = (
       rtPercent: normalizePercent(context.rtPercent),
     });
     const installmentCount = parseInstallmentCountFromMethod(method.name);
-    const installmentAmount = calculateQuoteInstallmentAmount({
+    const installmentBreakdown = calculateQuoteInstallmentBreakdown({
       totalPrice: totals.totalPrice,
       paymentMode,
       entryAmount: normalizedEntryAmount,
       installmentCount,
     });
+    const financedAmount = paymentMode === 'entry'
+      ? installmentBreakdown.installmentTotalAmount
+      : totals.totalPrice;
 
     return {
       methodName: method.name,
       adjustment: method.adjustment,
       subtotalBeforeAdjustment: simulationBase.subtotalBeforeAdjustment,
+      balanceBeforeAdjustment,
       financedAmount,
       totalPrice: totals.totalPrice,
       installmentCount,
-      installmentAmount,
+      installmentAmount: installmentBreakdown.installmentAmount,
+      lastInstallmentAmount: installmentBreakdown.lastInstallmentAmount,
+      installmentTotalAmount: installmentBreakdown.installmentTotalAmount,
       entryAmount: normalizedEntryAmount,
       paymentMode,
       isCurrent: isOfficialScenario && method.name === simulationBase.officialMethodName,

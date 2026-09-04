@@ -24,6 +24,7 @@ import {
   buildQuotePaymentSimulationOptions,
   QuotePaymentMethodOption,
   resolveQuotePaymentSimulationBase,
+  validateQuoteSimulationEntryAmount,
 } from '../lib/quotePaymentSimulation';
 import {cn, formatCurrency} from '../lib/utils';
 
@@ -222,8 +223,10 @@ const SectionTitle = ({children}: {children: React.ReactNode}) => (
 const formatCurrencyInputDisplay = (value: number) => formatCurrency(Math.max(0, Number(value) || 0));
 
 const parseCurrencyInputDigits = (value: string) => {
+  const isNegative = /^\s*-/.test(value);
   const digits = value.replace(/\D/g, '');
-  return digits ? Number(digits) / 100 : 0;
+  const amount = digits ? Number(digits) / 100 : 0;
+  return isNegative ? -amount : amount;
 };
 
 const normalizePresentationAreaValue = (value: unknown) => {
@@ -295,10 +298,15 @@ const formatSimulationMethodHeading = (methodName: string) => {
 const formatSimulationMethodDetail = (option: {
   installmentCount: number;
   installmentAmount: number;
+  lastInstallmentAmount: number;
   totalPrice: number;
   entryAmount: number;
 }) => {
   if (option.installmentCount > 1) {
+    if (Math.abs(option.lastInstallmentAmount - option.installmentAmount) >= 0.01) {
+      return `${option.installmentCount - 1}x de ${formatCurrency(option.installmentAmount)} + 1x de ${formatCurrency(option.lastInstallmentAmount)}`;
+    }
+
     return `${option.installmentCount}x de ${formatCurrency(option.installmentAmount)}`;
   }
 
@@ -527,15 +535,22 @@ export const QuotePresentationPage: React.FC = () => {
     [simulationEntryInput],
   );
 
-  const normalizedSimulationEntryAmount = useMemo(() => {
-    if (!simulationBase) return 0;
-    return Math.min(requestedEntryAmount, simulationBase.subtotalBeforeAdjustment);
+  const simulationEntryValidationMessage = useMemo(() => {
+    if (!simulationBase) return '';
+    return validateQuoteSimulationEntryAmount({
+      entryAmount: requestedEntryAmount,
+      subtotalBeforeAdjustment: simulationBase.subtotalBeforeAdjustment,
+    });
   }, [requestedEntryAmount, simulationBase]);
 
+  const normalizedSimulationEntryAmount = simulationEntryValidationMessage ? 0 : requestedEntryAmount;
+  const displaySimulationEntryAmount = simulationBase
+    ? Math.min(Math.max(requestedEntryAmount, 0), simulationBase.subtotalBeforeAdjustment)
+    : 0;
   const simulationPaymentMode = normalizedSimulationEntryAmount > 0 ? 'entry' : 'total';
   const simulationBaseBalance = useMemo(
-    () => Math.max(0, (simulationBase?.subtotalBeforeAdjustment || 0) - normalizedSimulationEntryAmount),
-    [normalizedSimulationEntryAmount, simulationBase],
+    () => Math.max(0, (simulationBase?.subtotalBeforeAdjustment || 0) - displaySimulationEntryAmount),
+    [displaySimulationEntryAmount, simulationBase],
   );
 
   const simulationOptions = useMemo(
@@ -572,9 +587,10 @@ export const QuotePresentationPage: React.FC = () => {
   const selectedSimulation = filteredSimulationOptions.find((option) => option.methodName === selectedSimulationMethod)
     || filteredSimulationOptions[0]
     || null;
+  const canRenderPaymentSimulator = Boolean(simulationBase && availablePaymentMethods.length);
   const stickySummaryLabel = selectedSimulation
     ? selectedSimulation.installmentCount > 1
-      ? `${selectedSimulation.installmentCount}x de ${formatCurrency(selectedSimulation.installmentAmount)}`
+      ? formatSimulationMethodDetail(selectedSimulation)
       : formatSimulationMethodHeading(selectedSimulation.methodName)
     : '';
 
@@ -1279,7 +1295,7 @@ export const QuotePresentationPage: React.FC = () => {
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 sm:px-5 sm:py-5 [padding-bottom:calc(env(safe-area-inset-bottom)+8.75rem)] lg:[padding-bottom:calc(env(safe-area-inset-bottom)+7.5rem)]">
-            {simulationOptions.length > 0 ? (
+            {canRenderPaymentSimulator ? (
               <div className="space-y-4">
                 <div className="rounded-[22px] border border-white/8 bg-white/[0.03] p-4 sm:p-5">
                   <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Entrada</div>
@@ -1288,7 +1304,12 @@ export const QuotePresentationPage: React.FC = () => {
                       type="text"
                       inputMode="numeric"
                       value={simulationEntryInput}
-                      onChange={(event) => setSimulationEntryInput(formatCurrencyInputDisplay(parseCurrencyInputDigits(event.target.value)))}
+                      onChange={(event) => {
+                        const parsedEntryAmount = parseCurrencyInputDigits(event.target.value);
+                        setSimulationEntryInput(parsedEntryAmount < 0
+                          ? `-${formatCurrencyInputDisplay(Math.abs(parsedEntryAmount))}`
+                          : formatCurrencyInputDisplay(parsedEntryAmount));
+                      }}
                       placeholder="R$ 0,00"
                       className="w-full rounded-[18px] border border-white/10 bg-[#1a1714] px-4 py-3 text-lg text-[#f7f1ea] outline-none placeholder:text-[#8f7d67] transition focus:border-[#e1c6a4]/35"
                     />
@@ -1298,9 +1319,9 @@ export const QuotePresentationPage: React.FC = () => {
                         <div className="mt-1 text-xl text-[#f7f1ea]">{formatCurrency(simulationBaseBalance)}</div>
                       </div>
                     </div>
-                    {simulationBase && requestedEntryAmount > simulationBase.subtotalBeforeAdjustment ? (
-                      <div className="text-xs leading-6 text-[#cab8a4]">
-                        A entrada foi limitada ao saldo base real desta proposta para manter a simulação fiel ao motor oficial.
+                    {simulationEntryValidationMessage ? (
+                      <div className="rounded-[16px] border border-[#e56f55]/30 bg-[#3a1d17]/45 px-3 py-2 text-xs leading-6 text-[#f0b8a8]">
+                        {simulationEntryValidationMessage} Ajuste o valor para liberar as formas de pagamento.
                       </div>
                     ) : null}
                   </div>
@@ -1351,7 +1372,7 @@ export const QuotePresentationPage: React.FC = () => {
                             <div className="mt-2 text-base text-[#f7f1ea]">{formatSimulationMethodDetail(option)}</div>
                             <div className="mt-1 text-sm text-[#cab8a4]">Total: {formatCurrency(option.totalPrice)}</div>
                             {option.entryAmount > 0 ? (
-                              <div className="mt-1 text-xs text-[#bca792]">Saldo financiado: {formatCurrency(option.financedAmount)}</div>
+                              <div className="mt-1 text-xs text-[#bca792]">Saldo financiado ajustado: {formatCurrency(option.financedAmount)}</div>
                             ) : null}
                           </div>
                           <div className="flex shrink-0 items-center gap-2 pt-0.5">
@@ -1374,7 +1395,7 @@ export const QuotePresentationPage: React.FC = () => {
                     ))}
                     {!filteredSimulationOptions.length ? (
                       <div className="rounded-[18px] border border-dashed border-white/10 bg-[#1a1714] px-4 py-4 text-sm leading-7 text-[#cab8a4]">
-                        Nenhuma forma disponível para este filtro.
+                        {simulationEntryValidationMessage || 'Nenhuma forma disponível para este filtro.'}
                       </div>
                     ) : null}
                   </div>
@@ -1408,7 +1429,7 @@ export const QuotePresentationPage: React.FC = () => {
                   </div>
                 </div>
                 <div className="mt-3 flex items-center justify-between gap-3 border-t border-white/8 pt-3 text-xs text-[#bca792]">
-                  <span>Saldo financiado: {formatCurrency(selectedSimulation.financedAmount)}</span>
+                  <span>Saldo financiado ajustado: {formatCurrency(selectedSimulation.financedAmount)}</span>
                   <span>Simulação não altera o valor oficial da proposta.</span>
                 </div>
               </div>

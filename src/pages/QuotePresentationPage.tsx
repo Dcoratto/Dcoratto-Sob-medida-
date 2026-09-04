@@ -22,6 +22,9 @@ import {
 } from '../lib/quoteDigital';
 import {
   buildQuotePaymentSimulationOptions,
+  currencyAmountToCents,
+  currencyCentsToAmount,
+  parseCurrencyInputToCents,
   QuotePaymentMethodOption,
   resolveQuotePaymentSimulationBase,
   validateQuoteSimulationEntryAmount,
@@ -222,13 +225,6 @@ const SectionTitle = ({children}: {children: React.ReactNode}) => (
 
 const formatCurrencyInputDisplay = (value: number) => formatCurrency(Math.max(0, Number(value) || 0));
 
-const parseCurrencyInputDigits = (value: string) => {
-  const isNegative = /^\s*-/.test(value);
-  const digits = value.replace(/\D/g, '');
-  const amount = digits ? Number(digits) / 100 : 0;
-  return isNegative ? -amount : amount;
-};
-
 const normalizePresentationAreaValue = (value: unknown) => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
 
@@ -338,7 +334,7 @@ export const QuotePresentationPage: React.FC = () => {
   const [error, setError] = useState('');
   const [lightboxImage, setLightboxImage] = useState<{src: string; alt: string} | null>(null);
   const [simulatorOpen, setSimulatorOpen] = useState(false);
-  const [simulationEntryInput, setSimulationEntryInput] = useState('R$ 0,00');
+  const [simulationEntryCents, setSimulationEntryCents] = useState(0);
   const [paymentFilter, setPaymentFilter] = useState<'all' | 'cash' | 'debit' | 'credit'>('all');
   const [selectedSimulationMethod, setSelectedSimulationMethod] = useState('');
   const [confirming, setConfirming] = useState(false);
@@ -527,13 +523,12 @@ export const QuotePresentationPage: React.FC = () => {
 
   useEffect(() => {
     const initialEntryAmount = Number(snapshot?.payment?.entryAmount || 0);
-    setSimulationEntryInput(formatCurrencyInputDisplay(initialEntryAmount));
+    setSimulationEntryCents(currencyAmountToCents(initialEntryAmount));
   }, [snapshot?.payment?.entryAmount]);
 
-  const requestedEntryAmount = useMemo(
-    () => parseCurrencyInputDigits(simulationEntryInput),
-    [simulationEntryInput],
-  );
+  const proposalBaseAmount = simulationBase?.subtotalBeforeAdjustment || 0;
+  const proposalBaseCents = currencyAmountToCents(proposalBaseAmount);
+  const requestedEntryAmount = currencyCentsToAmount(simulationEntryCents);
 
   const simulationEntryValidationMessage = useMemo(() => {
     if (!simulationBase) return '';
@@ -543,18 +538,16 @@ export const QuotePresentationPage: React.FC = () => {
     });
   }, [requestedEntryAmount, simulationBase]);
 
-  const normalizedSimulationEntryAmount = simulationEntryValidationMessage ? 0 : requestedEntryAmount;
-  const displaySimulationEntryAmount = simulationBase
-    ? Math.min(Math.max(requestedEntryAmount, 0), simulationBase.subtotalBeforeAdjustment)
-    : 0;
+  const normalizedSimulationEntryAmount = requestedEntryAmount;
+  const displaySimulationEntryCents = Math.min(Math.max(simulationEntryCents, 0), proposalBaseCents);
   const simulationPaymentMode = normalizedSimulationEntryAmount > 0 ? 'entry' : 'total';
   const simulationBaseBalance = useMemo(
-    () => Math.max(0, (simulationBase?.subtotalBeforeAdjustment || 0) - displaySimulationEntryAmount),
-    [displaySimulationEntryAmount, simulationBase],
+    () => currencyCentsToAmount(Math.max(0, proposalBaseCents - displaySimulationEntryCents)),
+    [displaySimulationEntryCents, proposalBaseCents],
   );
 
   const simulationOptions = useMemo(
-    () => buildQuotePaymentSimulationOptions({
+    () => simulationEntryValidationMessage ? [] : buildQuotePaymentSimulationOptions({
       ...officialSimulationContext,
       simulationPaymentMode,
       simulationEntryAmount: normalizedSimulationEntryAmount,
@@ -562,6 +555,7 @@ export const QuotePresentationPage: React.FC = () => {
     [
       normalizedSimulationEntryAmount,
       officialSimulationContext,
+      simulationEntryValidationMessage,
       simulationPaymentMode,
     ],
   );
@@ -1303,12 +1297,11 @@ export const QuotePresentationPage: React.FC = () => {
                     <input
                       type="text"
                       inputMode="numeric"
-                      value={simulationEntryInput}
+                      value={simulationEntryCents < 0
+                        ? `-${formatCurrencyInputDisplay(currencyCentsToAmount(Math.abs(simulationEntryCents)))}`
+                        : formatCurrencyInputDisplay(currencyCentsToAmount(simulationEntryCents))}
                       onChange={(event) => {
-                        const parsedEntryAmount = parseCurrencyInputDigits(event.target.value);
-                        setSimulationEntryInput(parsedEntryAmount < 0
-                          ? `-${formatCurrencyInputDisplay(Math.abs(parsedEntryAmount))}`
-                          : formatCurrencyInputDisplay(parsedEntryAmount));
+                        setSimulationEntryCents(parseCurrencyInputToCents(event.target.value));
                       }}
                       placeholder="R$ 0,00"
                       className="w-full rounded-[18px] border border-white/10 bg-[#1a1714] px-4 py-3 text-lg text-[#f7f1ea] outline-none placeholder:text-[#8f7d67] transition focus:border-[#e1c6a4]/35"

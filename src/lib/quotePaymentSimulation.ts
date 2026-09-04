@@ -73,8 +73,14 @@ export type QuotePaymentSimulationOption = {
 };
 
 const normalizePercent = (value?: number) => Math.max(0, Number(value) || 0);
-const toCents = (value: number) => Math.round((Number(value) || 0) * 100);
-const fromCents = (value: number) => value / 100;
+export const currencyAmountToCents = (value: number) => Math.round((Number(value) || 0) * 100);
+export const currencyCentsToAmount = (value: number) => value / 100;
+export const parseCurrencyInputToCents = (value: string) => {
+  const isNegative = /^\s*-/.test(value);
+  const digits = value.replace(/\D/g, '');
+  const cents = digits ? Number(digits) : 0;
+  return isNegative ? -cents : cents;
+};
 const applyPercentToCents = (amountCents: number, percent: number) => (
   Math.round(amountCents * ((Number(percent) || 0) / 100))
 );
@@ -121,8 +127,8 @@ export const calculateQuotePaymentTotals = ({
   negotiationDiscountPercent,
   rtPercent,
 }: QuotePaymentTotalsInput): QuotePaymentTotals => {
-  const normalizedSubtotalCents = Math.max(0, toCents(subtotalBeforeAdjustment));
-  const normalizedEntryAmountCents = Math.min(Math.max(toCents(entryAmount), 0), normalizedSubtotalCents);
+  const normalizedSubtotalCents = Math.max(0, currencyAmountToCents(subtotalBeforeAdjustment));
+  const normalizedEntryAmountCents = Math.min(Math.max(currencyAmountToCents(entryAmount), 0), normalizedSubtotalCents);
   const normalizedAdjustment = Number(selectedAdjustment) || 0;
   const financedAmountCents = Math.max(0, normalizedSubtotalCents - normalizedEntryAmountCents);
   const adjustmentBaseCents = paymentMode === 'entry' ? financedAmountCents : normalizedSubtotalCents;
@@ -137,13 +143,13 @@ export const calculateQuotePaymentTotals = ({
   const totalPriceCents = paymentAdjustedTotalCents + commissionValueCents - negotiationDiscountValueCents + rtValueCents;
 
   return {
-    adjustmentBase: fromCents(adjustmentBaseCents),
-    adjustmentValue: fromCents(adjustmentValueCents),
-    paymentAdjustedTotal: fromCents(paymentAdjustedTotalCents),
-    commissionValue: fromCents(commissionValueCents),
-    negotiationDiscountValue: fromCents(negotiationDiscountValueCents),
-    rtValue: fromCents(rtValueCents),
-    totalPrice: fromCents(totalPriceCents),
+    adjustmentBase: currencyCentsToAmount(adjustmentBaseCents),
+    adjustmentValue: currencyCentsToAmount(adjustmentValueCents),
+    paymentAdjustedTotal: currencyCentsToAmount(paymentAdjustedTotalCents),
+    commissionValue: currencyCentsToAmount(commissionValueCents),
+    negotiationDiscountValue: currencyCentsToAmount(negotiationDiscountValueCents),
+    rtValue: currencyCentsToAmount(rtValueCents),
+    totalPrice: currencyCentsToAmount(totalPriceCents),
   };
 };
 
@@ -162,15 +168,15 @@ export const calculateQuoteInstallmentBreakdown = ({
   const normalizedEntryAmount = Math.max(0, Number(entryAmount) || 0);
   const normalizedInstallmentCount = Math.max(1, Number(installmentCount) || 1);
   const installmentBaseCents = paymentMode === 'entry'
-    ? Math.max(0, toCents(normalizedTotalPrice) - toCents(normalizedEntryAmount))
-    : toCents(normalizedTotalPrice);
+    ? Math.max(0, currencyAmountToCents(normalizedTotalPrice) - currencyAmountToCents(normalizedEntryAmount))
+    : currencyAmountToCents(normalizedTotalPrice);
   const regularInstallmentCents = Math.floor(installmentBaseCents / normalizedInstallmentCount);
   const remainderCents = installmentBaseCents - (regularInstallmentCents * normalizedInstallmentCount);
 
   return {
-    installmentAmount: fromCents(regularInstallmentCents),
-    lastInstallmentAmount: fromCents(regularInstallmentCents + remainderCents),
-    installmentTotalAmount: fromCents(installmentBaseCents),
+    installmentAmount: currencyCentsToAmount(regularInstallmentCents),
+    lastInstallmentAmount: currencyCentsToAmount(regularInstallmentCents + remainderCents),
+    installmentTotalAmount: currencyCentsToAmount(installmentBaseCents),
   };
 };
 
@@ -293,10 +299,7 @@ export const deriveSubtotalBeforeAdjustmentFromOfficialTotal = ({
 export const resolveQuotePaymentSimulationBase = (
   context: QuotePaymentSimulationContext,
 ) => {
-  const subtotalBeforeAdjustment = deriveSubtotalBeforeAdjustmentFromOfficialTotal(context);
-  if (subtotalBeforeAdjustment == null) return null;
-
-  const normalizedSubtotal = Math.max(0, Number(subtotalBeforeAdjustment) || 0);
+  const normalizedSubtotal = currencyCentsToAmount(Math.max(0, currencyAmountToCents(context.officialTotalPrice)));
   const normalizedOfficialEntryAmount = Math.min(resolveOfficialEntryAmount(context), normalizedSubtotal);
 
   return {
@@ -314,8 +317,8 @@ export const validateQuoteSimulationEntryAmount = ({
   entryAmount: number;
   subtotalBeforeAdjustment: number;
 }) => {
-  const entryAmountCents = toCents(entryAmount);
-  const subtotalBeforeAdjustmentCents = Math.max(0, toCents(subtotalBeforeAdjustment));
+  const entryAmountCents = currencyAmountToCents(entryAmount);
+  const subtotalBeforeAdjustmentCents = Math.max(0, currencyAmountToCents(subtotalBeforeAdjustment));
 
   if (entryAmountCents < 0) {
     return 'A entrada não pode ser negativa.';
@@ -354,9 +357,9 @@ export const buildQuotePaymentSimulationOptions = (
       paymentMode,
       entryAmount: normalizedEntryAmount,
       selectedAdjustment: method.adjustment,
-      commissionPercent: normalizePercent(context.commissionPercent),
-      negotiationDiscountPercent: normalizePercent(context.negotiationDiscountPercent),
-      rtPercent: normalizePercent(context.rtPercent),
+      commissionPercent: 0,
+      negotiationDiscountPercent: 0,
+      rtPercent: 0,
     });
     const installmentCount = parseInstallmentCountFromMethod(method.name);
     const installmentBreakdown = calculateQuoteInstallmentBreakdown({

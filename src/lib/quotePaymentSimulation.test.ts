@@ -5,6 +5,9 @@ import {
   calculateQuoteInstallmentBreakdown,
   calculateDesiredTotalAdjustment,
   calculateQuotePaymentTotals,
+  currencyAmountToCents,
+  currencyCentsToAmount,
+  parseCurrencyInputToCents,
   validateQuoteSimulationEntryAmount,
 } from './quotePaymentSimulation';
 
@@ -204,4 +207,127 @@ test('TESTE 8 total desejado igual ao atual zera ajuste comercial', () => {
   assert.ok(adjustment);
   assert.equal(adjustment.direction, 'none');
   assert.equal(adjustment.calculatedPercent, 0);
+});
+
+const realProposalContext = {
+  officialTotalPrice: 129900.2,
+  officialPaymentMode: 'total' as const,
+  officialTotalPaymentMethod: 'Crédito 10x',
+  paymentMode: 'total' as const,
+  totalPaymentMethod: 'Crédito 10x',
+  commissionPercent: 5,
+  negotiationDiscountPercent: 2,
+  rtPercent: 3,
+  paymentMethods: [
+    {name: 'Pix', adjustment: 0},
+    {name: 'Crédito 10x', adjustment: 10},
+  ],
+};
+
+test('TESTE A caso real com entrada zero usa total oficial como saldo', () => {
+  const entryCents = parseCurrencyInputToCents('R$ 0,00');
+  const proposalTotalCents = currencyAmountToCents(realProposalContext.officialTotalPrice);
+  const options = buildQuotePaymentSimulationOptions({
+    ...realProposalContext,
+    simulationPaymentMode: 'total',
+    simulationEntryAmount: currencyCentsToAmount(entryCents),
+  });
+  const pix = options.find((option) => option.methodName === 'Pix');
+
+  assert.equal(entryCents, 0);
+  assert.equal(proposalTotalCents, 12990020);
+  assert.equal(currencyCentsToAmount(proposalTotalCents - entryCents), 129900.2);
+  assert.equal(validateQuoteSimulationEntryAmount({entryAmount: 0, subtotalBeforeAdjustment: 129900.2}), '');
+  assert.ok(pix);
+  assert.equal(pix.entryAmount, 0);
+  assert.equal(pix.balanceBeforeAdjustment, 129900.2);
+  assert.equal(pix.totalPrice, 129900.2);
+});
+
+test('TESTE B caso real com entrada de R$ 50.000,00 calcula saldo correto', () => {
+  const entryCents = parseCurrencyInputToCents('R$ 50.000,00');
+  const proposalTotalCents = currencyAmountToCents(realProposalContext.officialTotalPrice);
+  const options = buildQuotePaymentSimulationOptions({
+    ...realProposalContext,
+    simulationPaymentMode: 'entry',
+    simulationEntryAmount: currencyCentsToAmount(entryCents),
+  });
+  const pix = options.find((option) => option.methodName === 'Pix');
+
+  assert.equal(entryCents, 5000000);
+  assert.equal(currencyCentsToAmount(proposalTotalCents - entryCents), 79900.2);
+  assert.equal(validateQuoteSimulationEntryAmount({entryAmount: 50000, subtotalBeforeAdjustment: 129900.2}), '');
+  assert.ok(pix);
+  assert.equal(pix.entryAmount, 50000);
+  assert.equal(pix.balanceBeforeAdjustment, 79900.2);
+  assert.equal(pix.financedAmount, 79900.2);
+  assert.equal(pix.totalPrice, 129900.2);
+});
+
+test('TESTE C caso real permite entrada igual ao valor oficial', () => {
+  const options = buildQuotePaymentSimulationOptions({
+    ...realProposalContext,
+    simulationPaymentMode: 'entry',
+    simulationEntryAmount: 129900.2,
+  });
+  const pix = options.find((option) => option.methodName === 'Pix');
+
+  assert.equal(validateQuoteSimulationEntryAmount({entryAmount: 129900.2, subtotalBeforeAdjustment: 129900.2}), '');
+  assert.ok(pix);
+  assert.equal(pix.balanceBeforeAdjustment, 0);
+  assert.equal(pix.financedAmount, 0);
+  assert.equal(pix.totalPrice, 129900.2);
+});
+
+test('TESTE D caso real bloqueia apenas entrada acima do valor oficial', () => {
+  assert.equal(
+    validateQuoteSimulationEntryAmount({entryAmount: 129900.21, subtotalBeforeAdjustment: 129900.2}),
+    'A entrada não pode ser maior que o valor base da proposta.',
+  );
+  assert.deepEqual(buildQuotePaymentSimulationOptions({
+    ...realProposalContext,
+    simulationPaymentMode: 'entry',
+    simulationEntryAmount: 129900.21,
+  }), []);
+});
+
+test('TESTE E topo, base do simulador e formas partem do mesmo valor oficial', () => {
+  const options = buildQuotePaymentSimulationOptions(realProposalContext);
+  const pix = options.find((option) => option.methodName === 'Pix');
+  const credit = options.find((option) => option.methodName === 'Crédito 10x');
+
+  assert.ok(pix);
+  assert.ok(credit);
+  assert.equal(pix.subtotalBeforeAdjustment, realProposalContext.officialTotalPrice);
+  assert.equal(pix.balanceBeforeAdjustment, realProposalContext.officialTotalPrice);
+  assert.equal(pix.totalPrice, realProposalContext.officialTotalPrice);
+  assert.equal(credit.balanceBeforeAdjustment, realProposalContext.officialTotalPrice);
+});
+
+test('TESTE F entradas sucessivas atualizam saldo, resumo e formas pelo valor atual', () => {
+  const proposalTotalCents = currencyAmountToCents(realProposalContext.officialTotalPrice);
+  const inputs = [
+    ['R$ 0,00', 129900.2],
+    ['R$ 10.000,00', 119900.2],
+    ['R$ 50.000,00', 79900.2],
+    ['R$ 25.000,00', 104900.2],
+  ] as const;
+
+  inputs.forEach(([input, expectedBalance]) => {
+    const entryCents = parseCurrencyInputToCents(input);
+    const entryAmount = currencyCentsToAmount(entryCents);
+    const paymentMode = entryCents > 0 ? 'entry' : 'total';
+    const options = buildQuotePaymentSimulationOptions({
+      ...realProposalContext,
+      simulationPaymentMode: paymentMode,
+      simulationEntryAmount: entryAmount,
+    });
+    const pix = options.find((option) => option.methodName === 'Pix');
+
+    assert.ok(pix);
+    assert.equal(currencyCentsToAmount(proposalTotalCents - entryCents), expectedBalance);
+    assert.equal(pix.entryAmount, entryAmount);
+    assert.equal(pix.balanceBeforeAdjustment, expectedBalance);
+    assert.equal(pix.totalPrice, 129900.2);
+  });
 });

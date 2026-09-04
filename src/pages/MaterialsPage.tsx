@@ -4,7 +4,7 @@ import {AlertTriangle, Edit2, Eye, PackageCheck, Search, X} from 'lucide-react';
 import {useNavigate} from 'react-router-dom';
 import {db} from '../lib/firestore';
 import {InventoryItem, InventoryReservation, Material, Quote} from '../types';
-import {cn, formatArea, formatCurrency, formatNumber} from '../lib/utils';
+import {cn, formatArea, formatCurrency, formatNumber, parseCurrencyInput} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {formatMaterialSpecsWithProvider} from '../lib/materialSpecs';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
@@ -13,6 +13,7 @@ import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {logSystemEvent} from '../lib/systemEvents';
 import {getInventoryItemArea} from '../lib/inventoryMetrics';
 import {imageVariantUrl} from '../lib/storage';
+import {CurrencyInput} from '../components/inputs/NumericInput';
 
 type MaterialStockRow = Material & {
   baseMaterialId: string;
@@ -244,7 +245,7 @@ export const MaterialsPage: React.FC = () => {
       const baseMinimumSale = editingMaterial.stockMinimumSaleValue > 0
         ? editingMaterial.stockMinimumSaleValue
         : (editingMaterial.baseMinimumSalePerM2 ?? baseCost);
-      const pricePerM2 = Math.max(0, Number(salePricePerM2) || 0);
+      const pricePerM2 = Math.max(0, parseCurrencyInput(salePricePerM2) || 0);
       const rawMarginPercentage = baseMinimumSale > 0
         ? ((pricePerM2 / baseMinimumSale) - 1) * 100
         : 0;
@@ -510,11 +511,9 @@ export const MaterialsPage: React.FC = () => {
                 </div>
                 <div className="space-y-1.5">
                   <label className="text-slate-500 font-medium text-sm">Venda final por m²</label>
-                  <input
-                    type="number"
-                    step="0.01"
+                  <CurrencyInput
                     value={salePricePerM2}
-                    onChange={(e) => setSalePricePerM2(e.target.value)}
+                    onValueChange={(_, rawValue) => setSalePricePerM2(rawValue)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-mono"
                   />
                 </div>
@@ -523,7 +522,7 @@ export const MaterialsPage: React.FC = () => {
               <div className="bg-brand-primary/5 border border-brand-primary/10 rounded-2xl p-4">
                 <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Preço de venda final</div>
                 <div className="text-2xl font-display font-bold text-brand-primary mt-1">
-                  {formatCurrency(Number(salePricePerM2) || 0)}
+                  {formatCurrency(parseCurrencyInput(salePricePerM2) || 0)}
                 </div>
                 <p className="mt-1 text-xs text-slate-500">O valor mínimo vem do estoque. Aqui você define somente o preço final de venda por m² desta pedra.</p>
               </div>

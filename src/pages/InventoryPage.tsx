@@ -5,7 +5,7 @@ import {useNavigate} from 'react-router-dom';
 import {db} from '../lib/firestore';
 import {deleteFirestoreDoc} from '../lib/firestore-helpers';
 import {InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote, SystemEvent} from '../types';
-import {cn, formatArea, formatCentimeters, formatCurrency, formatNumber, parseFlexibleNumberInput} from '../lib/utils';
+import {cn, formatArea, formatCentimeters, formatCurrency, formatNumber, formatPercentage, parseFlexibleNumberInput} from '../lib/utils';
 import {useAuth} from '../contexts/AuthContext';
 import {logSystemEvent} from '../lib/systemEvents';
 import {useSettings} from '../hooks/useSettings';
@@ -1858,7 +1858,7 @@ export const InventoryPage: React.FC = () => {
                     onChange={(event) => setPatioDraftSize((current) => ({...current, width: Number(event.target.value)}))}
                     className="mt-3 w-full"
                   />
-                  <span className="mt-2 block text-sm font-semibold text-slate-700">{patioDraftSize.width}%</span>
+                  <span className="mt-2 block text-sm font-semibold text-slate-700">{formatPercentage(patioDraftSize.width)}</span>
                 </label>
                 <label className="block">
                   <span className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Altura da area</span>
@@ -1871,7 +1871,7 @@ export const InventoryPage: React.FC = () => {
                     onChange={(event) => setPatioDraftSize((current) => ({...current, height: Number(event.target.value)}))}
                     className="mt-3 w-full"
                   />
-                  <span className="mt-2 block text-sm font-semibold text-slate-700">{patioDraftSize.height}%</span>
+                  <span className="mt-2 block text-sm font-semibold text-slate-700">{formatPercentage(patioDraftSize.height)}</span>
                 </label>
                 <button
                   type="button"

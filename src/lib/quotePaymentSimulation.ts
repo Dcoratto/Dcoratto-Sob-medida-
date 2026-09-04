@@ -1,3 +1,5 @@
+import {currencyAmountToCents, currencyCentsToAmount, parseCurrencyInputToCents} from './utils';
+
 export type QuotePaymentMethodOption = {
   name: string;
   adjustment: number;
@@ -73,14 +75,7 @@ export type QuotePaymentSimulationOption = {
 };
 
 const normalizePercent = (value?: number) => Math.max(0, Number(value) || 0);
-export const currencyAmountToCents = (value: number) => Math.round((Number(value) || 0) * 100);
-export const currencyCentsToAmount = (value: number) => value / 100;
-export const parseCurrencyInputToCents = (value: string) => {
-  const isNegative = /^\s*-/.test(value);
-  const digits = value.replace(/\D/g, '');
-  const cents = digits ? Number(digits) : 0;
-  return isNegative ? -cents : cents;
-};
+export {currencyAmountToCents, currencyCentsToAmount, parseCurrencyInputToCents};
 const applyPercentToCents = (amountCents: number, percent: number) => (
   Math.round(amountCents * ((Number(percent) || 0) / 100))
 );

@@ -30,7 +30,7 @@ import {
   resolveQuotePaymentSimulationBase,
   validateQuoteSimulationEntryAmount,
 } from '../lib/quotePaymentSimulation';
-import {cn, formatCurrency} from '../lib/utils';
+import {cn, formatCurrency, formatCurrencyInputFromCents} from '../lib/utils';
 
 const BUSINESS_TIME_ZONE = 'America/Sao_Paulo';
 
@@ -223,8 +223,6 @@ const SectionEyebrow = ({children}: {children: React.ReactNode}) => (
 const SectionTitle = ({children}: {children: React.ReactNode}) => (
   <h2 className="mt-4 font-display text-4xl leading-tight text-[#f7f1ea] sm:text-5xl">{children}</h2>
 );
-
-const formatCurrencyInputDisplay = (value: number) => formatCurrency(Math.max(0, Number(value) || 0));
 
 const normalizePresentationAreaValue = (value: unknown) => {
   if (typeof value === 'number') return Number.isFinite(value) ? value : 0;
@@ -1304,9 +1302,7 @@ export const QuotePresentationPage: React.FC = () => {
                     <input
                       type="text"
                       inputMode="numeric"
-                      value={simulationEntryCents < 0
-                        ? `-${formatCurrencyInputDisplay(currencyCentsToAmount(Math.abs(simulationEntryCents)))}`
-                        : formatCurrencyInputDisplay(currencyCentsToAmount(simulationEntryCents))}
+                      value={formatCurrencyInputFromCents(simulationEntryCents)}
                       onChange={(event) => {
                         setSimulationEntryCents(parseCurrencyInputToCents(event.target.value));
                       }}

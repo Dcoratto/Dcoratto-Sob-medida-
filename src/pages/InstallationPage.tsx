@@ -19,7 +19,7 @@ import {
   ZoomOut,
 } from 'lucide-react';
 import {useAuth} from '../contexts/AuthContext';
-import {cn} from '../lib/utils';
+import {cn, formatPercentage} from '../lib/utils';
 import {
   createInstallation,
   createInstallationPhotoRecord,
@@ -86,7 +86,7 @@ const ProgressBar: React.FC<{percent: number}> = ({percent}) => (
   <div>
     <div className="mb-2 flex items-center justify-between text-[11px] font-bold uppercase tracking-wide text-slate-400">
       <span>Progresso</span>
-      <span>{percent}%</span>
+      <span>{formatPercentage(percent)}</span>
     </div>
     <div className="h-2 rounded-full bg-slate-100">
       <div className="h-2 rounded-full bg-brand-primary transition-all" style={{width: `${percent}%`}} />
@@ -970,7 +970,7 @@ export const InstallationPage: React.FC = () => {
               <div className="rounded-2xl bg-slate-50 px-4 py-4">
                 <div className="mb-2 flex items-center justify-between text-xs font-bold uppercase tracking-wide text-slate-400">
                   <span>Progresso</span>
-                  <span>{uploadProgress}%</span>
+                  <span>{formatPercentage(uploadProgress)}</span>
                 </div>
                 <div className="h-2 rounded-full bg-slate-200">
                   <div className="h-2 rounded-full bg-brand-primary transition-all" style={{width: `${uploadProgress}%`}} />
@@ -991,7 +991,7 @@ export const InstallationPage: React.FC = () => {
             <button type="button" onClick={() => setLightboxScale((value) => Math.max(1, value - 0.25))} className="rounded-full bg-white/10 p-2 text-white">
               <ZoomOut className="h-4 w-4" />
             </button>
-            <span className="min-w-[72px] text-center text-sm font-bold text-white">{Math.round(lightboxScale * 100)}%</span>
+            <span className="min-w-[72px] text-center text-sm font-bold text-white">{formatPercentage(Math.round(lightboxScale * 100))}</span>
             <button type="button" onClick={() => setLightboxScale((value) => Math.min(3, value + 0.25))} className="rounded-full bg-white/10 p-2 text-white">
               <ZoomIn className="h-4 w-4" />
             </button>

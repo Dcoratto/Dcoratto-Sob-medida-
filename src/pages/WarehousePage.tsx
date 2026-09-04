@@ -23,7 +23,8 @@ import {
 } from 'lucide-react';
 import {useAuth} from '../contexts/AuthContext';
 import {useSettings} from '../hooks/useSettings';
-import {cn, formatCurrency} from '../lib/utils';
+import {cn, formatCurrency, parseCurrencyInput} from '../lib/utils';
+import {CurrencyInput} from '../components/inputs/NumericInput';
 import {
   checkoutWarehouseTool,
   createWarehousePurchase,
@@ -440,7 +441,7 @@ export const WarehousePage: React.FC = () => {
         minimumQuantity: Number(productDraft.minimumQuantity) || 0,
         physicalLocation: productDraft.physicalLocation,
         defaultSupplierId: productDraft.supplierId || null,
-        unitCost: productDraft.unitCost === '' ? null : Number(productDraft.unitCost),
+        unitCost: productDraft.unitCost === '' ? null : parseCurrencyInput(productDraft.unitCost),
         active: editingProduct?.active ?? true,
       }, actor);
       setProductModalOpen(false);
@@ -792,7 +793,7 @@ export const WarehousePage: React.FC = () => {
           <Field label="Estoque minimo"><input className={inputClass} type="number" min="0" max="1000000" step="0.001" value={productDraft.minimumQuantity} onChange={(event) => setProductDraft((value) => ({...value, minimumQuantity: event.target.value}))} /></Field>
           <Field label="Localizacao fisica"><input className={inputClass} maxLength={120} value={productDraft.physicalLocation} onChange={(event) => setProductDraft((value) => ({...value, physicalLocation: event.target.value}))} /></Field>
           <Field label="Fornecedor padrao"><select className={inputClass} value={productDraft.supplierId} onChange={(event) => setProductDraft((value) => ({...value, supplierId: event.target.value}))}><option value="">Não informado</option>{settings.materialCatalog.suppliers.map((supplier) => <option key={supplier.id || supplier.name} value={supplier.id || supplier.name}>{supplier.name}</option>)}</select></Field>
-          <Field label="Custo unitario"><input className={inputClass} type="number" min="0" max="100000000" step="0.01" value={productDraft.unitCost} onChange={(event) => setProductDraft((value) => ({...value, unitCost: event.target.value}))} /></Field>
+          <Field label="Custo unitario"><CurrencyInput className={inputClass} value={productDraft.unitCost} onValueChange={(_, rawValue) => setProductDraft((value) => ({...value, unitCost: rawValue}))} /></Field>
           <div className="sm:col-span-2"><Field label="Descricao"><textarea className={textareaClass} maxLength={1000} value={productDraft.description} onChange={(event) => setProductDraft((value) => ({...value, description: event.target.value}))} /></Field></div>
           <div className="sm:col-span-2 flex justify-end gap-2 border-t border-slate-100 pt-4"><button type="button" className={secondaryButton} onClick={() => setProductModalOpen(false)}>Cancelar</button><button type="submit" className={primaryButton} disabled={savingProduct}>{savingProduct && <Loader2 className="h-4 w-4 animate-spin" />} Salvar produto</button></div>
         </form>

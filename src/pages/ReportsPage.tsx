@@ -3,7 +3,7 @@ import {collection, limit, onSnapshot, orderBy, query, selectFields} from '../li
 import {AlertCircle, BarChart3, Boxes, FileDown, Gauge, TrendingUp, Users} from 'lucide-react';
 import {Client, Employee, InventoryItem, InventoryPurchase, InventoryReservation, LegacyPaymentInstallment, Material, ProductionStep, Quote, SystemEvent} from '../types';
 import {db} from '../lib/firestore';
-import {cn, formatArea, formatCurrency} from '../lib/utils';
+import {cn, formatArea, formatCurrency, formatPercentage} from '../lib/utils';
 import {QUOTE_STATUSES, getClientDisplayStatus, isQuoteApprovedOrBeyond, normalizeQuoteStatus} from '../lib/quoteStatus';
 import {useAuth} from '../contexts/AuthContext';
 
@@ -384,7 +384,7 @@ export const ReportsPage: React.FC = () => {
         <ReportCard icon={TrendingUp} label="Valor vendido" value={canViewRevenue ? formatCurrency(totalSold) : hiddenRevenueLabel} tone="brand" />
         <ReportCard icon={Gauge} label="Valor recebido" value={canViewRevenue ? formatCurrency(totalReceived) : hiddenRevenueLabel} tone="green" />
         <ReportCard icon={AlertCircle} label="A receber" value={canViewRevenue ? formatCurrency(pendingReceivable) : hiddenRevenueLabel} tone="amber" />
-        <ReportCard icon={BarChart3} label="Conversão" value={`${conversionRate}%`} tone="blue" />
+        <ReportCard icon={BarChart3} label="Conversão" value={formatPercentage(conversionRate)} tone="blue" />
         <ReportCard icon={Users} label="Clientes" value={String(clients.length)} tone="blue" />
         <ReportCard icon={Boxes} label="Itens em estoque" value={String(inventory.length)} tone="amber" />
       </div>

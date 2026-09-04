@@ -9,7 +9,41 @@ export function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
-  }).format(value);
+  }).format(value).replace(/\u00a0/g, ' ');
+}
+
+export const currencyAmountToCents = (value: number) => Math.round((Number(value) || 0) * 100);
+
+export const currencyCentsToAmount = (value: number) => value / 100;
+
+export function parseCurrencyInputToCents(value: string) {
+  const isNegative = /^\s*-/.test(value);
+  const digits = String(value || '').replace(/\D/g, '');
+  const cents = digits ? Number(digits) : 0;
+  return isNegative ? -cents : cents;
+}
+
+export function formatCurrencyInputFromCents(value: number) {
+  return `${value < 0 ? '-' : ''}${formatCurrency(currencyCentsToAmount(Math.abs(value)))}`;
+}
+
+export function formatPercentage(value: number, maximumFractionDigits = 4) {
+  const numericValue = Number(value) || 0;
+  return `${formatPercentageInputValue(numericValue, maximumFractionDigits)}%`;
+}
+
+export function formatPercentageInputValue(value: number, maximumFractionDigits = 4) {
+  const numericValue = Number(value) || 0;
+  return new Intl.NumberFormat('pt-BR', {
+    maximumFractionDigits,
+  }).format(numericValue);
+}
+
+export function normalizePercentageInput(value: string | number, maximumFractionDigits = 4) {
+  const parsed = parseFlexibleNumberInput(value);
+  if (!Number.isFinite(parsed)) return 0;
+  const factor = 10 ** maximumFractionDigits;
+  return Math.round(parsed * factor) / factor;
 }
 
 export function formatNumber(value: number, decimals = 3) {

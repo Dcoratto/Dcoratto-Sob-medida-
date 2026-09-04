@@ -11,7 +11,7 @@ import { CondominiumRule, QuoteComplexityOption, QuoteLocationPricingConfig, Sup
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
-import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
+import {CurrencyInput, NumericInput, PercentageInput} from '../components/inputs/NumericInput';
 
 export type SettingsAdminModule =
   | 'all'
@@ -954,7 +954,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({module = 'all', embed
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
                     placeholder="Nome"
                   />
-                  <NumericInput
+                  <PercentageInput
                     value={option.percent || 0}
                     onValueChange={(value) => updateComplexityOption(index, {percent: value})}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20"
@@ -1024,7 +1024,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({module = 'all', embed
             </div>
             <div className="space-y-1.5">
               <label className="text-slate-500 font-medium text-xs">Risco/Perda (%)</label>
-              <NumericInput
+              <PercentageInput
                 value={settings.sculptedSinkRates?.riskPercentage || 0}
                 onValueChange={(value) => setSettings({ ...settings, sculptedSinkRates: { ...settings.sculptedSinkRates, riskPercentage: value } })}
                 className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-brand-primary/20 transition-all font-medium"
@@ -1077,7 +1077,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({module = 'all', embed
                 </div>
                 <div className="w-32 space-y-1.5">
                   <label className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">Ajuste (%)</label>
-                  <NumericInput
+                  <PercentageInput
                     value={method.adjustment}
                     onValueChange={(value) => {
                       setSettings({

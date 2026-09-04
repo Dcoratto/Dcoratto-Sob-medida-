@@ -13,7 +13,7 @@ import {
   Ban, CheckCircle2, Copy, ExternalLink, History, MessageCircle, Sparkles
 } from 'lucide-react';
 import {DEFAULT_QUOTE_COMPLEXITY_OPTIONS, resolveLaborAmount, resolveLocationAmount} from '../lib/locationPricing';
-import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, parseCurrencyInput, parseMeasureInput, roundNumber } from '../lib/utils';
+import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, formatPercentage, parseCurrencyInput, parseMeasureInput, roundNumber } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
 import {applyQuoteInventoryByStatusTransition} from '../lib/inventoryReservations';
@@ -41,7 +41,7 @@ import {
   type PieceScopedCutoutType,
   type QuoteCutoutState,
 } from '../lib/quotePieceCutouts';
-import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
+import {CurrencyInput, NumericInput, PercentageInput} from '../components/inputs/NumericInput';
 import {
   calculateQuoteInstallmentAmount,
   calculateDesiredTotalAdjustment,
@@ -69,7 +69,7 @@ const quoteMaterialPriceKey = (materialId?: string, materialVariantKey?: string)
   `${materialId || ''}::${materialVariantKey || ''}`;
 
 const formatPriceInputValue = (value: number) =>
-  (Number.isFinite(value) ? value : 0).toFixed(2).replace('.', ',');
+  formatCurrency(Number.isFinite(value) ? value : 0);
 
 const formatEditableMeasureValue = (value: number) => {
   if (!Number.isFinite(value)) return '';
@@ -1014,7 +1014,7 @@ export const QuoteEditor: React.FC = () => {
     setDesiredTotalFeedback(
       adjustment.direction === 'none'
         ? 'Ajuste necessário: 0%.'
-        : `Ajuste necessário: ${adjustment.calculatedPercent > 0 ? '+' : ''}${adjustment.calculatedPercent.toFixed(6)}%.`,
+        : `Ajuste necessário: ${adjustment.calculatedPercent > 0 ? '+' : ''}${formatPercentage(Math.abs(adjustment.calculatedPercent))}.`,
     );
   };
   const materialBaseCost = pieceAreaDetails.reduce((acc, {totals, material}) => {
@@ -2343,11 +2343,11 @@ export const QuoteEditor: React.FC = () => {
                 <div className={cn('flex items-center justify-between gap-3', !includeLabor && 'text-[#7A6D5F]')}><span>Mão de obra {!includeLabor && '(Desativado)'}</span><strong className="text-[#3F3A34]">{formatCurrency(laborCost)}</strong></div>
                 <div className="flex items-center justify-between gap-3 border-t border-[#3F3A34]/15 pt-2"><span>Subtotal produção</span><strong className="text-[#3F3A34]">{formatCurrency(productionSubtotal)}</strong></div>
                 <div className={cn('flex items-center justify-between gap-3', !includeDelivery && 'text-[#7A6D5F]')}><span>Entrega {!includeDelivery && '(Desativado)'}</span><strong className="text-[#3F3A34]">{formatCurrency(deliveryFee)}</strong></div>
-                <div className={cn('flex items-center justify-between gap-3', !includeComplexity && 'text-[#7A6D5F]')}><span>Complexidade ({complexityPercent}%){!includeComplexity && ' (Desativado)'}</span><strong className="text-[#3F3A34]">{formatCurrency(complexityValue)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong className="text-[#3F3A34]">{formatCurrency(adjustmentValue)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Comissão ({normalizedCommissionPercent}%)</span><strong className="text-[#3F3A34]">{formatCurrency(commissionValue)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Descontos ({normalizedNegotiationDiscountPercent}%)</span><strong className="text-[#3F3A34]">-{formatCurrency(negotiationDiscountValue)}</strong></div>
-                <div className="flex items-center justify-between gap-3"><span>Acréscimos ({normalizedRtPercent}%)</span><strong className="text-[#3F3A34]">{formatCurrency(rtValue)}</strong></div>
+                <div className={cn('flex items-center justify-between gap-3', !includeComplexity && 'text-[#7A6D5F]')}><span>Complexidade ({formatPercentage(complexityPercent)}){!includeComplexity && ' (Desativado)'}</span><strong className="text-[#3F3A34]">{formatCurrency(complexityValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Ajuste pagamento ({selectedPaymentAdjustment > 0 ? '+' : ''}{formatPercentage(selectedPaymentAdjustment)})</span><strong className="text-[#3F3A34]">{formatCurrency(adjustmentValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Comissão ({formatPercentage(normalizedCommissionPercent)})</span><strong className="text-[#3F3A34]">{formatCurrency(commissionValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Descontos ({formatPercentage(normalizedNegotiationDiscountPercent)})</span><strong className="text-[#3F3A34]">-{formatCurrency(negotiationDiscountValue)}</strong></div>
+                <div className="flex items-center justify-between gap-3"><span>Acréscimos ({formatPercentage(normalizedRtPercent)})</span><strong className="text-[#3F3A34]">{formatCurrency(rtValue)}</strong></div>
                 <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl bg-white/20 px-4 py-3 text-base">
                   <span className="font-bold text-[#3F3A34]">Total final</span>
                   <strong className="font-display text-xl text-[#3F3A34]">{formatCurrency(totalPrice)}</strong>
@@ -2656,7 +2656,7 @@ export const QuoteEditor: React.FC = () => {
                     <div className="flex items-center justify-between gap-4 py-3">
                       <div className="min-w-0">
                         <div className="text-sm font-semibold text-slate-900">Perda de material</div>
-                        <div className="text-xs text-slate-400">{MATERIAL_LOSS_PERCENTAGE}% · {includeMaterialLoss ? 'Ativo' : `Desativado · original ${formatCurrency(originalMaterialLossCost)}`}</div>
+                        <div className="text-xs text-slate-400">{formatPercentage(MATERIAL_LOSS_PERCENTAGE)} · {includeMaterialLoss ? 'Ativo' : `Desativado · original ${formatCurrency(originalMaterialLossCost)}`}</div>
                       </div>
                       <div className="flex items-center gap-3">
                         <div className="text-right text-sm font-semibold text-slate-900">{formatCurrency(materialLossCost)}</div>
@@ -2709,7 +2709,7 @@ export const QuoteEditor: React.FC = () => {
                         <div className="text-xs text-slate-400">
                           {hasPieceScopedComplexity
                             ? 'Definida individualmente dentro de cada peça'
-                            : `Compatibilidade histórica · ${resolvedComplexity.label} · ${complexityPercent > 0 ? '+' : ''}${complexityPercent}%`}
+                            : `Compatibilidade histórica · ${resolvedComplexity.label} · ${complexityPercent > 0 ? '+' : ''}${formatPercentage(complexityPercent)}`}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -2723,13 +2723,11 @@ export const QuoteEditor: React.FC = () => {
                   <div className="text-sm font-semibold text-slate-900">Total final desejado</div>
                   <p className="mt-1 text-xs text-slate-500">Calcula o desconto ou acréscimo necessário usando a regra oficial do orçamento.</p>
                   <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-                    <input
-                      type="text"
-                      inputMode="decimal"
+                    <CurrencyInput
                       value={desiredTotalInput}
-                      onChange={(event) => setDesiredTotalInput(event.target.value)}
+                      onValueChange={(_, rawValue) => setDesiredTotalInput(rawValue)}
                       onBlur={applyDesiredTotalAdjustment}
-                      placeholder={formatCurrency(totalPrice)}
+                      placeholder="R$ 0,00"
                       className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-mono outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
                     />
                     <button
@@ -2760,15 +2758,15 @@ export const QuoteEditor: React.FC = () => {
                           </div>
                           <span className={cn('inline-flex self-start rounded-full px-3 py-1 text-[10px] font-bold uppercase', row.error ? 'bg-red-50 text-red-600' : isValidCustom ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500')}>{row.error ? 'Inválido' : isValidCustom ? 'Válido' : 'Preço padrão'}</span>
                         </div>
-                        <input type="text" inputMode="decimal" value={row.customInput} onChange={(event) => updateMaterialCustomPriceInput(row.key, event.target.value)} onBlur={() => formatMaterialCustomPriceInput(row.key)} className={cn('mt-3 w-full rounded-xl border bg-white px-4 py-2.5 text-sm font-mono outline-none transition-all focus:ring-2', row.error ? 'border-red-300 text-red-700 focus:ring-red-100' : isValidCustom ? 'border-green-200 text-slate-900 focus:ring-green-100' : 'border-slate-100 text-slate-900 focus:ring-brand-primary/20')} placeholder="0,00" />
+                        <CurrencyInput value={row.customInput} onValueChange={(_, rawValue) => updateMaterialCustomPriceInput(row.key, rawValue)} onBlur={() => formatMaterialCustomPriceInput(row.key)} className={cn('mt-3 w-full rounded-xl border bg-white px-4 py-2.5 text-sm font-mono outline-none transition-all focus:ring-2', row.error ? 'border-red-300 text-red-700 focus:ring-red-100' : isValidCustom ? 'border-green-200 text-slate-900 focus:ring-green-100' : 'border-slate-100 text-slate-900 focus:ring-brand-primary/20')} placeholder="R$ 0,00" />
                       </div>
                     );
                   })}
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="space-y-1"><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Comissão (%)</span><input type="number" value={commissionPercent} onChange={(e) => setCommissionPercent(e.target.value)} className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-brand-primary/20" placeholder="0" /></label>
-                  <label className="space-y-1"><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Descontos (%)</span><input type="number" value={negotiationDiscountPercent} onChange={(e) => setNegotiationDiscountPercent(e.target.value)} className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-brand-primary/20" placeholder="0" /></label>
-                  <label className="space-y-1 sm:col-span-2"><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Acréscimos (%)</span><input type="number" value={rtPercent} onChange={(e) => setRtPercent(e.target.value)} className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-brand-primary/20" placeholder="0" /></label>
+                  <label className="space-y-1"><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Comissão (%)</span><PercentageInput value={commissionPercent} onValueChange={(value) => setCommissionPercent(String(value))} className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-brand-primary/20" placeholder="0" /></label>
+                  <label className="space-y-1"><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Descontos (%)</span><PercentageInput value={negotiationDiscountPercent} onValueChange={(value) => setNegotiationDiscountPercent(String(value))} className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-brand-primary/20" placeholder="0" /></label>
+                  <label className="space-y-1 sm:col-span-2"><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Acréscimos (%)</span><PercentageInput value={rtPercent} onValueChange={(value) => setRtPercent(String(value))} className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-brand-primary/20" placeholder="0" /></label>
                 </div>
               </div>
             </SidebarAccordionSection>
@@ -2783,16 +2781,16 @@ export const QuoteEditor: React.FC = () => {
                   <select value={totalPaymentMethod} onChange={(e) => setTotalPaymentMethod(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
                     <option value="">Selecionar forma de pagamento</option>
                     {effectiveQuoteSettings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
-                      <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
+                      <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{formatPercentage(method.adjustment)})</option>
                     ))}
                   </select>
                 ) : (
                   <div className="grid gap-3 sm:grid-cols-[160px_minmax(0,1fr)]">
-                    <input type="number" min="0" step="0.01" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="Entrada" className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" />
+                    <CurrencyInput value={entryAmount} onValueChange={(_, rawValue) => setEntryAmount(rawValue)} placeholder="R$ 0,00" className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm" />
                     <select value={remainingPaymentMethod} onChange={(e) => setRemainingPaymentMethod(e.target.value)} className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm">
                       <option value="">Selecionar condição do restante</option>
                       {effectiveQuoteSettings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
-                        <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
+                        <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{formatPercentage(method.adjustment)})</option>
                       ))}
                     </select>
                   </div>
@@ -2821,15 +2819,15 @@ export const QuoteEditor: React.FC = () => {
               <div className="flex justify-between gap-3"><span>Área final total</span><strong>{formatArea(totalArea)}</strong></div>
               <div className="flex justify-between gap-3"><span>Pedras</span><strong>{formatCurrency(stonesCost)}</strong></div>
               <div className={cn('flex justify-between gap-3', !includeMaterialLoss && 'text-[#7A6D5F]')}>
-                <span>{includeMaterialLoss ? `Perda material (${MATERIAL_LOSS_PERCENTAGE}%)` : 'Perda material desativada'}</span>
+                <span>{includeMaterialLoss ? `Perda material (${formatPercentage(MATERIAL_LOSS_PERCENTAGE)})` : 'Perda material desativada'}</span>
                 <strong>{formatCurrency(materialLossCost)}</strong>
               </div>
               <div className={cn('flex justify-between gap-3', !includeLabor && 'text-[#7A6D5F]')}><span>Mão de obra {!includeLabor && '(Desativado)'}</span><strong>{formatCurrency(laborCost)}</strong></div>
               <div className={cn('flex justify-between gap-3', !includeCutouts && 'text-[#7A6D5F]')}><span>Recortes {!includeCutouts && '(Desativado)'}</span><strong>{formatCurrency(cutoutsCost)}</strong></div>
               <div className={cn('flex justify-between gap-3', !includeSculptedSink && 'text-[#7A6D5F]')}><span>Pia esculpida {!includeSculptedSink && '(Desativado)'}</span><strong>{formatCurrency(sculptedLaborCost)}</strong></div>
-              <div className="flex justify-between gap-3 border-t border-[#3F3A34]/15 pt-2"><span>Ajuste pagamento ({selectedPaymentAdjustment}%)</span><strong>{formatCurrency(adjustmentValue)}</strong></div>
-              <div className="flex justify-between gap-3"><span>Negociação (-{normalizedNegotiationDiscountPercent}%)</span><strong>-{formatCurrency(negotiationDiscountValue)}</strong></div>
-              <div className="flex justify-between gap-3"><span>RT (+{normalizedRtPercent}%)</span><strong>{formatCurrency(rtValue)}</strong></div>
+              <div className="flex justify-between gap-3 border-t border-[#3F3A34]/15 pt-2"><span>Ajuste pagamento ({selectedPaymentAdjustment > 0 ? '+' : ''}{formatPercentage(selectedPaymentAdjustment)})</span><strong>{formatCurrency(adjustmentValue)}</strong></div>
+              <div className="flex justify-between gap-3"><span>Negociação (-{formatPercentage(normalizedNegotiationDiscountPercent)})</span><strong>-{formatCurrency(negotiationDiscountValue)}</strong></div>
+              <div className="flex justify-between gap-3"><span>RT (+{formatPercentage(normalizedRtPercent)})</span><strong>{formatCurrency(rtValue)}</strong></div>
             </div>
           </section>
 
@@ -2986,17 +2984,15 @@ export const QuoteEditor: React.FC = () => {
 
                         <label className="mt-3 block space-y-1">
                           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Valor personalizado neste orçamento</span>
-                          <input
-                            type="text"
-                            inputMode="decimal"
+                          <CurrencyInput
                             value={row.customInput}
-                            onChange={(event) => updateMaterialCustomPriceInput(row.key, event.target.value)}
+                            onValueChange={(_, rawValue) => updateMaterialCustomPriceInput(row.key, rawValue)}
                             onBlur={() => formatMaterialCustomPriceInput(row.key)}
                             className={cn(
                               'w-full rounded-xl border bg-white px-4 py-2.5 text-sm font-mono outline-none transition-all focus:ring-2',
                               row.error ? 'border-red-300 text-red-700 focus:ring-red-100' : isValidCustom ? 'border-green-200 text-slate-900 focus:ring-green-100' : 'border-slate-100 text-slate-900 focus:ring-brand-primary/20',
                             )}
-                            placeholder="0,00"
+                            placeholder="R$ 0,00"
                           />
                         </label>
                         <div className={cn('mt-2 text-[11px] font-semibold', row.error ? 'text-red-600' : 'text-slate-500')}>
@@ -3047,7 +3043,7 @@ export const QuoteEditor: React.FC = () => {
                     >
                       <option value="">Selecionar forma de pagamento</option>
                       {effectiveQuoteSettings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
-                        <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
+                        <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{formatPercentage(method.adjustment)})</option>
                       ))}
                     </select>
                   </div>
@@ -3055,13 +3051,10 @@ export const QuoteEditor: React.FC = () => {
                   <div className="grid gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
                     <div className="space-y-1">
                       <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Entrada</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
+                      <CurrencyInput
                         value={entryAmount}
-                        onChange={(e) => setEntryAmount(e.target.value)}
-                        placeholder="0,00"
+                        onValueChange={(_, rawValue) => setEntryAmount(rawValue)}
+                        placeholder="R$ 0,00"
                         className="w-full bg-white border border-slate-100 rounded-xl px-4 py-2.5 text-sm"
                       />
                     </div>
@@ -3074,7 +3067,7 @@ export const QuoteEditor: React.FC = () => {
                       >
                         <option value="">Selecionar condição do restante</option>
                         {effectiveQuoteSettings.paymentMethods.filter((method) => method.name.trim()).map((method) => (
-                          <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{method.adjustment}%)</option>
+                          <option key={method.name} value={method.name}>{method.name} ({method.adjustment > 0 ? '+' : ''}{formatPercentage(method.adjustment)})</option>
                         ))}
                       </select>
                     </div>
@@ -3085,7 +3078,7 @@ export const QuoteEditor: React.FC = () => {
                   <div className="space-y-1 text-[11px] text-slate-500">
                     <div>Condição: {resolvedPaymentMethod || 'A definir'}</div>
                     <div>
-                      Ajuste aplicado: {selectedPaymentAdjustment > 0 ? '+' : ''}{selectedPaymentAdjustment}% {paymentMode === 'entry' ? 'sobre o saldo restante' : 'sobre o valor total'}
+                      Ajuste aplicado: {selectedPaymentAdjustment > 0 ? '+' : ''}{formatPercentage(selectedPaymentAdjustment)} {paymentMode === 'entry' ? 'sobre o saldo restante' : 'sobre o valor total'}
                     </div>
                     {paymentMode === 'entry' && (
                       <div>
@@ -3100,12 +3093,9 @@ export const QuoteEditor: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Negociação (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  <PercentageInput
                   value={negotiationDiscountPercent}
-                  onChange={(e) => setNegotiationDiscountPercent(e.target.value)}
+                  onValueChange={(value) => setNegotiationDiscountPercent(String(value))}
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
                   placeholder="Desconto"
                 />
@@ -3113,12 +3103,9 @@ export const QuoteEditor: React.FC = () => {
               </div>
               <div className="space-y-1">
                 <label className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">RT (%)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  <PercentageInput
                   value={rtPercent}
-                  onChange={(e) => setRtPercent(e.target.value)}
+                  onValueChange={(value) => setRtPercent(String(value))}
                   className="w-full bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5 text-sm"
                   placeholder="Acréscimo"
                 />
@@ -3245,7 +3232,7 @@ export const QuoteEditor: React.FC = () => {
                                 ['Pia esculpida', pieceFinalBreakdown.sinkAdditionalValue],
                                 [
                                   pieceFinalBreakdown.complexityLabel
-                                    ? `Complexidade ${pieceFinalBreakdown.complexityLabel} (${pieceFinalBreakdown.complexityPercent}%)`
+                                    ? `Complexidade ${pieceFinalBreakdown.complexityLabel} (${formatPercentage(pieceFinalBreakdown.complexityPercent)})`
                                     : 'Complexidade',
                                   pieceFinalBreakdown.complexityValue,
                                 ],
@@ -3786,14 +3773,12 @@ export const QuoteEditor: React.FC = () => {
                           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:col-span-2">
                             <label className="block space-y-1">
                               <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Valor manual da peça</span>
-                              <input
-                                type="text"
-                                inputMode="decimal"
+                              <CurrencyInput
                                 value={pieceManualPriceInputs[piece.id] || ''}
-                                onChange={(event) => updatePieceManualPriceInput(piece.id, event.target.value)}
+                                onValueChange={(_, rawValue) => updatePieceManualPriceInput(piece.id, rawValue)}
                                 onBlur={() => formatPieceManualPriceInput(piece.id)}
                                 disabled={(piece.pricingMode || 'automatic') !== 'manual'}
-                                placeholder="0,00"
+                                placeholder="R$ 0,00"
                                 className={cn(
                                   'w-full rounded-2xl border bg-white px-4 py-3 text-sm font-mono outline-none transition-all focus:ring-2',
                                   (piece.pricingMode || 'automatic') !== 'manual'
@@ -3835,7 +3820,7 @@ export const QuoteEditor: React.FC = () => {
                                 )}
                               >
                                 <span>{option.label}</span>
-                                <span>{option.percent > 0 ? '+' : ''}{option.percent}%</span>
+                                <span>{option.percent > 0 ? '+' : ''}{formatPercentage(option.percent)}</span>
                               </button>
                             ))}
                           </div>

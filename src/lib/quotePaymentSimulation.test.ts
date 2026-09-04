@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   buildQuotePaymentSimulationOptions,
+  calculateQuoteDisplayInstallmentAmount,
   calculateQuoteInstallmentBreakdown,
   calculateDesiredTotalAdjustment,
   calculateQuotePaymentTotals,
@@ -110,6 +111,52 @@ test('CASO G fecha o total quando parcelas geram centavos residuais', () => {
   assert.equal(breakdown.installmentAmount, 333.33);
   assert.equal(breakdown.lastInstallmentAmount, 333.34);
   assert.equal((breakdown.installmentAmount * 2) + breakdown.lastInstallmentAmount, 1000);
+});
+
+test('CASO G2 exibe parcela representativa sem mostrar ajuste da última parcela', () => {
+  const breakdown = calculateQuoteInstallmentBreakdown({
+    totalPrice: 41931.94,
+    paymentMode: 'total',
+    entryAmount: 0,
+    installmentCount: 5,
+  });
+  const displayInstallmentAmount = calculateQuoteDisplayInstallmentAmount({
+    installmentTotalAmount: breakdown.installmentTotalAmount,
+    installmentCount: 5,
+  });
+
+  assert.equal(displayInstallmentAmount, 8386.39);
+  assert.equal(breakdown.installmentAmount, 8386.38);
+  assert.equal(breakdown.lastInstallmentAmount, 8386.42);
+  assert.equal(Math.round(((breakdown.installmentAmount * 4) + breakdown.lastInstallmentAmount) * 100), 4193194);
+});
+
+test('CASO G3 exibição resumida funciona para várias quantidades de parcelas', () => {
+  const scenarios = [
+    {count: 3, expectedDisplay: 13977.31},
+    {count: 6, expectedDisplay: 6988.66},
+    {count: 7, expectedDisplay: 5990.28},
+    {count: 9, expectedDisplay: 4659.1},
+    {count: 10, expectedDisplay: 4193.19},
+    {count: 11, expectedDisplay: 3811.99},
+  ];
+
+  scenarios.forEach(({count, expectedDisplay}) => {
+    const breakdown = calculateQuoteInstallmentBreakdown({
+      totalPrice: 41931.94,
+      paymentMode: 'total',
+      entryAmount: 0,
+      installmentCount: count,
+    });
+    const displayInstallmentAmount = calculateQuoteDisplayInstallmentAmount({
+      installmentTotalAmount: breakdown.installmentTotalAmount,
+      installmentCount: count,
+    });
+    const internalTotal = (breakdown.installmentAmount * (count - 1)) + breakdown.lastInstallmentAmount;
+
+    assert.equal(displayInstallmentAmount, expectedDisplay);
+    assert.equal(Math.round(internalTotal * 100) / 100, 41931.94);
+  });
 });
 
 test('CASO H mantem entrada fora do saldo financiado mesmo com comissao', () => {

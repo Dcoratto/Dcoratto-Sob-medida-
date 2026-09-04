@@ -180,6 +180,18 @@ export const calculateQuoteInstallmentBreakdown = ({
   };
 };
 
+export const calculateQuoteDisplayInstallmentAmount = ({
+  installmentTotalAmount,
+  installmentCount,
+}: {
+  installmentTotalAmount: number;
+  installmentCount: number;
+}) => {
+  const installmentTotalCents = Math.max(0, currencyAmountToCents(installmentTotalAmount));
+  const normalizedInstallmentCount = Math.max(1, Number(installmentCount) || 1);
+  return currencyCentsToAmount(Math.round(installmentTotalCents / normalizedInstallmentCount));
+};
+
 export const calculateQuoteInstallmentAmount = ({
   totalPrice,
   paymentMode,

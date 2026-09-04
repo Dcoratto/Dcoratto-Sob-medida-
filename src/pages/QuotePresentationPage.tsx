@@ -24,6 +24,7 @@ import {
   buildQuotePaymentSimulationOptions,
   currencyAmountToCents,
   currencyCentsToAmount,
+  calculateQuoteDisplayInstallmentAmount,
   parseCurrencyInputToCents,
   QuotePaymentMethodOption,
   resolveQuotePaymentSimulationBase,
@@ -295,15 +296,16 @@ const formatSimulationMethodDetail = (option: {
   installmentCount: number;
   installmentAmount: number;
   lastInstallmentAmount: number;
+  installmentTotalAmount: number;
   totalPrice: number;
   entryAmount: number;
 }) => {
   if (option.installmentCount > 1) {
-    if (Math.abs(option.lastInstallmentAmount - option.installmentAmount) >= 0.01) {
-      return `${option.installmentCount - 1}x de ${formatCurrency(option.installmentAmount)} + 1x de ${formatCurrency(option.lastInstallmentAmount)}`;
-    }
-
-    return `${option.installmentCount}x de ${formatCurrency(option.installmentAmount)}`;
+    const displayInstallmentAmount = calculateQuoteDisplayInstallmentAmount({
+      installmentTotalAmount: option.installmentTotalAmount,
+      installmentCount: option.installmentCount,
+    });
+    return `${option.installmentCount}x de ${formatCurrency(displayInstallmentAmount)}`;
   }
 
   if (option.entryAmount > 0) {
@@ -587,6 +589,11 @@ export const QuotePresentationPage: React.FC = () => {
       ? formatSimulationMethodDetail(selectedSimulation)
       : formatSimulationMethodHeading(selectedSimulation.methodName)
     : '';
+  const selectedSimulationHasInstallmentRounding = Boolean(
+    selectedSimulation
+    && selectedSimulation.installmentCount > 1
+    && Math.abs(selectedSimulation.lastInstallmentAmount - selectedSimulation.installmentAmount) >= 0.01,
+  );
 
   const importantInfoItems = useMemo(() => {
     if (!snapshot) return [];
@@ -1425,6 +1432,11 @@ export const QuotePresentationPage: React.FC = () => {
                   <span>Saldo financiado ajustado: {formatCurrency(selectedSimulation.financedAmount)}</span>
                   <span>Simulação não altera o valor oficial da proposta.</span>
                 </div>
+                {selectedSimulationHasInstallmentRounding ? (
+                  <div className="mt-2 text-[11px] leading-5 text-[#8f7d67]">
+                    Pode haver ajuste de centavos na última parcela.
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}

@@ -25,6 +25,19 @@ export type QuotePaymentTotals = {
   totalPrice: number;
 };
 
+export type QuoteDesiredTotalAdjustmentInput = {
+  desiredTotalPrice: number;
+  paymentAdjustedTotal: number;
+  commissionPercent: number;
+};
+
+export type QuoteDesiredTotalAdjustment = {
+  negotiationDiscountPercent: number;
+  rtPercent: number;
+  calculatedPercent: number;
+  direction: 'none' | 'discount' | 'increase';
+};
+
 export type QuotePaymentSimulationContext = {
   officialTotalPrice: number;
   officialPaymentMode?: QuotePaymentMode;
@@ -175,6 +188,50 @@ export const calculateQuoteInstallmentAmount = ({
     : normalizedTotalPrice;
 
   return installmentBase / normalizedInstallmentCount;
+};
+
+export const calculateDesiredTotalAdjustment = ({
+  desiredTotalPrice,
+  paymentAdjustedTotal,
+  commissionPercent,
+}: QuoteDesiredTotalAdjustmentInput): QuoteDesiredTotalAdjustment | null => {
+  const desiredTotalCents = Math.round((Number(desiredTotalPrice) || 0) * 100);
+  const paymentAdjustedTotalCents = Math.round((Number(paymentAdjustedTotal) || 0) * 100);
+  if (desiredTotalCents < 0 || paymentAdjustedTotalCents <= 0) return null;
+
+  const normalizedCommissionPercent = normalizePercent(commissionPercent);
+  const desiredTotal = desiredTotalCents / 100;
+  const base = paymentAdjustedTotalCents / 100;
+  const totalWithoutCommercialAdjustment = base * (1 + (normalizedCommissionPercent / 100));
+  const rawDeltaPercent = ((desiredTotal / base) - 1 - (normalizedCommissionPercent / 100)) * 100;
+
+  if (Math.abs(Math.round(totalWithoutCommercialAdjustment * 100) - desiredTotalCents) <= 0) {
+    return {
+      negotiationDiscountPercent: 0,
+      rtPercent: 0,
+      calculatedPercent: 0,
+      direction: 'none',
+    };
+  }
+
+  if (rawDeltaPercent >= 0) {
+    return {
+      negotiationDiscountPercent: 0,
+      rtPercent: rawDeltaPercent,
+      calculatedPercent: rawDeltaPercent,
+      direction: 'increase',
+    };
+  }
+
+  const discountPercent = Math.abs(rawDeltaPercent);
+  if (discountPercent >= 100 + normalizedCommissionPercent) return null;
+
+  return {
+    negotiationDiscountPercent: discountPercent,
+    rtPercent: 0,
+    calculatedPercent: -discountPercent,
+    direction: 'discount',
+  };
 };
 
 const resolvePricingMultiplier = ({

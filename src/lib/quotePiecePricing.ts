@@ -1,4 +1,4 @@
-import {Settings, Quote, QuotePiece} from '../types';
+import {Settings, Quote, QuoteComplexityOption, QuotePiece} from '../types';
 import {getRegionalLaborMinimum} from './laborRegion';
 import {getEffectivePieceLinearLength} from './pieceDimensions';
 import {
@@ -23,6 +23,10 @@ export type PiecePricingBreakdown = {
   laborValue: number;
   cutoutValue: number;
   sinkAdditionalValue: number;
+  complexityLabel: string;
+  complexityPercent: number;
+  complexityValue: number;
+  ownSubtotalValue: number;
   pieceSubtotalValue: number;
   allocatedQuoteAdjustmentValue: number;
   pieceFinalValue: number;
@@ -96,6 +100,8 @@ export const buildPiecePricingBreakdowns = ({
   includeMaterialLoss = true,
   includeCutouts = true,
   includeSculptedSink = true,
+  includeComplexity = true,
+  complexityOptions,
   resolveManualPiecePrice,
   clientLocation,
 }: {
@@ -109,10 +115,16 @@ export const buildPiecePricingBreakdowns = ({
   includeMaterialLoss?: boolean;
   includeCutouts?: boolean;
   includeSculptedSink?: boolean;
+  includeComplexity?: boolean;
+  complexityOptions?: QuoteComplexityOption[];
   resolveManualPiecePrice?: (piece: QuotePiece) => number | undefined;
   clientLocation?: {city?: string; address?: string};
 }) => {
   const regionalLaborMinimum = getRegionalLaborMinimum(settings, clientLocation || {});
+  const activeComplexityOptions = (complexityOptions || settings.quoteComplexityOptions || [])
+    .filter((option) => option.active !== false);
+  const defaultComplexity = activeComplexityOptions.find((option) => Number(option.percent || 0) === 0)
+    || activeComplexityOptions[0];
   const breakdowns = pieces.map((piece) => {
     const totals = calculatePieceArea(piece);
     const cutoutSummary = buildPieceCutoutSummary({piece, pieces, quoteCutouts, settings});
@@ -125,11 +137,19 @@ export const buildPiecePricingBreakdowns = ({
     const calculatedCutoutValue = cutoutSummary.totalValue;
     const cutoutValue = includeCutouts ? calculatedCutoutValue : 0;
     const sinkAdditionalValue = includeSculptedSink ? roundCurrency(totals.sinkAdditionalValue || 0) : 0;
-    const automaticPieceSubtotalValue = roundCurrency(stoneWithLossValue + laborValue + cutoutValue + sinkAdditionalValue);
+    const ownSubtotalBeforeComplexity = roundCurrency(stoneWithLossValue + laborValue + cutoutValue + sinkAdditionalValue);
+    const resolvedComplexity = activeComplexityOptions.find((option) => option.key === piece.complexityKey)
+      || defaultComplexity;
+    const complexityPercent = includeComplexity ? Number(resolvedComplexity?.percent || 0) : 0;
+    const complexityValue = roundCurrency(ownSubtotalBeforeComplexity * (complexityPercent / 100));
+    const automaticPieceSubtotalValue = roundCurrency(ownSubtotalBeforeComplexity + complexityValue);
     const manualPiecePrice = resolveManualPiecePrice?.(piece);
     const pieceSubtotalValue = typeof manualPiecePrice === 'number'
       ? roundCurrency(Math.max(0, manualPiecePrice))
       : automaticPieceSubtotalValue;
+    const ownSubtotalValue = typeof manualPiecePrice === 'number'
+      ? pieceSubtotalValue
+      : ownSubtotalBeforeComplexity;
 
     return {
       stoneBaseValue,
@@ -140,6 +160,10 @@ export const buildPiecePricingBreakdowns = ({
       laborValue,
       cutoutValue,
       sinkAdditionalValue,
+      complexityLabel: resolvedComplexity?.label || '',
+      complexityPercent,
+      complexityValue: typeof manualPiecePrice === 'number' ? 0 : complexityValue,
+      ownSubtotalValue,
       pieceSubtotalValue,
       allocatedQuoteAdjustmentValue: 0,
       pieceFinalValue: pieceSubtotalValue,

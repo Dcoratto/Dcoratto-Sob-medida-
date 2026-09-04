@@ -44,6 +44,7 @@ import {
 import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
 import {
   calculateQuoteInstallmentAmount,
+  calculateDesiredTotalAdjustment,
   calculateQuotePaymentTotals,
   findPaymentMethodAdjustment,
   parseInstallmentCountFromMethod,
@@ -409,6 +410,8 @@ export const QuoteEditor: React.FC = () => {
   const [commissionPercent, setCommissionPercent] = useState('');
   const [negotiationDiscountPercent, setNegotiationDiscountPercent] = useState('');
   const [rtPercent, setRtPercent] = useState('');
+  const [desiredTotalInput, setDesiredTotalInput] = useState('');
+  const [desiredTotalFeedback, setDesiredTotalFeedback] = useState('');
   const [deliveryDays, setDeliveryDays] = useState(15);
   const [measurementDate, setMeasurementDate] = useState('');
   const [deliveryDate, setDeliveryDate] = useState('');
@@ -814,13 +817,15 @@ export const QuoteEditor: React.FC = () => {
       includeMaterialLoss: true,
       includeCutouts: true,
       includeSculptedSink: true,
+      includeComplexity,
+      complexityOptions: activeComplexityOptions,
       resolveManualPiecePrice: (piece) => {
         if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
         const parsed = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, effectiveQuoteCutouts, effectiveQuoteSettings, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, usesLinearLaborPricing],
+    [activeComplexityOptions, calculatePieceArea, effectiveQuoteCutouts, effectiveQuoteSettings, includeComplexity, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, usesLinearLaborPricing],
   );
   const stonesCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.stoneBaseValue, 0);
   const originalMaterialLossCost = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.materialLossValue, 0);
@@ -839,17 +844,20 @@ export const QuoteEditor: React.FC = () => {
       includeMaterialLoss: quotePricingMode !== 'cost',
       includeCutouts: true,
       includeSculptedSink: true,
+      includeComplexity,
+      complexityOptions: activeComplexityOptions,
       resolveManualPiecePrice: (piece) => {
         if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
         const parsed = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
         return parsed.status === 'valid' ? Number(parsed.value) : undefined;
       },
     }),
-    [calculatePieceArea, effectiveQuoteCutouts, effectiveQuoteSettings, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, usesLinearLaborPricing],
+    [activeComplexityOptions, calculatePieceArea, effectiveQuoteCutouts, effectiveQuoteSettings, includeComplexity, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, usesLinearLaborPricing],
   );
   const originalLinearLaborCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.laborValue, 0);
   const originalCutoutsCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.cutoutValue, 0);
   const originalSculptedLaborCost = originalPiecePricingBreakdowns.reduce((acc, item) => acc + item.sinkAdditionalValue, 0);
+  const pieceComplexityValue = basePiecePricingBreakdowns.reduce((acc, item) => acc + item.complexityValue, 0);
   const piecesWithPresentationSnapshot = useMemo(
     () => pieces.map((piece, index) => {
       const pieceMaterial = materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey);
@@ -921,11 +929,13 @@ export const QuoteEditor: React.FC = () => {
   }, 0);
   const externalLaborCost = usesLinearLaborPricing ? 0 : laborCost;
   const productionSubtotal = piecesSubtotal + externalLaborCost;
-  const subtotalBeforeComplexity = productionSubtotal + deliveryFee;
+  const hasPieceScopedComplexity = pieces.some((piece) => typeof piece.complexityKey === 'string');
+  const subtotalBeforeLegacyComplexity = productionSubtotal + deliveryFee;
   const complexityPercent = Number(resolvedComplexity?.percent || 0);
-  const originalComplexityValue = subtotalBeforeComplexity * (complexityPercent / 100);
-  const complexityValue = includeComplexity ? originalComplexityValue : 0;
-  const subtotalBeforeAdjustment = subtotalBeforeComplexity + complexityValue;
+  const originalComplexityValue = hasPieceScopedComplexity ? pieceComplexityValue : subtotalBeforeLegacyComplexity * (complexityPercent / 100);
+  const legacyComplexityValue = includeComplexity && !hasPieceScopedComplexity ? originalComplexityValue : 0;
+  const complexityValue = includeComplexity ? roundNumber(pieceComplexityValue + legacyComplexityValue, 2) : 0;
+  const subtotalBeforeAdjustment = subtotalBeforeLegacyComplexity + legacyComplexityValue;
   const normalizedEntryAmount = Math.min(Math.max(Number(entryAmount) || 0, 0), subtotalBeforeAdjustment);
   const selectedPaymentAdjustment = paymentMode === 'entry' ? remainingMethodAdjustment : totalMethodAdjustment;
   const normalizedCommissionPercent = Math.max(0, Number(commissionPercent) || 0);
@@ -955,6 +965,58 @@ export const QuoteEditor: React.FC = () => {
     entryAmount: normalizedEntryAmount,
     installmentCount: normalizedInstallmentCount,
   });
+  const finalPiecePricingBreakdowns = useMemo(
+    () => buildPiecePricingBreakdowns({
+      pieces,
+      quoteCutouts: effectiveQuoteCutouts,
+      totalQuotePrice: totalPrice,
+      settings: effectiveQuoteSettings,
+      clientLocation: {
+        city: selectedClient?.city,
+        address: selectedClient?.address,
+      },
+      calculatePieceArea,
+      resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
+      includeLabor: quotePricingMode !== 'cost' && usesLinearLaborPricing,
+      includeMaterialLoss: quotePricingMode !== 'cost',
+      includeCutouts,
+      includeSculptedSink,
+      includeComplexity,
+      complexityOptions: activeComplexityOptions,
+      resolveManualPiecePrice: (piece) => {
+        if ((piece.pricingMode || 'automatic') !== 'manual') return undefined;
+        const parsed = parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '');
+        return parsed.status === 'valid' ? Number(parsed.value) : undefined;
+      },
+    }),
+    [activeComplexityOptions, calculatePieceArea, effectiveQuoteCutouts, effectiveQuoteSettings, includeComplexity, includeCutouts, includeSculptedSink, materialId, pieceManualPriceInputs, pieces, quotePricingMode, selectedClient?.address, selectedClient?.city, totalPrice, usesLinearLaborPricing],
+  );
+  const applyDesiredTotalAdjustment = () => {
+    const desiredTotalPrice = parseCurrencyInput(desiredTotalInput);
+    if (!desiredTotalInput.trim()) {
+      setDesiredTotalFeedback('');
+      return;
+    }
+
+    const adjustment = calculateDesiredTotalAdjustment({
+      desiredTotalPrice,
+      paymentAdjustedTotal,
+      commissionPercent: normalizedCommissionPercent,
+    });
+
+    if (!adjustment) {
+      setDesiredTotalFeedback('Informe um total final válido para calcular o ajuste.');
+      return;
+    }
+
+    setNegotiationDiscountPercent(adjustment.negotiationDiscountPercent ? String(adjustment.negotiationDiscountPercent) : '');
+    setRtPercent(adjustment.rtPercent ? String(adjustment.rtPercent) : '');
+    setDesiredTotalFeedback(
+      adjustment.direction === 'none'
+        ? 'Ajuste necessário: 0%.'
+        : `Ajuste necessário: ${adjustment.calculatedPercent > 0 ? '+' : ''}${adjustment.calculatedPercent.toFixed(6)}%.`,
+    );
+  };
   const materialBaseCost = pieceAreaDetails.reduce((acc, {totals, material}) => {
     const costPerM2 = Number(material?.baseCostPerM2 || 0);
     const lossArea = includeMaterialLoss ? Number(totals.lossArea || 0) : 0;
@@ -1567,6 +1629,7 @@ export const QuoteEditor: React.FC = () => {
       kind: asStair ? 'escada' : undefined,
       pieceStatus: status,
       pricingMode: 'automatic',
+      complexityKey: activeComplexityOptions.find((option) => Number(option.percent || 0) === 0)?.key || DEFAULT_QUOTE_COMPLEXITY_OPTIONS[0].key,
       areaMode: 'dimensions',
       materialId: '',
       unit: 'cm',
@@ -2122,9 +2185,9 @@ export const QuoteEditor: React.FC = () => {
       totalPrice: normalizedTotalPrice,
       laborCharge: Number(originalLaborCost.toFixed(2)),
       deliveryFee: Number(deliveryFee.toFixed(2)),
-      complexityKey: resolvedComplexity.key,
-      complexityLabel: resolvedComplexity.label,
-      complexityPercent: Number(complexityPercent.toFixed(2)),
+      complexityKey: hasPieceScopedComplexity ? '' : resolvedComplexity.key,
+      complexityLabel: hasPieceScopedComplexity ? '' : resolvedComplexity.label,
+      complexityPercent: hasPieceScopedComplexity ? 0 : Number(complexityPercent.toFixed(2)),
       pricingMode: quotePricingMode,
       includeMaterialLoss,
       includeCutouts,
@@ -2640,26 +2703,45 @@ export const QuoteEditor: React.FC = () => {
                         <PricingSwitch checked={includeDelivery} onChange={setIncludeDelivery} label="Alternar entrega" />
                       </div>
                     </div>
-                    <div className="py-3">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-slate-900">Complexidade</div>
-                          <div className="text-xs text-slate-400">{includeComplexity ? `${resolvedComplexity.label} · ${complexityPercent > 0 ? '+' : ''}${complexityPercent}%` : `Desativado · original ${formatCurrency(originalComplexityValue)}`}</div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-right text-sm font-semibold text-slate-900">{formatCurrency(complexityValue)}</div>
-                          <PricingSwitch checked={includeComplexity} onChange={setIncludeComplexity} label="Alternar complexidade" />
+                    <div className="flex items-center justify-between gap-4 py-3">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-900">Complexidade das peças</div>
+                        <div className="text-xs text-slate-400">
+                          {hasPieceScopedComplexity
+                            ? 'Definida individualmente dentro de cada peça'
+                            : `Compatibilidade histórica · ${resolvedComplexity.label} · ${complexityPercent > 0 ? '+' : ''}${complexityPercent}%`}
                         </div>
                       </div>
-                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                      {activeComplexityOptions.map((option) => (
-                        <button key={option.key} type="button" onClick={() => setComplexityKey(option.key)} className={cn('flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all', complexityKey === option.key ? 'border-brand-primary bg-brand-primary text-[#3F3A34] shadow-sm' : 'border-slate-100 bg-slate-50 text-slate-700 hover:border-brand-primary/30 hover:bg-white')}>
-                          <span>{option.label}</span>
-                          <span>{option.percent > 0 ? '+' : ''}{option.percent}%</span>
-                        </button>
-                      ))}
+                      <div className="flex items-center gap-3">
+                        <div className="text-right text-sm font-semibold text-slate-900">{formatCurrency(complexityValue)}</div>
+                        <PricingSwitch checked={includeComplexity} onChange={setIncludeComplexity} label="Alternar complexidade das peças" />
                       </div>
                     </div>
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
+                  <div className="text-sm font-semibold text-slate-900">Total final desejado</div>
+                  <p className="mt-1 text-xs text-slate-500">Calcula o desconto ou acréscimo necessário usando a regra oficial do orçamento.</p>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={desiredTotalInput}
+                      onChange={(event) => setDesiredTotalInput(event.target.value)}
+                      onBlur={applyDesiredTotalAdjustment}
+                      placeholder={formatCurrency(totalPrice)}
+                      className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 text-sm font-mono outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
+                    />
+                    <button
+                      type="button"
+                      onClick={applyDesiredTotalAdjustment}
+                      className="rounded-2xl bg-slate-900 px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-white transition-all hover:bg-slate-800"
+                    >
+                      Calcular
+                    </button>
+                  </div>
+                  <div className="mt-2 text-xs font-semibold text-slate-500">
+                    {desiredTotalFeedback || 'O percentual calculado atualiza o campo oficial de desconto ou acréscimo.'}
                   </div>
                 </div>
                 <div className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
@@ -3090,6 +3172,7 @@ export const QuoteEditor: React.FC = () => {
               const drawingArea = getStoredDrawingArea(piece);
               const manualFinalArea = getStoredManualFinalArea(piece);
               const pieceCutoutBreakdown = originalPiecePricingBreakdowns[pIdx];
+              const pieceFinalBreakdown = finalPiecePricingBreakdowns[pIdx];
               const pieceScopedCutouts = pieceCutoutBreakdown?.cutoutRows || [];
               const pieceScopedCutoutTotal = pieceCutoutBreakdown?.calculatedCutoutValue || 0;
               const hasMaterial = Boolean(piece.materialId);
@@ -3147,6 +3230,36 @@ export const QuoteEditor: React.FC = () => {
                             <div className="mt-2 font-mono text-sm font-bold text-slate-900">{formatCurrency(pieceScopedCutoutTotal)}</div>
                           </div>
                         </div>
+                        {pieceFinalBreakdown ? (
+                          <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Detalhamento financeiro</div>
+                              <div className="text-sm font-semibold text-slate-900">Final: {formatCurrency(pieceFinalBreakdown.pieceFinalValue)}</div>
+                            </div>
+                            <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                              {[
+                                ['Material', pieceFinalBreakdown.stoneBaseValue],
+                                ['Perda', pieceFinalBreakdown.materialLossValue],
+                                ['Mão de obra', pieceFinalBreakdown.laborValue],
+                                ['Recortes', pieceFinalBreakdown.cutoutValue],
+                                ['Pia esculpida', pieceFinalBreakdown.sinkAdditionalValue],
+                                [
+                                  pieceFinalBreakdown.complexityLabel
+                                    ? `Complexidade ${pieceFinalBreakdown.complexityLabel} (${pieceFinalBreakdown.complexityPercent}%)`
+                                    : 'Complexidade',
+                                  pieceFinalBreakdown.complexityValue,
+                                ],
+                                ['Subtotal próprio', pieceFinalBreakdown.pieceSubtotalValue],
+                                ['Participação ajustes globais', pieceFinalBreakdown.allocatedQuoteAdjustmentValue],
+                              ].filter(([, value]) => Math.abs(Number(value) || 0) > 0).map(([label, value]) => (
+                                <div key={String(label)} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2">
+                                  <span className="min-w-0 truncate text-slate-500">{label}</span>
+                                  <strong className="shrink-0 font-mono text-slate-900">{formatCurrency(Number(value) || 0)}</strong>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
                       </div>
                       <div className="inline-flex items-center self-start rounded-xl bg-slate-100 px-3 py-2 text-sm font-bold text-slate-700">
                         Abrir editor
@@ -3696,6 +3809,35 @@ export const QuoteEditor: React.FC = () => {
                                 ? 'Esse valor manual substitui o cálculo automático desta peça.'
                                 : 'Ative o modo manual para digitar um valor personalizado para esta peça.')}
                             </div>
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                            <div>
+                              <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Complexidade da peça</div>
+                              <p className="mt-1 text-sm text-slate-500">Incide somente sobre o subtotal próprio desta peça.</p>
+                            </div>
+                            <div className="text-sm font-semibold text-slate-900">
+                              {formatCurrency(pieceCutoutBreakdown?.complexityValue || 0)}
+                            </div>
+                          </div>
+                          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                            {activeComplexityOptions.map((option) => (
+                              <button
+                                key={option.key}
+                                type="button"
+                                onClick={() => updatePiece(piece.id, {complexityKey: option.key})}
+                                className={cn(
+                                  'flex items-center justify-between rounded-xl border px-3 py-2.5 text-sm font-semibold transition-all',
+                                  (piece.complexityKey || activeComplexityOptions.find((item) => Number(item.percent || 0) === 0)?.key) === option.key
+                                    ? 'border-brand-primary bg-white text-brand-primary shadow-sm'
+                                    : 'border-slate-100 bg-white text-slate-700 hover:border-brand-primary/30',
+                                )}
+                              >
+                                <span>{option.label}</span>
+                                <span>{option.percent > 0 ? '+' : ''}{option.percent}%</span>
+                              </button>
+                            ))}
                           </div>
                         </div>
                       </div>

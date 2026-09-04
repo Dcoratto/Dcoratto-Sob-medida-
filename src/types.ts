@@ -852,6 +852,7 @@ export interface QuotePiece {
   kind?: QuotePieceKind;
   pieceStatus?: QuoteStatus;
   pricingMode?: 'automatic' | 'manual';
+  complexityKey?: string;
   areaMode?: 'dimensions' | 'manual';
   manualPrice?: number;
   materialId: string;

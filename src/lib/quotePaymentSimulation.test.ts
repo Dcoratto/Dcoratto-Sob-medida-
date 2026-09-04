@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   buildQuotePaymentSimulationOptions,
   calculateQuoteInstallmentBreakdown,
+  calculateDesiredTotalAdjustment,
   calculateQuotePaymentTotals,
   validateQuoteSimulationEntryAmount,
 } from './quotePaymentSimulation';
@@ -144,4 +145,63 @@ test('CASO I helper compartilhado gera o mesmo total usado pelo simulador', () =
   assert.ok(credit);
   assert.equal(credit.totalPrice, directTotals.totalPrice);
   assert.equal(credit.installmentTotalAmount + credit.entryAmount, credit.totalPrice);
+});
+
+test('TESTE 6 total desejado maior calcula acréscimo necessário', () => {
+  const adjustment = calculateDesiredTotalAdjustment({
+    desiredTotalPrice: 150000,
+    paymentAdjustedTotal: 129900,
+    commissionPercent: 0,
+  });
+
+  assert.ok(adjustment);
+  assert.equal(adjustment.direction, 'increase');
+  assert.equal(Number(adjustment.rtPercent.toFixed(6)), 15.473441);
+
+  const totals = calculateQuotePaymentTotals({
+    subtotalBeforeAdjustment: 129900,
+    paymentMode: 'total',
+    entryAmount: 0,
+    selectedAdjustment: 0,
+    commissionPercent: 0,
+    negotiationDiscountPercent: adjustment.negotiationDiscountPercent,
+    rtPercent: adjustment.rtPercent,
+  });
+  assert.equal(totals.totalPrice, 150000);
+});
+
+test('TESTE 7 total desejado menor calcula desconto necessário', () => {
+  const adjustment = calculateDesiredTotalAdjustment({
+    desiredTotalPrice: 90000,
+    paymentAdjustedTotal: 100000,
+    commissionPercent: 0,
+  });
+
+  assert.ok(adjustment);
+  assert.equal(adjustment.direction, 'discount');
+  assert.equal(Number(adjustment.negotiationDiscountPercent.toFixed(6)), 10);
+  assert.equal(adjustment.rtPercent, 0);
+
+  const totals = calculateQuotePaymentTotals({
+    subtotalBeforeAdjustment: 100000,
+    paymentMode: 'total',
+    entryAmount: 0,
+    selectedAdjustment: 0,
+    commissionPercent: 0,
+    negotiationDiscountPercent: adjustment.negotiationDiscountPercent,
+    rtPercent: adjustment.rtPercent,
+  });
+  assert.equal(totals.totalPrice, 90000);
+});
+
+test('TESTE 8 total desejado igual ao atual zera ajuste comercial', () => {
+  const adjustment = calculateDesiredTotalAdjustment({
+    desiredTotalPrice: 100000,
+    paymentAdjustedTotal: 100000,
+    commissionPercent: 0,
+  });
+
+  assert.ok(adjustment);
+  assert.equal(adjustment.direction, 'none');
+  assert.equal(adjustment.calculatedPercent, 0);
 });

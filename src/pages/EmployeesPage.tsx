@@ -34,6 +34,7 @@ import {
   listEmployeeAttendanceHistory,
   listEmployeeFunctionCatalog,
   listEmployeeOperationalOverview,
+  listEmployeeProductionReport,
   listEmployeeSchedules,
   pauseEmployeeActivity,
   resumeEmployeeActivity,
@@ -46,6 +47,7 @@ import {
   startEmployeeActivity,
   type EmployeeActivityTarget,
   type EmployeeFunctionCatalogItem,
+  type EmployeeProductionReport,
   type EmployeeProfileDraft,
   type WorkforceActor,
   type MyEmployeeOperation,
@@ -81,6 +83,9 @@ const weekdays = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 
 type Feedback = {type: 'success' | 'error'; message: string} | null;
 type HistoryPeriod = 'today' | 'week' | 'month' | 'custom';
+type AdminSection = 'overview' | 'production' | 'employees';
+type ProductionPeriod = 'today' | 'week' | 'month' | 'custom';
+type ProductionMode = 'summary' | 'employee' | 'work' | 'piece' | 'function';
 type WorkdayStep = 'start' | 'break' | 'resume' | 'finish' | 'overtimeStart' | 'overtimeFinish' | 'done';
 
 const formatMinutes = (value: number) => {
@@ -93,8 +98,34 @@ const formatMinutes = (value: number) => {
 const formatClock = (value?: string | null) => value ? new Date(value).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : '--:--';
 const formatDate = (value?: string | null) => value ? new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR') : '-';
 const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString('pt-BR') : '-';
+const formatPercent = (value: number) => `${(Number(value) || 0).toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 2})}%`;
 
 const toDateInputValue = (value?: string | null) => value ? String(value).slice(0, 10) : new Date().toISOString().slice(0, 10);
+
+const resolveDateRange = (period: ProductionPeriod, customFrom = '', customTo = '') => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const toInput = (value: Date) => {
+    const pad = (item: number) => String(item).padStart(2, '0');
+    return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+  };
+
+  if (period === 'today') {
+    const value = toInput(today);
+    return {from: value, to: value};
+  }
+  if (period === 'week') {
+    const start = new Date(today);
+    const day = start.getDay();
+    start.setDate(start.getDate() - (day === 0 ? 6 : day - 1));
+    return {from: toInput(start), to: toInput(today)};
+  }
+  if (period === 'month') {
+    return {from: toInput(new Date(today.getFullYear(), today.getMonth(), 1)), to: toInput(today)};
+  }
+
+  return {from: customFrom || toInput(today), to: customTo || customFrom || toInput(today)};
+};
 
 const toLocalDateTimeInput = (value?: string | null) => {
   if (!value) return '';
@@ -277,6 +308,22 @@ export const EmployeeReportsPage: React.FC = () => {
   const [historyClientId, setHistoryClientId] = React.useState('');
   const [historyFunctionKey, setHistoryFunctionKey] = React.useState('');
   const overviewRequestIdRef = React.useRef(0);
+  const productionRequestIdRef = React.useRef(0);
+  const [adminSection, setAdminSection] = React.useState<AdminSection>('overview');
+  const [productionMode, setProductionMode] = React.useState<ProductionMode>('summary');
+  const [productionPeriod, setProductionPeriod] = React.useState<ProductionPeriod>('month');
+  const [productionCustomFrom, setProductionCustomFrom] = React.useState('');
+  const [productionCustomTo, setProductionCustomTo] = React.useState('');
+  const [productionFilters, setProductionFilters] = React.useState({
+    employeeId: '',
+    clientId: '',
+    quoteId: '',
+    pieceKey: '',
+    functionKey: '',
+  });
+  const [productionReport, setProductionReport] = React.useState<EmployeeProductionReport | null>(null);
+  const [productionLoading, setProductionLoading] = React.useState(false);
+  const [productionError, setProductionError] = React.useState('');
 
   React.useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 30000);
@@ -307,6 +354,40 @@ export const EmployeeReportsPage: React.FC = () => {
   React.useEffect(() => {
     void loadOverview();
   }, [loadOverview, refreshKey]);
+
+  const productionDateRange = React.useMemo(
+    () => resolveDateRange(productionPeriod, productionCustomFrom, productionCustomTo),
+    [productionCustomFrom, productionCustomTo, productionPeriod],
+  );
+
+  React.useEffect(() => {
+    if (adminSection !== 'production') return;
+    const requestId = ++productionRequestIdRef.current;
+    setProductionLoading(true);
+    setProductionError('');
+
+    listEmployeeProductionReport({
+      dateFrom: productionDateRange.from,
+      dateTo: productionDateRange.to,
+      employeeId: productionFilters.employeeId || undefined,
+      clientId: productionFilters.clientId || undefined,
+      quoteId: productionFilters.quoteId || undefined,
+      pieceKey: productionFilters.pieceKey || undefined,
+      functionKey: productionFilters.functionKey || undefined,
+    })
+      .then((report) => {
+        if (requestId !== productionRequestIdRef.current) return;
+        setProductionReport(report);
+      })
+      .catch((error) => {
+        if (requestId !== productionRequestIdRef.current) return;
+        setProductionError((error as Error).message);
+      })
+      .finally(() => {
+        if (requestId !== productionRequestIdRef.current) return;
+        setProductionLoading(false);
+      });
+  }, [adminSection, productionDateRange.from, productionDateRange.to, productionFilters]);
 
   const reloadDetail = React.useCallback(async (employeeId: string, period = historyPeriod, clientId = historyClientId, functionKey = historyFunctionKey, customFrom = historyCustomFrom, customTo = historyCustomTo) => {
     if (!employeeId) return;
@@ -673,7 +754,28 @@ export const EmployeeReportsPage: React.FC = () => {
         </div>
       )}
 
-      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <nav className="flex flex-wrap gap-2 rounded-[28px] border border-slate-100 bg-white p-2 shadow-sm" aria-label="Áreas da administração de funcionários">
+        {[
+          {value: 'overview', label: 'Visão Geral'},
+          {value: 'production', label: 'Produção'},
+          {value: 'employees', label: 'Funcionários'},
+        ].map((item) => (
+          <button
+            key={item.value}
+            type="button"
+            onClick={() => setAdminSection(item.value as AdminSection)}
+            className={cn(
+              'h-10 rounded-2xl px-4 text-sm font-medium transition',
+              adminSection === item.value ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50',
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
+      {adminSection === 'overview' && (
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           {label: 'Equipe cadastrada', value: String(summary.total), icon: Users},
           {label: 'Trabalhando agora', value: String(summary.activeNow), icon: PlayCircle},
@@ -692,8 +794,231 @@ export const EmployeeReportsPage: React.FC = () => {
             </div>
           </div>
         ))}
-      </section>
+        </section>
+      )}
 
+      {adminSection === 'production' && (
+        <section className="space-y-5">
+          <div className="rounded-[32px] border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
+            <div className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">Painel de produção</h2>
+                <p className="mt-1 text-sm text-slate-500">Números reais calculados a partir de expediente, hora extra e apontamentos de atividade.</p>
+              </div>
+              <button type="button" className={secondaryButton} onClick={() => setProductionFilters({employeeId: '', clientId: '', quoteId: '', pieceKey: '', functionKey: ''})}>
+                Limpar filtros
+              </button>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-6">
+              <select value={productionPeriod} onChange={(event) => setProductionPeriod(event.target.value as ProductionPeriod)} className={inputClass}>
+                <option value="today">Hoje</option>
+                <option value="week">Esta semana</option>
+                <option value="month">Este mês</option>
+                <option value="custom">Período personalizado</option>
+              </select>
+              <input type="date" value={productionCustomFrom || productionDateRange.from} onChange={(event) => { setProductionPeriod('custom'); setProductionCustomFrom(event.target.value); }} className={inputClass} disabled={productionPeriod !== 'custom'} />
+              <input type="date" value={productionCustomTo || productionDateRange.to} onChange={(event) => { setProductionPeriod('custom'); setProductionCustomTo(event.target.value); }} className={inputClass} disabled={productionPeriod !== 'custom'} />
+              <select value={productionFilters.employeeId} onChange={(event) => setProductionFilters((value) => ({...value, employeeId: event.target.value}))} className={inputClass}>
+                <option value="">Todos os funcionários</option>
+                {productionReport?.filterOptions.employees.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+              </select>
+              <select value={productionFilters.clientId} onChange={(event) => setProductionFilters((value) => ({...value, clientId: event.target.value, quoteId: ''}))} className={inputClass}>
+                <option value="">Todos os clientes/obras</option>
+                {productionReport?.filterOptions.clients.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+              </select>
+              <select value={productionFilters.functionKey} onChange={(event) => setProductionFilters((value) => ({...value, functionKey: event.target.value}))} className={inputClass}>
+                <option value="">Todas as funções</option>
+                {productionReport?.filterOptions.functions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+              </select>
+              <select value={productionFilters.quoteId} onChange={(event) => setProductionFilters((value) => ({...value, quoteId: event.target.value}))} className={inputClass}>
+                <option value="">Todos os orçamentos</option>
+                {productionReport?.filterOptions.quotes
+                  .filter((item) => !productionFilters.clientId || item.clientId === productionFilters.clientId)
+                  .map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+              </select>
+              <select value={productionFilters.pieceKey} onChange={(event) => setProductionFilters((value) => ({...value, pieceKey: event.target.value}))} className={inputClass}>
+                <option value="">Todas as peças/serviços</option>
+                {productionReport?.filterOptions.pieces.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {productionError && (
+            <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{productionError}</div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            {[
+              {value: 'summary', label: 'Resumo'},
+              {value: 'employee', label: 'Por Funcionário'},
+              {value: 'work', label: 'Por Obra'},
+              {value: 'piece', label: 'Por Peça'},
+              {value: 'function', label: 'Por Função'},
+            ].map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setProductionMode(item.value as ProductionMode)}
+                className={cn('h-10 rounded-2xl border px-4 text-sm font-medium transition', productionMode === item.value ? 'border-brand-primary bg-brand-primary/10 text-slate-900' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50')}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+
+          {productionLoading ? (
+            <div className="rounded-[32px] border border-slate-100 bg-white p-12 text-center text-slate-500 shadow-sm">
+              <Loader2 className="mx-auto h-6 w-6 animate-spin text-brand-primary" />
+              <p className="mt-3">Calculando produção...</p>
+            </div>
+          ) : !productionReport ? (
+            <div className="rounded-[32px] border border-dashed border-slate-200 bg-white p-12 text-center text-slate-500 shadow-sm">Selecione a aba Produção para carregar os indicadores.</div>
+          ) : (
+            <div className="space-y-5">
+              <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {[
+                  {label: 'Horas trabalhadas', value: formatMinutes(productionReport.summary.workedMinutes), icon: Clock3},
+                  {label: 'Horas produtivas', value: formatMinutes(productionReport.summary.productiveMinutes), icon: Briefcase},
+                  {label: 'Horas extras', value: formatMinutes(productionReport.summary.overtimeMinutes), icon: Coffee},
+                  {label: 'Índice produtivo', value: formatPercent(productionReport.summary.productivityPercent), icon: TimerReset},
+                  {label: 'Atividades concluídas', value: String(productionReport.summary.completedActivities), icon: CheckCircle2},
+                  {label: 'Peças trabalhadas', value: String(productionReport.summary.distinctPieces), icon: Briefcase},
+                  {label: 'Produzindo agora', value: String(productionReport.summary.producingNow), icon: PlayCircle},
+                ].map((item) => (
+                  <div key={item.label} className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-medium uppercase tracking-[0.22em] text-slate-400">{item.label}</div>
+                        <div className="mt-3 text-3xl font-semibold text-slate-900">{item.value}</div>
+                      </div>
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-primary/10 text-brand-primary">
+                        <item.icon className="h-5 w-5" />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </section>
+
+              {productionMode === 'summary' && (
+                <div className="rounded-[32px] border border-slate-100 bg-white p-5 shadow-sm">
+                  <h3 className="text-base font-semibold text-slate-900">Resumo do período</h3>
+                  <p className="mt-2 text-sm text-slate-500">Período calculado de {formatDate(productionReport.period.from)} até {formatDate(productionReport.period.to)}. Atividades abertas entram apenas como cálculo momentâneo para apresentação, sem persistir duração final falsa.</p>
+                </div>
+              )}
+
+              {productionMode === 'employee' && (
+                <div className="grid gap-3">
+                  {productionReport.employees.length === 0 ? <div className="rounded-[28px] border border-dashed border-slate-200 bg-white p-10 text-center text-slate-500">Nenhum funcionário com dados no filtro atual.</div> : productionReport.employees.map((item) => (
+                    <details key={item.employeeId} className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm">
+                      <summary className="cursor-pointer list-none">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                          <div>
+                            <h3 className="text-base font-semibold text-slate-900">{item.employeeName}</h3>
+                            <p className="text-sm text-slate-500">{item.role || 'Sem função principal'}</p>
+                          </div>
+                          <div className="grid gap-3 text-sm sm:grid-cols-4 lg:min-w-[620px]">
+                            <div><span className="block text-slate-400">Trabalhadas</span><strong>{formatMinutes(item.workedMinutes)}</strong></div>
+                            <div><span className="block text-slate-400">Produtivas</span><strong>{formatMinutes(item.productiveMinutes)}</strong></div>
+                            <div><span className="block text-slate-400">Extras</span><strong>{formatMinutes(item.overtimeMinutes)}</strong></div>
+                            <div><span className="block text-slate-400">Índice</span><strong>{formatPercent(item.productivityPercent)}</strong></div>
+                          </div>
+                        </div>
+                      </summary>
+                      <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 text-sm sm:grid-cols-3">
+                        <div>Atividades concluídas: <strong>{item.completedActivities}</strong></div>
+                        <div>Peças trabalhadas: <strong>{item.distinctPieces}</strong></div>
+                        <div>Tempo médio por atividade: <strong>{formatMinutes(item.averageMinutesPerActivity)}</strong></div>
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              )}
+
+              {productionMode === 'work' && (
+                <div className="grid gap-3">
+                  {productionReport.works.length === 0 ? <div className="rounded-[28px] border border-dashed border-slate-200 bg-white p-10 text-center text-slate-500">Nenhuma obra com produção no filtro atual.</div> : productionReport.works.map((item) => (
+                    <details key={`${item.clientId || 'sem-cliente'}-${item.quoteId || 'sem-orcamento'}`} className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm">
+                      <summary className="cursor-pointer list-none">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                          <div>
+                            <h3 className="text-base font-semibold text-slate-900">{item.clientName}</h3>
+                            <p className="text-sm text-slate-500">{item.quoteLabel || 'Sem orçamento vinculado'}</p>
+                          </div>
+                          <div className="grid gap-3 text-sm sm:grid-cols-4 lg:min-w-[620px]">
+                            <div><span className="block text-slate-400">Produtivas</span><strong>{formatMinutes(item.productiveMinutes)}</strong></div>
+                            <div><span className="block text-slate-400">Funcionários</span><strong>{item.employeeCount}</strong></div>
+                            <div><span className="block text-slate-400">Peças</span><strong>{item.pieceCount}</strong></div>
+                            <div><span className="block text-slate-400">Concluídas</span><strong>{item.completedActivities}</strong></div>
+                          </div>
+                        </div>
+                      </summary>
+                      <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2 xl:grid-cols-4">
+                        {item.functions.map((entry) => (
+                          <div key={`${entry.functionKey}-${entry.functionLabel}`} className="rounded-2xl bg-slate-50 p-3 text-sm">
+                            <span className="block text-slate-500">{entry.functionLabel}</span>
+                            <strong className="text-slate-900">{formatMinutes(entry.productiveMinutes)}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              )}
+
+              {productionMode === 'piece' && (
+                <div className="grid gap-3">
+                  {productionReport.pieces.length === 0 ? <div className="rounded-[28px] border border-dashed border-slate-200 bg-white p-10 text-center text-slate-500">Nenhuma peça com produção no filtro atual.</div> : productionReport.pieces.map((item) => (
+                    <details key={item.pieceKey} className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm">
+                      <summary className="cursor-pointer list-none">
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                          <div>
+                            <h3 className="text-base font-semibold text-slate-900">{item.pieceLabel}</h3>
+                            <p className="text-sm text-slate-500">{item.clientName} · {item.quoteLabel || 'Sem orçamento'}</p>
+                          </div>
+                          <div className="grid gap-3 text-sm sm:grid-cols-3 lg:min-w-[480px]">
+                            <div><span className="block text-slate-400">Produtivas</span><strong>{formatMinutes(item.productiveMinutes)}</strong></div>
+                            <div><span className="block text-slate-400">Funcionários</span><strong>{item.employeeCount}</strong></div>
+                            <div><span className="block text-slate-400">Concluídas</span><strong>{item.completedActivities}</strong></div>
+                          </div>
+                        </div>
+                      </summary>
+                      <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4">
+                        {item.details.map((entry) => (
+                          <div key={`${entry.employeeId}-${entry.functionKey}`} className="grid gap-2 rounded-2xl bg-slate-50 p-3 text-sm sm:grid-cols-3">
+                            <span>{entry.employeeName}</span>
+                            <span className="text-slate-500">{entry.functionLabel}</span>
+                            <strong className="text-slate-900">{formatMinutes(entry.productiveMinutes)}</strong>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              )}
+
+              {productionMode === 'function' && (
+                <div className="grid gap-3 lg:grid-cols-2">
+                  {productionReport.functions.length === 0 ? <div className="rounded-[28px] border border-dashed border-slate-200 bg-white p-10 text-center text-slate-500 lg:col-span-2">Nenhuma função com produção no filtro atual.</div> : productionReport.functions.map((item) => (
+                    <article key={item.functionKey} className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm">
+                      <h3 className="text-base font-semibold text-slate-900">{item.functionLabel}</h3>
+                      <div className="mt-4 grid gap-3 text-sm sm:grid-cols-4">
+                        <div><span className="block text-slate-400">Produtivas</span><strong>{formatMinutes(item.productiveMinutes)}</strong></div>
+                        <div><span className="block text-slate-400">Concluídas</span><strong>{item.completedActivities}</strong></div>
+                        <div><span className="block text-slate-400">Funcionários</span><strong>{item.employeeCount}</strong></div>
+                        <div><span className="block text-slate-400">Peças</span><strong>{item.pieceCount}</strong></div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {adminSection === 'employees' && (
+        <>
       <section className="rounded-[32px] border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
         <div className="relative max-w-xl">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
@@ -789,6 +1114,8 @@ export const EmployeeReportsPage: React.FC = () => {
           );
         })}
       </section>
+        </>
+      )}
 
       <Modal title={employeeDraft.id ? 'Editar funcionário' : 'Novo funcionário'} open={employeeModalOpen} onClose={() => setEmployeeModalOpen(false)} wide>
         <form onSubmit={handleSaveEmployee} className="space-y-6">

@@ -95,6 +95,94 @@ export type MyEmployeeOperation = {
   activity: {id: string; status: EmployeeActivitySession['status']; functionLabel: string; clientName?: string | null; quoteLabel?: string | null; startedAt: string; pausedTotalSeconds: number; activePauseStartedAt?: string | null} | null;
 };
 
+export type EmployeeProductionFilters = {
+  dateFrom: string;
+  dateTo: string;
+  employeeId?: string;
+  clientId?: string;
+  quoteId?: string;
+  pieceKey?: string;
+  functionKey?: string;
+};
+
+export type EmployeeProductionOption = {
+  id: string;
+  label: string;
+  clientId?: string | null;
+};
+
+export type EmployeeProductionFunctionDetail = {
+  functionKey: string;
+  functionLabel: string;
+  productiveMinutes: number;
+};
+
+export type EmployeeProductionPieceDetail = EmployeeProductionFunctionDetail & {
+  employeeId: string;
+  employeeName: string;
+};
+
+export type EmployeeProductionReport = {
+  period: {from: string; to: string};
+  summary: {
+    workedMinutes: number;
+    productiveMinutes: number;
+    overtimeMinutes: number;
+    completedActivities: number;
+    distinctPieces: number;
+    producingNow: number;
+    productivityPercent: number;
+  };
+  employees: Array<{
+    employeeId: string;
+    employeeName: string;
+    role?: string | null;
+    workedMinutes: number;
+    productiveMinutes: number;
+    overtimeMinutes: number;
+    completedActivities: number;
+    distinctPieces: number;
+    averageMinutesPerActivity: number;
+    productivityPercent: number;
+  }>;
+  works: Array<{
+    clientId?: string | null;
+    clientName: string;
+    quoteId?: string | null;
+    quoteLabel?: string | null;
+    productiveMinutes: number;
+    employeeCount: number;
+    pieceCount: number;
+    completedActivities: number;
+    functions: EmployeeProductionFunctionDetail[];
+  }>;
+  pieces: Array<{
+    pieceKey: string;
+    pieceLabel: string;
+    clientId?: string | null;
+    clientName: string;
+    quoteId?: string | null;
+    quoteLabel?: string | null;
+    productiveMinutes: number;
+    employeeCount: number;
+    completedActivities: number;
+    functions: EmployeeProductionFunctionDetail[];
+    details: EmployeeProductionPieceDetail[];
+  }>;
+  functions: Array<EmployeeProductionFunctionDetail & {
+    completedActivities: number;
+    employeeCount: number;
+    pieceCount: number;
+  }>;
+  filterOptions: {
+    employees: EmployeeProductionOption[];
+    clients: EmployeeProductionOption[];
+    quotes: EmployeeProductionOption[];
+    pieces: EmployeeProductionOption[];
+    functions: EmployeeProductionOption[];
+  };
+};
+
 type OverviewRow = {
   employee_id: string;
   empresa_id: string;
@@ -333,6 +421,71 @@ export const listEmployeeFunctionCatalog = async (): Promise<EmployeeFunctionCat
     linkedProductionStep: item.linked_production_step || undefined,
     sortOrder: Number(item.sort_order) || 0,
   }));
+};
+
+export const listEmployeeProductionReport = async (filters: EmployeeProductionFilters): Promise<EmployeeProductionReport> => {
+  const data = ensureSuccess(await supabase.rpc('get_employee_production_report', {
+    p_date_from: filters.dateFrom || null,
+    p_date_to: filters.dateTo || null,
+    p_employee_id: filters.employeeId || null,
+    p_client_id: filters.clientId || null,
+    p_quote_id: filters.quoteId || null,
+    p_piece_key: filters.pieceKey || null,
+    p_function_key: filters.functionKey || null,
+  })) as EmployeeProductionReport;
+
+  return {
+    period: data.period || {from: filters.dateFrom, to: filters.dateTo},
+    summary: {
+      workedMinutes: Number(data.summary?.workedMinutes) || 0,
+      productiveMinutes: Number(data.summary?.productiveMinutes) || 0,
+      overtimeMinutes: Number(data.summary?.overtimeMinutes) || 0,
+      completedActivities: Number(data.summary?.completedActivities) || 0,
+      distinctPieces: Number(data.summary?.distinctPieces) || 0,
+      producingNow: Number(data.summary?.producingNow) || 0,
+      productivityPercent: Number(data.summary?.productivityPercent) || 0,
+    },
+    employees: (data.employees || []).map((item) => ({
+      ...item,
+      workedMinutes: Number(item.workedMinutes) || 0,
+      productiveMinutes: Number(item.productiveMinutes) || 0,
+      overtimeMinutes: Number(item.overtimeMinutes) || 0,
+      completedActivities: Number(item.completedActivities) || 0,
+      distinctPieces: Number(item.distinctPieces) || 0,
+      averageMinutesPerActivity: Number(item.averageMinutesPerActivity) || 0,
+      productivityPercent: Number(item.productivityPercent) || 0,
+    })),
+    works: (data.works || []).map((item) => ({
+      ...item,
+      productiveMinutes: Number(item.productiveMinutes) || 0,
+      employeeCount: Number(item.employeeCount) || 0,
+      pieceCount: Number(item.pieceCount) || 0,
+      completedActivities: Number(item.completedActivities) || 0,
+      functions: (item.functions || []).map((entry) => ({...entry, productiveMinutes: Number(entry.productiveMinutes) || 0})),
+    })),
+    pieces: (data.pieces || []).map((item) => ({
+      ...item,
+      productiveMinutes: Number(item.productiveMinutes) || 0,
+      employeeCount: Number(item.employeeCount) || 0,
+      completedActivities: Number(item.completedActivities) || 0,
+      functions: (item.functions || []).map((entry) => ({...entry, productiveMinutes: Number(entry.productiveMinutes) || 0})),
+      details: (item.details || []).map((entry) => ({...entry, productiveMinutes: Number(entry.productiveMinutes) || 0})),
+    })),
+    functions: (data.functions || []).map((item) => ({
+      ...item,
+      productiveMinutes: Number(item.productiveMinutes) || 0,
+      completedActivities: Number(item.completedActivities) || 0,
+      employeeCount: Number(item.employeeCount) || 0,
+      pieceCount: Number(item.pieceCount) || 0,
+    })),
+    filterOptions: {
+      employees: data.filterOptions?.employees || [],
+      clients: data.filterOptions?.clients || [],
+      quotes: data.filterOptions?.quotes || [],
+      pieces: data.filterOptions?.pieces || [],
+      functions: data.filterOptions?.functions || [],
+    },
+  };
 };
 
 export const listEmployeeSchedules = async (employeeId: string): Promise<EmployeeWorkSchedule[]> => {

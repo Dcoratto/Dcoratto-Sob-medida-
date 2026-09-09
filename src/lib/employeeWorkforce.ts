@@ -183,6 +183,92 @@ export type EmployeeProductionReport = {
   };
 };
 
+export type EmployeeProductionTimeTarget = {
+  id: string;
+  pieceTypeId: string;
+  pieceTypeKey: string;
+  pieceTypeLabel: string;
+  functionKey: string;
+  functionLabel: string;
+  targetSeconds: number;
+  active: boolean;
+};
+
+export type EmployeeProductionPieceType = {
+  id: string;
+  key: string;
+  label: string;
+  active: boolean;
+};
+
+export type EmployeeProductionTargets = {
+  pieceTypes: EmployeeProductionPieceType[];
+  targets: EmployeeProductionTimeTarget[];
+};
+
+export type EmployeeProductionHistoricalAverages = {
+  period: {from: string; to: string};
+  pieceTypes: Array<{
+    pieceTypeKey: string;
+    pieceTypeLabel: string;
+    sampleCount: number;
+    averageMinutes: number;
+    functions: Array<{
+      functionKey: string;
+      functionLabel: string;
+      sampleCount: number;
+      averageMinutes: number;
+    }>;
+  }>;
+  functions: Array<{
+    functionKey: string;
+    functionLabel: string;
+    sampleCount: number;
+    averageMinutes: number;
+    pieceTypes: Array<{
+      pieceTypeKey: string;
+      pieceTypeLabel: string;
+      sampleCount: number;
+      averageMinutes: number;
+    }>;
+  }>;
+};
+
+export type EmployeeProductionPieceAnalysis = {
+  period: {from: string; to: string};
+  historyPeriod: {from: string; to: string};
+  pieces: Array<{
+    pieceKey: string;
+    pieceLabel: string;
+    pieceTypeKey: string;
+    pieceTypeLabel: string;
+    clientId?: string | null;
+    clientName: string;
+    quoteId?: string | null;
+    quoteLabel?: string | null;
+    targetMinutes: number;
+    realizedMinutes: number;
+    deviationMinutes: number;
+    deviationPercent?: number | null;
+    employeeCount: number;
+    completedActivities: number;
+    historicalAverageMinutes?: number | null;
+    historicalSampleCount: number;
+    historicalDeviationMinutes?: number | null;
+    historicalDeviationPercent?: number | null;
+    functions: Array<{
+      functionKey: string;
+      functionLabel: string;
+      targetMinutes: number;
+      realizedMinutes: number;
+      deviationMinutes: number;
+      deviationPercent?: number | null;
+      completedActivities: number;
+      hasActivity: boolean;
+    }>;
+  }>;
+};
+
 type OverviewRow = {
   employee_id: string;
   empresa_id: string;
@@ -485,6 +571,123 @@ export const listEmployeeProductionReport = async (filters: EmployeeProductionFi
       pieces: data.filterOptions?.pieces || [],
       functions: data.filterOptions?.functions || [],
     },
+  };
+};
+
+export const listEmployeeProductionTimeTargets = async (): Promise<EmployeeProductionTargets> => {
+  const data = ensureSuccess(await supabase.rpc('get_employee_production_time_targets')) as EmployeeProductionTargets;
+  return {
+    pieceTypes: (data.pieceTypes || []).map((item) => ({
+      ...item,
+      active: item.active !== false,
+    })),
+    targets: (data.targets || []).map((item) => ({
+      ...item,
+      targetSeconds: Number(item.targetSeconds) || 0,
+      active: item.active !== false,
+    })),
+  };
+};
+
+export const saveEmployeeProductionTimeTarget = async (input: {
+  targetId?: string;
+  pieceTypeKey?: string;
+  pieceTypeLabel: string;
+  functionKey: string;
+  targetSeconds: number;
+  active?: boolean;
+}, actor: WorkforceActor) => {
+  return ensureSuccess(await supabase.rpc('save_employee_production_time_target', {
+    p_target_id: input.targetId || null,
+    p_piece_type_key: input.pieceTypeKey || null,
+    p_piece_type_label: input.pieceTypeLabel,
+    p_function_key: input.functionKey,
+    p_target_seconds: input.targetSeconds,
+    p_active: input.active !== false,
+    p_actor_uid: actor.uid,
+    p_actor_name: actor.name,
+  }));
+};
+
+export const listEmployeeProductionHistoricalAverages = async (filters: {
+  dateFrom: string;
+  dateTo: string;
+  pieceTypeKey?: string;
+  functionKey?: string;
+}): Promise<EmployeeProductionHistoricalAverages> => {
+  const data = ensureSuccess(await supabase.rpc('get_employee_production_historical_averages', {
+    p_date_from: filters.dateFrom || null,
+    p_date_to: filters.dateTo || null,
+    p_piece_type_key: filters.pieceTypeKey || null,
+    p_function_key: filters.functionKey || null,
+  })) as EmployeeProductionHistoricalAverages;
+
+  return {
+    period: data.period || {from: filters.dateFrom, to: filters.dateTo},
+    pieceTypes: (data.pieceTypes || []).map((item) => ({
+      ...item,
+      sampleCount: Number(item.sampleCount) || 0,
+      averageMinutes: Number(item.averageMinutes) || 0,
+      functions: (item.functions || []).map((entry) => ({
+        ...entry,
+        sampleCount: Number(entry.sampleCount) || 0,
+        averageMinutes: Number(entry.averageMinutes) || 0,
+      })),
+    })),
+    functions: (data.functions || []).map((item) => ({
+      ...item,
+      sampleCount: Number(item.sampleCount) || 0,
+      averageMinutes: Number(item.averageMinutes) || 0,
+      pieceTypes: (item.pieceTypes || []).map((entry) => ({
+        ...entry,
+        sampleCount: Number(entry.sampleCount) || 0,
+        averageMinutes: Number(entry.averageMinutes) || 0,
+      })),
+    })),
+  };
+};
+
+export const listEmployeeProductionPieceAnalysis = async (filters: EmployeeProductionFilters & {
+  historyDateFrom: string;
+  historyDateTo: string;
+}): Promise<EmployeeProductionPieceAnalysis> => {
+  const data = ensureSuccess(await supabase.rpc('get_employee_production_piece_analysis', {
+    p_date_from: filters.dateFrom || null,
+    p_date_to: filters.dateTo || null,
+    p_employee_id: filters.employeeId || null,
+    p_client_id: filters.clientId || null,
+    p_quote_id: filters.quoteId || null,
+    p_piece_key: filters.pieceKey || null,
+    p_function_key: filters.functionKey || null,
+    p_history_date_from: filters.historyDateFrom || null,
+    p_history_date_to: filters.historyDateTo || null,
+  })) as EmployeeProductionPieceAnalysis;
+
+  return {
+    period: data.period || {from: filters.dateFrom, to: filters.dateTo},
+    historyPeriod: data.historyPeriod || {from: filters.historyDateFrom, to: filters.historyDateTo},
+    pieces: (data.pieces || []).map((item) => ({
+      ...item,
+      targetMinutes: Number(item.targetMinutes) || 0,
+      realizedMinutes: Number(item.realizedMinutes) || 0,
+      deviationMinutes: Number(item.deviationMinutes) || 0,
+      deviationPercent: item.deviationPercent == null ? null : Number(item.deviationPercent),
+      employeeCount: Number(item.employeeCount) || 0,
+      completedActivities: Number(item.completedActivities) || 0,
+      historicalAverageMinutes: item.historicalAverageMinutes == null ? null : Number(item.historicalAverageMinutes),
+      historicalSampleCount: Number(item.historicalSampleCount) || 0,
+      historicalDeviationMinutes: item.historicalDeviationMinutes == null ? null : Number(item.historicalDeviationMinutes),
+      historicalDeviationPercent: item.historicalDeviationPercent == null ? null : Number(item.historicalDeviationPercent),
+      functions: (item.functions || []).map((entry) => ({
+        ...entry,
+        targetMinutes: Number(entry.targetMinutes) || 0,
+        realizedMinutes: Number(entry.realizedMinutes) || 0,
+        deviationMinutes: Number(entry.deviationMinutes) || 0,
+        deviationPercent: entry.deviationPercent == null ? null : Number(entry.deviationPercent),
+        completedActivities: Number(entry.completedActivities) || 0,
+        hasActivity: entry.hasActivity !== false,
+      })),
+    })),
   };
 };
 

@@ -33,13 +33,17 @@ import {
   listEmployeeActivityHistory,
   listEmployeeAttendanceHistory,
   listEmployeeFunctionCatalog,
+  listEmployeeProductionHistoricalAverages,
+  listEmployeeProductionPieceAnalysis,
   listEmployeeOperationalOverview,
   listEmployeeProductionReport,
+  listEmployeeProductionTimeTargets,
   listEmployeeSchedules,
   pauseEmployeeActivity,
   resumeEmployeeActivity,
   resumeMyWorkday,
   saveEmployeeAttendance,
+  saveEmployeeProductionTimeTarget,
   saveEmployeeProfile,
   startMyBreak,
   startMyOvertime,
@@ -47,7 +51,11 @@ import {
   startEmployeeActivity,
   type EmployeeActivityTarget,
   type EmployeeFunctionCatalogItem,
+  type EmployeeProductionHistoricalAverages,
+  type EmployeeProductionPieceAnalysis,
   type EmployeeProductionReport,
+  type EmployeeProductionTargets,
+  type EmployeeProductionTimeTarget,
   type EmployeeProfileDraft,
   type WorkforceActor,
   type MyEmployeeOperation,
@@ -85,7 +93,7 @@ type Feedback = {type: 'success' | 'error'; message: string} | null;
 type HistoryPeriod = 'today' | 'week' | 'month' | 'custom';
 type AdminSection = 'overview' | 'production' | 'employees';
 type ProductionPeriod = 'today' | 'week' | 'month' | 'custom';
-type ProductionMode = 'summary' | 'employee' | 'work' | 'piece' | 'function';
+type ProductionMode = 'summary' | 'employee' | 'work' | 'piece' | 'function' | 'targets' | 'history';
 type WorkdayStep = 'start' | 'break' | 'resume' | 'finish' | 'overtimeStart' | 'overtimeFinish' | 'done';
 
 const formatMinutes = (value: number) => {
@@ -95,10 +103,17 @@ const formatMinutes = (value: number) => {
   return `${String(hours).padStart(2, '0')}h${String(minutes).padStart(2, '0')}`;
 };
 
+const formatSignedMinutes = (value?: number | null) => {
+  if (value == null) return 'Sem tempo previsto';
+  const signal = value > 0 ? '+' : value < 0 ? '-' : '';
+  return `${signal}${formatMinutes(Math.abs(value))}`;
+};
+
 const formatClock = (value?: string | null) => value ? new Date(value).toLocaleTimeString('pt-BR', {hour: '2-digit', minute: '2-digit'}) : '--:--';
 const formatDate = (value?: string | null) => value ? new Date(`${value}T12:00:00`).toLocaleDateString('pt-BR') : '-';
 const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString('pt-BR') : '-';
 const formatPercent = (value: number) => `${(Number(value) || 0).toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 2})}%`;
+const formatSignedPercent = (value?: number | null) => value == null ? 'Sem tempo previsto' : `${value > 0 ? '+' : ''}${formatPercent(value)}`;
 
 const toDateInputValue = (value?: string | null) => value ? String(value).slice(0, 10) : new Date().toISOString().slice(0, 10);
 
@@ -125,6 +140,24 @@ const resolveDateRange = (period: ProductionPeriod, customFrom = '', customTo = 
   }
 
   return {from: customFrom || toInput(today), to: customTo || customFrom || toInput(today)};
+};
+
+const resolveHistoryDateRange = (months: number, customFrom = '', customTo = '') => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  if (months <= 0 && customFrom) return {from: customFrom, to: customTo || customFrom};
+  const start = new Date(today);
+  start.setMonth(start.getMonth() - months);
+  const pad = (item: number) => String(item).padStart(2, '0');
+  const toInput = (value: Date) => `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}`;
+  return {from: toInput(start), to: toInput(today)};
+};
+
+const deviationClass = (value?: number | null) => {
+  if (value == null) return 'border-slate-200 bg-slate-50 text-slate-500';
+  if (Math.abs(value) <= 5) return 'border-sky-200 bg-sky-50 text-sky-700';
+  if (value > 0) return 'border-amber-200 bg-amber-50 text-amber-700';
+  return 'border-emerald-200 bg-emerald-50 text-emerald-700';
 };
 
 const toLocalDateTimeInput = (value?: string | null) => {
@@ -324,6 +357,20 @@ export const EmployeeReportsPage: React.FC = () => {
   const [productionReport, setProductionReport] = React.useState<EmployeeProductionReport | null>(null);
   const [productionLoading, setProductionLoading] = React.useState(false);
   const [productionError, setProductionError] = React.useState('');
+  const [productionTargets, setProductionTargets] = React.useState<EmployeeProductionTargets | null>(null);
+  const [pieceAnalysis, setPieceAnalysis] = React.useState<EmployeeProductionPieceAnalysis | null>(null);
+  const [historicalAverages, setHistoricalAverages] = React.useState<EmployeeProductionHistoricalAverages | null>(null);
+  const [historyMonths, setHistoryMonths] = React.useState(12);
+  const [productionHistoryCustomFrom, setProductionHistoryCustomFrom] = React.useState('');
+  const [productionHistoryCustomTo, setProductionHistoryCustomTo] = React.useState('');
+  const [savingTarget, setSavingTarget] = React.useState(false);
+  const [targetDraft, setTargetDraft] = React.useState({
+    targetId: '',
+    pieceTypeKey: '',
+    pieceTypeLabel: '',
+    functionKey: '',
+    targetMinutes: 60,
+  });
 
   React.useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 30000);
@@ -359,6 +406,10 @@ export const EmployeeReportsPage: React.FC = () => {
     () => resolveDateRange(productionPeriod, productionCustomFrom, productionCustomTo),
     [productionCustomFrom, productionCustomTo, productionPeriod],
   );
+  const historicalDateRange = React.useMemo(
+    () => resolveHistoryDateRange(historyMonths, productionHistoryCustomFrom, productionHistoryCustomTo),
+    [historyMonths, productionHistoryCustomFrom, productionHistoryCustomTo],
+  );
 
   React.useEffect(() => {
     if (adminSection !== 'production') return;
@@ -388,6 +439,48 @@ export const EmployeeReportsPage: React.FC = () => {
         setProductionLoading(false);
       });
   }, [adminSection, productionDateRange.from, productionDateRange.to, productionFilters]);
+
+  React.useEffect(() => {
+    if (adminSection !== 'production') return;
+    let active = true;
+    const sharedFilters = {
+      dateFrom: productionDateRange.from,
+      dateTo: productionDateRange.to,
+      employeeId: productionFilters.employeeId || undefined,
+      clientId: productionFilters.clientId || undefined,
+      quoteId: productionFilters.quoteId || undefined,
+      pieceKey: productionFilters.pieceKey || undefined,
+      functionKey: productionFilters.functionKey || undefined,
+    };
+
+    Promise.all([
+      listEmployeeProductionTimeTargets(),
+      listEmployeeProductionPieceAnalysis({
+        ...sharedFilters,
+        historyDateFrom: historicalDateRange.from,
+        historyDateTo: historicalDateRange.to,
+      }),
+      listEmployeeProductionHistoricalAverages({
+        dateFrom: historicalDateRange.from,
+        dateTo: historicalDateRange.to,
+        functionKey: productionFilters.functionKey || undefined,
+      }),
+    ])
+      .then(([targets, pieces, averages]) => {
+        if (!active) return;
+        setProductionTargets(targets);
+        setPieceAnalysis(pieces);
+        setHistoricalAverages(averages);
+      })
+      .catch((error) => {
+        if (!active) return;
+        setProductionError((error as Error).message);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [adminSection, historicalDateRange.from, historicalDateRange.to, productionDateRange.from, productionDateRange.to, productionFilters]);
 
   const reloadDetail = React.useCallback(async (employeeId: string, period = historyPeriod, clientId = historyClientId, functionKey = historyFunctionKey, customFrom = historyCustomFrom, customTo = historyCustomTo) => {
     if (!employeeId) return;
@@ -716,6 +809,63 @@ export const EmployeeReportsPage: React.FC = () => {
     return Array.from(map.values()).sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'));
   }, [detailHistory]);
 
+  const reloadProductionTargets = React.useCallback(async () => {
+    const targets = await listEmployeeProductionTimeTargets();
+    setProductionTargets(targets);
+  }, []);
+
+  const handleEditTarget = (target: EmployeeProductionTimeTarget) => {
+    setTargetDraft({
+      targetId: target.id,
+      pieceTypeKey: target.pieceTypeKey,
+      pieceTypeLabel: target.pieceTypeLabel,
+      functionKey: target.functionKey,
+      targetMinutes: Math.max(1, Math.round(target.targetSeconds / 60)),
+    });
+    setProductionMode('targets');
+  };
+
+  const handleSaveTarget = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setSavingTarget(true);
+    try {
+      await saveEmployeeProductionTimeTarget({
+        targetId: targetDraft.targetId || undefined,
+        pieceTypeKey: targetDraft.pieceTypeKey || undefined,
+        pieceTypeLabel: targetDraft.pieceTypeLabel,
+        functionKey: targetDraft.functionKey,
+        targetSeconds: Math.max(1, Math.round(targetDraft.targetMinutes || 0)) * 60,
+      }, actor);
+      setTargetDraft({targetId: '', pieceTypeKey: '', pieceTypeLabel: '', functionKey: '', targetMinutes: 60});
+      await reloadProductionTargets();
+      setFeedback({type: 'success', message: 'Tempo previsto atualizado.'});
+    } catch (error) {
+      setFeedback({type: 'error', message: (error as Error).message});
+    } finally {
+      setSavingTarget(false);
+    }
+  };
+
+  const handleDeactivateTarget = async (target: EmployeeProductionTimeTarget) => {
+    setSavingTarget(true);
+    try {
+      await saveEmployeeProductionTimeTarget({
+        targetId: target.id,
+        pieceTypeKey: target.pieceTypeKey,
+        pieceTypeLabel: target.pieceTypeLabel,
+        functionKey: target.functionKey,
+        targetSeconds: target.targetSeconds,
+        active: false,
+      }, actor);
+      await reloadProductionTargets();
+      setFeedback({type: 'success', message: 'Tempo previsto inativado com histórico preservado.'});
+    } catch (error) {
+      setFeedback({type: 'error', message: (error as Error).message});
+    } finally {
+      setSavingTarget(false);
+    }
+  };
+
   const activeActivityTarget = React.useMemo(
     () => activityTargets.find((item) => item.id === activityDraft.quoteId) || null,
     [activityDraft.quoteId, activityTargets],
@@ -855,6 +1005,8 @@ export const EmployeeReportsPage: React.FC = () => {
               {value: 'work', label: 'Por Obra'},
               {value: 'piece', label: 'Por Peça'},
               {value: 'function', label: 'Por Função'},
+              {value: 'history', label: 'Médias históricas'},
+              {value: 'targets', label: 'Tempos previstos'},
             ].map((item) => (
               <button
                 key={item.value}
@@ -866,6 +1018,25 @@ export const EmployeeReportsPage: React.FC = () => {
               </button>
             ))}
           </div>
+
+          {(productionMode === 'piece' || productionMode === 'history') && (
+            <div className="rounded-[28px] border border-slate-100 bg-white p-4 shadow-sm">
+              <div className="mb-3">
+                <h3 className="text-base font-semibold text-slate-900">Janela histórica</h3>
+                <p className="text-sm text-slate-500">Usada apenas para médias e comparação com histórico.</p>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <select value={historyMonths} onChange={(event) => setHistoryMonths(Number(event.target.value))} className={inputClass}>
+                  <option value={3}>Últimos 90 dias</option>
+                  <option value={6}>Últimos 6 meses</option>
+                  <option value={12}>Últimos 12 meses</option>
+                  <option value={0}>Personalizado</option>
+                </select>
+                <input type="date" value={productionHistoryCustomFrom || historicalDateRange.from} onChange={(event) => { setHistoryMonths(0); setProductionHistoryCustomFrom(event.target.value); }} className={inputClass} disabled={historyMonths !== 0} />
+                <input type="date" value={productionHistoryCustomTo || historicalDateRange.to} onChange={(event) => { setHistoryMonths(0); setProductionHistoryCustomTo(event.target.value); }} className={inputClass} disabled={historyMonths !== 0} />
+              </div>
+            </div>
+          )}
 
           {productionLoading ? (
             <div className="rounded-[32px] border border-slate-100 bg-white p-12 text-center text-slate-500 shadow-sm">
@@ -968,32 +1139,153 @@ export const EmployeeReportsPage: React.FC = () => {
 
               {productionMode === 'piece' && (
                 <div className="grid gap-3">
-                  {productionReport.pieces.length === 0 ? <div className="rounded-[28px] border border-dashed border-slate-200 bg-white p-10 text-center text-slate-500">Nenhuma peça com produção no filtro atual.</div> : productionReport.pieces.map((item) => (
+                  {!pieceAnalysis || pieceAnalysis.pieces.length === 0 ? <div className="rounded-[28px] border border-dashed border-slate-200 bg-white p-10 text-center text-slate-500">Nenhuma peça com produção no filtro atual.</div> : pieceAnalysis.pieces.map((item) => (
                     <details key={item.pieceKey} className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm">
                       <summary className="cursor-pointer list-none">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                           <div>
                             <h3 className="text-base font-semibold text-slate-900">{item.pieceLabel}</h3>
-                            <p className="text-sm text-slate-500">{item.clientName} · {item.quoteLabel || 'Sem orçamento'}</p>
+                            <p className="text-sm text-slate-500">{item.clientName} · {item.quoteLabel || 'Sem orçamento'} · {item.pieceTypeLabel}</p>
+                          </div>
+                          <div className="grid gap-3 text-sm sm:grid-cols-4 lg:min-w-[660px]">
+                            <div><span className="block text-slate-400">Previsto</span><strong>{item.targetMinutes > 0 ? formatMinutes(item.targetMinutes) : 'Sem tempo previsto'}</strong></div>
+                            <div><span className="block text-slate-400">Realizado</span><strong>{formatMinutes(item.realizedMinutes)}</strong></div>
+                            <div><span className="block text-slate-400">Desvio</span><strong className={cn('inline-flex rounded-full border px-2 py-1', deviationClass(item.targetMinutes > 0 ? item.deviationMinutes : null))}>{item.targetMinutes > 0 ? formatSignedMinutes(item.deviationMinutes) : 'Sem tempo previsto'}</strong></div>
+                            <div><span className="block text-slate-400">Desvio %</span><strong>{formatSignedPercent(item.deviationPercent)}</strong></div>
                           </div>
                           <div className="grid gap-3 text-sm sm:grid-cols-3 lg:min-w-[480px]">
-                            <div><span className="block text-slate-400">Produtivas</span><strong>{formatMinutes(item.productiveMinutes)}</strong></div>
                             <div><span className="block text-slate-400">Funcionários</span><strong>{item.employeeCount}</strong></div>
                             <div><span className="block text-slate-400">Concluídas</span><strong>{item.completedActivities}</strong></div>
+                            <div><span className="block text-slate-400">Histórico</span><strong>{item.historicalSampleCount > 0 ? `${formatMinutes(item.historicalAverageMinutes || 0)} · ${item.historicalSampleCount} amostra(s)` : 'Sem média'}</strong></div>
                           </div>
                         </div>
                       </summary>
-                      <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4">
-                        {item.details.map((entry) => (
-                          <div key={`${entry.employeeId}-${entry.functionKey}`} className="grid gap-2 rounded-2xl bg-slate-50 p-3 text-sm sm:grid-cols-3">
-                            <span>{entry.employeeName}</span>
-                            <span className="text-slate-500">{entry.functionLabel}</span>
-                            <strong className="text-slate-900">{formatMinutes(entry.productiveMinutes)}</strong>
+                      <div className="mt-4 space-y-4 border-t border-slate-100 pt-4">
+                        <div className="grid gap-3 text-sm sm:grid-cols-4">
+                          <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-500">Média histórica</span><strong>{item.historicalSampleCount > 0 ? formatMinutes(item.historicalAverageMinutes || 0) : 'Sem média'}</strong></div>
+                          <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-500">Diferença da média</span><strong>{item.historicalSampleCount > 0 ? formatSignedMinutes(item.historicalDeviationMinutes) : 'Sem média'}</strong></div>
+                          <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-500">Diferença %</span><strong>{item.historicalSampleCount > 0 ? formatSignedPercent(item.historicalDeviationPercent) : 'Sem média'}</strong></div>
+                          <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-500">Amostras</span><strong>{item.historicalSampleCount} peça(s)</strong></div>
+                        </div>
+                        <div className="grid gap-2">
+                          {item.functions.map((entry) => (
+                            <div key={`${item.pieceKey}-${entry.functionKey}`} className="grid gap-2 rounded-2xl bg-slate-50 p-3 text-sm sm:grid-cols-5">
+                              <span className="text-slate-900">{entry.functionLabel}</span>
+                              <span className="text-slate-500">Previsto: {entry.targetMinutes > 0 ? formatMinutes(entry.targetMinutes) : 'Sem previsto'}</span>
+                              <span className="text-slate-500">Realizado: {entry.hasActivity ? formatMinutes(entry.realizedMinutes) : 'Ainda sem apontamento'}</span>
+                              <span className={cn('rounded-full border px-2 py-1 text-center', deviationClass(entry.targetMinutes > 0 ? entry.deviationMinutes : null))}>{entry.targetMinutes > 0 ? formatSignedMinutes(entry.deviationMinutes) : 'Sem previsto'}</span>
+                              <span className="text-slate-500">{entry.targetMinutes > 0 ? formatSignedPercent(entry.deviationPercent) : 'Sem previsto'}</span>
+                            </div>
+                          ))}
+                        </div>
+                        {item.targetMinutes === 0 && canManage && (
+                          <button
+                            type="button"
+                            className={secondaryButton}
+                            onClick={() => {
+                              setTargetDraft((value) => ({...value, pieceTypeKey: item.pieceTypeKey, pieceTypeLabel: item.pieceTypeLabel}));
+                              setProductionMode('targets');
+                            }}
+                          >
+                            Configurar tempo previsto para {item.pieceTypeLabel}
+                          </button>
+                        )}
+                      </div>
+                    </details>
+                  ))}
+                </div>
+              )}
+
+              {productionMode === 'history' && (
+                <div className="space-y-4">
+                  {!historicalAverages || historicalAverages.pieceTypes.length === 0 ? (
+                    <div className="rounded-[28px] border border-dashed border-slate-200 bg-white p-10 text-center text-slate-500">Ainda não há amostras históricas válidas no período selecionado.</div>
+                  ) : historicalAverages.pieceTypes.map((item) => (
+                    <details key={item.pieceTypeKey} className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm">
+                      <summary className="cursor-pointer list-none">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h3 className="text-base font-semibold text-slate-900">{item.pieceTypeLabel}</h3>
+                            <p className="text-sm text-slate-500">{item.sampleCount} peça(s) analisada(s)</p>
+                          </div>
+                          <div className="text-sm"><span className="block text-slate-400">Tempo médio total</span><strong>{formatMinutes(item.averageMinutes)}</strong></div>
+                        </div>
+                      </summary>
+                      <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2 xl:grid-cols-4">
+                        {item.functions.map((entry) => (
+                          <div key={`${item.pieceTypeKey}-${entry.functionKey}`} className="rounded-2xl bg-slate-50 p-3 text-sm">
+                            <span className="block text-slate-500">{entry.functionLabel}</span>
+                            <strong className="text-slate-900">{formatMinutes(entry.averageMinutes)}</strong>
+                            <span className="mt-1 block text-xs text-slate-400">{entry.sampleCount} amostra(s)</span>
                           </div>
                         ))}
                       </div>
                     </details>
                   ))}
+                </div>
+              )}
+
+              {productionMode === 'targets' && (
+                <div className="grid gap-4 xl:grid-cols-[420px,1fr]">
+                  <form onSubmit={handleSaveTarget} className="rounded-[32px] border border-slate-100 bg-white p-5 shadow-sm">
+                    <h3 className="text-base font-semibold text-slate-900">Tempos previstos</h3>
+                    <p className="mt-1 text-sm text-slate-500">Cadastre o previsto por tipo de peça e função. O valor é salvo em segundos no banco.</p>
+                    <div className="mt-4 space-y-3">
+                      <Field label="Tipo de peça">
+                        <input
+                          list="production-piece-types"
+                          value={targetDraft.pieceTypeLabel}
+                          onChange={(event) => {
+                            const selected = productionTargets?.pieceTypes.find((item) => item.label === event.target.value);
+                            setTargetDraft((value) => ({...value, pieceTypeLabel: event.target.value, pieceTypeKey: selected?.key || ''}));
+                          }}
+                          className={inputClass}
+                          placeholder="Ex.: Bancada"
+                        />
+                      </Field>
+                      <datalist id="production-piece-types">
+                        {productionTargets?.pieceTypes.map((item) => <option key={item.key} value={item.label} />)}
+                      </datalist>
+                      <Field label="Função / etapa">
+                        <select value={targetDraft.functionKey} onChange={(event) => setTargetDraft((value) => ({...value, functionKey: event.target.value}))} className={inputClass}>
+                          <option value="">Selecione</option>
+                          {productionReport.filterOptions.functions.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+                        </select>
+                      </Field>
+                      <Field label="Duração prevista em minutos">
+                        <input type="number" min={1} max={10080} value={targetDraft.targetMinutes} onChange={(event) => setTargetDraft((value) => ({...value, targetMinutes: Number(event.target.value) || 0}))} className={inputClass} />
+                      </Field>
+                    </div>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      <button type="submit" className={primaryButton} disabled={savingTarget || !targetDraft.pieceTypeLabel || !targetDraft.functionKey || targetDraft.targetMinutes < 1}>
+                        {savingTarget ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                        Salvar previsto
+                      </button>
+                      {targetDraft.targetId && <button type="button" className={secondaryButton} onClick={() => setTargetDraft({targetId: '', pieceTypeKey: '', pieceTypeLabel: '', functionKey: '', targetMinutes: 60})}>Cancelar edição</button>}
+                    </div>
+                  </form>
+
+                  <div className="grid gap-3">
+                    {!productionTargets || productionTargets.targets.length === 0 ? (
+                      <div className="rounded-[28px] border border-dashed border-slate-200 bg-white p-10 text-center text-slate-500">Nenhum tempo previsto cadastrado ainda.</div>
+                    ) : productionTargets.targets.map((target) => (
+                      <article key={target.id} className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <h3 className="text-base font-semibold text-slate-900">{target.pieceTypeLabel}</h3>
+                            <p className="text-sm text-slate-500">{target.functionLabel}</p>
+                          </div>
+                          <div className="text-sm"><span className="block text-slate-400">Previsto</span><strong>{formatMinutes(target.targetSeconds / 60)}</strong></div>
+                        </div>
+                        {canManage && (
+                          <div className="mt-4 flex flex-wrap gap-2">
+                            <button type="button" className={secondaryButton} onClick={() => handleEditTarget(target)}>Editar</button>
+                            <button type="button" className={secondaryButton} onClick={() => void handleDeactivateTarget(target)} disabled={savingTarget}>Inativar</button>
+                          </div>
+                        )}
+                      </article>
+                    ))}
+                  </div>
                 </div>
               )}
 

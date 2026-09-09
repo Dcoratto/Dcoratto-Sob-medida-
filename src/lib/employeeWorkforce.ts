@@ -269,6 +269,75 @@ export type EmployeeProductionPieceAnalysis = {
   }>;
 };
 
+export type EmployeeOperationalHourlyCost = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  hourlyCost: number;
+  validFrom: string;
+  validUntil?: string | null;
+};
+
+type LaborCostValue = {
+  productiveMinutes: number;
+  laborCost: number;
+  missingCostActivities: number;
+  missingCostMinutes: number;
+  isPartialCost: boolean;
+};
+
+export type EmployeeProductionLaborCostReport = {
+  period: {from: string; to: string};
+  summary: LaborCostValue & {
+    saleValue: number;
+    laborSalePercent?: number | null;
+  };
+  employees: Array<LaborCostValue & {
+    employeeId: string;
+    employeeName: string;
+    currentHourlyCost?: number | null;
+  }>;
+  functions: Array<LaborCostValue & {
+    functionKey: string;
+    functionLabel: string;
+  }>;
+  pieces: Array<LaborCostValue & {
+    pieceKey: string;
+    pieceLabel: string;
+    pieceTypeKey?: string | null;
+    pieceTypeLabel?: string | null;
+    clientId?: string | null;
+    clientName: string;
+    quoteId?: string | null;
+    quoteLabel?: string | null;
+    estimatedTargetLaborCost?: number | null;
+    laborCostDeviation?: number | null;
+    missingTargetCostFunctions: number;
+  }>;
+  works: Array<LaborCostValue & {
+    clientId?: string | null;
+    clientName: string;
+    quoteId?: string | null;
+    quoteLabel?: string | null;
+    saleValue?: number | null;
+    laborSalePercent?: number | null;
+    employeeCount: number;
+    pieceCount: number;
+    functions: Array<{
+      functionKey: string;
+      functionLabel: string;
+      productiveMinutes: number;
+      laborCost: number;
+    }>;
+    employees: Array<{
+      employeeId: string;
+      employeeName: string;
+      productiveMinutes: number;
+      laborCost: number;
+    }>;
+  }>;
+};
+
 type OverviewRow = {
   employee_id: string;
   empresa_id: string;
@@ -686,6 +755,86 @@ export const listEmployeeProductionPieceAnalysis = async (filters: EmployeeProdu
         deviationPercent: entry.deviationPercent == null ? null : Number(entry.deviationPercent),
         completedActivities: Number(entry.completedActivities) || 0,
         hasActivity: entry.hasActivity !== false,
+      })),
+    })),
+  };
+};
+
+const mapLaborCostValue = <T extends Record<string, any>>(item: T) => ({
+  ...item,
+  productiveMinutes: Number(item.productiveMinutes) || 0,
+  laborCost: Number(item.laborCost) || 0,
+  missingCostActivities: Number(item.missingCostActivities) || 0,
+  missingCostMinutes: Number(item.missingCostMinutes) || 0,
+  isPartialCost: Boolean(item.isPartialCost),
+});
+
+export const listEmployeeOperationalHourlyCosts = async (): Promise<EmployeeOperationalHourlyCost[]> => {
+  const rows = ensureSuccess(await supabase.rpc('get_employee_operational_hourly_costs')) as EmployeeOperationalHourlyCost[];
+  return (rows || []).map((item) => ({
+    ...item,
+    hourlyCost: Number(item.hourlyCost) || 0,
+  }));
+};
+
+export const saveEmployeeOperationalHourlyCost = async (input: {
+  employeeId: string;
+  hourlyCost: number;
+  validFrom?: string;
+}, actor: WorkforceActor) => {
+  return ensureSuccess(await supabase.rpc('save_employee_operational_hourly_cost', {
+    p_employee_id: input.employeeId,
+    p_hourly_cost: input.hourlyCost,
+    p_valid_from: input.validFrom || null,
+    p_actor_uid: actor.uid,
+    p_actor_name: actor.name,
+  }));
+};
+
+export const listEmployeeProductionLaborCostReport = async (filters: EmployeeProductionFilters): Promise<EmployeeProductionLaborCostReport> => {
+  const data = ensureSuccess(await supabase.rpc('get_employee_production_labor_cost_report', {
+    p_date_from: filters.dateFrom || null,
+    p_date_to: filters.dateTo || null,
+    p_employee_id: filters.employeeId || null,
+    p_client_id: filters.clientId || null,
+    p_quote_id: filters.quoteId || null,
+    p_piece_key: filters.pieceKey || null,
+    p_function_key: filters.functionKey || null,
+  })) as EmployeeProductionLaborCostReport;
+
+  return {
+    period: data.period || {from: filters.dateFrom, to: filters.dateTo},
+    summary: {
+      ...mapLaborCostValue(data.summary || {}),
+      saleValue: Number(data.summary?.saleValue) || 0,
+      laborSalePercent: data.summary?.laborSalePercent == null ? null : Number(data.summary.laborSalePercent),
+    },
+    employees: (data.employees || []).map((item) => ({
+      ...mapLaborCostValue(item),
+      currentHourlyCost: item.currentHourlyCost == null ? null : Number(item.currentHourlyCost),
+    })),
+    functions: (data.functions || []).map((item) => mapLaborCostValue(item)),
+    pieces: (data.pieces || []).map((item) => ({
+      ...mapLaborCostValue(item),
+      estimatedTargetLaborCost: item.estimatedTargetLaborCost == null ? null : Number(item.estimatedTargetLaborCost),
+      laborCostDeviation: item.laborCostDeviation == null ? null : Number(item.laborCostDeviation),
+      missingTargetCostFunctions: Number(item.missingTargetCostFunctions) || 0,
+    })),
+    works: (data.works || []).map((item) => ({
+      ...mapLaborCostValue(item),
+      saleValue: item.saleValue == null ? null : Number(item.saleValue),
+      laborSalePercent: item.laborSalePercent == null ? null : Number(item.laborSalePercent),
+      employeeCount: Number(item.employeeCount) || 0,
+      pieceCount: Number(item.pieceCount) || 0,
+      functions: (item.functions || []).map((entry) => ({
+        ...entry,
+        productiveMinutes: Number(entry.productiveMinutes) || 0,
+        laborCost: Number(entry.laborCost) || 0,
+      })),
+      employees: (item.employees || []).map((entry) => ({
+        ...entry,
+        productiveMinutes: Number(entry.productiveMinutes) || 0,
+        laborCost: Number(entry.laborCost) || 0,
       })),
     })),
   };

@@ -1,5 +1,6 @@
 import React from 'react';
 import {Link} from 'react-router-dom';
+import {CurrencyInput} from '../components/inputs/NumericInput';
 import {
   Briefcase,
   CalendarClock,
@@ -20,7 +21,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import {useAuth} from '../contexts/AuthContext';
-import {cn} from '../lib/utils';
+import {cn, formatCurrency} from '../lib/utils';
 import {deleteObject, getDownloadURL, imageVariantUrl, ref as storageRef, storage, storagePath, uploadDataUrl} from '../lib/storage';
 import {optimizeImageFile} from '../lib/imageUtils';
 import {
@@ -33,7 +34,9 @@ import {
   listEmployeeActivityHistory,
   listEmployeeAttendanceHistory,
   listEmployeeFunctionCatalog,
+  listEmployeeOperationalHourlyCosts,
   listEmployeeProductionHistoricalAverages,
+  listEmployeeProductionLaborCostReport,
   listEmployeeProductionPieceAnalysis,
   listEmployeeOperationalOverview,
   listEmployeeProductionReport,
@@ -43,6 +46,7 @@ import {
   resumeEmployeeActivity,
   resumeMyWorkday,
   saveEmployeeAttendance,
+  saveEmployeeOperationalHourlyCost,
   saveEmployeeProductionTimeTarget,
   saveEmployeeProfile,
   startMyBreak,
@@ -51,7 +55,9 @@ import {
   startEmployeeActivity,
   type EmployeeActivityTarget,
   type EmployeeFunctionCatalogItem,
+  type EmployeeOperationalHourlyCost,
   type EmployeeProductionHistoricalAverages,
+  type EmployeeProductionLaborCostReport,
   type EmployeeProductionPieceAnalysis,
   type EmployeeProductionReport,
   type EmployeeProductionTargets,
@@ -114,6 +120,7 @@ const formatDate = (value?: string | null) => value ? new Date(`${value}T12:00:0
 const formatDateTime = (value?: string | null) => value ? new Date(value).toLocaleString('pt-BR') : '-';
 const formatPercent = (value: number) => `${(Number(value) || 0).toLocaleString('pt-BR', {minimumFractionDigits: 0, maximumFractionDigits: 2})}%`;
 const formatSignedPercent = (value?: number | null) => value == null ? 'Sem tempo previsto' : `${value > 0 ? '+' : ''}${formatPercent(value)}`;
+const formatSignedCurrency = (value?: number | null) => value == null ? 'Sem previsto' : `${value > 0 ? '+' : value < 0 ? '-' : ''}${formatCurrency(Math.abs(value))}`;
 
 const toDateInputValue = (value?: string | null) => value ? String(value).slice(0, 10) : new Date().toISOString().slice(0, 10);
 
@@ -297,9 +304,11 @@ export const EmployeeReportsPage: React.FC = () => {
 
   const [overview, setOverview] = React.useState<EmployeeOperationalOverview[]>([]);
   const [catalog, setCatalog] = React.useState<EmployeeFunctionCatalogItem[]>([]);
+  const [hourlyCosts, setHourlyCosts] = React.useState<EmployeeOperationalHourlyCost[]>([]);
 
   const [employeeModalOpen, setEmployeeModalOpen] = React.useState(false);
   const [employeeDraft, setEmployeeDraft] = React.useState<EmployeeProfileDraft>(() => createEmployeeDraft([]));
+  const [employeeHourlyCost, setEmployeeHourlyCost] = React.useState(0);
   const [employeePhotoFile, setEmployeePhotoFile] = React.useState<File | null>(null);
   const [employeePhotoPreview, setEmployeePhotoPreview] = React.useState('');
   const [savingEmployee, setSavingEmployee] = React.useState(false);
@@ -360,6 +369,7 @@ export const EmployeeReportsPage: React.FC = () => {
   const [productionTargets, setProductionTargets] = React.useState<EmployeeProductionTargets | null>(null);
   const [pieceAnalysis, setPieceAnalysis] = React.useState<EmployeeProductionPieceAnalysis | null>(null);
   const [historicalAverages, setHistoricalAverages] = React.useState<EmployeeProductionHistoricalAverages | null>(null);
+  const [laborCostReport, setLaborCostReport] = React.useState<EmployeeProductionLaborCostReport | null>(null);
   const [historyMonths, setHistoryMonths] = React.useState(12);
   const [productionHistoryCustomFrom, setProductionHistoryCustomFrom] = React.useState('');
   const [productionHistoryCustomTo, setProductionHistoryCustomTo] = React.useState('');
@@ -381,13 +391,15 @@ export const EmployeeReportsPage: React.FC = () => {
     const requestId = ++overviewRequestIdRef.current;
     setLoading(true);
     try {
-      const [nextOverview, nextCatalog] = await Promise.all([
+      const [nextOverview, nextCatalog, nextHourlyCosts] = await Promise.all([
         listEmployeeOperationalOverview(deferredSearch),
         listEmployeeFunctionCatalog(),
+        listEmployeeOperationalHourlyCosts(),
       ]);
       if (requestId !== overviewRequestIdRef.current) return;
       setOverview(nextOverview);
       setCatalog(nextCatalog);
+      setHourlyCosts(nextHourlyCosts);
       setFeedback(null);
     } catch (error) {
       if (requestId !== overviewRequestIdRef.current) return;
@@ -455,6 +467,7 @@ export const EmployeeReportsPage: React.FC = () => {
 
     Promise.all([
       listEmployeeProductionTimeTargets(),
+      listEmployeeProductionLaborCostReport(sharedFilters),
       listEmployeeProductionPieceAnalysis({
         ...sharedFilters,
         historyDateFrom: historicalDateRange.from,
@@ -466,9 +479,10 @@ export const EmployeeReportsPage: React.FC = () => {
         functionKey: productionFilters.functionKey || undefined,
       }),
     ])
-      .then(([targets, pieces, averages]) => {
+      .then(([targets, costs, pieces, averages]) => {
         if (!active) return;
         setProductionTargets(targets);
+        setLaborCostReport(costs);
         setPieceAnalysis(pieces);
         setHistoricalAverages(averages);
       })
@@ -538,8 +552,17 @@ export const EmployeeReportsPage: React.FC = () => {
     productiveMinutes: overview.reduce((sum, item) => sum + item.today.productiveMinutes, 0),
   }), [overview]);
 
+  const currentHourlyCostByEmployee = React.useMemo(() => {
+    const map = new Map<string, EmployeeOperationalHourlyCost>();
+    hourlyCosts
+      .filter((item) => !item.validUntil)
+      .forEach((item) => map.set(item.employeeId, item));
+    return map;
+  }, [hourlyCosts]);
+
   const openCreateEmployee = () => {
     setEmployeeDraft(createEmployeeDraft(catalog));
+    setEmployeeHourlyCost(0);
     setEmployeePhotoFile(null);
     setEmployeePhotoPreview('');
     setEmployeeModalOpen(true);
@@ -549,6 +572,7 @@ export const EmployeeReportsPage: React.FC = () => {
     try {
       const schedules = await listEmployeeSchedules(item.employee.id);
       setEmployeeDraft(createEmployeeDraft(catalog, item.employee, item.functions, schedules));
+      setEmployeeHourlyCost(currentHourlyCostByEmployee.get(item.employee.id)?.hourlyCost || 0);
       setEmployeePhotoFile(null);
       setEmployeePhotoPreview(item.employee.photoUrl || '');
       setEmployeeModalOpen(true);
@@ -607,6 +631,11 @@ export const EmployeeReportsPage: React.FC = () => {
         mediumUrl: nextPhotoUrl,
         originalUrl: nextPhotoUrl,
       }, actor);
+
+      const currentCost = currentHourlyCostByEmployee.get(employeeId)?.hourlyCost || 0;
+      if (canManage && employeeHourlyCost > 0 && Math.round(employeeHourlyCost * 100) !== Math.round(currentCost * 100)) {
+        await saveEmployeeOperationalHourlyCost({employeeId, hourlyCost: employeeHourlyCost}, actor);
+      }
 
       if (employeePhotoFile && employeeDraft.photoUrl && employeeDraft.photoUrl !== nextPhotoUrl) {
         try {
@@ -1071,6 +1100,30 @@ export const EmployeeReportsPage: React.FC = () => {
                 ))}
               </section>
 
+              {laborCostReport && (
+                <section className="rounded-[32px] border border-slate-100 bg-white p-5 shadow-sm">
+                  <div className="mb-4">
+                    <h3 className="text-base font-semibold text-slate-900">Resumo financeiro da produção</h3>
+                    <p className="text-sm text-slate-500">O valor vendido vem do total final salvo no orçamento; não há recálculo comercial aqui.</p>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <div className="rounded-2xl bg-slate-50 p-4">
+                      <span className="block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Custo de mão de obra</span>
+                      <strong className="mt-2 block text-2xl text-slate-900">{formatCurrency(laborCostReport.summary.laborCost)}</strong>
+                      {laborCostReport.summary.isPartialCost && <span className="mt-1 block text-xs text-amber-700">Custo parcial: {formatMinutes(laborCostReport.summary.missingCostMinutes)} sem custo configurado.</span>}
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 p-4">
+                      <span className="block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Valor vendido das obras</span>
+                      <strong className="mt-2 block text-2xl text-slate-900">{laborCostReport.summary.saleValue > 0 ? formatCurrency(laborCostReport.summary.saleValue) : 'Valor da venda indisponível'}</strong>
+                    </div>
+                    <div className="rounded-2xl bg-slate-50 p-4">
+                      <span className="block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Mão de obra / venda</span>
+                      <strong className="mt-2 block text-2xl text-slate-900">{laborCostReport.summary.laborSalePercent == null ? '—' : formatPercent(laborCostReport.summary.laborSalePercent)}</strong>
+                    </div>
+                  </div>
+                </section>
+              )}
+
               {productionMode === 'summary' && (
                 <div className="rounded-[32px] border border-slate-100 bg-white p-5 shadow-sm">
                   <h3 className="text-base font-semibold text-slate-900">Resumo do período</h3>
@@ -1100,6 +1153,16 @@ export const EmployeeReportsPage: React.FC = () => {
                         <div>Atividades concluídas: <strong>{item.completedActivities}</strong></div>
                         <div>Peças trabalhadas: <strong>{item.distinctPieces}</strong></div>
                         <div>Tempo médio por atividade: <strong>{formatMinutes(item.averageMinutesPerActivity)}</strong></div>
+                        {(() => {
+                          const cost = laborCostReport?.employees.find((entry) => entry.employeeId === item.employeeId);
+                          return (
+                            <>
+                              <div>Custo/h vigente: <strong>{cost?.currentHourlyCost == null ? 'Custo não configurado' : `${formatCurrency(cost.currentHourlyCost)}/h`}</strong></div>
+                              <div>Custo produtivo: <strong>{cost ? formatCurrency(cost.laborCost) : 'Custo não configurado'}</strong></div>
+                              <div>{cost?.isPartialCost ? `Custo parcial: ${formatMinutes(cost.missingCostMinutes)} sem custo.` : 'Custo calculado pelas vigências.'}</div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </details>
                   ))}
@@ -1124,13 +1187,37 @@ export const EmployeeReportsPage: React.FC = () => {
                           </div>
                         </div>
                       </summary>
-                      <div className="mt-4 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-2 xl:grid-cols-4">
-                        {item.functions.map((entry) => (
-                          <div key={`${entry.functionKey}-${entry.functionLabel}`} className="rounded-2xl bg-slate-50 p-3 text-sm">
-                            <span className="block text-slate-500">{entry.functionLabel}</span>
-                            <strong className="text-slate-900">{formatMinutes(entry.productiveMinutes)}</strong>
+                      <div className="mt-4 space-y-4 border-t border-slate-100 pt-4">
+                        {(() => {
+                          const cost = laborCostReport?.works.find((entry) => (entry.clientId || '') === (item.clientId || '') && (entry.quoteId || '') === (item.quoteId || ''));
+                          return cost ? (
+                            <div className="grid gap-3 text-sm sm:grid-cols-4">
+                              <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-500">Venda</span><strong>{cost.saleValue && cost.saleValue > 0 ? formatCurrency(cost.saleValue) : 'Valor da venda indisponível'}</strong></div>
+                              <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-500">Custo mão de obra</span><strong>{formatCurrency(cost.laborCost)}</strong>{cost.isPartialCost && <span className="block text-xs text-amber-700">Parcial</span>}</div>
+                              <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-500">Mão de obra / venda</span><strong>{cost.laborSalePercent == null ? '—' : formatPercent(cost.laborSalePercent)}</strong></div>
+                              <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-500">Sem custo</span><strong>{formatMinutes(cost.missingCostMinutes)}</strong></div>
+                            </div>
+                          ) : null;
+                        })()}
+                        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                          {(laborCostReport?.works.find((entry) => (entry.clientId || '') === (item.clientId || '') && (entry.quoteId || '') === (item.quoteId || ''))?.functions || item.functions).map((entry) => (
+                            <div key={`${entry.functionKey}-${entry.functionLabel}`} className="rounded-2xl bg-slate-50 p-3 text-sm">
+                              <span className="block text-slate-500">{entry.functionLabel}</span>
+                              <strong className="text-slate-900">{formatMinutes(entry.productiveMinutes)}</strong>
+                              {'laborCost' in entry && <span className="mt-1 block text-xs text-slate-500">{formatCurrency(Number(entry.laborCost) || 0)}</span>}
+                            </div>
+                          ))}
+                        </div>
+                        {laborCostReport?.works.find((entry) => (entry.clientId || '') === (item.clientId || '') && (entry.quoteId || '') === (item.quoteId || ''))?.employees.length ? (
+                          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                            {laborCostReport.works.find((entry) => (entry.clientId || '') === (item.clientId || '') && (entry.quoteId || '') === (item.quoteId || ''))?.employees.map((entry) => (
+                              <div key={entry.employeeId} className="rounded-2xl bg-slate-50 p-3 text-sm">
+                                <span className="block text-slate-500">{entry.employeeName}</span>
+                                <strong className="text-slate-900">{formatMinutes(entry.productiveMinutes)} — {formatCurrency(entry.laborCost)}</strong>
+                              </div>
+                            ))}
                           </div>
-                        ))}
+                        ) : null}
                       </div>
                     </details>
                   ))}
@@ -1161,6 +1248,16 @@ export const EmployeeReportsPage: React.FC = () => {
                         </div>
                       </summary>
                       <div className="mt-4 space-y-4 border-t border-slate-100 pt-4">
+                        {(() => {
+                          const cost = laborCostReport?.pieces.find((entry) => entry.pieceKey === item.pieceKey);
+                          return cost ? (
+                            <div className="grid gap-3 text-sm sm:grid-cols-3">
+                              <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-500">Custo previsto estimado</span><strong>{cost.estimatedTargetLaborCost == null ? 'Sem custo previsto' : formatCurrency(cost.estimatedTargetLaborCost)}</strong></div>
+                              <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-500">Custo realizado</span><strong>{formatCurrency(cost.laborCost)}</strong>{cost.isPartialCost && <span className="block text-xs text-amber-700">Custo parcial</span>}</div>
+                              <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-500">Desvio financeiro</span><strong>{formatSignedCurrency(cost.laborCostDeviation)}</strong></div>
+                            </div>
+                          ) : null;
+                        })()}
                         <div className="grid gap-3 text-sm sm:grid-cols-4">
                           <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-500">Média histórica</span><strong>{item.historicalSampleCount > 0 ? formatMinutes(item.historicalAverageMinutes || 0) : 'Sem média'}</strong></div>
                           <div className="rounded-2xl bg-slate-50 p-3"><span className="block text-slate-500">Diferença da média</span><strong>{item.historicalSampleCount > 0 ? formatSignedMinutes(item.historicalDeviationMinutes) : 'Sem média'}</strong></div>
@@ -1300,6 +1397,16 @@ export const EmployeeReportsPage: React.FC = () => {
                         <div><span className="block text-slate-400">Funcionários</span><strong>{item.employeeCount}</strong></div>
                         <div><span className="block text-slate-400">Peças</span><strong>{item.pieceCount}</strong></div>
                       </div>
+                      {(() => {
+                        const cost = laborCostReport?.functions.find((entry) => entry.functionKey === item.functionKey);
+                        return cost ? (
+                          <div className="mt-4 rounded-2xl bg-slate-50 p-4 text-sm">
+                            <span className="block text-slate-500">Custo de mão de obra</span>
+                            <strong className="text-slate-900">{formatCurrency(cost.laborCost)}</strong>
+                            {cost.isPartialCost && <span className="ml-2 text-xs text-amber-700">Parcial: {formatMinutes(cost.missingCostMinutes)} sem custo configurado.</span>}
+                          </div>
+                        ) : null;
+                      })()}
                     </article>
                   ))}
                 </div>
@@ -1460,6 +1567,11 @@ export const EmployeeReportsPage: React.FC = () => {
               </Field>
               <Field label="Data de admissão"><input type="date" value={employeeDraft.admissionDate} onChange={(event) => setEmployeeDraft((value) => ({...value, admissionDate: event.target.value}))} className={inputClass} /></Field>
               <Field label="Telefone"><input value={employeeDraft.phone} onChange={(event) => setEmployeeDraft((value) => ({...value, phone: event.target.value}))} className={inputClass} /></Field>
+              {canManage && (
+                <Field label="Custo operacional por hora">
+                  <CurrencyInput value={employeeHourlyCost} onValueChange={(value) => setEmployeeHourlyCost(value)} className={inputClass} placeholder="R$ 0,00" />
+                </Field>
+              )}
               <div className="sm:col-span-2">
                 <Field label="Observações internas"><textarea value={employeeDraft.notes} onChange={(event) => setEmployeeDraft((value) => ({...value, notes: event.target.value}))} className={textareaClass} /></Field>
               </div>

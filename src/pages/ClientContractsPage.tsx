@@ -2,6 +2,7 @@ import React from 'react';
 import {ArrowLeft, CalendarDays, CheckCircle2, ChevronRight, FileUp, Loader2, PackageCheck, Plus, Search, UserRound, X} from 'lucide-react';
 import {useAuth} from '../contexts/AuthContext';
 import {confirmClientContractImport, getContractClientSummary, listContractClients, listContractsForClient, type ContractClientSummary, type ContractImportPieceDraft, type ContractSummary} from '../lib/clientContracts';
+import {resolveContractFinancialTotal} from '../lib/contractFinancials';
 import {parseOperationalContractPdf} from '../lib/contractParser';
 import {cn, formatCurrency} from '../lib/utils';
 
@@ -14,6 +15,11 @@ const formatDate = (value?: string | null) => {
 };
 
 const pluralize = (count: number, singular: string, plural: string) => `${count} ${count === 1 ? singular : plural}`;
+
+const normalizeMoneyDraft = (value: unknown) => {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount >= 0 ? Number(amount.toFixed(2)) : null;
+};
 
 export const ClientContractsPage: React.FC = () => {
   const {accessUser, profile, user, hasPermission} = useAuth();
@@ -127,7 +133,11 @@ export const ClientContractsPage: React.FC = () => {
       const parsed = await parseOperationalContractPdf(file);
       setReviewNumber(parsed.contractNumber);
       setReviewDate(parsed.contractDate ? parsed.contractDate.split('/').reverse().join('-') : '');
-      setReviewPieces(parsed.pieces.map((piece, index) => ({id: `pdf-${index + 1}`, label: piece.name})));
+      setReviewPieces(parsed.pieces.map((piece, index) => ({
+        id: `pdf-${index + 1}`,
+        label: piece.name,
+        value: normalizeMoneyDraft(piece.value),
+      })));
       setReviewOpen(true);
       if (parsed.needsManualReview) {
         setFeedback({type: 'error', message: 'Revise o numero do contrato e as pecas antes de confirmar. Nada foi salvo ainda.'});
@@ -150,11 +160,16 @@ export const ClientContractsPage: React.FC = () => {
       setFeedback({type: 'error', message: 'Informe o numero do contrato antes de confirmar.'});
       return;
     }
-    const pieces = reviewPieces.map((piece) => ({...piece, label: piece.label.trim()})).filter((piece) => piece.label);
+    const pieces = reviewPieces
+      .map((piece) => ({...piece, label: piece.label.trim(), value: normalizeMoneyDraft(piece.value)}))
+      .filter((piece) => piece.label);
     if (pieces.length === 0) {
       setFeedback({type: 'error', message: 'Adicione ao menos uma peca para confirmar o contrato.'});
       return;
     }
+    const contractTotal = pieces.some((piece) => piece.value !== null)
+      ? pieces.reduce((sum, piece) => sum + (piece.value || 0), 0)
+      : null;
 
     setSavingImport(true);
     try {
@@ -162,6 +177,7 @@ export const ClientContractsPage: React.FC = () => {
         clientId: selectedClient.id,
         contractNumber: reviewNumber.trim(),
         contractDate: reviewDate || undefined,
+        contractTotal,
         pieces,
       }, actor);
       setReviewOpen(false);
@@ -215,6 +231,10 @@ export const ClientContractsPage: React.FC = () => {
                 </div>
               </div>
               <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-500" />
+            </div>
+            <div className="mt-4 rounded-2xl border border-slate-100 bg-white px-3 py-2">
+              <div className="text-[10px] font-medium uppercase tracking-[0.18em] text-slate-400">Total comprado</div>
+              <div className="mt-1 text-lg font-semibold text-slate-900">{formatCurrency(client.lifetimeValue || 0)}</div>
             </div>
             <div className="mt-4 rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
               {client.latestContractNumber ? (
@@ -272,6 +292,7 @@ export const ClientContractsPage: React.FC = () => {
                             <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-500">
                               <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-4 w-4" /> {formatDate(contract.contractDate)}</span>
                               <span>{pluralize(contract.pieces.length, 'peca', 'pecas')}</span>
+                              <span>Valor: <span className="font-medium text-slate-700">{formatCurrency(resolveContractFinancialTotal(contract))}</span></span>
                             </div>
                           </div>
                           <ChevronRight className="mt-2 h-5 w-5 text-slate-300" />
@@ -294,7 +315,7 @@ export const ClientContractsPage: React.FC = () => {
                       <span>{formatDate(selectedContract.contractDate)}</span>
                       <span>{pluralize(selectedContract.pieces.length, 'peca', 'pecas')}</span>
                       {selectedContract.quote?.environment ? <span>{selectedContract.quote.environment}</span> : null}
-                      {selectedContract.quote ? <span>{formatCurrency(selectedContract.quote.totalPrice || 0)}</span> : null}
+                      <span>Valor do contrato: <span className="font-medium text-slate-700">{formatCurrency(resolveContractFinancialTotal(selectedContract))}</span></span>
                     </div>
                   </section>
 
@@ -309,6 +330,11 @@ export const ClientContractsPage: React.FC = () => {
                             <div>
                               <div className="text-sm font-semibold text-slate-900">{piece.pieceLabel}</div>
                               <div className="mt-1 text-xs text-slate-500">Tipo: {piece.pieceTypeKey || 'Nao informado'}</div>
+                              <div className="mt-2 text-sm font-semibold text-slate-900">
+                                {piece.pieceTotal === null || typeof piece.pieceTotal === 'undefined'
+                                  ? 'Valor nao informado'
+                                  : formatCurrency(piece.pieceTotal)}
+                              </div>
                             </div>
                           </div>
                         </article>
@@ -354,7 +380,10 @@ export const ClientContractsPage: React.FC = () => {
                 </div>
                 <div className="space-y-2">
                   {reviewPieces.map((piece, index) => (
-                    <input key={piece.id || index} value={piece.label} onChange={(event) => setReviewPieces((current) => current.map((item, itemIndex) => itemIndex === index ? {...item, label: event.target.value} : item))} className={inputClass} placeholder={`Peca ${index + 1}`} />
+                    <div key={piece.id || index} className="grid gap-2 sm:grid-cols-[1fr_180px]">
+                      <input value={piece.label} onChange={(event) => setReviewPieces((current) => current.map((item, itemIndex) => itemIndex === index ? {...item, label: event.target.value} : item))} className={inputClass} placeholder={`Peca ${index + 1}`} />
+                      <input type="number" min="0" step="0.01" value={piece.value ?? ''} onChange={(event) => setReviewPieces((current) => current.map((item, itemIndex) => itemIndex === index ? {...item, value: event.target.value === '' ? null : Number(event.target.value)} : item))} className={inputClass} placeholder="Valor da peca" />
+                    </div>
                   ))}
                 </div>
               </div>

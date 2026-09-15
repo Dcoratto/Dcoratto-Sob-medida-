@@ -609,6 +609,7 @@ export interface ClientContractPiece {
   quotePieceId?: string | null;
   pieceLabel: string;
   pieceTypeKey?: string | null;
+  pieceTotal?: number | null;
   sortOrder: number;
   source: 'manual' | 'pdf_import' | 'quote_backfill';
   createdAt?: any;
@@ -623,6 +624,7 @@ export interface ClientContract {
   quoteId?: string | null;
   contractNumber: string;
   contractDate?: string | null;
+  contractTotal?: number | null;
   status: 'active' | 'inactive' | 'cancelled';
   source: 'manual' | 'pdf_import' | 'quote_backfill';
   reviewStatus: 'pending_review' | 'confirmed';

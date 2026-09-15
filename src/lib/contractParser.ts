@@ -136,6 +136,24 @@ const sanitizeValue = (value: string) =>
     .replace(/^\d+\s*-\s*/, '')
     .trim();
 
+export const normalizeContractNumber = (value: string) =>
+  String(value || '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*-\s*/g, '-')
+    .replace(/[^A-Za-z0-9-]/g, '')
+    .trim();
+
+export const extractOfficialContractNumber = (text: string) => {
+  const normalizedText = String(text || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+  const matches = Array.from(normalizedText.matchAll(/CONTRATO\s+N\s*(?:[.º°oO]\s*){0,3}\s*[:\-]?\s*([A-Za-z0-9]{1,24}(?:\s*-\s*[A-Za-z0-9]{1,24})*)/gi))
+    .map((match) => normalizeContractNumber(match[1] || ''))
+    .filter((value) => /\d/.test(value) && value.replace(/-/g, '').length >= 4);
+  const unique = Array.from(new Set(matches));
+  return unique.length === 1 ? unique[0] : '';
+};
+
 const parseBrazilianCurrency = (value: string) => {
   const normalized = String(value || '')
     .replace(/[^\d,.-]/g, '')
@@ -265,12 +283,7 @@ const parseFromTokens = (tokens: string[]) => {
 
 const getContractNumber = (tokens: string[], rawText: string) => {
   const fullText = `${tokens.join(' ')} ${rawText}`;
-  const normalized = normalizeText(fullText);
-  const matches = Array.from(normalized.matchAll(/CONTRATO\s+N\s*(?:[.º°O]\s*){0,3}\s*([0-9]{4,})/g))
-    .map((match) => match[1]?.trim())
-    .filter(Boolean);
-  const unique = Array.from(new Set(matches));
-  return unique.length === 1 ? unique[0] : '';
+  return extractOfficialContractNumber(fullText);
 };
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
@@ -302,7 +315,7 @@ const coerceParsedClient = (payload: Record<string, unknown>): ParsedContractCli
   sellerName: sanitizeValue(String(payload.sellerName || '')),
   storeName: sanitizeValue(String(payload.storeName || '')),
   contractDate: sanitizeValue(String(payload.contractDate || '')),
-  contractNumber: sanitizeValue(String(payload.contractNumber || '')),
+  contractNumber: normalizeContractNumber(String(payload.contractNumber || '')),
   contractType: sanitizeValue(String(payload.contractType || '')),
   clientName: sanitizeValue(String(payload.clientName || '')),
   cpfCnpj: sanitizeValue(String(payload.cpfCnpj || '')),
@@ -372,6 +385,8 @@ sellerName, storeName, contractDate, contractNumber, contractType, clientName, c
 Regras:
 - Leia apenas a primeira página.
 - Preserve os textos como aparecem no documento.
+- contractNumber deve ser o identificador textual completo associado ao rotulo CONTRATO N.º, CONTRATO N.o, CONTRATO N° ou CONTRATO Nº.
+- Preserve zeros a esquerda, letras e hifens do contractNumber. Exemplo: CONTRATO N.o seguido de 100001677-2 deve retornar "100001677-2", nunca "2".
 - Se algum campo não existir, retorne string vazia.
 - rawText deve trazer um resumo em texto do conteúdo identificado da primeira página.
 `.trim();
@@ -399,7 +414,12 @@ Regras:
         });
 
         const payload = extractJsonPayload(response.text || '');
-        return coerceParsedClient(payload);
+        const parsed = coerceParsedClient(payload);
+        const officialContractNumber = extractOfficialContractNumber(parsed.rawText);
+        return {
+          ...parsed,
+          contractNumber: officialContractNumber || parsed.contractNumber,
+        };
       } catch (error) {
         lastError = error;
         if (isQuotaGeminiError(error)) {

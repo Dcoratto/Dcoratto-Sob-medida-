@@ -183,14 +183,14 @@ export const ClientContractsPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <header className="rounded-[34px] bg-gradient-to-br from-emerald-50 via-white to-amber-50 p-6 shadow-sm">
-        <p className="text-xs font-medium uppercase tracking-[0.22em] text-emerald-700">Cliente → Contrato → Peca</p>
+      <header className="rounded-[34px] border border-slate-100 bg-white p-6 shadow-sm">
+        <p className="text-xs font-medium uppercase tracking-[0.22em] text-slate-400">Cliente → Contrato → Peca</p>
         <h1 className="mt-2 text-3xl font-display font-semibold text-slate-900">Contratos Realizados</h1>
         <p className="mt-2 max-w-2xl text-sm text-slate-500">Localize o cliente e abra somente os contratos daquele cliente, mantendo as pecas protegidas dentro do detalhe do contrato.</p>
       </header>
 
       <input ref={fileInputRef} type="file" accept="application/pdf,.pdf" onChange={handleFile} className="hidden" />
-      {feedback ? <div className={cn('rounded-2xl px-4 py-3 text-sm font-medium', feedback.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800')}>{feedback.message}</div> : null}
+      {feedback ? <div className={cn('rounded-2xl px-4 py-3 text-sm font-medium', feedback.type === 'success' ? 'bg-brand-primary/20 text-[#3F3A34]' : 'bg-amber-50 text-amber-800')}>{feedback.message}</div> : null}
 
       <section className="rounded-[30px] border border-slate-100 bg-white p-4 shadow-sm sm:p-5">
         <label className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3">
@@ -203,10 +203,10 @@ export const ClientContractsPage: React.FC = () => {
         {loadingClients ? <div className="col-span-full rounded-[28px] border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-400">Carregando clientes...</div> : null}
         {!loadingClients && clients.length === 0 ? <div className="col-span-full rounded-[28px] border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-400">Nenhum cliente encontrado.</div> : null}
         {clients.map((client) => (
-          <button key={client.id} type="button" onClick={() => openClientWindow(client)} className="group rounded-[26px] border border-slate-100 bg-white p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md">
+          <button key={client.id} type="button" onClick={() => openClientWindow(client)} className="group rounded-[26px] border border-slate-100 bg-white p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-slate-200 hover:shadow-md">
             <div className="flex items-start justify-between gap-3">
               <div className="flex min-w-0 items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
                   <UserRound className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">
@@ -214,7 +214,7 @@ export const ClientContractsPage: React.FC = () => {
                   <p className="mt-1 text-sm text-slate-500">{pluralize(client.contractCount, 'contrato', 'contratos')} · {pluralize(client.pieceCount, 'peca', 'pecas')}</p>
                 </div>
               </div>
-              <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-emerald-500" />
+              <ChevronRight className="mt-2 h-4 w-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-slate-500" />
             </div>
             <div className="mt-4 rounded-2xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
               {client.latestContractNumber ? (
@@ -231,7 +231,7 @@ export const ClientContractsPage: React.FC = () => {
             <div className="border-b border-slate-100 px-5 py-4 sm:px-6">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-emerald-700">Cliente selecionado</p>
+                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Cliente selecionado</p>
                   <h2 className="mt-1 truncate text-2xl font-display font-semibold text-slate-900">{selectedClient.name}</h2>
                   <div className="mt-2 flex flex-wrap gap-2 text-sm text-slate-500">
                     <span>{selectedClient.phone || 'Telefone nao informado'}</span>
@@ -265,7 +265,7 @@ export const ClientContractsPage: React.FC = () => {
                   {!loadingContracts && selectedClientContracts.length === 0 ? <div className="rounded-[24px] border border-dashed border-slate-200 p-10 text-center text-sm text-slate-400">Cliente sem contrato realizado.</div> : null}
                   <div className="grid gap-3">
                     {selectedClientContracts.map((contract) => (
-                      <button key={contract.id} type="button" onClick={() => setSelectedContractId(contract.id)} className="rounded-[24px] border border-slate-100 bg-slate-50 p-4 text-left transition-all hover:border-emerald-200 hover:bg-white">
+                      <button key={contract.id} type="button" onClick={() => setSelectedContractId(contract.id)} className="rounded-[24px] border border-slate-100 bg-slate-50 p-4 text-left transition-all hover:border-slate-200 hover:bg-white">
                         <div className="flex items-start justify-between gap-4">
                           <div>
                             <h4 className="text-base font-semibold text-slate-900">Contrato {contract.contractNumber}</h4>
@@ -287,7 +287,7 @@ export const ClientContractsPage: React.FC = () => {
                     Voltar aos contratos
                   </button>
 
-                  <section className="rounded-[28px] bg-gradient-to-br from-slate-50 to-emerald-50/70 p-5">
+                  <section className="rounded-[28px] bg-slate-50 p-5">
                     <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Contrato selecionado</p>
                     <h3 className="mt-1 text-2xl font-display font-semibold text-slate-900">Contrato {selectedContract.contractNumber}</h3>
                     <div className="mt-3 flex flex-wrap gap-3 text-sm text-slate-500">
@@ -305,7 +305,7 @@ export const ClientContractsPage: React.FC = () => {
                       {selectedContract.pieces.map((piece) => (
                         <article key={piece.id} className="rounded-2xl bg-slate-50 p-4">
                           <div className="flex items-start gap-3">
-                            <PackageCheck className="mt-0.5 h-4 w-4 text-emerald-600" />
+                            <PackageCheck className="mt-0.5 h-4 w-4 text-slate-500" />
                             <div>
                               <div className="text-sm font-semibold text-slate-900">{piece.pieceLabel}</div>
                               <div className="mt-1 text-xs text-slate-500">Tipo: {piece.pieceTypeKey || 'Nao informado'}</div>

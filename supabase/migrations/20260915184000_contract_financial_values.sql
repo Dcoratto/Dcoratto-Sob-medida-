@@ -1,46 +1,3 @@
-alter table public.client_contracts
-add column if not exists contract_total numeric(14,2);
-
-alter table public.client_contract_pieces
-add column if not exists piece_total numeric(14,2);
-
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint
-    where conname = 'client_contracts_contract_total_valid'
-      and conrelid = 'public.client_contracts'::regclass
-  ) then
-    alter table public.client_contracts
-    add constraint client_contracts_contract_total_valid
-    check (contract_total is null or (contract_total >= 0 and contract_total <= 999999999999.99))
-    not valid;
-  end if;
-
-  if not exists (
-    select 1 from pg_constraint
-    where conname = 'client_contract_pieces_piece_total_valid'
-      and conrelid = 'public.client_contract_pieces'::regclass
-  ) then
-    alter table public.client_contract_pieces
-    add constraint client_contract_pieces_piece_total_valid
-    check (piece_total is null or (piece_total >= 0 and piece_total <= 999999999999.99))
-    not valid;
-  end if;
-end $$;
-
-alter table public.client_contracts
-validate constraint client_contracts_contract_total_valid;
-
-alter table public.client_contract_pieces
-validate constraint client_contract_pieces_piece_total_valid;
-
-create index if not exists idx_client_contracts_financial_lookup
-on public.client_contracts(empresa_id, client_id, quote_id)
-where deleted_at is null;
-
-drop function if exists public.confirm_client_contract_import(text, text, date, text, jsonb, text, text);
-
 create or replace function public.confirm_client_contract_import(
   p_client_id text,
   p_contract_number text,
@@ -67,8 +24,10 @@ declare
   v_contract_id text;
   v_piece jsonb;
   v_piece_label text;
+  v_piece_quote_piece_id text;
   v_piece_total numeric(14,2);
   v_piece_count integer;
+  v_piece_financial_rows jsonb := '[]'::jsonb;
   v_index integer := 0;
 begin
   if auth.uid() is null or v_empresa_id is null then
@@ -122,7 +81,7 @@ begin
   perform pg_advisory_xact_lock(hashtext(v_empresa_id || ':' || lower(v_contract_number) || ':client-contract'));
 
   insert into public.client_contracts (
-    id, empresa_id, client_id, quote_id, contract_number, contract_date, contract_total, status, source, review_status, created_by_uid, created_by_name
+    id, empresa_id, client_id, quote_id, contract_number, contract_date, status, source, review_status, source_document, created_by_uid, created_by_name
   )
   values (
     app_private.make_entity_id(),
@@ -131,10 +90,14 @@ begin
     v_quote_id,
     v_contract_number,
     p_contract_date,
-    coalesce(v_quote_total, v_contract_total),
     'active',
     'pdf_import',
     'confirmed',
+    jsonb_strip_nulls(jsonb_build_object(
+      'financial', jsonb_build_object(
+        'contractTotal', coalesce(v_quote_total, v_contract_total)
+      )
+    )),
     nullif(btrim(coalesce(p_actor_uid, auth.uid()::text)), ''),
     left(btrim(coalesce(p_actor_name, '')), 120)
   )
@@ -144,6 +107,7 @@ begin
   loop
     v_index := v_index + 1;
     v_piece_label := btrim(coalesce(v_piece ->> 'label', v_piece ->> 'name', ''));
+    v_piece_quote_piece_id := nullif(left(btrim(coalesce(v_piece ->> 'quotePieceId', v_piece ->> 'id', '')), 80), '');
     v_piece_total := null;
 
     if length(v_piece_label) = 0 or length(v_piece_label) > 180 then
@@ -163,21 +127,37 @@ begin
       end if;
     end if;
 
+    v_piece_financial_rows := v_piece_financial_rows || jsonb_build_array(jsonb_strip_nulls(jsonb_build_object(
+      'quotePieceId', v_piece_quote_piece_id,
+      'label', v_piece_label,
+      'sortOrder', v_index,
+      'value', v_piece_total
+    )));
+
     insert into public.client_contract_pieces (
-      id, empresa_id, contract_id, quote_piece_id, piece_label, piece_type_key, piece_total, sort_order, source
+      id, empresa_id, contract_id, quote_piece_id, piece_label, piece_type_key, sort_order, source
     )
     values (
       app_private.make_entity_id(),
       v_empresa_id,
       v_contract_id,
-      nullif(left(btrim(coalesce(v_piece ->> 'quotePieceId', v_piece ->> 'id', '')), 80), ''),
+      v_piece_quote_piece_id,
       v_piece_label,
       nullif(left(btrim(coalesce(v_piece ->> 'pieceTypeKey', '')), 80), ''),
-      v_piece_total,
       v_index,
       'pdf_import'
     );
   end loop;
+
+  update public.client_contracts
+  set source_document = jsonb_set(
+    source_document,
+    '{financial,pieces}',
+    v_piece_financial_rows,
+    true
+  )
+  where id = v_contract_id
+    and empresa_id = v_empresa_id;
 
   return v_contract_id;
 exception
@@ -186,6 +166,36 @@ exception
 end;
 $$;
 
+create or replace function public.confirm_client_contract_import(
+  p_client_id text,
+  p_contract_number text,
+  p_contract_date date,
+  p_quote_id text,
+  p_pieces jsonb,
+  p_actor_uid text,
+  p_actor_name text
+)
+returns text
+language sql
+security definer
+set search_path = public, app_private, pg_temp
+as $$
+  select public.confirm_client_contract_import(
+    p_client_id,
+    p_contract_number,
+    p_contract_date,
+    p_quote_id,
+    null::numeric,
+    p_pieces,
+    p_actor_uid,
+    p_actor_name
+  );
+$$;
+
 revoke all on function public.confirm_client_contract_import(text, text, date, text, numeric, jsonb, text, text) from public;
 revoke all on function public.confirm_client_contract_import(text, text, date, text, numeric, jsonb, text, text) from anon;
 grant execute on function public.confirm_client_contract_import(text, text, date, text, numeric, jsonb, text, text) to authenticated;
+
+revoke all on function public.confirm_client_contract_import(text, text, date, text, jsonb, text, text) from public;
+revoke all on function public.confirm_client_contract_import(text, text, date, text, jsonb, text, text) from anon;
+grant execute on function public.confirm_client_contract_import(text, text, date, text, jsonb, text, text) to authenticated;

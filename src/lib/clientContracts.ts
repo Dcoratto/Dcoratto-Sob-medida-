@@ -1,6 +1,6 @@
 import {supabase} from './supabase';
 import type {Client, ClientContract, ClientContractPiece, Quote} from '../types';
-import {safeContractMoney, sumContractFinancialTotals} from './contractFinancials';
+import {getSourceDocumentContractTotal, getSourceDocumentPieceTotal, safeContractMoney, sumContractFinancialTotals} from './contractFinancials';
 
 type Actor = {
   uid: string;
@@ -42,7 +42,7 @@ const mapContract = (row: any): ClientContract => ({
   quoteId: row.quote_id || null,
   contractNumber: row.contract_number || '',
   contractDate: row.contract_date || null,
-  contractTotal: row.contract_total === null || typeof row.contract_total === 'undefined' ? null : Number(row.contract_total),
+  contractTotal: getSourceDocumentContractTotal(row.source_document),
   status: row.status || 'active',
   source: row.source || 'manual',
   reviewStatus: row.review_status || 'confirmed',
@@ -59,7 +59,7 @@ const mapPiece = (row: any): ClientContractPiece => ({
   quotePieceId: row.quote_piece_id || null,
   pieceLabel: row.piece_label || '',
   pieceTypeKey: row.piece_type_key || null,
-  pieceTotal: row.piece_total === null || typeof row.piece_total === 'undefined' ? null : Number(row.piece_total),
+  pieceTotal: null,
   sortOrder: Number(row.sort_order) || 0,
   source: row.source || 'manual',
   createdAt: row.created_at,
@@ -125,7 +125,7 @@ export const listContractClients = async (search = '', limit = 40): Promise<Cont
 
   const contractRows = ensureSuccess(await supabase
     .from('client_contracts')
-    .select('id,client_id,quote_id,contract_number,contract_date,contract_total,created_at')
+    .select('id,client_id,quote_id,contract_number,contract_date,source_document,created_at')
     .in('client_id', clientIds)
     .is('deleted_at', null)
     .order('contract_date', {ascending: false})
@@ -189,7 +189,7 @@ export const getContractClientSummary = async (clientId: string): Promise<Contra
 
   const contractRows = ensureSuccess(await supabase
     .from('client_contracts')
-    .select('id,client_id,quote_id,contract_number,contract_date,contract_total,created_at')
+    .select('id,client_id,quote_id,contract_number,contract_date,source_document,created_at')
     .eq('client_id', clientId)
     .is('deleted_at', null)
     .order('contract_date', {ascending: false})
@@ -226,7 +226,7 @@ export const listContractsForClient = async (clientId: string): Promise<Contract
   if (!clientId) return [];
   const contracts = (ensureSuccess(await supabase
     .from('client_contracts')
-    .select('id,empresa_id,client_id,quote_id,contract_number,contract_date,contract_total,status,source,review_status,source_document,created_at,updated_at,deleted_at')
+    .select('id,empresa_id,client_id,quote_id,contract_number,contract_date,status,source,review_status,source_document,created_at,updated_at,deleted_at')
     .eq('client_id', clientId)
     .is('deleted_at', null)
     .order('contract_date', {ascending: false})
@@ -250,7 +250,7 @@ export const listContractsForClient = async (clientId: string): Promise<Contract
     : [];
   const pieces = (ensureSuccess(await supabase
     .from('client_contract_pieces')
-    .select('id,empresa_id,contract_id,quote_piece_id,piece_label,piece_type_key,piece_total,sort_order,source,created_at,updated_at,deleted_at')
+    .select('id,empresa_id,contract_id,quote_piece_id,piece_label,piece_type_key,sort_order,source,created_at,updated_at,deleted_at')
     .in('contract_id', contracts.map((item) => item.id))
     .is('deleted_at', null)
     .order('sort_order', {ascending: true})) as any[]).map(mapPiece);
@@ -297,7 +297,9 @@ export const listContractsForClient = async (clientId: string): Promise<Contract
       quote,
       pieces: (piecesByContract.get(contract.id) || []).map((piece) => ({
         ...piece,
-        pieceTotal: piece.pieceTotal ?? (piece.quotePieceId ? quotePieceValues?.get(piece.quotePieceId) ?? null : null),
+        pieceTotal: piece.pieceTotal
+          ?? (piece.quotePieceId ? quotePieceValues?.get(piece.quotePieceId) ?? null : null)
+          ?? getSourceDocumentPieceTotal(contract.sourceDocument, piece),
       })),
     };
   });

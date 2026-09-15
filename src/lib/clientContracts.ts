@@ -8,6 +8,10 @@ type Actor = {
 
 export type ContractClientSummary = Pick<Client, 'id' | 'name' | 'phone' | 'email' | 'cpf' | 'address' | 'city' | 'neighborhood'> & {
   contracts: ContractSummary[];
+  contractCount: number;
+  pieceCount: number;
+  latestContractNumber?: string | null;
+  latestContractDate?: string | null;
 };
 
 export type ContractSummary = ClientContract & {
@@ -68,6 +72,10 @@ const mapClient = (row: any): ContractClientSummary => ({
   city: row.city || '',
   neighborhood: row.neighborhood || '',
   contracts: [],
+  contractCount: 0,
+  pieceCount: 0,
+  latestContractNumber: null,
+  latestContractDate: null,
 });
 
 export const listContractClients = async (search = '', limit = 40): Promise<ContractClientSummary[]> => {
@@ -109,61 +117,85 @@ export const listContractClients = async (search = '', limit = 40): Promise<Cont
   const clients = clientRows.map(mapClient);
   const clientIds = clients.map((item) => item.id);
 
-  const [contractRows, quoteRows] = await Promise.all([
-    ensureSuccess(await supabase
-      .from('client_contracts')
-      .select('id,empresa_id,client_id,quote_id,contract_number,contract_date,status,source,review_status,source_document,created_at,updated_at,deleted_at')
-      .in('client_id', clientIds)
-      .is('deleted_at', null)
-      .order('contract_date', {ascending: false})
-      .order('created_at', {ascending: false})) as any[],
-    ensureSuccess(await supabase
-      .from('quotes')
-      .select('id,environment,status,total_price,client_id')
-      .in('client_id', clientIds)) as any[],
-  ]);
-
-  const contracts = contractRows.map(mapContract);
-  const contractIds = contracts.map((item) => item.id);
+  const contractRows = ensureSuccess(await supabase
+    .from('client_contracts')
+    .select('id,client_id,contract_number,contract_date,created_at')
+    .in('client_id', clientIds)
+    .is('deleted_at', null)
+    .order('contract_date', {ascending: false})
+    .order('created_at', {ascending: false})) as any[];
+  const contractIds = contractRows.map((item) => item.id).filter(Boolean);
   const pieceRows = contractIds.length
     ? ensureSuccess(await supabase
       .from('client_contract_pieces')
-      .select('id,empresa_id,contract_id,quote_piece_id,piece_label,piece_type_key,sort_order,source,created_at,updated_at,deleted_at')
+      .select('id,contract_id')
       .in('contract_id', contractIds)
-      .is('deleted_at', null)
-      .order('sort_order', {ascending: true})) as any[]
+      .is('deleted_at', null)) as any[]
     : [];
 
-  const piecesByContract = new Map<string, ClientContractPiece[]>();
-  pieceRows.map(mapPiece).forEach((piece) => {
-    const current = piecesByContract.get(piece.contractId) || [];
-    current.push(piece);
-    piecesByContract.set(piece.contractId, current);
+  const contractsByClient = new Map<string, any[]>();
+  contractRows.forEach((contract) => {
+    const current = contractsByClient.get(contract.client_id) || [];
+    current.push(contract);
+    contractsByClient.set(contract.client_id, current);
   });
 
-  const quotesById = new Map<string, Pick<Quote, 'id' | 'environment' | 'status' | 'totalPrice'>>();
-  quoteRows.forEach((quote: any) => quotesById.set(quote.id, {
-    id: quote.id,
-    environment: quote.environment || '',
-    status: quote.status || '',
-    totalPrice: Number(quote.total_price) || 0,
-  }));
-
-  const contractsByClient = new Map<string, ContractSummary[]>();
-  contracts.forEach((contract) => {
-    const current = contractsByClient.get(contract.clientId) || [];
-    current.push({
-      ...contract,
-      quote: contract.quoteId ? quotesById.get(contract.quoteId) || null : null,
-      pieces: piecesByContract.get(contract.id) || [],
-    });
-    contractsByClient.set(contract.clientId, current);
+  const contractClientById = new Map(contractRows.map((contract) => [contract.id, contract.client_id]));
+  const pieceCountByClient = new Map<string, number>();
+  pieceRows.forEach((piece) => {
+    const clientId = contractClientById.get(piece.contract_id);
+    if (!clientId) return;
+    pieceCountByClient.set(clientId, (pieceCountByClient.get(clientId) || 0) + 1);
   });
 
-  return clients.map((client) => ({
+  return clients.map((client) => {
+    const clientContracts = contractsByClient.get(client.id) || [];
+    const latestContract = clientContracts[0] || null;
+    return {
+      ...client,
+      contractCount: clientContracts.length,
+      pieceCount: pieceCountByClient.get(client.id) || 0,
+      latestContractNumber: latestContract?.contract_number || null,
+      latestContractDate: latestContract?.contract_date || null,
+      contracts: [],
+    };
+  });
+};
+
+export const getContractClientSummary = async (clientId: string): Promise<ContractClientSummary | null> => {
+  if (!clientId) return null;
+  const clientRows = ensureSuccess(await supabase
+    .from('clients')
+    .select('id,name,phone,email,cpf,address,city,neighborhood')
+    .eq('id', clientId)
+    .limit(1)) as any[];
+  const client = clientRows[0] ? mapClient(clientRows[0]) : null;
+  if (!client) return null;
+
+  const contractRows = ensureSuccess(await supabase
+    .from('client_contracts')
+    .select('id,client_id,contract_number,contract_date,created_at')
+    .eq('client_id', clientId)
+    .is('deleted_at', null)
+    .order('contract_date', {ascending: false})
+    .order('created_at', {ascending: false})) as any[];
+  const contractIds = contractRows.map((item) => item.id).filter(Boolean);
+  const pieceRows = contractIds.length
+    ? ensureSuccess(await supabase
+      .from('client_contract_pieces')
+      .select('id,contract_id')
+      .in('contract_id', contractIds)
+      .is('deleted_at', null)) as any[]
+    : [];
+  const latestContract = contractRows[0] || null;
+
+  return {
     ...client,
-    contracts: contractsByClient.get(client.id) || [],
-  }));
+    contractCount: contractRows.length,
+    pieceCount: pieceRows.length,
+    latestContractNumber: latestContract?.contract_number || null,
+    latestContractDate: latestContract?.contract_date || null,
+  };
 };
 
 export const listContractsForClient = async (clientId: string): Promise<ContractSummary[]> => {
@@ -177,6 +209,13 @@ export const listContractsForClient = async (clientId: string): Promise<Contract
     .order('created_at', {ascending: false})) as any[]).map(mapContract);
 
   if (contracts.length === 0) return [];
+  const quoteIds = contracts.map((item) => item.quoteId).filter(Boolean) as string[];
+  const quoteRows = quoteIds.length
+    ? ensureSuccess(await supabase
+      .from('quotes')
+      .select('id,environment,status,total_price')
+      .in('id', quoteIds)) as any[]
+    : [];
   const pieces = (ensureSuccess(await supabase
     .from('client_contract_pieces')
     .select('id,empresa_id,contract_id,quote_piece_id,piece_label,piece_type_key,sort_order,source,created_at,updated_at,deleted_at')
@@ -186,10 +225,17 @@ export const listContractsForClient = async (clientId: string): Promise<Contract
 
   const piecesByContract = new Map<string, ClientContractPiece[]>();
   pieces.forEach((piece) => piecesByContract.set(piece.contractId, [...(piecesByContract.get(piece.contractId) || []), piece]));
+  const quotesById = new Map<string, Pick<Quote, 'id' | 'environment' | 'status' | 'totalPrice'>>();
+  quoteRows.forEach((quote: any) => quotesById.set(quote.id, {
+    id: quote.id,
+    environment: quote.environment || '',
+    status: quote.status || '',
+    totalPrice: Number(quote.total_price) || 0,
+  }));
 
   return contracts.map((contract) => ({
     ...contract,
-    quote: null,
+    quote: contract.quoteId ? quotesById.get(contract.quoteId) || null : null,
     pieces: piecesByContract.get(contract.id) || [],
   }));
 };

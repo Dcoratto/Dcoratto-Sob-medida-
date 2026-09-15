@@ -5,6 +5,7 @@ export const loadQuotesPage = () => import('../pages/QuotesPage');
 export const loadQuoteEditorPage = () => import('../pages/QuoteEditor');
 export const loadQuotePresentationPage = () => import('../pages/QuotePresentationPage');
 export const loadClientsPage = () => import('../pages/ClientsPage');
+export const loadClientContractsPage = () => import('../pages/ClientContractsPage');
 export const loadCrisisManagementPage = () => import('../pages/CrisisManagementPage');
 export const loadInstallationPage = () => import('../pages/InstallationPage');
 export const loadInventoryPage = () => import('../pages/InventoryPage');
@@ -26,6 +27,7 @@ export const preloadRoute = (path: string) => {
   if (path.startsWith('/projects')) return loadProjectsPage();
   if (path.startsWith('/calendar')) return loadCalendarPage();
   if (path.startsWith('/clients')) return loadClientsPage();
+  if (path.startsWith('/contracts')) return loadClientContractsPage();
   if (path.startsWith('/crisis')) return loadCrisisManagementPage();
   if (path.startsWith('/installation')) return loadInstallationPage();
   if (path.startsWith('/reports')) return loadReportsPage();

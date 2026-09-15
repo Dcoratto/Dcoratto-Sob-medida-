@@ -41,6 +41,7 @@ import {
   completeCrisisTask,
   type CrisisCaseListItem,
 } from '../lib/crisisManagement';
+import {listContractsForClient, type ContractSummary} from '../lib/clientContracts';
 import {describeOptimizedImageSize, prepareCrisisImageForUpload} from '../lib/crisisImages';
 import {Client, CrisisHistoryEvent, CrisisTask, CrisisTaskPhoto} from '../types';
 
@@ -170,6 +171,11 @@ export const CrisisManagementPage: React.FC = () => {
   const [clientResults, setClientResults] = React.useState<Pick<Client, 'id' | 'name' | 'phone' | 'city' | 'address'>[]>([]);
   const [searchingClients, setSearchingClients] = React.useState(false);
   const [addingClientId, setAddingClientId] = React.useState('');
+  const [selectedCrisisClient, setSelectedCrisisClient] = React.useState<Pick<Client, 'id' | 'name'> | null>(null);
+  const [crisisContracts, setCrisisContracts] = React.useState<ContractSummary[]>([]);
+  const [selectedCrisisContractId, setSelectedCrisisContractId] = React.useState('');
+  const [selectedCrisisPieceId, setSelectedCrisisPieceId] = React.useState('');
+  const [loadingCrisisContracts, setLoadingCrisisContracts] = React.useState(false);
 
   const [showTaskModal, setShowTaskModal] = React.useState(false);
   const [editingTask, setEditingTask] = React.useState<CrisisTask | null>(null);
@@ -355,8 +361,7 @@ export const CrisisManagementPage: React.FC = () => {
     const timeout = window.setTimeout(async () => {
       try {
         const results = await searchClientsForCrisis(clientSearch, 20);
-        const activeClientIds = new Set(cases.map((item) => item.clientId));
-        setClientResults(results.filter((item) => !activeClientIds.has(item.id)));
+        setClientResults(results);
       } catch (error) {
         setFeedback({type: 'error', message: (error as Error).message || 'Nao foi possivel buscar clientes.'});
       } finally {
@@ -474,13 +479,42 @@ export const CrisisManagementPage: React.FC = () => {
     }
   };
 
-  const handleAddClient = async (client: Pick<Client, 'id' | 'name'>) => {
-    setAddingClientId(client.id);
+  const handleSelectClientForCrisis = async (client: Pick<Client, 'id' | 'name'>) => {
+    setSelectedCrisisClient(client);
+    setSelectedCrisisContractId('');
+    setSelectedCrisisPieceId('');
+    setLoadingCrisisContracts(true);
     try {
-      const created = await createCrisisCase(client.id, actor);
-      setFeedback({type: 'success', message: `${client.name} entrou na Gestao de Crise.`});
+      const contracts = await listContractsForClient(client.id);
+      setCrisisContracts(contracts);
+      setSelectedCrisisContractId(contracts[0]?.id || '');
+    } catch (error) {
+      setFeedback({type: 'error', message: (error as Error).message || 'Nao foi possivel carregar contratos do cliente.'});
+    } finally {
+      setLoadingCrisisContracts(false);
+    }
+  };
+
+  const handleAddClient = async () => {
+    if (!selectedCrisisClient || !selectedCrisisContractId) {
+      setFeedback({type: 'error', message: 'Selecione cliente e contrato antes de criar o acompanhamento.'});
+      return;
+    }
+    const selectedContract = crisisContracts.find((item) => item.id === selectedCrisisContractId);
+    const selectedPiece = selectedContract?.pieces.find((item) => item.id === selectedCrisisPieceId || item.quotePieceId === selectedCrisisPieceId);
+    setAddingClientId(selectedCrisisClient.id);
+    try {
+      const created = await createCrisisCase({
+        clientId: selectedCrisisClient.id,
+        contractId: selectedContract?.id,
+        pieceId: selectedPiece?.quotePieceId || selectedPiece?.id,
+        pieceLabel: selectedPiece?.pieceLabel,
+      }, actor);
+      setFeedback({type: 'success', message: `${selectedCrisisClient.name} entrou na Gestao de Crise.`});
       setShowClientModal(false);
       setClientSearch('');
+      setSelectedCrisisClient(null);
+      setCrisisContracts([]);
       await refreshCases(0, false, caseSearch);
       setSelectedCaseId(created.id);
     } catch (error) {
@@ -598,7 +632,7 @@ export const CrisisManagementPage: React.FC = () => {
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h1 className="text-3xl font-display font-bold text-slate-900">Gestao de Crise</h1>
-          <p className="mt-1 text-sm text-slate-500">Pos-obra com pendencias, evidencias fotograficas e historico completo.</p>
+          <p className="mt-1 text-sm text-slate-500">Pos-contrato com pendencias, evidencias fotograficas e historico completo.</p>
         </div>
         <div className="flex flex-col gap-3 sm:flex-row">
           <label className="flex min-w-[240px] items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
@@ -658,7 +692,7 @@ export const CrisisManagementPage: React.FC = () => {
               {!loadingCases && visibleCases.length === 0 ? (
                 <EmptyState
                   title="Nenhum cliente em crise"
-                  body="Quando um pos-obra precisar de acompanhamento, o cliente aparece aqui com o resumo das pendencias."
+                  body="Quando um pos-contrato precisar de acompanhamento, o cliente aparece aqui com o resumo das pendencias."
                 />
               ) : null}
 
@@ -781,7 +815,7 @@ export const CrisisManagementPage: React.FC = () => {
                       {!tasksLoading && tasks.length === 0 ? (
                         <EmptyState
                           title="Nenhuma pendencia registrada"
-                          body="Use o botao acima para adicionar o primeiro item deste pos-obra."
+                          body="Use o botao acima para adicionar o primeiro item deste pos-contrato."
                         />
                       ) : null}
 
@@ -1052,23 +1086,43 @@ export const CrisisManagementPage: React.FC = () => {
                 <div className="rounded-2xl bg-slate-50 px-4 py-8 text-center text-sm text-slate-400">Nenhum cliente disponivel para adicionar.</div>
               ) : null}
               {clientResults.map((client) => (
-                <div key={client.id} className="flex items-center justify-between gap-3 rounded-[24px] border border-slate-100 p-4">
+                <div key={client.id} className={cn('flex items-center justify-between gap-3 rounded-[24px] border p-4', selectedCrisisClient?.id === client.id ? 'border-brand-primary bg-brand-primary/5' : 'border-slate-100')}>
                   <div className="min-w-0">
                     <div className="truncate text-sm font-bold text-slate-900">{client.name}</div>
                     <div className="mt-1 text-xs text-slate-400">{client.phone || 'Sem telefone'} • {client.city || 'Cidade nao informada'}</div>
                   </div>
                   <button
                     type="button"
-                    disabled={addingClientId === client.id}
-                    onClick={() => void handleAddClient(client)}
+                    disabled={loadingCrisisContracts}
+                    onClick={() => void handleSelectClientForCrisis(client)}
                     className="inline-flex items-center gap-2 rounded-2xl bg-brand-primary px-4 py-2.5 text-sm font-bold text-[#3F3A34] disabled:opacity-60"
                   >
-                    {addingClientId === client.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                    Adicionar
+                    {loadingCrisisContracts && selectedCrisisClient?.id === client.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    Selecionar
                   </button>
                 </div>
               ))}
             </div>
+            {selectedCrisisClient ? (
+              <div className="mt-5 space-y-3 rounded-[24px] border border-slate-100 bg-slate-50 p-4">
+                <div>
+                  <div className="text-sm font-bold text-slate-900">{selectedCrisisClient.name}</div>
+                  <div className="text-xs text-slate-500">Selecione o contrato e, se aplicavel, a peca.</div>
+                </div>
+                <select value={selectedCrisisContractId} onChange={(event) => { setSelectedCrisisContractId(event.target.value); setSelectedCrisisPieceId(''); }} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none">
+                  <option value="">Selecione um contrato</option>
+                  {crisisContracts.map((contract) => <option key={contract.id} value={contract.id}>Contrato {contract.contractNumber}</option>)}
+                </select>
+                <select value={selectedCrisisPieceId} onChange={(event) => setSelectedCrisisPieceId(event.target.value)} disabled={!selectedCrisisContractId} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 outline-none disabled:bg-slate-100">
+                  <option value="">Sem peca especifica</option>
+                  {crisisContracts.find((contract) => contract.id === selectedCrisisContractId)?.pieces.map((piece) => <option key={piece.id} value={piece.quotePieceId || piece.id}>{piece.pieceLabel}</option>)}
+                </select>
+                <button type="button" disabled={addingClientId === selectedCrisisClient.id || !selectedCrisisContractId} onClick={() => void handleAddClient()} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-primary px-4 py-3 text-sm font-bold text-[#3F3A34] disabled:opacity-60">
+                  {addingClientId === selectedCrisisClient.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                  Confirmar acompanhamento
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       ) : null}

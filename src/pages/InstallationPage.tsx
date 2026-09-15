@@ -373,6 +373,7 @@ export const InstallationPage: React.FC = () => {
     try {
       const installationId = await createInstallation({
         clientId: selectedProject.clientId,
+        contractId: selectedProject.contractId,
         quoteId: selectedProject.quoteId,
         installerEmployeeId: selectedInstallerId || undefined,
         installationDate,
@@ -505,7 +506,7 @@ export const InstallationPage: React.FC = () => {
           <div className="rounded-[28px] border border-slate-100 bg-white p-4 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-lg font-display font-bold text-slate-900">Obras em instalação</h2>
+                <h2 className="text-lg font-display font-bold text-slate-900">Contratos em instalação</h2>
                 <p className="text-xs text-slate-400">{totalInstallations} registro(s)</p>
               </div>
               <button
@@ -521,7 +522,7 @@ export const InstallationPage: React.FC = () => {
                 <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-10 text-center text-sm text-slate-400">Carregando instalações...</div>
               ) : null}
               {!loadingList && installations.length === 0 ? (
-                <EmptyState title="Nenhuma instalação cadastrada" body="Crie uma instalação para acompanhar checklist, evidências e progresso da obra." />
+                <EmptyState title="Nenhuma instalação cadastrada" body="Crie uma instalação para acompanhar checklist, evidências e progresso do contrato." />
               ) : null}
               {installations.map((installation) => (
                 <button
@@ -570,7 +571,7 @@ export const InstallationPage: React.FC = () => {
 
         <section className="space-y-6">
           {!detail.installation ? (
-            <EmptyState title="Selecione uma instalação" body="Escolha uma obra da lista para abrir os dados do cliente, checklist, fotos e histórico." />
+            <EmptyState title="Selecione uma instalação" body="Escolha um contrato da lista para abrir os dados do cliente, checklist, fotos e histórico." />
           ) : (
             <>
               <div className="rounded-[32px] border border-slate-100 bg-white p-5 shadow-sm sm:p-6">
@@ -821,7 +822,7 @@ export const InstallationPage: React.FC = () => {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="text-2xl font-display font-bold text-slate-900">Nova instalação</h3>
-                <p className="text-sm text-slate-400">Vincule a instalação a uma obra já existente no sistema.</p>
+                <p className="text-sm text-slate-400">Vincule a instalacao a um contrato realizado do cliente.</p>
               </div>
               <button type="button" onClick={() => setShowCreateModal(false)} className="rounded-2xl bg-slate-100 p-2 text-slate-500">
                 <X className="h-5 w-5" />
@@ -839,7 +840,7 @@ export const InstallationPage: React.FC = () => {
                       setProjectSearch(event.target.value);
                       setProjectPage(0);
                     }}
-                    placeholder="Cliente, ambiente ou endereco"
+                    placeholder="Cliente, contrato ou endereco"
                     className="w-full bg-transparent text-sm font-medium text-slate-700 outline-none"
                   />
                 </div>
@@ -861,7 +862,8 @@ export const InstallationPage: React.FC = () => {
                     )}
                   >
                     <div className="font-bold text-slate-900">{project.clientName}</div>
-                    <div className="mt-1 text-sm text-slate-500">{project.environment}</div>
+                    <div className="mt-1 text-sm text-slate-500">{project.contractNumber ? `Contrato ${project.contractNumber}` : project.environment}</div>
+                    {project.contractNumber ? <div className="mt-1 text-xs text-slate-400">{project.environment}</div> : null}
                     <div className="mt-1 text-xs text-slate-400">{project.address || 'Endereço não informado'}</div>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {project.status ? (
@@ -871,7 +873,7 @@ export const InstallationPage: React.FC = () => {
                       ) : null}
                       {!project.quoteId ? (
                         <div className="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-700">
-                          Sem obra vinculada
+                          Sem contrato vinculado
                         </div>
                       ) : null}
                     </div>

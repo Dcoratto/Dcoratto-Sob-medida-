@@ -746,10 +746,7 @@ export const ClientsPage: React.FC = () => {
       ].filter(Boolean).join(' · ');
 
       const importedNotes = [
-        'Contrato importado por PDF.',
-        parsed.contractNumber ? `Contrato: ${parsed.contractNumber}` : '',
-        parsed.contractDate ? `Data do contrato: ${parsed.contractDate}` : '',
-        parsed.contractType ? `Tipo de contrato: ${parsed.contractType}` : '',
+        'Dados cadastrais importados por PDF de contrato.',
         parsed.sellerName ? `Responsável pela venda: ${parsed.sellerName}` : '',
         parsed.storeName ? `Loja: ${parsed.storeName}` : '',
         parsed.profession ? `Profissão: ${parsed.profession}` : '',
@@ -783,7 +780,7 @@ export const ClientsPage: React.FC = () => {
       const createdRef = await addDoc(collection(db, 'clients'), data);
       await logSystemEvent({
         type: 'client_created',
-        title: 'Cliente importado por contrato',
+        title: 'Cliente importado por PDF',
         description: parsed.clientName,
         entityType: 'client',
         entityId: createdRef.id,
@@ -792,22 +789,17 @@ export const ClientsPage: React.FC = () => {
         userUid: appUid || '',
         userName: currentUserName,
         metadata: {
-          importedFrom: 'pdf-contract',
-          contractNumber: parsed.contractNumber,
-          contractDate: parsed.contractDate,
-          contractType: parsed.contractType,
+          importedFrom: 'pdf-client-registration',
         },
       });
 
       await logAuditEvent({
         user: profile || user,
-        action: 'import_contract_pdf',
+        action: 'import_client_pdf',
         module: 'clientes',
         targetId: createdRef.id,
         newValue: {
           clientName: parsed.clientName,
-          contractNumber: parsed.contractNumber,
-          contractDate: parsed.contractDate,
         },
       });
     } catch (error) {
@@ -1446,7 +1438,7 @@ export const ClientsPage: React.FC = () => {
             className="flex items-center justify-center gap-2 rounded-2xl border border-brand-primary/20 bg-white px-6 py-3 font-semibold text-brand-primary shadow-sm transition-all hover:bg-brand-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
           >
             <FileUp className="w-5 h-5" />
-            {importingContract ? 'Lendo contrato...' : 'Adicionar contrato'}
+            {importingContract ? 'Lendo dados...' : 'Importar cliente por PDF'}
           </button>
           <button
             type="button"
@@ -1487,27 +1479,11 @@ export const ClientsPage: React.FC = () => {
             <div className="col-span-full py-20 text-center text-slate-400">Nenhum cliente encontrado.</div>
           ) : (
             filteredClients.map((client) => {
-              const latestQuote = latestQuoteByClient.get(client.id);
-              const legacyPieces = client.legacyManualQuote?.pieces || [];
-              const legacyDelivered = legacyPieces.filter((piece) => ['Entrega', 'Finalizado'].includes(normalizeQuoteStatus(piece.status || 'Orçamento'))).length;
-              const legacyPending = Math.max(0, legacyPieces.length - legacyDelivered);
-              const pieceSummary = summarizeQuotePieces(latestQuote);
-              const displayStatus = getClientDisplayStatus(client, latestQuote);
-              const stage = statusToStage(displayStatus);
-              const meta = stageMeta[stage];
-              const statusChipClass = displayStatus === 'Sem projeto'
-                ? 'bg-zinc-100 text-zinc-500 border-zinc-200'
-                : quoteStatusColor(displayStatus);
-              const statusDotClass = displayStatus === 'Sem projeto'
-                ? 'bg-zinc-300'
-                : quoteStatusDotColor(displayStatus);
-
-              return (
-                <div
-                  key={client.id}
-                  onClick={() => openClientDetail(client, 'quote')}
-                  className="group relative cursor-pointer rounded-[22px] border border-slate-100 bg-slate-50 p-4 text-left transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 sm:rounded-[24px] sm:p-6">
-                  <div className={cn('absolute top-4 right-4 w-3 h-3 rounded-full ring-4 ring-white', statusDotClass)} title={displayStatus} />
+                return (
+                  <div
+                    key={client.id}
+                    onClick={() => openClientDetail(client, 'client')}
+                    className="group relative cursor-pointer rounded-[22px] border border-slate-100 bg-slate-50 p-4 text-left transition-all duration-300 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 sm:rounded-[24px] sm:p-6">
                   <div className="mb-4 flex flex-col gap-3 pr-5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:pr-6">
                     <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
                       <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-white text-brand-primary shadow-sm sm:h-12 sm:w-12">
@@ -1525,17 +1501,6 @@ export const ClientsPage: React.FC = () => {
                     <div className="flex shrink-0 flex-wrap gap-1 opacity-100 transition-opacity sm:max-w-[52%] sm:justify-end sm:opacity-0 sm:group-hover:opacity-100">
                       <button type="button" title="Dados do cliente" onClick={(event) => { event.stopPropagation(); openClientDetail(client, 'client'); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
                         <Info className="h-4 w-4" />
-                      </button>
-                      <button type="button" title="Informações do orçamento" onClick={(event) => { event.stopPropagation(); openClientDetail(client, 'quote'); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
-                        <ClipboardList className="h-4 w-4" />
-                      </button>
-                      {canViewClientValues && (
-                        <button type="button" title="Valores detalhados" onClick={(event) => { event.stopPropagation(); openClientDetail(client, 'values'); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
-                          <Banknote className="h-4 w-4" />
-                        </button>
-                      )}
-                      <button type="button" title="Funcionários" onClick={(event) => { event.stopPropagation(); openClientDetail(client, 'team'); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
-                        <Users className="h-4 w-4" />
                       </button>
                       {client.googleDriveUrl && (
                         <button type="button" title="Abrir pasta no Google Drive" onClick={(event) => { event.stopPropagation(); openDriveFolder(client.googleDriveUrl); }} className="rounded-lg p-2 text-slate-400 transition-all hover:bg-brand-primary/5 hover:text-brand-primary">
@@ -1555,97 +1520,11 @@ export const ClientsPage: React.FC = () => {
                     </div>
                   </div>
                   <div className="space-y-3">
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        if (!canChangeClientStatus) return;
-                        toggleStatusMenu(client.id);
-                      }}
-                      className={cn(
-                        'inline-flex rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase',
-                        statusChipClass,
-                        canChangeClientStatus ? 'cursor-pointer hover:opacity-90' : 'cursor-default',
-                      )}
-                    >
-                      {fixCorruptedText(displayStatus)}
-                    </button>
                     <div className="flex items-start gap-2 text-sm text-slate-600">
                       <MapPin className="w-4 h-4 mt-0.5 text-slate-400 shrink-0" />
                       <span className="line-clamp-2">{fixCorruptedText(client.address || 'Sem endereço cadastrado')}</span>
                     </div>
-                    {latestQuote && (
-                      <div className="space-y-1">
-                        <div className="text-xs font-bold text-brand-primary">
-                          {pieceSummary.total} {fixCorruptedText('peça(s) ·')} {canViewClientValues ? formatCurrency(latestQuote.totalPrice || 0) : hiddenClientValueLabel}
-                        </div>
-                        <div className="text-[11px] font-semibold text-slate-500">
-                          {pieceSummary.delivered} finalizada(s) · {pieceSummary.pending} em andamento
-                        </div>
-                      </div>
-                    )}
-                    {!latestQuote && client.legacyProjectMode && client.legacyProjectMode !== 'sem_projeto' && (
-                      <div className="space-y-1">
-                        <div className="text-xs font-bold text-brand-primary">
-                          {legacyPieces.length} peça(s) · {canViewClientValues ? formatCurrency(client.legacyManualQuote?.totalPrice || 0) : hiddenClientValueLabel}
-                        </div>
-                        <div className="text-[11px] font-semibold text-slate-500">
-                          {legacyDelivered} finalizada(s) · {legacyPending} em andamento
-                        </div>
-                      </div>
-                    )}
                   </div>
-                  {canChangeClientStatus && statusMenuClientId === client.id && (
-                    <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-3 shadow-lg shadow-slate-200/60" onClick={(event) => event.stopPropagation()}>
-                      <div className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-400">Alterar status</div>
-                      {latestQuote ?(
-                        <div className="space-y-1.5">
-                          {QUOTE_STATUSES.map((status) => {
-                            const active = normalizeQuoteStatus(latestQuote.status) === status;
-                            return (
-                              <button
-                                key={status}
-                                type="button"
-                                onClick={() => handleCardStatusChange(latestQuote, status)}
-                                className={cn(
-                                  'w-full rounded-xl border px-3 py-2 text-left text-xs font-semibold uppercase transition-all',
-                                  active
-                                    ? `${quoteStatusColor(status)} ring-2 ring-brand-primary/35`
-                                    : `${quoteStatusColor(status)} opacity-85 hover:opacity-100`,
-                                )}
-                              >
-                                {fixCorruptedText(status)}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="space-y-1.5">
-                          {[...QUOTE_STATUSES, 'Sem projeto' as const].map((status) => {
-                            const active = getClientDisplayStatus(client) === status;
-                            const statusClass = status === 'Sem projeto'
-                              ? 'bg-zinc-100 text-zinc-500 border-zinc-200'
-                              : quoteStatusColor(status);
-                            return (
-                              <button
-                                key={status}
-                                type="button"
-                                onClick={() => handleLegacyClientStatusChange(client, status)}
-                                className={cn(
-                                  'w-full rounded-xl border px-3 py-2 text-left text-xs font-semibold uppercase transition-all',
-                                  active
-                                    ? `${statusClass} ring-2 ring-brand-primary/35`
-                                    : `${statusClass} opacity-85 hover:opacity-100`,
-                                )}
-                              >
-                                {fixCorruptedText(status)}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               );
             })

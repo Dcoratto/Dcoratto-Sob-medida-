@@ -23,6 +23,8 @@ export type InstallationListItem = Installation & {
 
 export type InstallationProjectOption = {
   optionId: string;
+  contractId?: string;
+  contractNumber?: string;
   quoteId?: string;
   clientId: string;
   clientName: string;
@@ -284,9 +286,10 @@ export const searchProjectOptionsForInstallation = async (
         .or(`name.ilike.%${normalizedSearch}%,address.ilike.%${normalizedSearch}%,city.ilike.%${normalizedSearch}%,phone.ilike.%${normalizedSearch}%`)
         .limit(200)),
       ensureSuccess(await supabase
-        .from('quotes')
-        .select('id, client_id, client_name, environment, status, created_at')
-        .or(`client_name.ilike.%${normalizedSearch}%,environment.ilike.%${normalizedSearch}%,status.ilike.%${normalizedSearch}%`)
+        .from('client_contracts')
+        .select('id, client_id, contract_number, quote_id, created_at, client:clients(id,name,address,city,phone), quote:quotes(id,environment,status)')
+        .or(`contract_number.ilike.%${normalizedSearch}%`)
+        .is('deleted_at', null)
         .order('created_at', {ascending: false})
         .limit(200)),
     ]);
@@ -317,9 +320,10 @@ export const searchProjectOptionsForInstallation = async (
   if (clientIds.length === 0) return {items: [], total};
 
   const quotes = ensureSuccess(await supabase
-    .from('quotes')
-    .select('id, client_id, client_name, environment, status, created_at')
+    .from('client_contracts')
+    .select('id, client_id, contract_number, quote_id, created_at, quote:quotes(id,environment,status)')
     .in('client_id', clientIds)
+    .is('deleted_at', null)
     .order('created_at', {ascending: false}));
 
   const quotesByClientId = new Map<string, any[]>();
@@ -336,7 +340,7 @@ export const searchProjectOptionsForInstallation = async (
       let selectedQuote = availableQuotes[0] || null;
       if (normalizedSearch && availableQuotes.length > 0) {
         const matchedQuote = availableQuotes.find((quote) =>
-          [quote.client_name, quote.environment, quote.status]
+          [quote.contract_number, quote.client?.name, quote.quote?.environment, quote.quote?.status]
             .filter(Boolean)
             .some((value) => String(value).toLowerCase().includes(normalizedSearch.toLowerCase())),
         );
@@ -344,12 +348,14 @@ export const searchProjectOptionsForInstallation = async (
       }
 
       return {
-        optionId: client.id,
-        quoteId: selectedQuote?.id || undefined,
+        optionId: selectedQuote?.id || client.id,
+        contractId: selectedQuote?.id || undefined,
+        contractNumber: selectedQuote?.contract_number || undefined,
+        quoteId: selectedQuote?.quote_id || undefined,
         clientId: client.id,
-        clientName: client.name || selectedQuote?.client_name || '',
-        environment: selectedQuote?.environment || 'Sem obra vinculada',
-        status: selectedQuote?.status || '',
+        clientName: client.name || selectedQuote?.client?.name || '',
+        environment: selectedQuote?.quote?.environment || (selectedQuote ? `Contrato ${selectedQuote.contract_number}` : 'Sem contrato vinculado'),
+        status: selectedQuote?.quote?.status || '',
         address: client.address || '',
       } satisfies InstallationProjectOption;
     })
@@ -372,6 +378,7 @@ export const listInstallerEmployees = async () => {
 export const createInstallation = async (
   payload: {
     clientId: string;
+    contractId?: string;
     quoteId?: string;
     installerEmployeeId?: string;
     installationDate: string;
@@ -379,8 +386,9 @@ export const createInstallation = async (
   },
   actor: Actor,
 ) => {
-  const result = await supabase.rpc('create_installation_with_checklist', {
+  const result = await supabase.rpc('create_installation_with_contract', {
     p_client_id: payload.clientId,
+    p_contract_id: payload.contractId || null,
     p_quote_id: payload.quoteId || null,
     p_installation_date: new Date(`${payload.installationDate}T12:00:00`).toISOString(),
     p_installer_employee_id: payload.installerEmployeeId || null,
@@ -390,7 +398,7 @@ export const createInstallation = async (
     p_checklist_items: INSTALLATION_CHECKLIST_TEMPLATE,
   });
 
-  return ensureSuccess(result);
+  return ensureSuccess(result) as string;
 };
 
 export const getInstallationDetail = async (installationId: string) => {

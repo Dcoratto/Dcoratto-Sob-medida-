@@ -32,6 +32,14 @@ export type ParsedLegacyQuotePiece = {
   value: number;
 };
 
+export type ParsedOperationalContract = {
+  contractNumber: string;
+  contractDate: string;
+  clientName: string;
+  pieces: ParsedLegacyQuotePiece[];
+  needsManualReview: boolean;
+};
+
 type LabelConfig = {
   key: keyof Omit<ParsedContractClient, 'contractNumber' | 'rawText'>;
   label: string;
@@ -136,6 +144,16 @@ const parseBrazilianCurrency = (value: string) => {
 
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const validatePdfFile = async (file: File) => {
+  const maxBytes = 12 * 1024 * 1024;
+  if (file.size <= 0) throw new Error('PDF_INVALIDO');
+  if (file.size > maxBytes) throw new Error('PDF_MUITO_GRANDE');
+  if (file.type && file.type !== 'application/pdf') throw new Error('PDF_INVALIDO');
+
+  const header = new TextDecoder('latin1').decode(new Uint8Array(await file.slice(0, 5).arrayBuffer()));
+  if (header !== '%PDF-') throw new Error('PDF_INVALIDO');
 };
 
 const extractPdfTokens = (buffer: ArrayBuffer) => {
@@ -248,8 +266,11 @@ const parseFromTokens = (tokens: string[]) => {
 const getContractNumber = (tokens: string[], rawText: string) => {
   const fullText = `${tokens.join(' ')} ${rawText}`;
   const normalized = normalizeText(fullText);
-  const match = normalized.match(/CONTRATO\s+N(?:\.|O|°|º)?\s*([0-9]{4,})/);
-  return match?.[1]?.trim() || '';
+  const matches = Array.from(normalized.matchAll(/CONTRATO\s+N\s*(?:[.º°O]\s*){0,3}\s*([0-9]{4,})/g))
+    .map((match) => match[1]?.trim())
+    .filter(Boolean);
+  const unique = Array.from(new Set(matches));
+  return unique.length === 1 ? unique[0] : '';
 };
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
@@ -402,6 +423,7 @@ Regras:
 };
 
 export const parseClientContractPdf = async (file: File): Promise<ParsedContractClient> => {
+  await validatePdfFile(file);
   const buffer = await file.arrayBuffer();
   const extractedTokens = extractPdfTokens(buffer);
   const firstPageTokens = trimToFirstPageTokens(extractedTokens);
@@ -504,6 +526,7 @@ Regras:
 };
 
 export const parseLegacyQuotePdf = async (file: File): Promise<ParsedLegacyQuotePiece[]> => {
+  await validatePdfFile(file);
   const buffer = await file.arrayBuffer();
   const tokens = extractPdfTokens(buffer).map((token) => sanitizeValue(token)).filter(Boolean);
 
@@ -563,4 +586,19 @@ export const parseLegacyQuotePdf = async (file: File): Promise<ParsedLegacyQuote
   }
 
   return pieces;
+};
+
+export const parseOperationalContractPdf = async (file: File): Promise<ParsedOperationalContract> => {
+  const [client, pieces] = await Promise.all([
+    parseClientContractPdf(file),
+    parseLegacyQuotePdf(file).catch(() => [] as ParsedLegacyQuotePiece[]),
+  ]);
+
+  return {
+    contractNumber: client.contractNumber,
+    contractDate: client.contractDate,
+    clientName: client.clientName,
+    pieces,
+    needsManualReview: !client.contractNumber || pieces.length === 0,
+  };
 };

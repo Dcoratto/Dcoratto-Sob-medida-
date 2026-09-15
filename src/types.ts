@@ -239,6 +239,9 @@ export interface CrisisClientCase {
   id: string;
   empresaId?: string;
   clientId: string;
+  contractId?: string | null;
+  pieceId?: string | null;
+  pieceLabel?: string | null;
   taskCount: number;
   completedTaskCount: number;
   completionPercent: number;
@@ -323,6 +326,7 @@ export interface Installation {
   id: string;
   empresaId?: string;
   clientId: string;
+  contractId?: string | null;
   quoteId?: string;
   installerEmployeeId?: string;
   installationDate: any;
@@ -573,6 +577,7 @@ export interface EmployeeActivitySession {
   empresaId?: string;
   employeeId: string;
   clientId?: string | null;
+  contractId?: string | null;
   quoteId?: string | null;
   functionKey: EmployeeFunctionKey | string;
   functionLabel: string;
@@ -595,6 +600,36 @@ export interface EmployeeActivitySession {
   client?: {id: string; name: string; city?: string} | null;
   quote?: {id: string; clientName?: string; environment?: string; status?: QuoteStatus} | null;
   pauses?: EmployeeActivityPause[];
+}
+
+export interface ClientContractPiece {
+  id: string;
+  empresaId?: string;
+  contractId: string;
+  quotePieceId?: string | null;
+  pieceLabel: string;
+  pieceTypeKey?: string | null;
+  sortOrder: number;
+  source: 'manual' | 'pdf_import' | 'quote_backfill';
+  createdAt?: any;
+  updatedAt?: any;
+  deletedAt?: any;
+}
+
+export interface ClientContract {
+  id: string;
+  empresaId?: string;
+  clientId: string;
+  quoteId?: string | null;
+  contractNumber: string;
+  contractDate?: string | null;
+  status: 'active' | 'inactive' | 'cancelled';
+  source: 'manual' | 'pdf_import' | 'quote_backfill';
+  reviewStatus: 'pending_review' | 'confirmed';
+  sourceDocument?: Record<string, unknown>;
+  createdAt?: any;
+  updatedAt?: any;
+  deletedAt?: any;
 }
 
 export interface EmployeeOperationalSummary {

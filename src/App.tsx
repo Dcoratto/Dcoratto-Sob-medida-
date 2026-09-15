@@ -14,6 +14,7 @@ import {
   loadAuthCallbackPage,
   loadCalendarPage,
   loadCrisisManagementPage,
+  loadClientContractsPage,
   loadClientsPage,
   loadDashboardPage,
   loadEmployeesPage,
@@ -38,6 +39,7 @@ const QuotesPage = lazy(() => loadQuotesPage().then((module) => ({default: modul
 const QuoteEditor = lazy(() => loadQuoteEditorPage().then((module) => ({default: module.QuoteEditor})));
 const QuotePresentationPage = lazy(() => loadQuotePresentationPage().then((module) => ({default: module.QuotePresentationPage})));
 const ClientsPage = lazy(() => loadClientsPage().then((module) => ({default: module.ClientsPage})));
+const ClientContractsPage = lazy(() => loadClientContractsPage().then((module) => ({default: module.ClientContractsPage})));
 const CrisisManagementPage = lazy(() => loadCrisisManagementPage().then((module) => ({default: module.CrisisManagementPage})));
 const InstallationPage = lazy(() => loadInstallationPage().then((module) => ({default: module.InstallationPage})));
 const InventoryPage = lazy(() => loadInventoryPage().then((module) => ({default: module.InventoryPage})));
@@ -115,6 +117,7 @@ export default function App() {
             <Route path="/projects" element={<ProtectedRoute permission={['projeto', 'visualizar']}><ProjectsPage /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute permission={['medicao', 'visualizar']}><CalendarPage /></ProtectedRoute>} />
             <Route path="/clients" element={<ProtectedRoute permission={['cliente', 'visualizar']}><ClientsPage /></ProtectedRoute>} />
+            <Route path="/contracts" element={<ProtectedRoute permission={['cliente', 'visualizar']}><ClientContractsPage /></ProtectedRoute>} />
             <Route path="/crisis" element={<ProtectedRoute permission={['cliente', 'visualizar']}><CrisisManagementPage /></ProtectedRoute>} />
             <Route path="/installation" element={<ProtectedRoute permission={['projeto', 'visualizar']}><InstallationPage /></ProtectedRoute>} />
             <Route path="/history" element={<ProtectedRoute permission={['historico', 'visualizar']}><QuotesPage /></ProtectedRoute>} />

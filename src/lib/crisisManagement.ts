@@ -36,6 +36,9 @@ const mapCrisisCase = (row: any): CrisisClientCase => ({
   id: row.id,
   empresaId: row.empresa_id,
   clientId: row.client_id,
+  contractId: row.contract_id || null,
+  pieceId: row.piece_id || null,
+  pieceLabel: row.piece_label || null,
   taskCount: Number(row.task_count || 0),
   completedTaskCount: Number(row.completed_task_count || 0),
   completionPercent: Number(row.completion_percent || 0),
@@ -132,7 +135,7 @@ export const listCrisisCases = async (
 
   let request = supabase
     .from('crisis_clients')
-    .select('id, empresa_id, client_id, task_count, completed_task_count, completion_percent, visual_status, created_by_uid, created_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name', {count: 'exact'})
+    .select('id, empresa_id, client_id, contract_id, piece_id, piece_label, task_count, completed_task_count, completion_percent, visual_status, created_by_uid, created_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name', {count: 'exact'})
     .is('deleted_at', null)
     .order('updated_at', {ascending: false})
     .range(from, to);
@@ -185,11 +188,15 @@ export const searchClientsForCrisis = async (search = '', limit = 20) => {
   return ensureSuccess(await request).map(mapClientPreview);
 };
 
-export const createCrisisCase = async (clientId: string, actor: Actor) => {
+export const createCrisisCase = async (input: string | {clientId: string; contractId?: string; pieceId?: string; pieceLabel?: string}, actor: Actor) => {
+  const values = typeof input === 'string' ? {clientId: input} : input;
   const payload = {
     id: createId(),
     empresa_id: actor.empresaId || 'dcoratto-main',
-    client_id: clientId,
+    client_id: values.clientId,
+    contract_id: values.contractId || null,
+    piece_id: values.pieceId || null,
+    piece_label: values.pieceLabel || null,
     created_by_uid: actor.uid,
     created_by_name: actor.name,
   };
@@ -197,7 +204,7 @@ export const createCrisisCase = async (clientId: string, actor: Actor) => {
   const inserted = ensureSuccess(await supabase
     .from('crisis_clients')
     .insert(payload)
-    .select('id, empresa_id, client_id, task_count, completed_task_count, completion_percent, visual_status, created_by_uid, created_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
+    .select('id, empresa_id, client_id, contract_id, piece_id, piece_label, task_count, completed_task_count, completion_percent, visual_status, created_by_uid, created_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
     .single());
 
   await addCrisisHistoryEvent({
@@ -205,7 +212,7 @@ export const createCrisisCase = async (clientId: string, actor: Actor) => {
     eventType: 'case_created',
     message: `${actor.name} adicionou o cliente na Gestao de Crise`,
     actor,
-    metadata: {clientId},
+    metadata: {clientId: values.clientId, contractId: values.contractId || null, pieceId: values.pieceId || null},
   });
 
   return mapCrisisCase(inserted);
@@ -214,7 +221,7 @@ export const createCrisisCase = async (clientId: string, actor: Actor) => {
 export const getCrisisCase = async (crisisClientId: string) => {
   const row = ensureSuccess(await supabase
     .from('crisis_clients')
-    .select('id, empresa_id, client_id, task_count, completed_task_count, completion_percent, visual_status, created_by_uid, created_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
+    .select('id, empresa_id, client_id, contract_id, piece_id, piece_label, task_count, completed_task_count, completion_percent, visual_status, created_by_uid, created_by_name, created_at, updated_at, deleted_at, deleted_by_uid, deleted_by_name')
     .eq('id', crisisClientId)
     .is('deleted_at', null)
     .single());

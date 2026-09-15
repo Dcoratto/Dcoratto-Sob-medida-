@@ -71,6 +71,7 @@ export type EmployeeAttendanceDraft = {
 export type EmployeeActivityDraft = {
   employeeId: string;
   clientId: string;
+  contractId?: string;
   quoteId: string;
   functionKey: string;
   pieceId?: string;
@@ -82,6 +83,9 @@ export type EmployeeActivityTarget = {
   id: string;
   clientId: string;
   clientName: string;
+  contractId: string;
+  contractNumber: string;
+  quoteId?: string | null;
   environment: string;
   status: string;
   pieces: Array<{id: string; label: string}>;
@@ -1064,10 +1068,11 @@ const mapSessionRow = (data: any): EmployeeActivitySession => ({
 });
 
 export const startEmployeeActivity = async (input: EmployeeActivityDraft, actor: WorkforceActor) => {
-  const data = ensureSuccess(await supabase.rpc('start_employee_activity', {
+  const data = ensureSuccess(await supabase.rpc('start_employee_activity_with_contract', {
     p_employee_id: input.employeeId,
     p_client_id: input.clientId,
-    p_quote_id: input.quoteId,
+    p_contract_id: input.contractId || input.quoteId,
+    p_quote_id: input.quoteId || null,
     p_function_key: input.functionKey,
     p_piece_id: input.pieceId || null,
     p_piece_label: input.pieceLabel || null,
@@ -1108,30 +1113,78 @@ export const finishEmployeeActivity = async (sessionId: string, actor: Workforce
 };
 
 export const listActivityTargets = async (search = ''): Promise<EmployeeActivityTarget[]> => {
-  let request = supabase
-    .from('quotes')
-    .select('id,client_id,client_name,environment,status,pieces,created_at')
-    .order('created_at', {ascending: false})
-    .limit(30);
-
   const normalized = search.trim().replace(/[%_,()]/g, '');
+  const baseSelect = 'id,client_id,quote_id,contract_number,contract_date,status,created_at,client:clients(id,name),quote:quotes(id,environment,status)';
+  let rows: Array<any> = [];
+
   if (normalized) {
-    request = request.or(`client_name.ilike.%${normalized}%,environment.ilike.%${normalized}%`);
+    const clientRows = ensureSuccess(await supabase
+      .from('clients')
+      .select('id')
+      .or(`name.ilike.%${normalized}%,phone.ilike.%${normalized}%`)
+      .limit(30)) as Array<{id: string}>;
+    const clientIds = clientRows.map((item) => item.id).filter(Boolean);
+    const [byNumber, byClient] = await Promise.all([
+      ensureSuccess(await supabase
+        .from('client_contracts')
+        .select(baseSelect)
+        .ilike('contract_number', `%${normalized}%`)
+        .is('deleted_at', null)
+        .order('created_at', {ascending: false})
+        .limit(30)) as Array<any>,
+      clientIds.length
+        ? ensureSuccess(await supabase
+          .from('client_contracts')
+          .select(baseSelect)
+          .in('client_id', clientIds)
+          .is('deleted_at', null)
+          .order('created_at', {ascending: false})
+          .limit(30)) as Array<any>
+        : Promise.resolve([] as Array<any>),
+    ]);
+    const dedup = new Map<string, any>();
+    [...byNumber, ...byClient].forEach((item) => dedup.set(item.id, item));
+    rows = Array.from(dedup.values()).slice(0, 30);
+  } else {
+    rows = ensureSuccess(await supabase
+      .from('client_contracts')
+      .select(baseSelect)
+      .is('deleted_at', null)
+      .order('created_at', {ascending: false})
+      .limit(30)) as Array<any>;
   }
 
-  const rows = ensureSuccess(await request) as Array<any>;
-  return rows.map((item) => ({
-    id: item.id,
-    clientId: item.client_id,
-    clientName: item.client_name || 'Cliente',
-    environment: item.environment || 'Sem ambiente',
-    status: item.status || '',
-    pieces: Array.isArray(item.pieces)
-      ? item.pieces
-        .filter((piece: any) => piece && piece.id)
-        .map((piece: any) => ({id: String(piece.id), label: String(piece.name || piece.id)}))
-      : [],
-  }));
+  const contractIds = rows.map((item) => item.id).filter(Boolean);
+  const pieces = contractIds.length
+    ? ensureSuccess(await supabase
+      .from('client_contract_pieces')
+      .select('id,contract_id,quote_piece_id,piece_label,sort_order')
+      .in('contract_id', contractIds)
+      .is('deleted_at', null)
+      .order('sort_order', {ascending: true})) as Array<any>
+    : [];
+
+  const piecesByContract = new Map<string, Array<{id: string; label: string}>>();
+  pieces.forEach((piece) => {
+    const current = piecesByContract.get(piece.contract_id) || [];
+    current.push({id: String(piece.quote_piece_id || piece.id), label: String(piece.piece_label || piece.quote_piece_id || piece.id)});
+    piecesByContract.set(piece.contract_id, current);
+  });
+
+  const localSearch = normalized.toLowerCase();
+  return rows
+    .filter((item) => !localSearch || [item.contract_number, item.client?.name, item.quote?.environment].filter(Boolean).some((value) => String(value).toLowerCase().includes(localSearch)))
+    .map((item) => ({
+      id: item.id,
+      clientId: item.client_id,
+      clientName: item.client?.name || 'Cliente',
+      contractId: item.id,
+      contractNumber: item.contract_number || item.id,
+      quoteId: item.quote_id || null,
+      environment: item.quote?.environment || `Contrato ${item.contract_number || item.id}`,
+      status: item.quote?.status || item.status || '',
+      pieces: piecesByContract.get(item.id) || [],
+    }));
 };
 
 export const getMyEmployeeOperation = async (): Promise<MyEmployeeOperation> => {

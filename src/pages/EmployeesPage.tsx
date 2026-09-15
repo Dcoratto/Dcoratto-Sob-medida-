@@ -766,7 +766,8 @@ export const EmployeeReportsPage: React.FC = () => {
       await startEmployeeActivity({
         employeeId: activityModalEmployee.employee.id,
         clientId: target.clientId,
-        quoteId: target.id,
+        contractId: target.contractId,
+        quoteId: target.quoteId || '',
         functionKey: activityDraft.functionKey,
         pieceId: piece?.id,
         pieceLabel: piece?.label,
@@ -1003,7 +1004,7 @@ export const EmployeeReportsPage: React.FC = () => {
                 {productionReport?.filterOptions.employees.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
               </select>
               <select value={productionFilters.clientId} onChange={(event) => setProductionFilters((value) => ({...value, clientId: event.target.value, quoteId: ''}))} className={inputClass}>
-                <option value="">Todos os clientes/obras</option>
+                <option value="">Todos os clientes/contratos</option>
                 {productionReport?.filterOptions.clients.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
               </select>
               <select value={productionFilters.functionKey} onChange={(event) => setProductionFilters((value) => ({...value, functionKey: event.target.value}))} className={inputClass}>
@@ -1031,7 +1032,7 @@ export const EmployeeReportsPage: React.FC = () => {
             {[
               {value: 'summary', label: 'Resumo'},
               {value: 'employee', label: 'Por Funcionário'},
-              {value: 'work', label: 'Por Obra'},
+              {value: 'work', label: 'Por Contrato'},
               {value: 'piece', label: 'Por Peça'},
               {value: 'function', label: 'Por Função'},
               {value: 'history', label: 'Médias históricas'},
@@ -1113,7 +1114,7 @@ export const EmployeeReportsPage: React.FC = () => {
                       {laborCostReport.summary.isPartialCost && <span className="mt-1 block text-xs text-amber-700">Custo parcial: {formatMinutes(laborCostReport.summary.missingCostMinutes)} sem custo configurado.</span>}
                     </div>
                     <div className="rounded-2xl bg-slate-50 p-4">
-                      <span className="block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Valor vendido das obras</span>
+                      <span className="block text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Valor vendido dos contratos</span>
                       <strong className="mt-2 block text-2xl text-slate-900">{laborCostReport.summary.saleValue > 0 ? formatCurrency(laborCostReport.summary.saleValue) : 'Valor da venda indisponível'}</strong>
                     </div>
                     <div className="rounded-2xl bg-slate-50 p-4">
@@ -1171,7 +1172,7 @@ export const EmployeeReportsPage: React.FC = () => {
 
               {productionMode === 'work' && (
                 <div className="grid gap-3">
-                  {productionReport.works.length === 0 ? <div className="rounded-[28px] border border-dashed border-slate-200 bg-white p-10 text-center text-slate-500">Nenhuma obra com produção no filtro atual.</div> : productionReport.works.map((item) => (
+                  {productionReport.works.length === 0 ? <div className="rounded-[28px] border border-dashed border-slate-200 bg-white p-10 text-center text-slate-500">Nenhum contrato com produção no filtro atual.</div> : productionReport.works.map((item) => (
                     <details key={`${item.clientId || 'sem-cliente'}-${item.quoteId || 'sem-orcamento'}`} className="rounded-[28px] border border-slate-100 bg-white p-5 shadow-sm">
                       <summary className="cursor-pointer list-none">
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1730,7 +1731,7 @@ export const EmployeeReportsPage: React.FC = () => {
         <form onSubmit={handleStartActivity} className="space-y-4">
           <Field label="Buscar cliente">
             <div className="flex gap-2">
-              <input value={activityDraft.quoteSearch} onChange={(event) => setActivityDraft((value) => ({...value, quoteSearch: event.target.value}))} className={inputClass} placeholder="Ex.: Maria, cozinha, varanda..." />
+              <input value={activityDraft.quoteSearch} onChange={(event) => setActivityDraft((value) => ({...value, quoteSearch: event.target.value}))} className={inputClass} placeholder="Ex.: Maria, contrato 100001754..." />
               <button type="button" className={secondaryButton} onClick={() => void loadTargets(activityDraft.quoteSearch)} disabled={loadingTargets}>
                 {loadingTargets ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
               </button>
@@ -1742,14 +1743,15 @@ export const EmployeeReportsPage: React.FC = () => {
               {activityTargets.map((item) => (
                 <button key={item.id} type="button" className={cn('rounded-2xl border px-4 py-3 text-left text-sm', activityDraft.quoteId === item.id ? 'border-brand-primary bg-brand-primary/10' : 'border-slate-200 bg-white')} onClick={() => setActivityDraft((value) => ({...value, quoteId: item.id, pieceId: ''}))}>
                   <strong className="text-slate-900">{item.clientName}</strong>
-                  <span className="ml-2 text-slate-500">{item.environment}</span>
+                  <span className="ml-2 text-slate-500">Contrato {item.contractNumber}</span>
+                  <span className="ml-2 text-slate-400">{item.environment}</span>
                 </button>
               ))}
             </div>
           )}
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Peça / serviço">
+            <Field label="Peça do contrato">
               <select value={activityDraft.pieceId} onChange={(event) => setActivityDraft((value) => ({...value, pieceId: event.target.value}))} className={inputClass} disabled={!activeActivityTarget}>
                 <option value="">Sem peça específica</option>
                 {activeActivityTarget?.pieces.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
@@ -2034,7 +2036,8 @@ const MyEmployeeOperationPage: React.FC = () => {
       () => startEmployeeActivity({
         employeeId: operation.employee.id,
         clientId: selectedActivityTarget.clientId,
-        quoteId: selectedActivityTarget.id,
+        contractId: selectedActivityTarget.contractId,
+        quoteId: selectedActivityTarget.quoteId || '',
         functionKey: activityDraft.functionKey,
         pieceId: activityDraft.pieceId || undefined,
         pieceLabel: selectedActivityTarget?.pieces.find((piece) => piece.id === activityDraft.pieceId)?.label,
@@ -2126,24 +2129,25 @@ const MyEmployeeOperationPage: React.FC = () => {
         <form className="space-y-5" onSubmit={handleStartMyActivity}>
           <div className="grid gap-4">
             <Field label="Buscar cliente">
-              <input value={activityDraft.quoteSearch} onChange={(event) => setActivityDraft((current) => ({...current, quoteSearch: event.target.value, quoteId: '', clientId: '', pieceId: ''}))} className={inputClass} placeholder="Cliente ou ambiente" />
+              <input value={activityDraft.quoteSearch} onChange={(event) => setActivityDraft((current) => ({...current, quoteSearch: event.target.value, quoteId: '', clientId: '', pieceId: ''}))} className={inputClass} placeholder="Cliente ou contrato" />
             </Field>
           </div>
 
           {activityDraft.quoteSearch.trim().length >= 2 && (
             <div className="grid gap-2">
-              {activityTargetsLoading ? <div className="rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">Buscando obras...</div> : activityTargets.map((item) => (
+              {activityTargetsLoading ? <div className="rounded-2xl border border-dashed border-slate-200 p-4 text-sm text-slate-500">Buscando contratos...</div> : activityTargets.map((item) => (
                 <button key={item.id} type="button" className={cn('rounded-2xl border px-4 py-3 text-left text-sm', activityDraft.quoteId === item.id ? 'border-brand-primary bg-brand-primary/10' : 'border-slate-200 bg-white')} onClick={() => {
-                  setActivityDraft((current) => ({...current, quoteId: item.id, clientId: item.clientId, quoteSearch: `${item.clientName} · ${item.environment}`, pieceId: ''}));
+                  setActivityDraft((current) => ({...current, quoteId: item.id, clientId: item.clientId, quoteSearch: `${item.clientName} · Contrato ${item.contractNumber}`, pieceId: ''}));
                 }}>
                   <strong className="text-slate-900">{item.clientName}</strong>
-                  <span className="ml-2 text-slate-500">{item.environment}</span>
+                  <span className="ml-2 text-slate-500">Contrato {item.contractNumber}</span>
+                  <span className="ml-2 text-slate-400">{item.environment}</span>
                 </button>
               ))}
             </div>
           )}
 
-          <Field label="Peça / serviço">
+          <Field label="Peça do contrato">
             <select value={activityDraft.pieceId} onChange={(event) => setActivityDraft((current) => ({...current, pieceId: event.target.value}))} className={inputClass} disabled={!selectedActivityTarget}>
               <option value="">Sem peça específica</option>
               {selectedActivityTarget?.pieces.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}

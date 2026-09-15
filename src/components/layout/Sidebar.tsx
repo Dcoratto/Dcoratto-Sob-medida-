@@ -39,6 +39,7 @@ export const Sidebar: React.FC = () => {
     hasPermission('projeto', 'visualizar') ?{icon: FolderKanban, label: 'Projetos', path: '/projects'} : null,
     hasPermission('projeto', 'visualizar') ?{icon: ClipboardList, label: 'Instalacao', path: '/installation'} : null,
     hasPermission('cliente', 'visualizar') ?{icon: Users, label: 'Clientes', path: '/clients'} : null,
+    hasPermission('cliente', 'visualizar') ?{icon: ClipboardList, label: 'Contratos Realizados', path: '/contracts'} : null,
     hasPermission('funcionarios', 'visualizar') ?{icon: Briefcase, label: 'Funcionários', path: '/employees'} : null,
     hasPermission('veiculos', 'visualizar') ?{icon: CarFront, label: 'Veículos', path: '/vehicles'} : null,
     hasPermission('cliente', 'visualizar') ?{icon: ClipboardList, label: 'Gestao de Crise', path: '/crisis'} : null,

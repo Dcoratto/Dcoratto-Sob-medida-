@@ -329,3 +329,15 @@ export const confirmClientContractImport = async (input: {
     p_actor_name: actor.name,
   })) as string;
 };
+
+export const deleteClientContract = async (input: {
+  clientId: string;
+  contractId: string;
+}, actor: Actor) => {
+  return ensureSuccess(await supabase.rpc('delete_client_contract', {
+    p_client_id: input.clientId,
+    p_contract_id: input.contractId,
+    p_actor_uid: actor.uid,
+    p_actor_name: actor.name,
+  })) as {deleted?: boolean; alreadyDeleted?: boolean; historyPreserved?: boolean; deletedPieces?: number};
+};

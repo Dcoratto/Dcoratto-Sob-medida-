@@ -1,7 +1,7 @@
 import React from 'react';
-import {ArrowLeft, CalendarDays, CheckCircle2, ChevronRight, FileUp, Loader2, PackageCheck, Plus, Search, UserRound, X} from 'lucide-react';
+import {ArrowLeft, CalendarDays, CheckCircle2, ChevronRight, FileUp, Loader2, PackageCheck, Plus, Search, Trash2, UserRound, X} from 'lucide-react';
 import {useAuth} from '../contexts/AuthContext';
-import {confirmClientContractImport, getContractClientSummary, listContractClients, listContractsForClient, type ContractClientSummary, type ContractImportPieceDraft, type ContractSummary} from '../lib/clientContracts';
+import {confirmClientContractImport, deleteClientContract, getContractClientSummary, listContractClients, listContractsForClient, type ContractClientSummary, type ContractImportPieceDraft, type ContractSummary} from '../lib/clientContracts';
 import {resolveContractFinancialTotal} from '../lib/contractFinancials';
 import {parseOperationalContractPdf} from '../lib/contractParser';
 import {cn, formatCurrency} from '../lib/utils';
@@ -42,6 +42,8 @@ export const ClientContractsPage: React.FC = () => {
   const [reviewOpen, setReviewOpen] = React.useState(false);
   const [reviewLoading, setReviewLoading] = React.useState(false);
   const [savingImport, setSavingImport] = React.useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
+  const [deletingContract, setDeletingContract] = React.useState(false);
   const [reviewNumber, setReviewNumber] = React.useState('');
   const [reviewDate, setReviewDate] = React.useState('');
   const [reviewPieces, setReviewPieces] = React.useState<ContractImportPieceDraft[]>([]);
@@ -109,6 +111,7 @@ export const ClientContractsPage: React.FC = () => {
     setSelectedClientId('');
     setSelectedContractId('');
     setReviewOpen(false);
+    setDeleteConfirmOpen(false);
     setReviewPieces([]);
     setReviewNumber('');
     setReviewDate('');
@@ -194,6 +197,33 @@ export const ClientContractsPage: React.FC = () => {
       setFeedback({type: 'error', message: (error as Error).message || 'Nao foi possivel confirmar o contrato.'});
     } finally {
       setSavingImport(false);
+    }
+  };
+
+  const confirmDeleteContract = async () => {
+    if (!selectedClient || !selectedContract || deletingContract) return;
+    setDeletingContract(true);
+    setFeedback(null);
+    try {
+      await deleteClientContract({
+        clientId: selectedClient.id,
+        contractId: selectedContract.id,
+      }, actor);
+      setDeleteConfirmOpen(false);
+      setSelectedContractId('');
+      setContractsByClient((current) => ({
+        ...current,
+        [selectedClient.id]: (current[selectedClient.id] || []).filter((contract) => contract.id !== selectedContract.id),
+      }));
+      await Promise.all([
+        loadClientContracts(selectedClient.id, true),
+        refreshClientCard(selectedClient.id),
+      ]);
+      setFeedback({type: 'success', message: 'Contrato excluido com sucesso.'});
+    } catch (error) {
+      setFeedback({type: 'error', message: (error as Error).message || 'Nao foi possivel excluir o contrato.'});
+    } finally {
+      setDeletingContract(false);
     }
   };
 
@@ -309,13 +339,22 @@ export const ClientContractsPage: React.FC = () => {
                   </button>
 
                   <section className="rounded-[28px] bg-slate-50 p-5">
-                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Contrato selecionado</p>
-                    <h3 className="mt-1 text-2xl font-display font-semibold text-slate-900">Contrato {selectedContract.contractNumber}</h3>
-                    <div className="mt-3 flex flex-wrap gap-3 text-sm text-slate-500">
-                      <span>{formatDate(selectedContract.contractDate)}</span>
-                      <span>{pluralize(selectedContract.pieces.length, 'peca', 'pecas')}</span>
-                      {selectedContract.quote?.environment ? <span>{selectedContract.quote.environment}</span> : null}
-                      <span>Valor do contrato: <span className="font-medium text-slate-700">{formatCurrency(resolveContractFinancialTotal(selectedContract))}</span></span>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Contrato selecionado</p>
+                        <h3 className="mt-1 truncate text-2xl font-display font-semibold text-slate-900">Contrato {selectedContract.contractNumber}</h3>
+                        <div className="mt-3 flex flex-wrap gap-3 text-sm text-slate-500">
+                          <span>{formatDate(selectedContract.contractDate)}</span>
+                          <span>{pluralize(selectedContract.pieces.length, 'peca', 'pecas')}</span>
+                          {selectedContract.quote?.environment ? <span>{selectedContract.quote.environment}</span> : null}
+                          <span>Valor do contrato: <span className="font-medium text-slate-700">{formatCurrency(resolveContractFinancialTotal(selectedContract))}</span></span>
+                        </div>
+                      </div>
+                      {canManage ? (
+                        <button type="button" onClick={() => setDeleteConfirmOpen(true)} className="rounded-2xl p-2 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600" aria-label={`Excluir contrato ${selectedContract.contractNumber}`}>
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      ) : null}
                     </div>
                   </section>
 
@@ -393,6 +432,29 @@ export const ClientContractsPage: React.FC = () => {
               <button type="button" onClick={() => void confirmImport()} disabled={savingImport} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-semibold text-[#3F3A34] disabled:opacity-60">
                 {savingImport ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
                 Confirmar contrato
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {deleteConfirmOpen && selectedContract ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-label="Excluir contrato">
+          <div className="w-full max-w-md rounded-[28px] bg-white p-5 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h3 className="text-xl font-display font-semibold text-slate-900">Excluir contrato {selectedContract.contractNumber}?</h3>
+                <p className="mt-2 text-sm text-slate-500">Este contrato e suas pecas serao removidos de Contratos Realizados. Cliente, orcamento e historicos permanecem preservados.</p>
+              </div>
+              <button type="button" onClick={() => setDeleteConfirmOpen(false)} disabled={deletingContract} className="rounded-2xl bg-slate-100 p-2 text-slate-500 disabled:opacity-60">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setDeleteConfirmOpen(false)} disabled={deletingContract} className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-600 disabled:opacity-60">Cancelar</button>
+              <button type="button" onClick={() => void confirmDeleteContract()} disabled={deletingContract} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-rose-600 px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">
+                {deletingContract ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                {deletingContract ? 'Excluindo...' : 'Excluir contrato'}
               </button>
             </div>
           </div>

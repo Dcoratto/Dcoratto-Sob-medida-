@@ -1,0 +1,1391 @@
+{
+  "generatedAt": "2026-09-16T15:15:52.790Z",
+  "phase": "PRE_IMPORT_READ_ONLY",
+  "rootDir": "G:\\Meu Drive\\D'CORATTO MARMORARIA\\PROJETOS",
+  "summary": {
+    "foldersAnalyzed": 32,
+    "foldersWithContract": 32,
+    "contractFiles": 25,
+    "formats": {
+      ".ini": 32,
+      ".pdf": 25
+    },
+    "contractsIdentified": 15,
+    "contractsWithoutNumber": 10,
+    "piecesIdentified": 0,
+    "valuesIdentified": 0,
+    "matchStatus": {
+      "NAO ANALISADO": 7,
+      "MATCH SEGURO": 19,
+      "SEM MATCH": 6
+    },
+    "duplicateStatus": {
+      "NAO VERIFICADO": 20,
+      "NOVO": 11,
+      "SOFT_DELETED_EXISTENTE": 1
+    },
+    "invalidFiles": 0,
+    "readErrors": 0
+  },
+  "rows": [
+    {
+      "folderName": "0000 - GUSTAVO RUMÃO",
+      "folderClientCode": "0000",
+      "folderClientName": "GUSTAVO RUMÃO",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folderName": "0001 - RODOLFO",
+      "folderClientCode": "0001",
+      "folderClientName": "RODOLFO",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folderName": "1266 - FLÁVIA ESTEVES",
+      "folderClientCode": "1266",
+      "folderClientName": "FLÁVIA ESTEVES",
+      "crmClientId": "64cCeHqubs3t2vdBaEk4",
+      "crmClientName": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+      "hasContractFolder": true,
+      "fileName": "100001266.pdf",
+      "filePath": "1266 - FLÁVIA ESTEVES\\CONTRATO\\100001266.pdf",
+      "fileSize": 45525,
+      "contractNumber": "100001266",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NOVO",
+      "candidates": [
+        {
+          "crmClientId": "64cCeHqubs3t2vdBaEk4",
+          "crmClientName": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1327 - BRUNO PIRES",
+      "folderClientCode": "1327",
+      "folderClientName": "BRUNO PIRES",
+      "crmClientId": "wsvf1T38vJrhMMmyHlLF",
+      "crmClientName": "BRUNO PIRES DOS SANTOS",
+      "hasContractFolder": true,
+      "fileName": "100001327-2.pdf",
+      "filePath": "1327 - BRUNO PIRES\\CONTRATO\\100001327-2.pdf",
+      "fileSize": 64783,
+      "contractNumber": "100001327-2",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NOVO",
+      "candidates": [
+        {
+          "crmClientId": "wsvf1T38vJrhMMmyHlLF",
+          "crmClientName": "BRUNO PIRES DOS SANTOS",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "sDWIU7p2isgURnkQsUkC",
+          "crmClientName": "BRUNO NEVES DOS SANTOS",
+          "score": 0.375,
+          "documentScore": 0,
+          "folderScore": 0.375,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1610 - BRUNO NEVES",
+      "folderClientCode": "1610",
+      "folderClientName": "BRUNO NEVES",
+      "crmClientId": "sDWIU7p2isgURnkQsUkC",
+      "crmClientName": "BRUNO NEVES DOS SANTOS",
+      "hasContractFolder": true,
+      "fileName": "100001610-1.pdf",
+      "filePath": "1610 - BRUNO NEVES\\CONTRATO\\100001610-1.pdf",
+      "fileSize": 37921,
+      "contractNumber": "100001610-1",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NOVO",
+      "candidates": [
+        {
+          "crmClientId": "sDWIU7p2isgURnkQsUkC",
+          "crmClientName": "BRUNO NEVES DOS SANTOS",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "wsvf1T38vJrhMMmyHlLF",
+          "crmClientName": "BRUNO PIRES DOS SANTOS",
+          "score": 0.375,
+          "documentScore": 0,
+          "folderScore": 0.375,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1623 - WILLIAM SILVA DIAS DO VALE",
+      "folderClientCode": "1623",
+      "folderClientName": "WILLIAM SILVA DIAS DO VALE",
+      "crmClientId": "5I7m5M9LDrBCv1iCNQ9G",
+      "crmClientName": "WILLIAM SILVA DIAS DO VALE",
+      "hasContractFolder": true,
+      "fileName": "100001623-1.pdf",
+      "filePath": "1623 - WILLIAM SILVA DIAS DO VALE\\CONTRATO\\100001623-1.pdf",
+      "fileSize": 39982,
+      "contractNumber": "100001623-1",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NOVO",
+      "candidates": [
+        {
+          "crmClientId": "5I7m5M9LDrBCv1iCNQ9G",
+          "crmClientName": "WILLIAM SILVA DIAS DO VALE",
+          "score": 1,
+          "documentScore": 0,
+          "folderScore": 1,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "3BJG2inpejc9SIY0UT9e",
+          "crmClientName": "AUGUSTO DA SILVA MARIA",
+          "score": 0.222,
+          "documentScore": 0,
+          "folderScore": 0.222,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "i5KL1uIQh7JeVnQqZ16D",
+          "crmClientName": "ERIC FERREIRA DA SILVA",
+          "score": 0.222,
+          "documentScore": 0,
+          "folderScore": 0.222,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1647 - BRUNO E EDILENE",
+      "folderClientCode": "1647",
+      "folderClientName": "BRUNO E EDILENE",
+      "crmClientId": "",
+      "crmClientName": "",
+      "hasContractFolder": true,
+      "fileName": "100001647.pdf",
+      "filePath": "1647 - BRUNO E EDILENE\\CONTRATO\\100001647.pdf",
+      "fileSize": 49741,
+      "contractNumber": "100001647",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "SEM MATCH",
+      "matchReason": "Nenhum cliente atingiu similaridade minima segura. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NAO VERIFICADO",
+      "candidates": [
+        {
+          "crmClientId": "sDWIU7p2isgURnkQsUkC",
+          "crmClientName": "BRUNO NEVES DOS SANTOS",
+          "score": 0.375,
+          "documentScore": 0,
+          "folderScore": 0.375,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "wsvf1T38vJrhMMmyHlLF",
+          "crmClientName": "BRUNO PIRES DOS SANTOS",
+          "score": 0.375,
+          "documentScore": 0,
+          "folderScore": 0.375,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1670 - MARCOS MV",
+      "folderClientCode": "1670",
+      "folderClientName": "MARCOS MV",
+      "crmClientId": "6L0OAqTfW04EuARfHjkd",
+      "crmClientName": "1670 - MARCOS MV",
+      "hasContractFolder": true,
+      "fileName": "100001670.pdf",
+      "filePath": "1670 - MARCOS MV\\CONTRATO\\100001670.pdf",
+      "fileSize": 197075,
+      "contractNumber": "100001670",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NOVO",
+      "candidates": [
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "C8SHDfkAL681sIsxlokq",
+          "crmClientName": "ALINE ARMOND",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1677 - ANDREIA FLORENÇO",
+      "folderClientCode": "1677",
+      "folderClientName": "ANDREIA FLORENÇO",
+      "crmClientId": "2fmLjYQJTXsn2TvQ8rpO",
+      "crmClientName": "ANDRÉIA FLORENÇO MACHADO",
+      "hasContractFolder": true,
+      "fileName": "100001677-2.pdf",
+      "filePath": "1677 - ANDREIA FLORENÇO\\CONTRATO\\100001677-2.pdf",
+      "fileSize": 207276,
+      "contractNumber": "100001677-2",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "SOFT_DELETED_EXISTENTE",
+      "candidates": [
+        {
+          "crmClientId": "2fmLjYQJTXsn2TvQ8rpO",
+          "crmClientName": "ANDRÉIA FLORENÇO MACHADO",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1669 - AUGUSTO DA SILVA",
+      "folderClientCode": "1669",
+      "folderClientName": "AUGUSTO DA SILVA",
+      "crmClientId": "3BJG2inpejc9SIY0UT9e",
+      "crmClientName": "AUGUSTO DA SILVA MARIA",
+      "hasContractFolder": true,
+      "fileName": "100001669.pdf",
+      "filePath": "1669 - AUGUSTO DA SILVA\\CONTRATO\\100001669.pdf",
+      "fileSize": 201410,
+      "contractNumber": "100001669",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NOVO",
+      "candidates": [
+        {
+          "crmClientId": "3BJG2inpejc9SIY0UT9e",
+          "crmClientName": "AUGUSTO DA SILVA MARIA",
+          "score": 0.857,
+          "documentScore": 0,
+          "folderScore": 0.857,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "i5KL1uIQh7JeVnQqZ16D",
+          "crmClientName": "ERIC FERREIRA DA SILVA",
+          "score": 0.571,
+          "documentScore": 0,
+          "folderScore": 0.571,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "ovlaChV0aMFEDfFgVDem",
+          "crmClientName": "EDLENE CRISTINA DA SILVA CERRINI",
+          "score": 0.5,
+          "documentScore": 0,
+          "folderScore": 0.5,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1426 - CARLOS CESAR",
+      "folderClientCode": "1426",
+      "folderClientName": "CARLOS CESAR",
+      "crmClientId": "gEWmiJYzWgWREB5AWXRa",
+      "crmClientName": "CARLOS CESAR ROMEIRO DA COSTA",
+      "hasContractFolder": true,
+      "fileName": "100001426.pdf",
+      "filePath": "1426 - CARLOS CESAR\\CONTRATO\\100001426.pdf",
+      "fileSize": 37835,
+      "contractNumber": "100001426",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NOVO",
+      "candidates": [
+        {
+          "crmClientId": "gEWmiJYzWgWREB5AWXRa",
+          "crmClientName": "CARLOS CESAR ROMEIRO DA COSTA",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1476 - ERICK IGNACIO",
+      "folderClientCode": "1476",
+      "folderClientName": "ERICK IGNACIO",
+      "crmClientId": "qwSnpzidNlTx1mmZ2g6J",
+      "crmClientName": "ERICK IGNACIO RODRIGUES",
+      "hasContractFolder": true,
+      "fileName": "100001476.pdf",
+      "filePath": "1476 - ERICK IGNACIO\\CONTRATO\\100001476.pdf",
+      "fileSize": 43889,
+      "contractNumber": "100001476",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NOVO",
+      "candidates": [
+        {
+          "crmClientId": "qwSnpzidNlTx1mmZ2g6J",
+          "crmClientName": "ERICK IGNACIO RODRIGUES",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1570 - Dr. THIAGO DOS SANTOS",
+      "folderClientCode": "1570",
+      "folderClientName": "Dr. THIAGO DOS SANTOS",
+      "crmClientId": "6mD3sIkhxjzZi07sqHA1",
+      "crmClientName": "THIAGO DOS SANTOS SOUZA",
+      "hasContractFolder": true,
+      "fileName": "100001570.pdf",
+      "filePath": "1570 - Dr. THIAGO DOS SANTOS\\CONTRATO\\100001570.pdf",
+      "fileSize": 37800,
+      "contractNumber": "100001570",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NOVO",
+      "candidates": [
+        {
+          "crmClientId": "6mD3sIkhxjzZi07sqHA1",
+          "crmClientName": "THIAGO DOS SANTOS SOUZA",
+          "score": 0.75,
+          "documentScore": 0,
+          "folderScore": 0.75,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "sDWIU7p2isgURnkQsUkC",
+          "crmClientName": "BRUNO NEVES DOS SANTOS",
+          "score": 0.5,
+          "documentScore": 0,
+          "folderScore": 0.5,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "wsvf1T38vJrhMMmyHlLF",
+          "crmClientName": "BRUNO PIRES DOS SANTOS",
+          "score": 0.5,
+          "documentScore": 0,
+          "folderScore": 0.5,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1671 - MARCOS MV",
+      "folderClientCode": "1671",
+      "folderClientName": "MARCOS MV",
+      "crmClientId": "6L0OAqTfW04EuARfHjkd",
+      "crmClientName": "1670 - MARCOS MV",
+      "hasContractFolder": true,
+      "fileName": "100001671.pdf",
+      "filePath": "1671 - MARCOS MV\\CONTRATO\\100001671.pdf",
+      "fileSize": 201678,
+      "contractNumber": "100001671",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NOVO",
+      "candidates": [
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "C8SHDfkAL681sIsxlokq",
+          "crmClientName": "ALINE ARMOND",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1599 - GUSTAVO BRANCO",
+      "folderClientCode": "1599",
+      "folderClientName": "GUSTAVO BRANCO",
+      "crmClientId": "TmodWUKDzWwGTXhGu1Hp",
+      "crmClientName": "GUSTAVO BRANCO ANGELO",
+      "hasContractFolder": true,
+      "fileName": "100001599-1.pdf",
+      "filePath": "1599 - GUSTAVO BRANCO\\CONTRATO\\100001599-1.pdf",
+      "fileSize": 47787,
+      "contractNumber": "100001599-1",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NOVO",
+      "candidates": [
+        {
+          "crmClientId": "TmodWUKDzWwGTXhGu1Hp",
+          "crmClientName": "GUSTAVO BRANCO ANGELO",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "xBzVKRyqc2ItEubnYu5Q",
+          "crmClientName": "GUSTAVO ROMÃO ",
+          "score": 0.5,
+          "documentScore": 0,
+          "folderScore": 0.5,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "0002 - RAFAEL ALMEIDA",
+      "folderClientCode": "0002",
+      "folderClientName": "RAFAEL ALMEIDA",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folderName": "1685 - TR2",
+      "folderClientCode": "1685",
+      "folderClientName": "TR2",
+      "crmClientId": "",
+      "crmClientName": "",
+      "hasContractFolder": true,
+      "fileName": "100001685-1.pdf",
+      "filePath": "1685 - TR2\\CONTRATO\\100001685-1.pdf",
+      "fileSize": 204000,
+      "contractNumber": "100001685-1",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "SEM MATCH",
+      "matchReason": "Nenhum cliente atingiu similaridade minima segura. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NAO VERIFICADO",
+      "candidates": [
+        {
+          "crmClientId": "3LCQXeeZiD3MKdOVaOXd",
+          "crmClientName": "TR2 COMERCIO E SERVIÇOS DE PAPELARIA EIRELI",
+          "score": 0.286,
+          "documentScore": 0,
+          "folderScore": 0.286,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "0003 - WELLIGTON BRITO",
+      "folderClientCode": "0003",
+      "folderClientName": "WELLIGTON BRITO",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folderName": "1711 - AILTON",
+      "folderClientCode": "1711",
+      "folderClientName": "AILTON",
+      "crmClientId": "",
+      "crmClientName": "",
+      "hasContractFolder": true,
+      "fileName": "100001711.pdf",
+      "filePath": "1711 - AILTON\\CONTRATO\\100001711.pdf",
+      "fileSize": 192380,
+      "contractNumber": "100001711",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "SEM MATCH",
+      "matchReason": "Nenhum cliente atingiu similaridade minima segura. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NAO VERIFICADO",
+      "candidates": [
+        {
+          "crmClientId": "hYdXOdUgVP1MBLXpttu9",
+          "crmClientName": "ANTONIO AILTON CARDOSO SOARES",
+          "score": 0.4,
+          "documentScore": 0,
+          "folderScore": 0.4,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Numero inferido do nome do arquivo para pre-validacao.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1710 - MARCIO DAL",
+      "folderClientCode": "1710",
+      "folderClientName": "MARCIO DAL",
+      "crmClientId": "MD5n3US8nLIhAFSheb47",
+      "crmClientName": "MARCIO DAL BELLO",
+      "hasContractFolder": true,
+      "fileName": "CONTRATO PINGADEIRAS - MARCIO DAL BELLO.pdf",
+      "filePath": "1710 - MARCIO DAL\\CONTRATO\\CONTRATO PINGADEIRAS - MARCIO DAL BELLO.pdf",
+      "fileSize": 192307,
+      "contractNumber": "",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NAO VERIFICADO",
+      "candidates": [
+        {
+          "crmClientId": "MD5n3US8nLIhAFSheb47",
+          "crmClientName": "MARCIO DAL BELLO",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Contrato sem numero identificado.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1662 - PEDRO OLAVO",
+      "folderClientCode": "1662",
+      "folderClientName": "PEDRO OLAVO",
+      "crmClientId": "b4kZzhJg4WNF5e6opsD0",
+      "crmClientName": "PEDRO OLAVO SEVERINI FILHO",
+      "hasContractFolder": true,
+      "fileName": "1662-2.pdf",
+      "filePath": "1662 - PEDRO OLAVO\\CONTRATO\\1662-2.pdf",
+      "fileSize": 209931,
+      "contractNumber": "",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NAO VERIFICADO",
+      "candidates": [
+        {
+          "crmClientId": "b4kZzhJg4WNF5e6opsD0",
+          "crmClientName": "PEDRO OLAVO SEVERINI FILHO",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Contrato sem numero identificado.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1728 - DIEGO SANCHES",
+      "folderClientCode": "1728",
+      "folderClientName": "DIEGO SANCHES",
+      "crmClientId": "7smRO3UcvMp36IkwXOhZ",
+      "crmClientName": "DIEGO SANCHES AZEVEDO",
+      "hasContractFolder": true,
+      "fileName": "1728.pdf",
+      "filePath": "1728 - DIEGO SANCHES\\CONTRATO\\1728.pdf",
+      "fileSize": 192804,
+      "contractNumber": "",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NAO VERIFICADO",
+      "candidates": [
+        {
+          "crmClientId": "7smRO3UcvMp36IkwXOhZ",
+          "crmClientName": "DIEGO SANCHES AZEVEDO",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Contrato sem numero identificado.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1741 - DR. GERALDO",
+      "folderClientCode": "1741",
+      "folderClientName": "DR. GERALDO",
+      "crmClientId": "",
+      "crmClientName": "",
+      "hasContractFolder": true,
+      "fileName": "1741.pdf",
+      "filePath": "1741 - DR. GERALDO\\CONTRATO\\1741.pdf",
+      "fileSize": 194568,
+      "contractNumber": "",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "SEM MATCH",
+      "matchReason": "Nenhum cliente atingiu similaridade minima segura. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NAO VERIFICADO",
+      "candidates": [
+        {
+          "crmClientId": "tPRD7cuLpZUIbcCYTC9R",
+          "crmClientName": "GERALDO DE PAIVA",
+          "score": 0.4,
+          "documentScore": 0,
+          "folderScore": 0.4,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Contrato sem numero identificado.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1699 - RODOLFO NOGUEIRA",
+      "folderClientCode": "1699",
+      "folderClientName": "RODOLFO NOGUEIRA",
+      "crmClientId": "YTOrYpwpc4k4pyOBIywP",
+      "crmClientName": "RODOLFO NOGUEIRA",
+      "hasContractFolder": true,
+      "fileName": "1699.pdf",
+      "filePath": "1699 - RODOLFO NOGUEIRA\\CONTRATO\\1699.pdf",
+      "fileSize": 196076,
+      "contractNumber": "",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NAO VERIFICADO",
+      "candidates": [
+        {
+          "crmClientId": "YTOrYpwpc4k4pyOBIywP",
+          "crmClientName": "RODOLFO NOGUEIRA",
+          "score": 1,
+          "documentScore": 0,
+          "folderScore": 1,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "1sIpUMT2Vm2jmKjCLAW4",
+          "crmClientName": "RODOLFO SOUZA",
+          "score": 0.5,
+          "documentScore": 0,
+          "folderScore": 0.5,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Contrato sem numero identificado.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1726 - MARGARIDA APARECIDA",
+      "folderClientCode": "1726",
+      "folderClientName": "MARGARIDA APARECIDA",
+      "crmClientId": "B6nHppEtk5T6rcz9Rf4g",
+      "crmClientName": "MARGARIDA APARECIDA GONÇALVES SOUZA",
+      "hasContractFolder": true,
+      "fileName": "1726.pdf",
+      "filePath": "1726 - MARGARIDA APARECIDA\\CONTRATO\\1726.pdf",
+      "fileSize": 194406,
+      "contractNumber": "",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NAO VERIFICADO",
+      "candidates": [
+        {
+          "crmClientId": "B6nHppEtk5T6rcz9Rf4g",
+          "crmClientName": "MARGARIDA APARECIDA GONÇALVES SOUZA",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Contrato sem numero identificado.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "0004 - GABRIEL UVA",
+      "folderClientCode": "0004",
+      "folderClientName": "GABRIEL UVA",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folderName": "1717 - MARCIO DAL",
+      "folderClientCode": "1717",
+      "folderClientName": "MARCIO DAL",
+      "crmClientId": "MD5n3US8nLIhAFSheb47",
+      "crmClientName": "MARCIO DAL BELLO",
+      "hasContractFolder": true,
+      "fileName": "1717.pdf",
+      "filePath": "1717 - MARCIO DAL\\CONTRATO\\1717.pdf",
+      "fileSize": 202152,
+      "contractNumber": "",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NAO VERIFICADO",
+      "candidates": [
+        {
+          "crmClientId": "MD5n3US8nLIhAFSheb47",
+          "crmClientName": "MARCIO DAL BELLO",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Contrato sem numero identificado.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1744 - TIAGO SBI",
+      "folderClientCode": "1744",
+      "folderClientName": "TIAGO SBI",
+      "crmClientId": "",
+      "crmClientName": "",
+      "hasContractFolder": true,
+      "fileName": "1744.pdf",
+      "filePath": "1744 - TIAGO SBI\\CONTRATO\\1744.pdf",
+      "fileSize": 192401,
+      "contractNumber": "",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "SEM MATCH",
+      "matchReason": "Nenhum cliente atingiu similaridade minima segura. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NAO VERIFICADO",
+      "candidates": [
+        {
+          "crmClientId": "lciBChMXNKk93TBOSeHx",
+          "crmClientName": "CAMILA SBI",
+          "score": 0.5,
+          "documentScore": 0,
+          "folderScore": 0.5,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Contrato sem numero identificado.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "1754 - GERALDO PAIVA",
+      "folderClientCode": "1754",
+      "folderClientName": "GERALDO PAIVA",
+      "crmClientId": "tPRD7cuLpZUIbcCYTC9R",
+      "crmClientName": "GERALDO DE PAIVA",
+      "hasContractFolder": true,
+      "fileName": "Contrato - Geraldo de Paiva.pdf",
+      "filePath": "1754 - GERALDO PAIVA\\CONTRATO\\Contrato - Geraldo de Paiva.pdf",
+      "fileSize": 192179,
+      "contractNumber": "",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "MATCH SEGURO",
+      "matchReason": "Nome da pasta/documento aponta para um unico cliente CRM. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NAO VERIFICADO",
+      "candidates": [
+        {
+          "crmClientId": "tPRD7cuLpZUIbcCYTC9R",
+          "crmClientName": "GERALDO DE PAIVA",
+          "score": 0.85,
+          "documentScore": 0,
+          "folderScore": 0.85,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Contrato sem numero identificado.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "---- - OSASCO",
+      "folderClientCode": "-",
+      "folderClientName": "-- - OSASCO",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folderName": "1690 - BIANCA JURTICK",
+      "folderClientCode": "1690",
+      "folderClientName": "BIANCA JURTICK",
+      "crmClientId": "",
+      "crmClientName": "",
+      "hasContractFolder": true,
+      "fileName": "1690.pdf",
+      "filePath": "1690 - BIANCA JURTICK\\CONTRATO\\1690.pdf",
+      "fileSize": 204018,
+      "contractNumber": "",
+      "contractDate": "",
+      "parsedClientName": "",
+      "parsedDocumentMasked": "",
+      "pieceCount": 0,
+      "contractTotal": null,
+      "matchStatus": "SEM MATCH",
+      "matchReason": "Nenhum cliente atingiu similaridade minima segura. Documento requer revisao manual porque o parser atual nao extraiu texto sem IA.",
+      "duplicateStatus": "NAO VERIFICADO",
+      "candidates": [
+        {
+          "crmClientId": "6L0OAqTfW04EuARfHjkd",
+          "crmClientName": "1670 - MARCOS MV",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "JNvddf7Pla53Bke2qWhT",
+          "crmClientName": "ALEXANDRE ALEIXO",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        },
+        {
+          "crmClientId": "C8SHDfkAL681sIsxlokq",
+          "crmClientName": "ALINE ARMOND",
+          "score": 0,
+          "documentScore": 0,
+          "folderScore": 0,
+          "cpfMatched": false
+        }
+      ],
+      "warnings": [
+        "Leitura parcial: GEMINI_API_KEY_NAO_CONFIGURADA",
+        "Contrato sem numero identificado.",
+        "Pecas e valores nao identificados nesta execucao."
+      ]
+    },
+    {
+      "folderName": "---- - ERIC FERREIRA",
+      "folderClientCode": "-",
+      "folderClientName": "-- - ERIC FERREIRA",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    }
+  ]
+}

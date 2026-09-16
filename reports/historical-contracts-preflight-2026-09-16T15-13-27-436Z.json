@@ -1,0 +1,463 @@
+{
+  "generatedAt": "2026-09-16T15:13:27.433Z",
+  "phase": "PRE_IMPORT_READ_ONLY",
+  "rootDir": "G:\\Meu Drive\\D'CORATTO MARMORARIA\\PROJETOS",
+  "summary": {
+    "foldersAnalyzed": 32,
+    "foldersWithContract": 32,
+    "contractFiles": 25,
+    "formats": {
+      ".ini": 32,
+      ".pdf": 25
+    },
+    "contractsIdentified": 0,
+    "contractsWithoutNumber": 25,
+    "piecesIdentified": 0,
+    "valuesIdentified": 0,
+    "matchStatus": {
+      "NAO ANALISADO": 7,
+      "ERRO LEITURA": 25
+    },
+    "duplicateStatus": {
+      "NAO VERIFICADO": 32
+    },
+    "invalidFiles": 0,
+    "readErrors": 25
+  },
+  "rows": [
+    {
+      "folderName": "0000 - GUSTAVO RUMÃO",
+      "folderClientCode": "0000",
+      "folderClientName": "GUSTAVO RUMÃO",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folderName": "0001 - RODOLFO",
+      "folderClientCode": "0001",
+      "folderClientName": "RODOLFO",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folderName": "1266 - FLÁVIA ESTEVES",
+      "folderClientCode": "1266",
+      "folderClientName": "FLÁVIA ESTEVES",
+      "hasContractFolder": true,
+      "fileName": "100001266.pdf",
+      "filePath": "1266 - FLÁVIA ESTEVES\\CONTRATO\\100001266.pdf",
+      "fileSize": 45525,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1327 - BRUNO PIRES",
+      "folderClientCode": "1327",
+      "folderClientName": "BRUNO PIRES",
+      "hasContractFolder": true,
+      "fileName": "100001327-2.pdf",
+      "filePath": "1327 - BRUNO PIRES\\CONTRATO\\100001327-2.pdf",
+      "fileSize": 64783,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1610 - BRUNO NEVES",
+      "folderClientCode": "1610",
+      "folderClientName": "BRUNO NEVES",
+      "hasContractFolder": true,
+      "fileName": "100001610-1.pdf",
+      "filePath": "1610 - BRUNO NEVES\\CONTRATO\\100001610-1.pdf",
+      "fileSize": 37921,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1623 - WILLIAM SILVA DIAS DO VALE",
+      "folderClientCode": "1623",
+      "folderClientName": "WILLIAM SILVA DIAS DO VALE",
+      "hasContractFolder": true,
+      "fileName": "100001623-1.pdf",
+      "filePath": "1623 - WILLIAM SILVA DIAS DO VALE\\CONTRATO\\100001623-1.pdf",
+      "fileSize": 39982,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1647 - BRUNO E EDILENE",
+      "folderClientCode": "1647",
+      "folderClientName": "BRUNO E EDILENE",
+      "hasContractFolder": true,
+      "fileName": "100001647.pdf",
+      "filePath": "1647 - BRUNO E EDILENE\\CONTRATO\\100001647.pdf",
+      "fileSize": 49741,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1670 - MARCOS MV",
+      "folderClientCode": "1670",
+      "folderClientName": "MARCOS MV",
+      "hasContractFolder": true,
+      "fileName": "100001670.pdf",
+      "filePath": "1670 - MARCOS MV\\CONTRATO\\100001670.pdf",
+      "fileSize": 197075,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1677 - ANDREIA FLORENÇO",
+      "folderClientCode": "1677",
+      "folderClientName": "ANDREIA FLORENÇO",
+      "hasContractFolder": true,
+      "fileName": "100001677-2.pdf",
+      "filePath": "1677 - ANDREIA FLORENÇO\\CONTRATO\\100001677-2.pdf",
+      "fileSize": 207276,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1669 - AUGUSTO DA SILVA",
+      "folderClientCode": "1669",
+      "folderClientName": "AUGUSTO DA SILVA",
+      "hasContractFolder": true,
+      "fileName": "100001669.pdf",
+      "filePath": "1669 - AUGUSTO DA SILVA\\CONTRATO\\100001669.pdf",
+      "fileSize": 201410,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1426 - CARLOS CESAR",
+      "folderClientCode": "1426",
+      "folderClientName": "CARLOS CESAR",
+      "hasContractFolder": true,
+      "fileName": "100001426.pdf",
+      "filePath": "1426 - CARLOS CESAR\\CONTRATO\\100001426.pdf",
+      "fileSize": 37835,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1476 - ERICK IGNACIO",
+      "folderClientCode": "1476",
+      "folderClientName": "ERICK IGNACIO",
+      "hasContractFolder": true,
+      "fileName": "100001476.pdf",
+      "filePath": "1476 - ERICK IGNACIO\\CONTRATO\\100001476.pdf",
+      "fileSize": 43889,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1570 - Dr. THIAGO DOS SANTOS",
+      "folderClientCode": "1570",
+      "folderClientName": "Dr. THIAGO DOS SANTOS",
+      "hasContractFolder": true,
+      "fileName": "100001570.pdf",
+      "filePath": "1570 - Dr. THIAGO DOS SANTOS\\CONTRATO\\100001570.pdf",
+      "fileSize": 37800,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1671 - MARCOS MV",
+      "folderClientCode": "1671",
+      "folderClientName": "MARCOS MV",
+      "hasContractFolder": true,
+      "fileName": "100001671.pdf",
+      "filePath": "1671 - MARCOS MV\\CONTRATO\\100001671.pdf",
+      "fileSize": 201678,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1599 - GUSTAVO BRANCO",
+      "folderClientCode": "1599",
+      "folderClientName": "GUSTAVO BRANCO",
+      "hasContractFolder": true,
+      "fileName": "100001599-1.pdf",
+      "filePath": "1599 - GUSTAVO BRANCO\\CONTRATO\\100001599-1.pdf",
+      "fileSize": 47787,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "0002 - RAFAEL ALMEIDA",
+      "folderClientCode": "0002",
+      "folderClientName": "RAFAEL ALMEIDA",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folderName": "1685 - TR2",
+      "folderClientCode": "1685",
+      "folderClientName": "TR2",
+      "hasContractFolder": true,
+      "fileName": "100001685-1.pdf",
+      "filePath": "1685 - TR2\\CONTRATO\\100001685-1.pdf",
+      "fileSize": 204000,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "0003 - WELLIGTON BRITO",
+      "folderClientCode": "0003",
+      "folderClientName": "WELLIGTON BRITO",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folderName": "1711 - AILTON",
+      "folderClientCode": "1711",
+      "folderClientName": "AILTON",
+      "hasContractFolder": true,
+      "fileName": "100001711.pdf",
+      "filePath": "1711 - AILTON\\CONTRATO\\100001711.pdf",
+      "fileSize": 192380,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1710 - MARCIO DAL",
+      "folderClientCode": "1710",
+      "folderClientName": "MARCIO DAL",
+      "hasContractFolder": true,
+      "fileName": "CONTRATO PINGADEIRAS - MARCIO DAL BELLO.pdf",
+      "filePath": "1710 - MARCIO DAL\\CONTRATO\\CONTRATO PINGADEIRAS - MARCIO DAL BELLO.pdf",
+      "fileSize": 192307,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1662 - PEDRO OLAVO",
+      "folderClientCode": "1662",
+      "folderClientName": "PEDRO OLAVO",
+      "hasContractFolder": true,
+      "fileName": "1662-2.pdf",
+      "filePath": "1662 - PEDRO OLAVO\\CONTRATO\\1662-2.pdf",
+      "fileSize": 209931,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1728 - DIEGO SANCHES",
+      "folderClientCode": "1728",
+      "folderClientName": "DIEGO SANCHES",
+      "hasContractFolder": true,
+      "fileName": "1728.pdf",
+      "filePath": "1728 - DIEGO SANCHES\\CONTRATO\\1728.pdf",
+      "fileSize": 192804,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1741 - DR. GERALDO",
+      "folderClientCode": "1741",
+      "folderClientName": "DR. GERALDO",
+      "hasContractFolder": true,
+      "fileName": "1741.pdf",
+      "filePath": "1741 - DR. GERALDO\\CONTRATO\\1741.pdf",
+      "fileSize": 194568,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1699 - RODOLFO NOGUEIRA",
+      "folderClientCode": "1699",
+      "folderClientName": "RODOLFO NOGUEIRA",
+      "hasContractFolder": true,
+      "fileName": "1699.pdf",
+      "filePath": "1699 - RODOLFO NOGUEIRA\\CONTRATO\\1699.pdf",
+      "fileSize": 196076,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1726 - MARGARIDA APARECIDA",
+      "folderClientCode": "1726",
+      "folderClientName": "MARGARIDA APARECIDA",
+      "hasContractFolder": true,
+      "fileName": "1726.pdf",
+      "filePath": "1726 - MARGARIDA APARECIDA\\CONTRATO\\1726.pdf",
+      "fileSize": 194406,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "0004 - GABRIEL UVA",
+      "folderClientCode": "0004",
+      "folderClientName": "GABRIEL UVA",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folderName": "1717 - MARCIO DAL",
+      "folderClientCode": "1717",
+      "folderClientName": "MARCIO DAL",
+      "hasContractFolder": true,
+      "fileName": "1717.pdf",
+      "filePath": "1717 - MARCIO DAL\\CONTRATO\\1717.pdf",
+      "fileSize": 202152,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1744 - TIAGO SBI",
+      "folderClientCode": "1744",
+      "folderClientName": "TIAGO SBI",
+      "hasContractFolder": true,
+      "fileName": "1744.pdf",
+      "filePath": "1744 - TIAGO SBI\\CONTRATO\\1744.pdf",
+      "fileSize": 192401,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "1754 - GERALDO PAIVA",
+      "folderClientCode": "1754",
+      "folderClientName": "GERALDO PAIVA",
+      "hasContractFolder": true,
+      "fileName": "Contrato - Geraldo de Paiva.pdf",
+      "filePath": "1754 - GERALDO PAIVA\\CONTRATO\\Contrato - Geraldo de Paiva.pdf",
+      "fileSize": 192179,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "---- - OSASCO",
+      "folderClientCode": "-",
+      "folderClientName": "-- - OSASCO",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folderName": "1690 - BIANCA JURTICK",
+      "folderClientCode": "1690",
+      "folderClientName": "BIANCA JURTICK",
+      "hasContractFolder": true,
+      "fileName": "1690.pdf",
+      "filePath": "1690 - BIANCA JURTICK\\CONTRATO\\1690.pdf",
+      "fileSize": 204018,
+      "matchStatus": "ERRO LEITURA",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Erro de leitura: GEMINI_API_KEY_NAO_CONFIGURADA"
+      ]
+    },
+    {
+      "folderName": "---- - ERIC FERREIRA",
+      "folderClientCode": "-",
+      "folderClientName": "-- - ERIC FERREIRA",
+      "hasContractFolder": true,
+      "filesFound": 1,
+      "matchStatus": "NAO ANALISADO",
+      "duplicateStatus": "NAO VERIFICADO",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    }
+  ]
+}

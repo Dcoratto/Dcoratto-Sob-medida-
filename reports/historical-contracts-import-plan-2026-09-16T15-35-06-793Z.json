@@ -1,0 +1,1995 @@
+{
+  "generatedAt": "2026-09-16T15:35:06.792Z",
+  "phase": "IMPORT_PHASE_2_PLAN",
+  "rootDir": "G:\\Meu Drive\\D'CORATTO MARMORARIA\\PROJETOS",
+  "empresaId": "dcoratto-main",
+  "summary": {
+    "readyToImport": 23,
+    "alreadyExists": 0,
+    "softDeletedSkipped": 2,
+    "pendingReview": 7,
+    "failed": 0,
+    "piecesReady": 295,
+    "totalReady": 4128665.05,
+    "clientsToCreate": [
+      "LION ADMINISTRADORA DE BENS LTDA",
+      "BIANCA JURTICK"
+    ],
+    "clientsToReuse": [
+      "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+      "BRUNO PIRES DOS SANTOS",
+      "BRUNO NEVES DOS SANTOS",
+      "WILLIAM SILVA DIAS DO VALE",
+      "EDLENE CRISTINA DA SILVA CERRINI",
+      "AUGUSTO DA SILVA MARIA",
+      "CARLOS CESAR ROMEIRO DA COSTA",
+      "ERICK IGNACIO RODRIGUES",
+      "THIAGO DOS SANTOS SOUZA",
+      "GUSTAVO BRANCO ANGELO",
+      "TR2 COMERCIO E SERVIÇOS DE PAPELARIA EIRELI",
+      "MARCIO DAL BELLO",
+      "PEDRO OLAVO SEVERINI FILHO",
+      "DIEGO SANCHES AZEVEDO",
+      "GERALDO DE PAIVA",
+      "RODOLFO NOGUEIRA",
+      "MARGARIDA APARECIDA GONÇALVES SOUZA",
+      "CAMILA SBI"
+    ]
+  },
+  "rows": [
+    {
+      "folder": "0000 - GUSTAVO RUMÃO",
+      "file": "",
+      "crm_client": "",
+      "contract_number": "",
+      "piece_count": 0,
+      "contract_total": null,
+      "status": "PENDING_REVIEW",
+      "reason": "Sem PDF/numero de contrato importavel.",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folder": "0001 - RODOLFO",
+      "file": "",
+      "crm_client": "",
+      "contract_number": "",
+      "piece_count": 0,
+      "contract_total": null,
+      "status": "PENDING_REVIEW",
+      "reason": "Sem PDF/numero de contrato importavel.",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folder": "1266 - FLÁVIA ESTEVES",
+      "file": "1266 - FLÁVIA ESTEVES\\CONTRATO\\100001266.pdf",
+      "crm_client": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+      "contract_number": "100001266",
+      "piece_count": 20,
+      "contract_total": 210000,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1327 - BRUNO PIRES",
+      "file": "1327 - BRUNO PIRES\\CONTRATO\\100001327-2.pdf",
+      "crm_client": "BRUNO PIRES DOS SANTOS",
+      "contract_number": "100001327-2",
+      "piece_count": 53,
+      "contract_total": 1097336.37,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1610 - BRUNO NEVES",
+      "file": "1610 - BRUNO NEVES\\CONTRATO\\100001610-1.pdf",
+      "crm_client": "BRUNO NEVES DOS SANTOS",
+      "contract_number": "100001610-1",
+      "piece_count": 7,
+      "contract_total": 45000,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1623 - WILLIAM SILVA DIAS DO VALE",
+      "file": "1623 - WILLIAM SILVA DIAS DO VALE\\CONTRATO\\100001623-1.pdf",
+      "crm_client": "WILLIAM SILVA DIAS DO VALE",
+      "contract_number": "100001623-1",
+      "piece_count": 6,
+      "contract_total": 47000,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1647 - BRUNO E EDILENE",
+      "file": "1647 - BRUNO E EDILENE\\CONTRATO\\100001647.pdf",
+      "crm_client": "EDLENE CRISTINA DA SILVA CERRINI",
+      "contract_number": "100001647",
+      "piece_count": 26,
+      "contract_total": 500000,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1670 - MARCOS MV",
+      "file": "1670 - MARCOS MV\\CONTRATO\\100001670.pdf",
+      "crm_client": "LION ADMINISTRADORA DE BENS LTDA",
+      "contract_number": "100001670",
+      "piece_count": 9,
+      "contract_total": 93586.5,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente novo autorizado sera criado.",
+      "warnings": []
+    },
+    {
+      "folder": "1677 - ANDREIA FLORENÇO",
+      "file": "1677 - ANDREIA FLORENÇO\\CONTRATO\\100001677-2.pdf",
+      "crm_client": "ANDRÉIA FLORENÇO MACHADO",
+      "contract_number": "100001677-2",
+      "piece_count": 24,
+      "contract_total": 400000,
+      "status": "SOFT_DELETED_SKIPPED",
+      "reason": "Contrato existe como soft-deleted e nao sera restaurado.",
+      "warnings": []
+    },
+    {
+      "folder": "1669 - AUGUSTO DA SILVA",
+      "file": "1669 - AUGUSTO DA SILVA\\CONTRATO\\100001669.pdf",
+      "crm_client": "AUGUSTO DA SILVA MARIA",
+      "contract_number": "100001669",
+      "piece_count": 12,
+      "contract_total": 70000,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1426 - CARLOS CESAR",
+      "file": "1426 - CARLOS CESAR\\CONTRATO\\100001426.pdf",
+      "crm_client": "CARLOS CESAR ROMEIRO DA COSTA",
+      "contract_number": "100001426",
+      "piece_count": 8,
+      "contract_total": 20000,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1476 - ERICK IGNACIO",
+      "file": "1476 - ERICK IGNACIO\\CONTRATO\\100001476.pdf",
+      "crm_client": "ERICK IGNACIO RODRIGUES",
+      "contract_number": "100001476",
+      "piece_count": 12,
+      "contract_total": 115900,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1570 - Dr. THIAGO DOS SANTOS",
+      "file": "1570 - Dr. THIAGO DOS SANTOS\\CONTRATO\\100001570.pdf",
+      "crm_client": "THIAGO DOS SANTOS SOUZA",
+      "contract_number": "100001570",
+      "piece_count": 5,
+      "contract_total": 35300,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1671 - MARCOS MV",
+      "file": "1671 - MARCOS MV\\CONTRATO\\100001671.pdf",
+      "crm_client": "LION ADMINISTRADORA DE BENS LTDA",
+      "contract_number": "100001671",
+      "piece_count": 15,
+      "contract_total": 225000,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente novo autorizado sera criado.",
+      "warnings": []
+    },
+    {
+      "folder": "1599 - GUSTAVO BRANCO",
+      "file": "1599 - GUSTAVO BRANCO\\CONTRATO\\100001599-1.pdf",
+      "crm_client": "GUSTAVO BRANCO ANGELO",
+      "contract_number": "100001599-1",
+      "piece_count": 25,
+      "contract_total": 400000,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "0002 - RAFAEL ALMEIDA",
+      "file": "",
+      "crm_client": "",
+      "contract_number": "",
+      "piece_count": 0,
+      "contract_total": null,
+      "status": "PENDING_REVIEW",
+      "reason": "Sem PDF/numero de contrato importavel.",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folder": "1685 - TR2",
+      "file": "1685 - TR2\\CONTRATO\\100001685-1.pdf",
+      "crm_client": "TR2 COMERCIO E SERVIÇOS DE PAPELARIA EIRELI",
+      "contract_number": "100001685-1",
+      "piece_count": 19,
+      "contract_total": 198900,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "0003 - WELLIGTON BRITO",
+      "file": "",
+      "crm_client": "",
+      "contract_number": "",
+      "piece_count": 0,
+      "contract_total": null,
+      "status": "PENDING_REVIEW",
+      "reason": "Sem PDF/numero de contrato importavel.",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folder": "1711 - AILTON",
+      "file": "1711 - AILTON\\CONTRATO\\100001711.pdf",
+      "crm_client": "ANTONIO AILTON CARDOSO SOARES",
+      "contract_number": "100001711",
+      "piece_count": 1,
+      "contract_total": 550,
+      "status": "SOFT_DELETED_SKIPPED",
+      "reason": "Contrato existe como soft-deleted e nao sera restaurado.",
+      "warnings": []
+    },
+    {
+      "folder": "1710 - MARCIO DAL",
+      "file": "1710 - MARCIO DAL\\CONTRATO\\CONTRATO PINGADEIRAS - MARCIO DAL BELLO.pdf",
+      "crm_client": "MARCIO DAL BELLO",
+      "contract_number": "100001710",
+      "piece_count": 1,
+      "contract_total": 8215.37,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1662 - PEDRO OLAVO",
+      "file": "1662 - PEDRO OLAVO\\CONTRATO\\1662-2.pdf",
+      "crm_client": "PEDRO OLAVO SEVERINI FILHO",
+      "contract_number": "100001662-2",
+      "piece_count": 29,
+      "contract_total": 639900,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1728 - DIEGO SANCHES",
+      "file": "1728 - DIEGO SANCHES\\CONTRATO\\1728.pdf",
+      "crm_client": "DIEGO SANCHES AZEVEDO",
+      "contract_number": "100001728",
+      "piece_count": 2,
+      "contract_total": 32000,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1741 - DR. GERALDO",
+      "file": "1741 - DR. GERALDO\\CONTRATO\\1741.pdf",
+      "crm_client": "GERALDO DE PAIVA",
+      "contract_number": "100001741",
+      "piece_count": 2,
+      "contract_total": 70000,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1699 - RODOLFO NOGUEIRA",
+      "file": "1699 - RODOLFO NOGUEIRA\\CONTRATO\\1699.pdf",
+      "crm_client": "RODOLFO NOGUEIRA",
+      "contract_number": "100001699",
+      "piece_count": 5,
+      "contract_total": 89900,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1726 - MARGARIDA APARECIDA",
+      "file": "1726 - MARGARIDA APARECIDA\\CONTRATO\\1726.pdf",
+      "crm_client": "MARGARIDA APARECIDA GONÇALVES SOUZA",
+      "contract_number": "100001726",
+      "piece_count": 2,
+      "contract_total": 12500,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "0004 - GABRIEL UVA",
+      "file": "",
+      "crm_client": "",
+      "contract_number": "",
+      "piece_count": 0,
+      "contract_total": null,
+      "status": "PENDING_REVIEW",
+      "reason": "Sem PDF/numero de contrato importavel.",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folder": "1717 - MARCIO DAL",
+      "file": "1717 - MARCIO DAL\\CONTRATO\\1717.pdf",
+      "crm_client": "MARCIO DAL BELLO",
+      "contract_number": "100001717",
+      "piece_count": 15,
+      "contract_total": 52000,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1744 - TIAGO SBI",
+      "file": "1744 - TIAGO SBI\\CONTRATO\\1744.pdf",
+      "crm_client": "CAMILA SBI",
+      "contract_number": "100001744",
+      "piece_count": 1,
+      "contract_total": 7091,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "1754 - GERALDO PAIVA",
+      "file": "1754 - GERALDO PAIVA\\CONTRATO\\Contrato - Geraldo de Paiva.pdf",
+      "crm_client": "GERALDO DE PAIVA",
+      "contract_number": "100001754",
+      "piece_count": 1,
+      "contract_total": 4035.81,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente existente sera reutilizado.",
+      "warnings": []
+    },
+    {
+      "folder": "---- - OSASCO",
+      "file": "",
+      "crm_client": "",
+      "contract_number": "",
+      "piece_count": 0,
+      "contract_total": null,
+      "status": "PENDING_REVIEW",
+      "reason": "Sem PDF/numero de contrato importavel.",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    },
+    {
+      "folder": "1690 - BIANCA JURTICK",
+      "file": "1690 - BIANCA JURTICK\\CONTRATO\\1690.pdf",
+      "crm_client": "BIANCA JURTICK",
+      "contract_number": "100001690",
+      "piece_count": 20,
+      "contract_total": 155000,
+      "status": "READY_TO_IMPORT",
+      "reason": "Cliente novo autorizado sera criado.",
+      "warnings": []
+    },
+    {
+      "folder": "---- - ERIC FERREIRA",
+      "file": "",
+      "crm_client": "",
+      "contract_number": "",
+      "piece_count": 0,
+      "contract_total": null,
+      "status": "PENDING_REVIEW",
+      "reason": "Sem PDF/numero de contrato importavel.",
+      "warnings": [
+        "Pasta CONTRATO sem PDF suportado."
+      ]
+    }
+  ],
+  "payload": [
+    {
+      "folder": "1266 - FLÁVIA ESTEVES",
+      "file": "1266 - FLÁVIA ESTEVES\\CONTRATO\\100001266.pdf",
+      "contractNumber": "100001266",
+      "contractDate": "2024-08-27",
+      "contractTotal": 210000,
+      "parsedClientName": "FL�VIA DE BARROS ESTEVES CALSAVARA",
+      "parsedDocumentMasked": "403***02",
+      "targetClient": {
+        "id": "64cCeHqubs3t2vdBaEk4",
+        "name": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AA-�REA GOURMET NOVA SOLU�OES",
+          "value": 8731.24
+        },
+        {
+          "label": "AB-DORMIT�RIO LIZ NOVA SOLU�OES",
+          "value": 17445.62
+        },
+        {
+          "label": "AC-SU�TE FL�VIA NOVA SOLU�OES",
+          "value": 44760.26
+        },
+        {
+          "label": "AD-DORMIT�RIO H�SPEDES NOVA SOLU�OES",
+          "value": 10219
+        },
+        {
+          "label": "AE-HOME OFFICE NOVA SOLU�OES",
+          "value": 8983.47
+        },
+        {
+          "label": "AF-LAVANDERIA NOVA SOLU�OES",
+          "value": 7278.31
+        },
+        {
+          "label": "AG-LAVABO NOVA SOLU�OES",
+          "value": 2671.32
+        },
+        {
+          "label": "AH-COZINHA NOVA SOLU�OES",
+          "value": 27513.59
+        },
+        {
+          "label": "AI-SALA ESTAR NOVA SOLU�OES",
+          "value": 29915.67
+        },
+        {
+          "label": "AJ-SALA JANTAR NOVA SOLU�OES",
+          "value": 10694.38
+        },
+        {
+          "label": "AK-WC. SU�TE FL�VIA NOVA SOLU�OES",
+          "value": 2510.38
+        },
+        {
+          "label": "AL-WC. GOURMET NOVA SOLU�OES",
+          "value": 1327.03
+        },
+        {
+          "label": "AM-WC. SOCIAL NOVA SOLU�OES",
+          "value": 1620.54
+        },
+        {
+          "label": "AN-LAMINA ULTRACOMPACTA",
+          "value": 13689.62
+        },
+        {
+          "label": "AO-GRANITO LAVANDERIA",
+          "value": 2598.38
+        },
+        {
+          "label": "AP-MARMORE LAVABO",
+          "value": 4811.77
+        },
+        {
+          "label": "AQ-GRANITO �REA GOURMET",
+          "value": 7915.48
+        },
+        {
+          "label": "AR-QUARTZO WC. FLAVIA",
+          "value": 2502.15
+        },
+        {
+          "label": "AS-GRANITO W.C GOURMET",
+          "value": 2309.66
+        },
+        {
+          "label": "AT-QUARTZO WC. SOCIAL",
+          "value": 2502.13
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1327 - BRUNO PIRES",
+      "file": "1327 - BRUNO PIRES\\CONTRATO\\100001327-2.pdf",
+      "contractNumber": "100001327-2",
+      "contractDate": "2024-11-19",
+      "contractTotal": 1097336.37,
+      "parsedClientName": "BRUNO PIRES DOS SANTOS",
+      "parsedDocumentMasked": "351***86",
+      "targetClient": {
+        "id": "wsvf1T38vJrhMMmyHlLF",
+        "name": "BRUNO PIRES DOS SANTOS",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AB-DORMIT�RIO FILHA NOVA SOLU�OES",
+          "value": 43191.07
+        },
+        {
+          "label": "AC-CLOSET FILHA NOVA SOLU�OES",
+          "value": 33036.55
+        },
+        {
+          "label": "AD-WC FILHA NOVA SOLU�OES",
+          "value": 11930.66
+        },
+        {
+          "label": "AE-DORMIT�RIO FILHO NOVA SOLU�OES",
+          "value": 36216.51
+        },
+        {
+          "label": "AF-CLOSET FILHO NOVA SOLU�OES",
+          "value": 17688.53
+        },
+        {
+          "label": "AG-WC FILHO NOVA SOLU�OES",
+          "value": 2990.28
+        },
+        {
+          "label": "AH-DORMIT�RIO CASAL NOVA SOLU�OES",
+          "value": 53653.98
+        },
+        {
+          "label": "AI-CLOSET VANESSA NOVA SOLU�OES",
+          "value": 97473.48
+        },
+        {
+          "label": "AL-CLOSET H�SPEDES NOVA SOLU�OES",
+          "value": 15580.04
+        },
+        {
+          "label": "AM-DORMIT�RIO H�SPEDES NOVA SOLU�OES",
+          "value": 7972.61
+        },
+        {
+          "label": "AN-WC HOSPEDES SUPERIOR NOVA SOLU�OES",
+          "value": 4004.18
+        },
+        {
+          "label": "AO-SALA �NTIMA NOVA SOLU�OES",
+          "value": 60244.12
+        },
+        {
+          "label": "AP-WC VANESSA NOVA SOLU�OES",
+          "value": 4867.06
+        },
+        {
+          "label": "AQ-WC FILHO QUARTZO AZUL",
+          "value": 2631.03
+        },
+        {
+          "label": "AR-WC FILHA - QUARTZO BRANCO",
+          "value": 4214.7
+        },
+        {
+          "label": "AS-WC MASTER - L�MINA ULTRA",
+          "value": 8720.26
+        },
+        {
+          "label": "AU-WC H�SPEDES - QUARTZO",
+          "value": 3343.89
+        },
+        {
+          "label": "AV-COZINHA NOVA SOLU�OES",
+          "value": 127715.28
+        },
+        {
+          "label": "AW-�REA GOURMET NOVA SOLU�OES",
+          "value": 37848.59
+        },
+        {
+          "label": "AX-PAINEL DE TV COZINHA NOVA SOLU�OES",
+          "value": 26929.14
+        },
+        {
+          "label": "AY-PAINEL DE TV CALACATTA",
+          "value": 9578.88
+        },
+        {
+          "label": "AZ-COZINHA CALACATA",
+          "value": 12771.88
+        },
+        {
+          "label": "BA-ILHA COZINHA - CALACATTA",
+          "value": 19157.42
+        },
+        {
+          "label": "BB-REVESTIMENTO COZINHA-",
+          "value": 11610.81
+        },
+        {
+          "label": "BC-REVESTIMENTO GOURMET- NERO",
+          "value": 20782.44
+        },
+        {
+          "label": "BD-�REA GOURMET - PT S�O GABRIEL",
+          "value": 14967.41
+        },
+        {
+          "label": "BF-CHURRASQUEIRA NERO LAMINA",
+          "value": 13932.79
+        },
+        {
+          "label": "BG-�REA DE SERVI�OS NOVA SOLU�OES",
+          "value": 15317.56
+        },
+        {
+          "label": "BH-DEP�SITO - DEPENSA NOVA SOLU�OES",
+          "value": 4444.78
+        },
+        {
+          "label": "BI-DESPENSA NOVA SOLU�OES",
+          "value": 26868.82
+        },
+        {
+          "label": "BJ-SALA CINEMA NOVA SOLU�OES",
+          "value": 14196.38
+        },
+        {
+          "label": "BL-ESCRIT�RIO NOVA SOLU�OES",
+          "value": 34689.84
+        },
+        {
+          "label": "BM-SALA GAMER NOVA SOLU�OES",
+          "value": 36363.92
+        },
+        {
+          "label": "BN-WC SU�TE MASTER NOVA SOLU�OES",
+          "value": 9242.17
+        },
+        {
+          "label": "BO-DEPOSITO GARAGEM NOVA SOLU�OES",
+          "value": 5143.6
+        },
+        {
+          "label": "BP-WC SAUNA NOVA SOLU�OES",
+          "value": 2511.89
+        },
+        {
+          "label": "BQ-HALL ELEVADOR T�RREO NOVA SOLU�OES",
+          "value": 70948.05
+        },
+        {
+          "label": "BR-SALA DE ESTAR NOVA SOLU�OES",
+          "value": 23628.27
+        },
+        {
+          "label": "BS-PUB NOVA SOLU�OES",
+          "value": 9198.2
+        },
+        {
+          "label": "BT-LAVABO NOVA SOLU�OES",
+          "value": 6791.68
+        },
+        {
+          "label": "BU-L�MINA ULTRA COMP LIVING",
+          "value": 63857.27
+        },
+        {
+          "label": "BV-PEDRA LAVANDERIA BRANCO",
+          "value": 9372.79
+        },
+        {
+          "label": "BW-PEDRA LAVABO BRANCO PARAN�",
+          "value": 8903.68
+        },
+        {
+          "label": "BY-PEDRA SAUNA QUARTZO BRANCO",
+          "value": 3715.46
+        },
+        {
+          "label": "BZ-PEDRA WC VANESSA QUARTZO",
+          "value": 3831.56
+        },
+        {
+          "label": "CA-PEDRA PUB PRETO S�O GABRIEL",
+          "value": 8590.23
+        },
+        {
+          "label": "CB-NICHO WC VANESSA QTZO",
+          "value": 3468.69
+        },
+        {
+          "label": "CC-NICHO WC MASTER L�MINA ULTRA",
+          "value": 8708.07
+        },
+        {
+          "label": "CD-NICHO WC FILHA QUARTZO",
+          "value": 2196.77
+        },
+        {
+          "label": "CE-NICHO WC FILHO QTZO AZUL",
+          "value": 3468.69
+        },
+        {
+          "label": "CF-NICHO WC H�SPEDES SUP. QTZO",
+          "value": 3468.69
+        },
+        {
+          "label": "CH-NICHO WC SAUNA QTZO BRANCO",
+          "value": 2950.28
+        },
+        {
+          "label": "CI-HALL DO ELEVADOR GARAGEM NOVA SOLU�OES",
+          "value": 12405.44
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1610 - BRUNO NEVES",
+      "file": "1610 - BRUNO NEVES\\CONTRATO\\100001610-1.pdf",
+      "contractNumber": "100001610-1",
+      "contractDate": "2025-11-12",
+      "contractTotal": 45000,
+      "parsedClientName": "BRUNO NEVES DOS SANTOS",
+      "parsedDocumentMasked": "379***00",
+      "targetClient": {
+        "id": "sDWIU7p2isgURnkQsUkC",
+        "name": "BRUNO NEVES DOS SANTOS",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AC-COZINHA - VITTA",
+          "value": 25439.8
+        },
+        {
+          "label": "AI-GRANITO COZINHA BRANCO",
+          "value": 4839.15
+        },
+        {
+          "label": "AJ-GRANITO LAVANDERIA BRANCO",
+          "value": 1590.59
+        },
+        {
+          "label": "AK-QUARTZO BRANCO - WC SOCIAL",
+          "value": 2521.57
+        },
+        {
+          "label": "AL-PRETO S�O GABRIEL - WC SUITE",
+          "value": 1754.33
+        },
+        {
+          "label": "AM-WC SOCIAL - BOA VISTA",
+          "value": 4427.28
+        },
+        {
+          "label": "AN-WC CASAL - BOA VISTA",
+          "value": 4427.28
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1623 - WILLIAM SILVA DIAS DO VALE",
+      "file": "1623 - WILLIAM SILVA DIAS DO VALE\\CONTRATO\\100001623-1.pdf",
+      "contractNumber": "100001623-1",
+      "contractDate": "2025-11-30",
+      "contractTotal": 47000,
+      "parsedClientName": "WILLIAM SILVA DIAS DO VALE",
+      "parsedDocumentMasked": "417***18",
+      "targetClient": {
+        "id": "5I7m5M9LDrBCv1iCNQ9G",
+        "name": "WILLIAM SILVA DIAS DO VALE",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AK-WC SOCIAL",
+          "value": 3887.39
+        },
+        {
+          "label": "AM-HOME OFFICE",
+          "value": 7755.56
+        },
+        {
+          "label": "AN-DORMITORIO CASAL",
+          "value": 14118.56
+        },
+        {
+          "label": "AO-COZINHA",
+          "value": 13611.23
+        },
+        {
+          "label": "AP-PENINSULA",
+          "value": 3721.12
+        },
+        {
+          "label": "AQ-BANCADA COZINHA",
+          "value": 3906.14
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1647 - BRUNO E EDILENE",
+      "file": "1647 - BRUNO E EDILENE\\CONTRATO\\100001647.pdf",
+      "contractNumber": "100001647",
+      "contractDate": "2026-01-28",
+      "contractTotal": 500000,
+      "parsedClientName": "EDLENE CRISTINA DA SILVA CERRINI",
+      "parsedDocumentMasked": "352***11",
+      "targetClient": {
+        "id": "ovlaChV0aMFEDfFgVDem",
+        "name": "EDLENE CRISTINA DA SILVA CERRINI",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AA-�REA GOURMET",
+          "value": 30677.57
+        },
+        {
+          "label": "AB-CINEMA",
+          "value": 7896.25
+        },
+        {
+          "label": "AC-PAINEL TELA TENCIONADA+",
+          "value": 12724.13
+        },
+        {
+          "label": "AD-COZINHA",
+          "value": 46041.82
+        },
+        {
+          "label": "AE-PAINEL INTEGRADO SALA E COZ",
+          "value": 23983.82
+        },
+        {
+          "label": "AF-LAVABO",
+          "value": 1411.89
+        },
+        {
+          "label": "AG-MARMORARIA - COZINHA",
+          "value": 32368.51
+        },
+        {
+          "label": "AH-MARMORARIA - LAVABO",
+          "value": 6567.52
+        },
+        {
+          "label": "AJ-MAMORARIA - WC MASTER",
+          "value": 2292.99
+        },
+        {
+          "label": "AK-MARMORARIA SU�TE BRENDA",
+          "value": 1590.3
+        },
+        {
+          "label": "AL-SU�TE MASTER",
+          "value": 48879.25
+        },
+        {
+          "label": "AM-CLOSET MASTER",
+          "value": 60395.68
+        },
+        {
+          "label": "AN-S�ITE BRENDA",
+          "value": 33457.44
+        },
+        {
+          "label": "AO-CLOSET BRENDA",
+          "value": 27912.17
+        },
+        {
+          "label": "AP-SU�TE BIA",
+          "value": 46409.24
+        },
+        {
+          "label": "AQ-SU�TE BRUNA",
+          "value": 14032.79
+        },
+        {
+          "label": "AR-WC MASTER",
+          "value": 3889.69
+        },
+        {
+          "label": "AS-WC BRENDA",
+          "value": 2529.85
+        },
+        {
+          "label": "AT-WC BIA",
+          "value": 1785.03
+        },
+        {
+          "label": "AU-WC BRUNA",
+          "value": 1785.03
+        },
+        {
+          "label": "AV-HALL DO QUARTOS",
+          "value": 51950.31
+        },
+        {
+          "label": "AW-ESCRIT�RIO",
+          "value": 15182.74
+        },
+        {
+          "label": "AX-DESPENSA",
+          "value": 7346.03
+        },
+        {
+          "label": "AY-LAVANDERIA",
+          "value": 6725.94
+        },
+        {
+          "label": "AZ-MARMORARIA - DESPENSA",
+          "value": 3846.69
+        },
+        {
+          "label": "BA-MARMORARIA HALL",
+          "value": 8317.32
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1670 - MARCOS MV",
+      "file": "1670 - MARCOS MV\\CONTRATO\\100001670.pdf",
+      "contractNumber": "100001670",
+      "contractDate": "2026-02-27",
+      "contractTotal": 93586.5,
+      "parsedClientName": "LION ADMINISTRADORA DE BENS LTDA",
+      "parsedDocumentMasked": "457***01",
+      "targetClient": {
+        "id": null,
+        "name": "LION ADMINISTRADORA DE BENS LTDA",
+        "action": "CREATE",
+        "cpf": "45.745.082/0001",
+        "phone": "11-941451557",
+        "address": "",
+        "city": "Paulistano S�o Paulo",
+        "neighborhood": "Parque"
+      },
+      "pieces": [
+        {
+          "label": "DR-COZINHA",
+          "value": 58419.15
+        },
+        {
+          "label": "DS-LAVABO",
+          "value": 3374.22
+        },
+        {
+          "label": "DT-LIVING",
+          "value": 16719.96
+        },
+        {
+          "label": "DU-A.S.",
+          "value": 4834.68
+        },
+        {
+          "label": "DV-WC A.S.",
+          "value": 1208.68
+        },
+        {
+          "label": "DW-WC SUITE 1",
+          "value": 2316.63
+        },
+        {
+          "label": "DX-WC SUITE 2",
+          "value": 1158.31
+        },
+        {
+          "label": "DY-WC SUITE 3",
+          "value": 1485.68
+        },
+        {
+          "label": "DZ-WC SUITE MASTER",
+          "value": 4069.19
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1669 - AUGUSTO DA SILVA",
+      "file": "1669 - AUGUSTO DA SILVA\\CONTRATO\\100001669.pdf",
+      "contractNumber": "100001669",
+      "contractDate": "2026-02-26",
+      "contractTotal": 70000,
+      "parsedClientName": "AUGUSTO DA SILVA MARIA",
+      "parsedDocumentMasked": "128***55",
+      "targetClient": {
+        "id": "3BJG2inpejc9SIY0UT9e",
+        "name": "AUGUSTO DA SILVA MARIA",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AE-COZINHA",
+          "value": 18311.29
+        },
+        {
+          "label": "AF-COZINHA BANCADA",
+          "value": 6612.41
+        },
+        {
+          "label": "AG-LAVABO AREA SOCIAL",
+          "value": 5137.33
+        },
+        {
+          "label": "AH-LAVABO AREA GOURMET",
+          "value": 5137.33
+        },
+        {
+          "label": "AI-A.S.",
+          "value": 3763.98
+        },
+        {
+          "label": "AJ-WC SUITE 1",
+          "value": 4303.16
+        },
+        {
+          "label": "AK-WC SUITE 2",
+          "value": 4303.16
+        },
+        {
+          "label": "AL-WC HOSPEDE",
+          "value": 2695.82
+        },
+        {
+          "label": "AM-WC ACADEMIA",
+          "value": 2695.82
+        },
+        {
+          "label": "AN-WC SUITE MASTER",
+          "value": 4526.96
+        },
+        {
+          "label": "AO-AREA GOURMET",
+          "value": 6612.41
+        },
+        {
+          "label": "AP-AREA GOURMET BANCADA",
+          "value": 5900.33
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1426 - CARLOS CESAR",
+      "file": "1426 - CARLOS CESAR\\CONTRATO\\100001426.pdf",
+      "contractNumber": "100001426",
+      "contractDate": "2025-03-07",
+      "contractTotal": 20000,
+      "parsedClientName": "CARLOS CESAR ROMEIRO DA COSTA",
+      "parsedDocumentMasked": "335***01",
+      "targetClient": {
+        "id": "gEWmiJYzWgWREB5AWXRa",
+        "name": "CARLOS CESAR ROMEIRO DA COSTA",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AA-BANCADA COZINHA",
+          "value": 3000.94
+        },
+        {
+          "label": "AB-ILHA COZINHA",
+          "value": 3844.97
+        },
+        {
+          "label": "AC-BANCADA �REA DE SERVI�O",
+          "value": 3063.42
+        },
+        {
+          "label": "AD-BANCADA BANHO 2",
+          "value": 3219.73
+        },
+        {
+          "label": "AE-PRATELEIRA BANHO 2",
+          "value": 593.95
+        },
+        {
+          "label": "AF-BANCADA BANHO 1",
+          "value": 3219.73
+        },
+        {
+          "label": "AG-PRATELEIRA BANHO 1",
+          "value": 625.22
+        },
+        {
+          "label": "AI-BANCADA �REA GOURMET",
+          "value": 2432.04
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1476 - ERICK IGNACIO",
+      "file": "1476 - ERICK IGNACIO\\CONTRATO\\100001476.pdf",
+      "contractNumber": "100001476",
+      "contractDate": "2025-04-30",
+      "contractTotal": 115900,
+      "parsedClientName": "ERICK IGNACIO RODRIGUES",
+      "parsedDocumentMasked": "421***18",
+      "targetClient": {
+        "id": "qwSnpzidNlTx1mmZ2g6J",
+        "name": "ERICK IGNACIO RODRIGUES",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AA-COZINHA E LAVANDERIA NOVA SOLU�OES",
+          "value": 29589.89
+        },
+        {
+          "label": "AB-SALA DE ESTAR NOVA SOLU�OES",
+          "value": 8416.57
+        },
+        {
+          "label": "AC-�REA GOURMET NOVA SOLU�OES",
+          "value": 8542.66
+        },
+        {
+          "label": "AD-WC SOCIAL NOVA SOLU�OES",
+          "value": 3711.02
+        },
+        {
+          "label": "AE-WC SUITE NOVA SOLU�OES",
+          "value": 3711.02
+        },
+        {
+          "label": "AF-DORMIT�RIO CASAL NOVA SOLU�OES",
+          "value": 22504.01
+        },
+        {
+          "label": "AG-DORMITORIO SOLTEIRO NOVA SOLU�OES",
+          "value": 12445.22
+        },
+        {
+          "label": "AH-PIA COZINHA (QUARTZO)",
+          "value": 14642.8
+        },
+        {
+          "label": "AI-PIA LAVANDERIA (QUARTZO)",
+          "value": 4524.76
+        },
+        {
+          "label": "AJ-PIA �REA GOURMET (PRETO SGE)",
+          "value": 2578.58
+        },
+        {
+          "label": "AK-WC SOCIAL (PRETO SGE)",
+          "value": 2616.74
+        },
+        {
+          "label": "AL-WC CASAL (PRETO SGE)",
+          "value": 2616.73
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1570 - Dr. THIAGO DOS SANTOS",
+      "file": "1570 - Dr. THIAGO DOS SANTOS\\CONTRATO\\100001570.pdf",
+      "contractNumber": "100001570",
+      "contractDate": "2025-09-23",
+      "contractTotal": 35300,
+      "parsedClientName": "THIAGO DOS SANTOS SOUZA",
+      "parsedDocumentMasked": "430***28",
+      "targetClient": {
+        "id": "6mD3sIkhxjzZi07sqHA1",
+        "name": "THIAGO DOS SANTOS SOUZA",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AA-BANCADA COZINHA PRETO SG",
+          "value": 12432
+        },
+        {
+          "label": "AB-ILHA COZINHA PRETO S.G ESCOV",
+          "value": 6994
+        },
+        {
+          "label": "AC-RODABASE COZINHA PRETO SG",
+          "value": 3248
+        },
+        {
+          "label": "AD-CUBA LAVABO PRETO SG",
+          "value": 5808
+        },
+        {
+          "label": "AE-BANCADA E NICHO SU�TE MASTER",
+          "value": 6818
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1671 - MARCOS MV",
+      "file": "1671 - MARCOS MV\\CONTRATO\\100001671.pdf",
+      "contractNumber": "100001671",
+      "contractDate": "2026-03-04",
+      "contractTotal": 225000,
+      "parsedClientName": "LION ADMINISTRADORA DE BENS LTDA",
+      "parsedDocumentMasked": "457***01",
+      "targetClient": {
+        "id": null,
+        "name": "LION ADMINISTRADORA DE BENS LTDA",
+        "action": "CREATE",
+        "cpf": "45.745.082/0001",
+        "phone": "11-941451557",
+        "address": "",
+        "city": "Paulistano S�o Paulo",
+        "neighborhood": "Parque"
+      },
+      "pieces": [
+        {
+          "label": "DF-WC 1",
+          "value": 956.03
+        },
+        {
+          "label": "DG-HALL DO ELEVADOR",
+          "value": 2737.19
+        },
+        {
+          "label": "DH-HOME OFFICE",
+          "value": 20473.41
+        },
+        {
+          "label": "DK-COZINHA",
+          "value": 39793.55
+        },
+        {
+          "label": "DL-LAVABO",
+          "value": 9731.94
+        },
+        {
+          "label": "DM-PORTA DE CORRER RIPADA",
+          "value": 36996.25
+        },
+        {
+          "label": "DN-HALL PAINEL SALA",
+          "value": 12080.18
+        },
+        {
+          "label": "DP-AREA DE SERVI�O",
+          "value": 10662.61
+        },
+        {
+          "label": "DQ-SUITE 1",
+          "value": 17877.83
+        },
+        {
+          "label": "EA-SUITE 2",
+          "value": 12441.59
+        },
+        {
+          "label": "EB-SUITE 3",
+          "value": 17194.04
+        },
+        {
+          "label": "EC-CLOSET",
+          "value": 20424.33
+        },
+        {
+          "label": "ED-SUITE MASTER",
+          "value": 14588.01
+        },
+        {
+          "label": "EF-DESPENSA",
+          "value": 4789.06
+        },
+        {
+          "label": "EG-CIRCULA��O",
+          "value": 4253.98
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1599 - GUSTAVO BRANCO",
+      "file": "1599 - GUSTAVO BRANCO\\CONTRATO\\100001599-1.pdf",
+      "contractNumber": "100001599-1",
+      "contractDate": "2025-10-25",
+      "contractTotal": 400000,
+      "parsedClientName": "GUSTAVO BRANCO ANGELO",
+      "parsedDocumentMasked": "404***82",
+      "targetClient": {
+        "id": "TmodWUKDzWwGTXhGu1Hp",
+        "name": "GUSTAVO BRANCO ANGELO",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AP-CRISTALEIRA COZINHA NOVA SOLU�OES",
+          "value": 23324.75
+        },
+        {
+          "label": "BG-M�RMORES - BANHO MASTER",
+          "value": 4382.16
+        },
+        {
+          "label": "BH-GRANITOS - BANHO SOCIAL",
+          "value": 2441.5
+        },
+        {
+          "label": "BI-M�RMORE - LAVABO",
+          "value": 2993.86
+        },
+        {
+          "label": "BJ-GRANITO - �REA DE SERVI�O",
+          "value": 2852.07
+        },
+        {
+          "label": "BK-L�MINAS COZINHA",
+          "value": 20229.73
+        },
+        {
+          "label": "BL-L�MINAS �REA GOURMET",
+          "value": 10264.93
+        },
+        {
+          "label": "BM-COZINHA - BOA VISTA",
+          "value": 54966.81
+        },
+        {
+          "label": "BN-PAINEIS TETO COZINHA - BOA VIS",
+          "value": 6312.94
+        },
+        {
+          "label": "BO-�REA GOURMET - BOA VISTA",
+          "value": 9446.05
+        },
+        {
+          "label": "BP-M�VEL DE APOIO - BOA VISTA",
+          "value": 9185.26
+        },
+        {
+          "label": "BQ-PORTAS MIMET.+NICHO - BOA VIST",
+          "value": 18954.96
+        },
+        {
+          "label": "BR-SALA - BOA VISTA",
+          "value": 11885.48
+        },
+        {
+          "label": "BS-3 PORTAS - HALL DORMIT�RIOS",
+          "value": 15088.33
+        },
+        {
+          "label": "BT-PAINEIS TETO BIBLIOTECA",
+          "value": 7690.7
+        },
+        {
+          "label": "BV-BIBLIOTECA - ESCRIT�RIO",
+          "value": 25118.44
+        },
+        {
+          "label": "BW-CLOSET",
+          "value": 93136.93
+        },
+        {
+          "label": "BX-SUITE MASTER",
+          "value": 19323.75
+        },
+        {
+          "label": "BZ-QUARTO PUZZLE",
+          "value": 17859.39
+        },
+        {
+          "label": "CA-AREA DE SERVI�O BOA VISTA",
+          "value": 9595.7
+        },
+        {
+          "label": "CB-WC SOCIAL",
+          "value": 3585.79
+        },
+        {
+          "label": "CC-HALL",
+          "value": 7381.29
+        },
+        {
+          "label": "CD-HALL QUARTOS - BOA VISTA",
+          "value": 12905.23
+        },
+        {
+          "label": "CE-LAVABO - BOA VISTA",
+          "value": 2669.22
+        },
+        {
+          "label": "CF-WC SUITE MASTER",
+          "value": 8404.73
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1685 - TR2",
+      "file": "1685 - TR2\\CONTRATO\\100001685-1.pdf",
+      "contractNumber": "100001685-1",
+      "contractDate": "2026-03-28",
+      "contractTotal": 198900,
+      "parsedClientName": "TR2 COMERCIO E SERVI�OS DE PAPELARIA EIRELI",
+      "parsedDocumentMasked": "086***01",
+      "targetClient": {
+        "id": "3LCQXeeZiD3MKdOVaOXd",
+        "name": "TR2 COMERCIO E SERVIÇOS DE PAPELARIA EIRELI",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "BC-MARMO - WC LADO DA BIBLIOTECA",
+          "value": 2985.39
+        },
+        {
+          "label": "BD-MARMO - COPA - TERREO",
+          "value": 4646.51
+        },
+        {
+          "label": "BE-MARMO - COPA 1 PAV - MARMO",
+          "value": 5227.34
+        },
+        {
+          "label": "BF-INFORMATICA",
+          "value": 11694.32
+        },
+        {
+          "label": "BG-BIBLIOTECA",
+          "value": 21683.77
+        },
+        {
+          "label": "BH-REUNI�O",
+          "value": 9767.56
+        },
+        {
+          "label": "BI-RECEP��O",
+          "value": 24041.32
+        },
+        {
+          "label": "BJ-COPA TERREO",
+          "value": 15723.31
+        },
+        {
+          "label": "BK-DESPENSA TERREO",
+          "value": 3108.41
+        },
+        {
+          "label": "BL-SALA ATRAS DA BIBLIOTECA",
+          "value": 8617.25
+        },
+        {
+          "label": "BM-SALA DENTRO DA HUMANIZA��O",
+          "value": 8598.41
+        },
+        {
+          "label": "BN-SALA FUNDO AUDITORIO",
+          "value": 6199.61
+        },
+        {
+          "label": "BO-DESPENSA 1 PAV",
+          "value": 2207.36
+        },
+        {
+          "label": "BP-COPA 1 PAV",
+          "value": 18575.83
+        },
+        {
+          "label": "BQ-PORTA WC DEFICIENTE",
+          "value": 4990.06
+        },
+        {
+          "label": "BR-PAINEIS 1 PAV - EXTERNO",
+          "value": 35871.98
+        },
+        {
+          "label": "BS-PORTA WC DEFICIENTE 1 PAV",
+          "value": 4990.06
+        },
+        {
+          "label": "BT-PORTAS AUDITORIO",
+          "value": 4950.4
+        },
+        {
+          "label": "BU-CANALETAS MESAS 1PAV",
+          "value": 5021.11
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1710 - MARCIO DAL",
+      "file": "1710 - MARCIO DAL\\CONTRATO\\CONTRATO PINGADEIRAS - MARCIO DAL BELLO.pdf",
+      "contractNumber": "100001710",
+      "contractDate": "2026-06-09",
+      "contractTotal": 8215.37,
+      "parsedClientName": "MARCIO DAL BELLO",
+      "parsedDocumentMasked": "716***20",
+      "targetClient": {
+        "id": "MD5n3US8nLIhAFSheb47",
+        "name": "MARCIO DAL BELLO",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "BB-PINGADEIRAS E SOLEIRAS",
+          "value": 8215.37
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1662 - PEDRO OLAVO",
+      "file": "1662 - PEDRO OLAVO\\CONTRATO\\1662-2.pdf",
+      "contractNumber": "100001662-2",
+      "contractDate": "2026-02-13",
+      "contractTotal": 639900,
+      "parsedClientName": "PEDRO OLAVO SEVERINI FILHO",
+      "parsedDocumentMasked": "271***20",
+      "targetClient": {
+        "id": "b4kZzhJg4WNF5e6opsD0",
+        "name": "PEDRO OLAVO SEVERINI FILHO",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AA-QUARTO / OFFICE",
+          "value": 38695.51
+        },
+        {
+          "label": "AB-WC QUARTO / OFFICE",
+          "value": 4998.78
+        },
+        {
+          "label": "AC-HALL DOS QUARTO - ROUPEIRO",
+          "value": 15804.69
+        },
+        {
+          "label": "AD-DORMITORIO 01",
+          "value": 43027.6
+        },
+        {
+          "label": "AE-WC DORMITORIO 01",
+          "value": 8010.67
+        },
+        {
+          "label": "AF-DORMITORIO 02",
+          "value": 74475.11
+        },
+        {
+          "label": "AG-WC DORMITORIO 02",
+          "value": 8010.67
+        },
+        {
+          "label": "AH-DORMITORIO CASAL",
+          "value": 25130.28
+        },
+        {
+          "label": "AI-CLOSET DORMITORIO CASAL",
+          "value": 86772.27
+        },
+        {
+          "label": "AJ-WC DORMITORIO CASAL",
+          "value": 8667.33
+        },
+        {
+          "label": "AK-�REA DE SERVI�O",
+          "value": 8667.58
+        },
+        {
+          "label": "AL-DESPENSA",
+          "value": 8006.77
+        },
+        {
+          "label": "AM-QUARTO SERVI�O",
+          "value": 5762.09
+        },
+        {
+          "label": "AN-COZINHA",
+          "value": 107959.68
+        },
+        {
+          "label": "AO-SALA ESTAR",
+          "value": 42533.96
+        },
+        {
+          "label": "AP-SALA TV",
+          "value": 20082.87
+        },
+        {
+          "label": "AQ-ESTANTE SALA TV",
+          "value": 58722.45
+        },
+        {
+          "label": "AR-LAVABO",
+          "value": 3074.11
+        },
+        {
+          "label": "AS-HALL ELEVADOR",
+          "value": 4345.94
+        },
+        {
+          "label": "AT-MARMO - WC QUARTO OFFICE",
+          "value": 2716.98
+        },
+        {
+          "label": "AU-MARMO - WC DORM 01",
+          "value": 2023.18
+        },
+        {
+          "label": "AV-MARMO - WC DORM 02",
+          "value": 2023.18
+        },
+        {
+          "label": "AW-MARMO - WC CASAL",
+          "value": 5725.51
+        },
+        {
+          "label": "AX-MARMO - NICHO MASTER",
+          "value": 8293.24
+        },
+        {
+          "label": "AY-MARMO - NICHO CRISTALEIRA",
+          "value": 8180.11
+        },
+        {
+          "label": "AZ-MARMO - HALL ELEVADOR",
+          "value": 4641.04
+        },
+        {
+          "label": "BA-MARMO - LAVABO",
+          "value": 9818.47
+        },
+        {
+          "label": "BB-COZINHA",
+          "value": 19881.81
+        },
+        {
+          "label": "BC-MARMO - �REA DE SERVI�O",
+          "value": 3848.12
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1728 - DIEGO SANCHES",
+      "file": "1728 - DIEGO SANCHES\\CONTRATO\\1728.pdf",
+      "contractNumber": "100001728",
+      "contractDate": "2026-07-20",
+      "contractTotal": 32000,
+      "parsedClientName": "DIEGO SANCHES AZEVEDO",
+      "parsedDocumentMasked": "390***00",
+      "targetClient": {
+        "id": "7smRO3UcvMp36IkwXOhZ",
+        "name": "DIEGO SANCHES AZEVEDO",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AA-LAMINA COZINHA",
+          "value": 30259.99
+        },
+        {
+          "label": "AB-GRANITO LAVANDERIA",
+          "value": 1740.01
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1741 - DR. GERALDO",
+      "file": "1741 - DR. GERALDO\\CONTRATO\\1741.pdf",
+      "contractNumber": "100001741",
+      "contractDate": "2026-08-01",
+      "contractTotal": 70000,
+      "parsedClientName": "GERALDO DE PAIVA",
+      "parsedDocumentMasked": "953***87",
+      "targetClient": {
+        "id": "tPRD7cuLpZUIbcCYTC9R",
+        "name": "GERALDO DE PAIVA",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AI-COZINHA",
+          "value": 47591.47
+        },
+        {
+          "label": "AJ-PEDRAS COZINHA - TAJ MAHAL",
+          "value": 22408.53
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1699 - RODOLFO NOGUEIRA",
+      "file": "1699 - RODOLFO NOGUEIRA\\CONTRATO\\1699.pdf",
+      "contractNumber": "100001699",
+      "contractDate": "2026-05-02",
+      "contractTotal": 89900,
+      "parsedClientName": "RODOLFO NOGUEIRA",
+      "parsedDocumentMasked": "340***70",
+      "targetClient": {
+        "id": "YTOrYpwpc4k4pyOBIywP",
+        "name": "RODOLFO NOGUEIRA",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AD-�REA GOURMET",
+          "value": 8706.74
+        },
+        {
+          "label": "AE-COZINHA",
+          "value": 40230.84
+        },
+        {
+          "label": "AF-ORAT�RIO",
+          "value": 6983.97
+        },
+        {
+          "label": "AG-QUARTZO COZINHA",
+          "value": 25031.09
+        },
+        {
+          "label": "AH-GRANITO GOURMET",
+          "value": 8947.36
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1726 - MARGARIDA APARECIDA",
+      "file": "1726 - MARGARIDA APARECIDA\\CONTRATO\\1726.pdf",
+      "contractNumber": "100001726",
+      "contractDate": "2026-07-10",
+      "contractTotal": 12500,
+      "parsedClientName": "MARGARIDA APARECIDA GON�ALVES SOUZA",
+      "parsedDocumentMasked": "143***06",
+      "targetClient": {
+        "id": "B6nHppEtk5T6rcz9Rf4g",
+        "name": "MARGARIDA APARECIDA GONÇALVES SOUZA",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AA-COMPLEMENTO COZINHA",
+          "value": 6000.49
+        },
+        {
+          "label": "AB-GRANITO - PRETO S. GABRIEL",
+          "value": 6499.51
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1717 - MARCIO DAL",
+      "file": "1717 - MARCIO DAL\\CONTRATO\\1717.pdf",
+      "contractNumber": "100001717",
+      "contractDate": "2026-06-29",
+      "contractTotal": 52000,
+      "parsedClientName": "MARCIO DAL BELLO",
+      "parsedDocumentMasked": "716***20",
+      "targetClient": {
+        "id": "MD5n3US8nLIhAFSheb47",
+        "name": "MARCIO DAL BELLO",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AN-BANCADA �REA DE SERVI�O",
+          "value": 2145.1
+        },
+        {
+          "label": "AO-RODABASE �REA DE SERVI�O",
+          "value": 367.1
+        },
+        {
+          "label": "AP-BANCADA WC EXTERNO",
+          "value": 1018.02
+        },
+        {
+          "label": "AQ-NICHO WC EXTERNO",
+          "value": 1199.99
+        },
+        {
+          "label": "AR-COZINHA - ILHA, BANCADA, NICHO",
+          "value": 20646.26
+        },
+        {
+          "label": "AS-RODABASE COZINHA",
+          "value": 1222.53
+        },
+        {
+          "label": "AT-BANCADA WC FILHA",
+          "value": 884
+        },
+        {
+          "label": "AU-NICHO WC FILHA",
+          "value": 1199.99
+        },
+        {
+          "label": "AV-BANCADA WC H�SPEDES",
+          "value": 884
+        },
+        {
+          "label": "AW-NICHO WC H�SPEDES",
+          "value": 1199.99
+        },
+        {
+          "label": "AX-BANCADA WC SU�TE MASTER",
+          "value": 2115.96
+        },
+        {
+          "label": "AY-NICHO 1 WC SU�TE MASTER",
+          "value": 1199.99
+        },
+        {
+          "label": "AZ-NICHO 2 WC SU�TE MASTER",
+          "value": 1199.99
+        },
+        {
+          "label": "BA-REVS. BANHEIRA WC SU�TE",
+          "value": 2809.96
+        },
+        {
+          "label": "BC-ESCADA",
+          "value": 13907.12
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1744 - TIAGO SBI",
+      "file": "1744 - TIAGO SBI\\CONTRATO\\1744.pdf",
+      "contractNumber": "100001744",
+      "contractDate": "2026-08-06",
+      "contractTotal": 7091,
+      "parsedClientName": "TIAGO DE OLIVEIRA",
+      "parsedDocumentMasked": "057***56",
+      "targetClient": {
+        "id": "lciBChMXNKk93TBOSeHx",
+        "name": "CAMILA SBI",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AA-LAVAT�RIO QUARTZO BRANCO",
+          "value": 7091
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1754 - GERALDO PAIVA",
+      "file": "1754 - GERALDO PAIVA\\CONTRATO\\Contrato - Geraldo de Paiva.pdf",
+      "contractNumber": "100001754",
+      "contractDate": "2026-08-26",
+      "contractTotal": 4035.81,
+      "parsedClientName": "GERALDO DE PAIVA Produto de Mostru�rio",
+      "parsedDocumentMasked": "953***87",
+      "targetClient": {
+        "id": "tPRD7cuLpZUIbcCYTC9R",
+        "name": "GERALDO DE PAIVA",
+        "action": "REUSE"
+      },
+      "pieces": [
+        {
+          "label": "AK-BANCADA",
+          "value": 4035.81
+        }
+      ],
+      "warnings": []
+    },
+    {
+      "folder": "1690 - BIANCA JURTICK",
+      "file": "1690 - BIANCA JURTICK\\CONTRATO\\1690.pdf",
+      "contractNumber": "100001690",
+      "contractDate": "2026-03-30",
+      "contractTotal": 155000,
+      "parsedClientName": "BIANCA ARA�JO JURTICK",
+      "parsedDocumentMasked": "373***73",
+      "targetClient": {
+        "id": null,
+        "name": "BIANCA JURTICK",
+        "action": "CREATE",
+        "cpf": "373.204.348-73",
+        "phone": "11-994738880",
+        "address": "",
+        "city": "Parquelandia Mogi das Cruzes",
+        "neighborhood": "Cidade"
+      },
+      "pieces": [
+        {
+          "label": "CJ-ADEGA",
+          "value": 4200.63
+        },
+        {
+          "label": "CK-PAINEL GARAGEM",
+          "value": 7529.24
+        },
+        {
+          "label": "CL-SALA",
+          "value": 9425.35
+        },
+        {
+          "label": "CM-COZINHA",
+          "value": 25736.33
+        },
+        {
+          "label": "CN-CHAPELARIA",
+          "value": 1482.8
+        },
+        {
+          "label": "CO-CINEMA",
+          "value": 2356.67
+        },
+        {
+          "label": "CP-ESCRITORIO",
+          "value": 7570.62
+        },
+        {
+          "label": "CQ-DORMITORIO FUNDO",
+          "value": 25498.77
+        },
+        {
+          "label": "CR-WC FUNDO",
+          "value": 1145.29
+        },
+        {
+          "label": "CS-DORMITORIO 1",
+          "value": 19233.28
+        },
+        {
+          "label": "CT-WC DORM 1",
+          "value": 1058.17
+        },
+        {
+          "label": "CU-DORMITORIO MASTER",
+          "value": 27919.6
+        },
+        {
+          "label": "CV-WC MASTER",
+          "value": 1985.63
+        },
+        {
+          "label": "CW-WC ESCRITORIO",
+          "value": 955.93
+        },
+        {
+          "label": "CX-GOURMET",
+          "value": 8775.28
+        },
+        {
+          "label": "CY-BANCADA WC MASTER",
+          "value": 2328.75
+        },
+        {
+          "label": "CZ-BANCADA WC DORM 1",
+          "value": 1738.66
+        },
+        {
+          "label": "DA-BANCADA WC DORM FUNDO",
+          "value": 1844.04
+        },
+        {
+          "label": "DB-COMPLEMENTO COZ",
+          "value": 2370.91
+        },
+        {
+          "label": "DC-BANCADA WC ESCRITORIO",
+          "value": 1844.05
+        }
+      ],
+      "warnings": []
+    }
+  ]
+}

@@ -1,0 +1,425 @@
+{
+  "generatedAt": "2026-09-17T15:26:08.249Z",
+  "phase": "FASE_FINAL_DRY_RUN",
+  "empresaId": "dcoratto-main",
+  "rootDir": "G:\\Meu Drive\\D'CORATTO MARMORARIA\\PROJETOS",
+  "sourceReport": "C:\\Users\\brian\\Desktop\\dcoratto-sob-medida\\reports\\historical-contracts-reconciliation-2026-09-17T15-13-54-735Z.json",
+  "referenceCounts": {
+    "employeeContracts": 0,
+    "employeePieces": 0,
+    "crisisContracts": 0,
+    "crisisPieces": 0,
+    "installations": 0
+  },
+  "protectedContracts": [
+    {
+      "contractNumber": "100001647",
+      "status": "SOFT_DELETED_REVIEW",
+      "crmContractId": "73dacc58169a41d6b2cba3878a05d5c9"
+    },
+    {
+      "contractNumber": "100001754",
+      "status": "SOFT_DELETED_REVIEW",
+      "crmContractId": "566baa873ae442debe616ec3af54b494"
+    }
+  ],
+  "summary": {
+    "authorizedImports": 3,
+    "authorizedRepairs": 2,
+    "ready": 5,
+    "executed": 0,
+    "failed": 0,
+    "reusedClients": 0,
+    "createdClients": 0,
+    "addedMasonryValue": 26903.71
+  },
+  "operations": [
+    {
+      "contractNumber": "100001610-1",
+      "action": "REPAIR",
+      "status": "READY",
+      "clientDecision": "",
+      "clientId": "sDWIU7p2isgURnkQsUkC",
+      "previousPieces": [
+        {
+          "label": "AI-GRANITO COZINHA BRANCO ITAUNAS",
+          "value": 4839.15,
+          "sortOrder": 1,
+          "quotePieceId": "pdf-1"
+        },
+        {
+          "label": "AJ-GRANITO LAVANDERIA BRANCO ITAU",
+          "value": 1590.59,
+          "sortOrder": 2,
+          "quotePieceId": "pdf-2"
+        },
+        {
+          "label": "AK-QUARTZO BRANCO - WC SOCIAL",
+          "value": 2521.57,
+          "sortOrder": 3,
+          "quotePieceId": "pdf-3"
+        },
+        {
+          "label": "AL-PRETO SÃO GABRIEL - WC SUITE",
+          "value": 1754.33,
+          "sortOrder": 4,
+          "quotePieceId": "pdf-4"
+        }
+      ],
+      "targetPieces": [
+        {
+          "label": "AI-GRANITO COZINHA BRANCO",
+          "value": 4839.15,
+          "itemNumber": 2,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 1
+        },
+        {
+          "label": "AJ-GRANITO LAVANDERIA BRANCO",
+          "value": 1590.59,
+          "itemNumber": 3,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 2
+        }
+      ]
+    },
+    {
+      "contractNumber": "100001286",
+      "action": "IMPORT",
+      "status": "READY",
+      "clientDecision": "REUSED_BY_DOCUMENT",
+      "clientId": "i5KL1uIQh7JeVnQqZ16D",
+      "previousPieces": [],
+      "targetPieces": [
+        {
+          "label": "AA-BANCADA E RODABASE",
+          "value": 1770.74,
+          "itemNumber": 1,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 1
+        },
+        {
+          "label": "AB-BANCADA E RODABASE COZINHA",
+          "value": 3063.77,
+          "itemNumber": 2,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 2
+        },
+        {
+          "label": "AC-BANCADA E RODABASE AREA",
+          "value": 2638.35,
+          "itemNumber": 3,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 3
+        },
+        {
+          "label": "AD-BOCA PARA CHURRASQUEIRA",
+          "value": 608.85,
+          "itemNumber": 4,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 4
+        },
+        {
+          "label": "AE-BANCADA BANHO H�SPEDES 01",
+          "value": 2841.3,
+          "itemNumber": 5,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 5
+        },
+        {
+          "label": "AF-BANCADA BANHO H�SPEDES 02",
+          "value": 2739.82,
+          "itemNumber": 6,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 6
+        },
+        {
+          "label": "AG-BANCADA BANHO MASTER",
+          "value": 5449.22,
+          "itemNumber": 7,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 7
+        },
+        {
+          "label": "AI-PINGADEIRAS PRETO SG",
+          "value": 380.56,
+          "itemNumber": 9,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 8
+        }
+      ]
+    },
+    {
+      "contractNumber": "100001611",
+      "action": "REPAIR",
+      "status": "READY",
+      "clientDecision": "",
+      "clientId": "lXjeVlTH9Lz5ia0EeRat",
+      "previousPieces": [
+        {
+          "label": "AI-QUARTZO BRANCO WC SOCIAL",
+          "value": 3165.12,
+          "sortOrder": 1,
+          "quotePieceId": "pdf-1"
+        },
+        {
+          "label": "AJ-QUARTZO BRANCO WC SUITE MASTER",
+          "value": 5524.96,
+          "sortOrder": 2,
+          "quotePieceId": "pdf-2"
+        },
+        {
+          "label": "AK-DUAS BAGUETES WC SUITE MASTER",
+          "value": 1200.06,
+          "sortOrder": 3,
+          "quotePieceId": "pdf-3"
+        },
+        {
+          "label": "AL-BANCADA PRETO SAO GABRIEL A.G",
+          "value": 5728.52,
+          "sortOrder": 4,
+          "quotePieceId": "pdf-4"
+        }
+      ],
+      "targetPieces": [
+        {
+          "label": "AI-QUARTZO BRANCO WC SOCIAL",
+          "value": 3165.12,
+          "itemNumber": 5,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 1
+        },
+        {
+          "label": "AJ-QUARTZO BRANCO WC SUITE",
+          "value": 5524.96,
+          "itemNumber": 6,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 2
+        },
+        {
+          "label": "AK-DUAS BAGUETES WC SUITE",
+          "value": 1200.06,
+          "itemNumber": 7,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 3
+        },
+        {
+          "label": "AL-BANCADA PRETO SAO GABRIEL",
+          "value": 5728.52,
+          "itemNumber": 8,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 4
+        }
+      ]
+    },
+    {
+      "contractNumber": "100001676",
+      "action": "IMPORT",
+      "status": "READY",
+      "clientDecision": "REUSED_BY_NAME",
+      "clientId": "hZVbhenoSmVyRkhsFnxK",
+      "previousPieces": [],
+      "targetPieces": [
+        {
+          "label": "AA-BANCADA PARA WC",
+          "value": 3355.5,
+          "itemNumber": 1,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 1
+        },
+        {
+          "label": "AB-BANCADA",
+          "value": 844.5,
+          "itemNumber": 2,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 2
+        }
+      ]
+    },
+    {
+      "contractNumber": "100001145",
+      "action": "IMPORT",
+      "status": "READY",
+      "clientDecision": "REUSED_BY_DOCUMENT",
+      "clientId": "Gd8kXN6q0J3o12KM6tiW",
+      "previousPieces": [],
+      "targetPieces": [
+        {
+          "label": "BS-WC SUITE PRETO SG",
+          "value": 1605.55,
+          "itemNumber": 7,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 1
+        },
+        {
+          "label": "BT-WC SOCIAL PRETO SG",
+          "value": 1605.55,
+          "itemNumber": 8,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "sortOrder": 2
+        }
+      ]
+    }
+  ],
+  "execution": [],
+  "finalState": [
+    {
+      "contractNumber": "100001610-1",
+      "contractId": "07a55db3755d4a6fbbf9e337951bff78",
+      "clientId": "sDWIU7p2isgURnkQsUkC",
+      "clientName": "BRUNO NEVES DOS SANTOS",
+      "deletedAt": "2026-09-17T14:25:21.367761+00:00",
+      "total": 6429.74,
+      "activePieceCount": 0,
+      "financialPieces": [
+        {
+          "line": "GRANITOS E",
+          "label": "AI-GRANITO COZINHA BRANCO",
+          "value": 4839.15,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "sortOrder": 1,
+          "sourceItemNumber": "2"
+        },
+        {
+          "line": "GRANITOS E",
+          "label": "AJ-GRANITO LAVANDERIA BRANCO",
+          "value": 1590.59,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "sortOrder": 2,
+          "sourceItemNumber": "3"
+        }
+      ]
+    },
+    {
+      "contractNumber": "100001754",
+      "contractId": "566baa873ae442debe616ec3af54b494",
+      "clientId": "tPRD7cuLpZUIbcCYTC9R",
+      "clientName": "GERALDO DE PAIVA",
+      "deletedAt": "2026-09-17T15:01:42.336442+00:00",
+      "total": 4035.81,
+      "activePieceCount": 0,
+      "financialPieces": [
+        {
+          "label": "AK-BANCADA",
+          "value": 4035.81,
+          "sortOrder": 1
+        }
+      ]
+    },
+    {
+      "contractNumber": "100001610-1",
+      "contractId": "d27066e12f5240ddbfc1be8a31b36c36",
+      "clientId": "sDWIU7p2isgURnkQsUkC",
+      "clientName": "BRUNO NEVES DOS SANTOS",
+      "deletedAt": null,
+      "total": 10705.64,
+      "activePieceCount": 4,
+      "financialPieces": [
+        {
+          "label": "AI-GRANITO COZINHA BRANCO ITAUNAS",
+          "value": 4839.15,
+          "sortOrder": 1,
+          "quotePieceId": "pdf-1"
+        },
+        {
+          "label": "AJ-GRANITO LAVANDERIA BRANCO ITAU",
+          "value": 1590.59,
+          "sortOrder": 2,
+          "quotePieceId": "pdf-2"
+        },
+        {
+          "label": "AK-QUARTZO BRANCO - WC SOCIAL",
+          "value": 2521.57,
+          "sortOrder": 3,
+          "quotePieceId": "pdf-3"
+        },
+        {
+          "label": "AL-PRETO SÃO GABRIEL - WC SUITE",
+          "value": 1754.33,
+          "sortOrder": 4,
+          "quotePieceId": "pdf-4"
+        }
+      ]
+    },
+    {
+      "contractNumber": "100001611",
+      "contractId": "5b5061dfc78d431eaa2fefdce92378e0",
+      "clientId": "lXjeVlTH9Lz5ia0EeRat",
+      "clientName": "CAMILA GUERINO DE OLIVEIRA MARTINS",
+      "deletedAt": null,
+      "total": 15618.66,
+      "activePieceCount": 4,
+      "financialPieces": [
+        {
+          "label": "AI-QUARTZO BRANCO WC SOCIAL",
+          "value": 3165.12,
+          "sortOrder": 1,
+          "quotePieceId": "pdf-1"
+        },
+        {
+          "label": "AJ-QUARTZO BRANCO WC SUITE MASTER",
+          "value": 5524.96,
+          "sortOrder": 2,
+          "quotePieceId": "pdf-2"
+        },
+        {
+          "label": "AK-DUAS BAGUETES WC SUITE MASTER",
+          "value": 1200.06,
+          "sortOrder": 3,
+          "quotePieceId": "pdf-3"
+        },
+        {
+          "label": "AL-BANCADA PRETO SAO GABRIEL A.G",
+          "value": 5728.52,
+          "sortOrder": 4,
+          "quotePieceId": "pdf-4"
+        }
+      ]
+    },
+    {
+      "contractNumber": "100001647",
+      "contractId": "73dacc58169a41d6b2cba3878a05d5c9",
+      "clientId": "ovlaChV0aMFEDfFgVDem",
+      "clientName": "EDLENE CRISTINA DA SILVA CERRINI",
+      "deletedAt": "2026-09-17T14:59:37.102202+00:00",
+      "total": 9907.62,
+      "activePieceCount": 0,
+      "financialPieces": [
+        {
+          "line": "GRANITOS E",
+          "label": "AK-MARMORARIA SU�TE BRENDA",
+          "value": 1590.3,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "sortOrder": 1,
+          "sourceItemNumber": "10"
+        },
+        {
+          "line": "GRANITOS E",
+          "label": "BA-MARMORARIA HALL",
+          "value": 8317.32,
+          "supplier": "DCORATTO SOB MEDIDA",
+          "sortOrder": 2,
+          "sourceItemNumber": "26"
+        }
+      ]
+    }
+  ]
+}

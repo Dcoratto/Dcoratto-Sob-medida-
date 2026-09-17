@@ -1,0 +1,2337 @@
+{
+  "generatedAt": "2026-09-17T15:28:23.440Z",
+  "phase": "DRIVE_CRM_MASONRY_RECONCILIATION_READ_ONLY",
+  "rootDir": "G:\\Meu Drive\\D'CORATTO MARMORARIA\\PROJETOS",
+  "empresaId": "dcoratto-main",
+  "summary": {
+    "foldersAnalyzed": 32,
+    "foldersWithContract": 32,
+    "foldersWithoutContract": 0,
+    "filesFound": 79,
+    "validPdfs": 30,
+    "otherFormats": {
+      ".ini": 44,
+      ".layout": 4,
+      ".skp": 1
+    },
+    "unsupportedFiles": 49,
+    "invalidFiles": 0,
+    "extractionErrors": 0,
+    "contractsFound": 29,
+    "activeCorrect": 21,
+    "activeDivergent": 0,
+    "missingInCrm": 0,
+    "softDeletedReview": 2,
+    "noMasonryItems": 6,
+    "ambiguousClients": 0,
+    "documentInvalid": 0,
+    "rawDocumentItems": 349,
+    "validMasonryItems": 94,
+    "ignoredNonMasonryItems": 255,
+    "masonryTotal": 600973.55
+  },
+  "highlighted": {
+    "eric ferreira": {
+      "label": "eric ferreira",
+      "found": true,
+      "rows": [
+        {
+          "fileName": "desktop.ini",
+          "filePath": "---- - ERIC FERREIRA\\CONTRATO\\desktop.ini",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "eric ferreira.pdf",
+          "filePath": "eric ferreira.pdf",
+          "contractNumber": "100001286",
+          "documentClient": "ERIC FERREIRA DA SILVA",
+          "masonryItems": 8,
+          "masonryTotal": 19492.61,
+          "crmExists": true,
+          "status": "ATIVO_CORRETO"
+        },
+        {
+          "fileName": "desktop.ini",
+          "filePath": "---- - ERIC FERREIRA\\desktop.ini",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "05- MARMORARIA.pdf",
+          "filePath": "---- - ERIC FERREIRA\\PROJETO ARQ\\05- MARMORARIA.pdf",
+          "contractNumber": "",
+          "documentClient": "",
+          "masonryItems": 0,
+          "masonryTotal": 0,
+          "crmExists": false,
+          "status": "ERRO_EXTRACAO"
+        },
+        {
+          "fileName": "desktop.ini",
+          "filePath": "---- - ERIC FERREIRA\\PROJETO ARQ\\desktop.ini",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "desktop.ini",
+          "filePath": "---- - ERIC FERREIRA\\IMAGENS\\desktop.ini",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "desktop.ini",
+          "filePath": "---- - ERIC FERREIRA\\IMAGENS\\RENDERS\\desktop.ini",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "desktop.ini",
+          "filePath": "---- - ERIC FERREIRA\\IMAGENS\\MEDIÇÕES\\desktop.ini",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "desktop.ini",
+          "filePath": "---- - ERIC FERREIRA\\IMAGENS\\LOCAL\\desktop.ini",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "desktop.ini",
+          "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\desktop.ini",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "desktop.ini",
+          "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\PDF\\desktop.ini",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "00_CLIENTE_AMBIENTE.skp",
+          "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\MODELAGEM\\00_CLIENTE_AMBIENTE.skp",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "desktop.ini",
+          "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\MODELAGEM\\desktop.ini",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "desktop.ini",
+          "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\desktop.ini",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "00_CLIENTE_AMBIENTE.layout",
+          "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\PROJETO\\00_CLIENTE_AMBIENTE.layout",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "Backup de 00_CLIENTE_AMBIENTE.layout",
+          "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\PROJETO\\Backup de 00_CLIENTE_AMBIENTE.layout",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "desktop.ini",
+          "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\PROJETO\\desktop.ini",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "00_CLIENTE_DOCUMENTAÇÃO.layout",
+          "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\DOCUMENTAÇÃO\\00_CLIENTE_DOCUMENTAÇÃO.layout",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "Backup de 00_CLIENTE_DOCUMENTAÇÃO.layout",
+          "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\DOCUMENTAÇÃO\\Backup de 00_CLIENTE_DOCUMENTAÇÃO.layout",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        },
+        {
+          "fileName": "desktop.ini",
+          "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\DOCUMENTAÇÃO\\desktop.ini",
+          "status": "FORMATO_NAO_SUPORTADO",
+          "reason": "INVALID_MAGIC_BYTES"
+        }
+      ]
+    },
+    "guerrino": {
+      "label": "GUERRINO",
+      "found": true,
+      "rows": [
+        {
+          "fileName": "GUERRINO.pdf",
+          "filePath": "GUERRINO.pdf",
+          "contractNumber": "100001611",
+          "documentClient": "CAMILA GUERINO DE OLIVEIRA MARTINS",
+          "masonryItems": 4,
+          "masonryTotal": 15618.66,
+          "crmExists": true,
+          "status": "ATIVO_CORRETO"
+        }
+      ]
+    },
+    "ser finance": {
+      "label": "SER FINANCE",
+      "found": true,
+      "rows": [
+        {
+          "fileName": "SER FINANCE.pdf",
+          "filePath": "SER FINANCE.pdf",
+          "contractNumber": "100001676",
+          "documentClient": "SER FINANCE SOCIEDADE DE CREDITO DIRETO S.A.",
+          "masonryItems": 2,
+          "masonryTotal": 4200,
+          "crmExists": true,
+          "status": "ATIVO_CORRETO"
+        }
+      ]
+    },
+    "thiago miranda": {
+      "label": "thiago miranda",
+      "found": true,
+      "rows": [
+        {
+          "fileName": "thiago miranda.pdf",
+          "filePath": "thiago miranda.pdf",
+          "contractNumber": "100001145",
+          "documentClient": "THIAGO MIRANDA DE CASTRO",
+          "masonryItems": 2,
+          "masonryTotal": 3211.1,
+          "crmExists": true,
+          "status": "ATIVO_CORRETO"
+        }
+      ]
+    }
+  },
+  "folders": [
+    {
+      "folderName": "0000 - GUSTAVO RUMÃO",
+      "hasContractFolder": true,
+      "filesFound": 1
+    },
+    {
+      "folderName": "0001 - RODOLFO",
+      "hasContractFolder": true,
+      "filesFound": 1
+    },
+    {
+      "folderName": "1266 - FLÁVIA ESTEVES",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1327 - BRUNO PIRES",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1610 - BRUNO NEVES",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1623 - WILLIAM SILVA DIAS DO VALE",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1647 - BRUNO E EDILENE",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1670 - MARCOS MV",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1677 - ANDREIA FLORENÇO",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1669 - AUGUSTO DA SILVA",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1426 - CARLOS CESAR",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1476 - ERICK IGNACIO",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1570 - Dr. THIAGO DOS SANTOS",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1671 - MARCOS MV",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1599 - GUSTAVO BRANCO",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "0002 - RAFAEL ALMEIDA",
+      "hasContractFolder": true,
+      "filesFound": 1
+    },
+    {
+      "folderName": "1685 - TR2",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "0003 - WELLIGTON BRITO",
+      "hasContractFolder": true,
+      "filesFound": 1
+    },
+    {
+      "folderName": "1711 - AILTON",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1710 - MARCIO DAL",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1662 - PEDRO OLAVO",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1728 - DIEGO SANCHES",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1741 - DR. GERALDO",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1699 - RODOLFO NOGUEIRA",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1726 - MARGARIDA APARECIDA",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "0004 - GABRIEL UVA",
+      "hasContractFolder": true,
+      "filesFound": 1
+    },
+    {
+      "folderName": "1717 - MARCIO DAL",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1744 - TIAGO SBI",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "1754 - GERALDO PAIVA",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "---- - OSASCO",
+      "hasContractFolder": true,
+      "filesFound": 1
+    },
+    {
+      "folderName": "1690 - BIANCA JURTICK",
+      "hasContractFolder": true,
+      "filesFound": 2
+    },
+    {
+      "folderName": "---- - ERIC FERREIRA",
+      "hasContractFolder": true,
+      "filesFound": 1
+    }
+  ],
+  "invalidFiles": [],
+  "unsupportedFiles": [
+    {
+      "folderName": "0000 - GUSTAVO RUMÃO",
+      "fileName": "desktop.ini",
+      "filePath": "0000 - GUSTAVO RUMÃO\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "0001 - RODOLFO",
+      "fileName": "desktop.ini",
+      "filePath": "0001 - RODOLFO\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1266 - FLÁVIA ESTEVES",
+      "fileName": "desktop.ini",
+      "filePath": "1266 - FLÁVIA ESTEVES\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1327 - BRUNO PIRES",
+      "fileName": "desktop.ini",
+      "filePath": "1327 - BRUNO PIRES\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1610 - BRUNO NEVES",
+      "fileName": "desktop.ini",
+      "filePath": "1610 - BRUNO NEVES\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1623 - WILLIAM SILVA DIAS DO VALE",
+      "fileName": "desktop.ini",
+      "filePath": "1623 - WILLIAM SILVA DIAS DO VALE\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1647 - BRUNO E EDILENE",
+      "fileName": "desktop.ini",
+      "filePath": "1647 - BRUNO E EDILENE\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1670 - MARCOS MV",
+      "fileName": "desktop.ini",
+      "filePath": "1670 - MARCOS MV\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1677 - ANDREIA FLORENÇO",
+      "fileName": "desktop.ini",
+      "filePath": "1677 - ANDREIA FLORENÇO\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1669 - AUGUSTO DA SILVA",
+      "fileName": "desktop.ini",
+      "filePath": "1669 - AUGUSTO DA SILVA\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1426 - CARLOS CESAR",
+      "fileName": "desktop.ini",
+      "filePath": "1426 - CARLOS CESAR\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1476 - ERICK IGNACIO",
+      "fileName": "desktop.ini",
+      "filePath": "1476 - ERICK IGNACIO\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1570 - Dr. THIAGO DOS SANTOS",
+      "fileName": "desktop.ini",
+      "filePath": "1570 - Dr. THIAGO DOS SANTOS\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1671 - MARCOS MV",
+      "fileName": "desktop.ini",
+      "filePath": "1671 - MARCOS MV\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1599 - GUSTAVO BRANCO",
+      "fileName": "desktop.ini",
+      "filePath": "1599 - GUSTAVO BRANCO\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "0002 - RAFAEL ALMEIDA",
+      "fileName": "desktop.ini",
+      "filePath": "0002 - RAFAEL ALMEIDA\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1685 - TR2",
+      "fileName": "desktop.ini",
+      "filePath": "1685 - TR2\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "0003 - WELLIGTON BRITO",
+      "fileName": "desktop.ini",
+      "filePath": "0003 - WELLIGTON BRITO\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1711 - AILTON",
+      "fileName": "desktop.ini",
+      "filePath": "1711 - AILTON\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1710 - MARCIO DAL",
+      "fileName": "desktop.ini",
+      "filePath": "1710 - MARCIO DAL\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1662 - PEDRO OLAVO",
+      "fileName": "desktop.ini",
+      "filePath": "1662 - PEDRO OLAVO\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1728 - DIEGO SANCHES",
+      "fileName": "desktop.ini",
+      "filePath": "1728 - DIEGO SANCHES\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1741 - DR. GERALDO",
+      "fileName": "desktop.ini",
+      "filePath": "1741 - DR. GERALDO\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1699 - RODOLFO NOGUEIRA",
+      "fileName": "desktop.ini",
+      "filePath": "1699 - RODOLFO NOGUEIRA\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1726 - MARGARIDA APARECIDA",
+      "fileName": "desktop.ini",
+      "filePath": "1726 - MARGARIDA APARECIDA\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "0004 - GABRIEL UVA",
+      "fileName": "desktop.ini",
+      "filePath": "0004 - GABRIEL UVA\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1717 - MARCIO DAL",
+      "fileName": "desktop.ini",
+      "filePath": "1717 - MARCIO DAL\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1744 - TIAGO SBI",
+      "fileName": "desktop.ini",
+      "filePath": "1744 - TIAGO SBI\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1754 - GERALDO PAIVA",
+      "fileName": "desktop.ini",
+      "filePath": "1754 - GERALDO PAIVA\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "---- - OSASCO",
+      "fileName": "desktop.ini",
+      "filePath": "---- - OSASCO\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "1690 - BIANCA JURTICK",
+      "fileName": "desktop.ini",
+      "filePath": "1690 - BIANCA JURTICK\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "---- - ERIC FERREIRA",
+      "fileName": "desktop.ini",
+      "filePath": "---- - ERIC FERREIRA\\CONTRATO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "desktop.ini",
+      "filePath": "---- - ERIC FERREIRA\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "desktop.ini",
+      "filePath": "---- - ERIC FERREIRA\\PROJETO ARQ\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "desktop.ini",
+      "filePath": "---- - ERIC FERREIRA\\IMAGENS\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "desktop.ini",
+      "filePath": "---- - ERIC FERREIRA\\IMAGENS\\RENDERS\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "desktop.ini",
+      "filePath": "---- - ERIC FERREIRA\\IMAGENS\\MEDIÇÕES\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "desktop.ini",
+      "filePath": "---- - ERIC FERREIRA\\IMAGENS\\LOCAL\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "desktop.ini",
+      "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "desktop.ini",
+      "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\PDF\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "00_CLIENTE_AMBIENTE.skp",
+      "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\MODELAGEM\\00_CLIENTE_AMBIENTE.skp",
+      "extension": ".skp",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "desktop.ini",
+      "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\MODELAGEM\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "desktop.ini",
+      "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "00_CLIENTE_AMBIENTE.layout",
+      "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\PROJETO\\00_CLIENTE_AMBIENTE.layout",
+      "extension": ".layout",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "Backup de 00_CLIENTE_AMBIENTE.layout",
+      "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\PROJETO\\Backup de 00_CLIENTE_AMBIENTE.layout",
+      "extension": ".layout",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "desktop.ini",
+      "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\PROJETO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "00_CLIENTE_DOCUMENTAÇÃO.layout",
+      "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\DOCUMENTAÇÃO\\00_CLIENTE_DOCUMENTAÇÃO.layout",
+      "extension": ".layout",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "Backup de 00_CLIENTE_DOCUMENTAÇÃO.layout",
+      "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\DOCUMENTAÇÃO\\Backup de 00_CLIENTE_DOCUMENTAÇÃO.layout",
+      "extension": ".layout",
+      "reason": "INVALID_MAGIC_BYTES"
+    },
+    {
+      "folderName": "(fora de CONTRATO)",
+      "fileName": "desktop.ini",
+      "filePath": "---- - ERIC FERREIRA\\EXECUTIVO\\LAYOUT\\DOCUMENTAÇÃO\\desktop.ini",
+      "extension": ".ini",
+      "reason": "INVALID_MAGIC_BYTES"
+    }
+  ],
+  "errors": [],
+  "rows": [
+    {
+      "folder_name": "1266 - FLÁVIA ESTEVES",
+      "file_name": "100001266.pdf",
+      "file_path": "1266 - FLÁVIA ESTEVES\\CONTRATO\\100001266.pdf",
+      "extension": ".pdf",
+      "file_size": 45525,
+      "folder_client": "FLÁVIA ESTEVES",
+      "document_client": "FL�VIA DE BARROS ESTEVES CALSAVARA",
+      "document_masked": "403***02",
+      "contract_number": "100001266",
+      "crm_client": "FLÁVIA DE BARROS ESTEVES CALSAVARA",
+      "crm_client_id": "64cCeHqubs3t2vdBaEk4",
+      "crm_contract_id": "3fa44ea8f6f84541831315ed62a815a8",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 4,
+      "crm_total": 23409.43,
+      "total_document_items": 20,
+      "masonry_items": 4,
+      "ignored_non_masonry_items": 16,
+      "masonry_total": 23409.43,
+      "document_total": 210000,
+      "pieces": [
+        {
+          "item_number": 14,
+          "description": "AN-LAMINA ULTRACOMPACTA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 13689.62
+        },
+        {
+          "item_number": 15,
+          "description": "AO-GRANITO LAVANDERIA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2598.38
+        },
+        {
+          "item_number": 16,
+          "description": "AP-MARMORE LAVABO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 4811.77
+        },
+        {
+          "item_number": 19,
+          "description": "AS-GRANITO W.C GOURMET",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2309.66
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1327 - BRUNO PIRES",
+      "file_name": "100001327-2.pdf",
+      "file_path": "1327 - BRUNO PIRES\\CONTRATO\\100001327-2.pdf",
+      "extension": ".pdf",
+      "file_size": 64783,
+      "folder_client": "BRUNO PIRES",
+      "document_client": "BRUNO PIRES DOS SANTOS",
+      "document_masked": "351***86",
+      "contract_number": "100001327-2",
+      "crm_client": "BRUNO PIRES DOS SANTOS",
+      "crm_client_id": "wsvf1T38vJrhMMmyHlLF",
+      "crm_contract_id": "b4ac3dbfd5894ee78db5518632392393",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 14,
+      "crm_total": 149074.39,
+      "total_document_items": 53,
+      "masonry_items": 14,
+      "ignored_non_masonry_items": 39,
+      "masonry_total": 149074.39,
+      "document_total": 1097336.37,
+      "pieces": [
+        {
+          "item_number": 14,
+          "description": "AQ-WC FILHO QUARTZO AZUL",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2631.03
+        },
+        {
+          "item_number": 21,
+          "description": "AY-PAINEL DE TV CALACATTA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 9578.88
+        },
+        {
+          "item_number": 22,
+          "description": "AZ-COZINHA CALACATA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 12771.88
+        },
+        {
+          "item_number": 27,
+          "description": "BF-CHURRASQUEIRA NERO LAMINA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 13932.79
+        },
+        {
+          "item_number": 41,
+          "description": "BU-L�MINA ULTRA COMP LIVING",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 63857.27
+        },
+        {
+          "item_number": 42,
+          "description": "BV-PEDRA LAVANDERIA BRANCO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 9372.79
+        },
+        {
+          "item_number": 44,
+          "description": "BY-PEDRA SAUNA QUARTZO BRANCO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3715.46
+        },
+        {
+          "item_number": 45,
+          "description": "BZ-PEDRA WC VANESSA QUARTZO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3831.56
+        },
+        {
+          "item_number": 46,
+          "description": "CA-PEDRA PUB PRETO S�O GABRIEL",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 8590.23
+        },
+        {
+          "item_number": 47,
+          "description": "CB-NICHO WC VANESSA QTZO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3468.69
+        },
+        {
+          "item_number": 48,
+          "description": "CC-NICHO WC MASTER L�MINA ULTRA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 8708.07
+        },
+        {
+          "item_number": 49,
+          "description": "CD-NICHO WC FILHA QUARTZO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2196.77
+        },
+        {
+          "item_number": 50,
+          "description": "CE-NICHO WC FILHO QTZO AZUL",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3468.69
+        },
+        {
+          "item_number": 52,
+          "description": "CH-NICHO WC SAUNA QTZO BRANCO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2950.28
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1610 - BRUNO NEVES",
+      "file_name": "100001610-1.pdf",
+      "file_path": "1610 - BRUNO NEVES\\CONTRATO\\100001610-1.pdf",
+      "extension": ".pdf",
+      "file_size": 37921,
+      "folder_client": "BRUNO NEVES",
+      "document_client": "BRUNO NEVES DOS SANTOS",
+      "document_masked": "379***00",
+      "contract_number": "100001610-1",
+      "crm_client": "BRUNO NEVES DOS SANTOS",
+      "crm_client_id": "sDWIU7p2isgURnkQsUkC",
+      "crm_contract_id": "d27066e12f5240ddbfc1be8a31b36c36",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 2,
+      "crm_total": 6429.74,
+      "total_document_items": 7,
+      "masonry_items": 2,
+      "ignored_non_masonry_items": 5,
+      "masonry_total": 6429.74,
+      "document_total": 45000,
+      "pieces": [
+        {
+          "item_number": 2,
+          "description": "AI-GRANITO COZINHA BRANCO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 4839.15
+        },
+        {
+          "item_number": 3,
+          "description": "AJ-GRANITO LAVANDERIA BRANCO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1590.59
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1623 - WILLIAM SILVA DIAS DO VALE",
+      "file_name": "100001623-1.pdf",
+      "file_path": "1623 - WILLIAM SILVA DIAS DO VALE\\CONTRATO\\100001623-1.pdf",
+      "extension": ".pdf",
+      "file_size": 39982,
+      "folder_client": "WILLIAM SILVA DIAS DO VALE",
+      "document_client": "WILLIAM SILVA DIAS DO VALE",
+      "document_masked": "417***18",
+      "contract_number": "100001623-1",
+      "crm_client": "WILLIAM SILVA DIAS DO VALE",
+      "crm_client_id": "5I7m5M9LDrBCv1iCNQ9G",
+      "crm_contract_id": "4b46fe471cb342fb94772e0a4a02795b",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 1,
+      "crm_total": 3906.14,
+      "total_document_items": 6,
+      "masonry_items": 1,
+      "ignored_non_masonry_items": 5,
+      "masonry_total": 3906.14,
+      "document_total": 47000,
+      "pieces": [
+        {
+          "item_number": 6,
+          "description": "AQ-BANCADA COZINHA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3906.14
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1647 - BRUNO E EDILENE",
+      "file_name": "100001647.pdf",
+      "file_path": "1647 - BRUNO E EDILENE\\CONTRATO\\100001647.pdf",
+      "extension": ".pdf",
+      "file_size": 49741,
+      "folder_client": "BRUNO E EDILENE",
+      "document_client": "EDLENE CRISTINA DA SILVA CERRINI",
+      "document_masked": "352***11",
+      "contract_number": "100001647",
+      "crm_client": "EDLENE CRISTINA DA SILVA CERRINI",
+      "crm_client_id": "ovlaChV0aMFEDfFgVDem",
+      "crm_contract_id": "73dacc58169a41d6b2cba3878a05d5c9",
+      "crm_contract_status": "SOFT_DELETED_REVIEW",
+      "crm_piece_count": 0,
+      "crm_total": 9907.62,
+      "total_document_items": 26,
+      "masonry_items": 2,
+      "ignored_non_masonry_items": 24,
+      "masonry_total": 9907.62,
+      "document_total": 500000,
+      "pieces": [
+        {
+          "item_number": 10,
+          "description": "AK-MARMORARIA SU�TE BRENDA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1590.3
+        },
+        {
+          "item_number": 26,
+          "description": "BA-MARMORARIA HALL",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 8317.32
+        }
+      ],
+      "status": "SOFT_DELETED_REVIEW",
+      "differences": [
+        "Registro existe apenas como soft-deleted; nao restaurar automaticamente."
+      ],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1670 - MARCOS MV",
+      "file_name": "100001670.pdf",
+      "file_path": "1670 - MARCOS MV\\CONTRATO\\100001670.pdf",
+      "extension": ".pdf",
+      "file_size": 197075,
+      "folder_client": "MARCOS MV",
+      "document_client": "LION ADMINISTRADORA DE BENS LTDA",
+      "document_masked": "457***01",
+      "contract_number": "100001670",
+      "crm_client": "LION ADMINISTRADORA DE BENS LTDA",
+      "crm_client_id": "dc4dc2e254bd4052bd6c28664505d313",
+      "crm_contract_id": "5b1ea59d9bec4a0899d771f324ae9f40",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 7,
+      "crm_total": 87543.14,
+      "total_document_items": 9,
+      "masonry_items": 7,
+      "ignored_non_masonry_items": 2,
+      "masonry_total": 87543.14,
+      "document_total": 93586.5,
+      "pieces": [
+        {
+          "item_number": 1,
+          "description": "DR-COZINHA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 58419.15
+        },
+        {
+          "item_number": 2,
+          "description": "DS-LAVABO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3374.22
+        },
+        {
+          "item_number": 3,
+          "description": "DT-LIVING",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 16719.96
+        },
+        {
+          "item_number": 6,
+          "description": "DW-WC SUITE 1",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2316.63
+        },
+        {
+          "item_number": 7,
+          "description": "DX-WC SUITE 2",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1158.31
+        },
+        {
+          "item_number": 8,
+          "description": "DY-WC SUITE 3",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1485.68
+        },
+        {
+          "item_number": 9,
+          "description": "DZ-WC SUITE MASTER",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 4069.19
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": [
+        {
+          "id": "dc4dc2e254bd4052bd6c28664505d313",
+          "name": "LION ADMINISTRADORA DE BENS LTDA"
+        }
+      ]
+    },
+    {
+      "folder_name": "1677 - ANDREIA FLORENÇO",
+      "file_name": "100001677-2.pdf",
+      "file_path": "1677 - ANDREIA FLORENÇO\\CONTRATO\\100001677-2.pdf",
+      "extension": ".pdf",
+      "file_size": 207276,
+      "folder_client": "ANDREIA FLORENÇO",
+      "document_client": "ANDR�IA FLOREN�O MACHADO",
+      "document_masked": "274***77",
+      "contract_number": "100001677-2",
+      "crm_client": "ANDRÉIA FLORENÇO MACHADO",
+      "crm_client_id": "2fmLjYQJTXsn2TvQ8rpO",
+      "crm_contract_id": "b1a7f7cae25144a7b5e9b34733f0a614",
+      "crm_contract_status": "ATIVO_DIVERGENTE",
+      "crm_piece_count": 9,
+      "crm_total": 78759.55,
+      "total_document_items": 24,
+      "masonry_items": 0,
+      "ignored_non_masonry_items": 24,
+      "masonry_total": 0,
+      "document_total": 400000,
+      "pieces": [],
+      "status": "SEM_ITEM_MARMORARIA",
+      "differences": [
+        "Quantidade de pecas divergente: CRM=9, Drive=0",
+        "Total divergente: CRM=78759.55, Drive=0",
+        "Lista de pecas/valores diverge."
+      ],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1669 - AUGUSTO DA SILVA",
+      "file_name": "100001669.pdf",
+      "file_path": "1669 - AUGUSTO DA SILVA\\CONTRATO\\100001669.pdf",
+      "extension": ".pdf",
+      "file_size": 201410,
+      "folder_client": "AUGUSTO DA SILVA",
+      "document_client": "AUGUSTO DA SILVA MARIA",
+      "document_masked": "128***55",
+      "contract_number": "100001669",
+      "crm_client": "AUGUSTO DA SILVA MARIA",
+      "crm_client_id": "3BJG2inpejc9SIY0UT9e",
+      "crm_contract_id": "338ac4c7c66746f4bfdd1dafcd6faf88",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 11,
+      "crm_total": 66236.02,
+      "total_document_items": 12,
+      "masonry_items": 11,
+      "ignored_non_masonry_items": 1,
+      "masonry_total": 66236.02,
+      "document_total": 70000,
+      "pieces": [
+        {
+          "item_number": 1,
+          "description": "AE-COZINHA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 18311.29
+        },
+        {
+          "item_number": 2,
+          "description": "AF-COZINHA BANCADA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 6612.41
+        },
+        {
+          "item_number": 3,
+          "description": "AG-LAVABO AREA SOCIAL",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 5137.33
+        },
+        {
+          "item_number": 4,
+          "description": "AH-LAVABO AREA GOURMET",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 5137.33
+        },
+        {
+          "item_number": 6,
+          "description": "AJ-WC SUITE 1",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 4303.16
+        },
+        {
+          "item_number": 7,
+          "description": "AK-WC SUITE 2",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 4303.16
+        },
+        {
+          "item_number": 8,
+          "description": "AL-WC HOSPEDE",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2695.82
+        },
+        {
+          "item_number": 9,
+          "description": "AM-WC ACADEMIA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2695.82
+        },
+        {
+          "item_number": 10,
+          "description": "AN-WC SUITE MASTER",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 4526.96
+        },
+        {
+          "item_number": 11,
+          "description": "AO-AREA GOURMET",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 6612.41
+        },
+        {
+          "item_number": 12,
+          "description": "AP-AREA GOURMET BANCADA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 5900.33
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1426 - CARLOS CESAR",
+      "file_name": "100001426.pdf",
+      "file_path": "1426 - CARLOS CESAR\\CONTRATO\\100001426.pdf",
+      "extension": ".pdf",
+      "file_size": 37835,
+      "folder_client": "CARLOS CESAR",
+      "document_client": "CARLOS CESAR ROMEIRO DA COSTA",
+      "document_masked": "335***01",
+      "contract_number": "100001426",
+      "crm_client": "CARLOS CESAR ROMEIRO DA COSTA",
+      "crm_client_id": "gEWmiJYzWgWREB5AWXRa",
+      "crm_contract_id": "f1c414eb4471438181b1ac38f27865ff",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 6,
+      "crm_total": 14504.54,
+      "total_document_items": 8,
+      "masonry_items": 6,
+      "ignored_non_masonry_items": 2,
+      "masonry_total": 14504.54,
+      "document_total": 20000,
+      "pieces": [
+        {
+          "item_number": 1,
+          "description": "AA-BANCADA COZINHA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3000.94
+        },
+        {
+          "item_number": 2,
+          "description": "AB-ILHA COZINHA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3844.97
+        },
+        {
+          "item_number": 4,
+          "description": "AD-BANCADA BANHO 2",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3219.73
+        },
+        {
+          "item_number": 5,
+          "description": "AE-PRATELEIRA BANHO 2",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 593.95
+        },
+        {
+          "item_number": 6,
+          "description": "AF-BANCADA BANHO 1",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3219.73
+        },
+        {
+          "item_number": 7,
+          "description": "AG-PRATELEIRA BANHO 1",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 625.22
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1476 - ERICK IGNACIO",
+      "file_name": "100001476.pdf",
+      "file_path": "1476 - ERICK IGNACIO\\CONTRATO\\100001476.pdf",
+      "extension": ".pdf",
+      "file_size": 43889,
+      "folder_client": "ERICK IGNACIO",
+      "document_client": "ERICK IGNACIO RODRIGUES",
+      "document_masked": "421***18",
+      "contract_number": "100001476",
+      "crm_client": "ERICK IGNACIO RODRIGUES",
+      "crm_client_id": "qwSnpzidNlTx1mmZ2g6J",
+      "crm_contract_id": "7b2b5dea825b4b7d9b2da36afef4a61e",
+      "crm_contract_status": "ATIVO_DIVERGENTE",
+      "crm_piece_count": 12,
+      "crm_total": 115900,
+      "total_document_items": 12,
+      "masonry_items": 0,
+      "ignored_non_masonry_items": 12,
+      "masonry_total": 0,
+      "document_total": 115900,
+      "pieces": [],
+      "status": "SEM_ITEM_MARMORARIA",
+      "differences": [
+        "Quantidade de pecas divergente: CRM=12, Drive=0",
+        "Total divergente: CRM=115900, Drive=0",
+        "Lista de pecas/valores diverge."
+      ],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1570 - Dr. THIAGO DOS SANTOS",
+      "file_name": "100001570.pdf",
+      "file_path": "1570 - Dr. THIAGO DOS SANTOS\\CONTRATO\\100001570.pdf",
+      "extension": ".pdf",
+      "file_size": 37800,
+      "folder_client": "Dr. THIAGO DOS SANTOS",
+      "document_client": "THIAGO DOS SANTOS SOUZA",
+      "document_masked": "430***28",
+      "contract_number": "100001570",
+      "crm_client": "THIAGO DOS SANTOS SOUZA",
+      "crm_client_id": "6mD3sIkhxjzZi07sqHA1",
+      "crm_contract_id": "d0e7f48a800e4a20ae336b0c571a4c80",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 5,
+      "crm_total": 35300,
+      "total_document_items": 5,
+      "masonry_items": 5,
+      "ignored_non_masonry_items": 0,
+      "masonry_total": 35300,
+      "document_total": 35300,
+      "pieces": [
+        {
+          "item_number": 1,
+          "description": "AA-BANCADA COZINHA PRETO SG",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 12432
+        },
+        {
+          "item_number": 2,
+          "description": "AB-ILHA COZINHA PRETO S.G ESCOV",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 6994
+        },
+        {
+          "item_number": 3,
+          "description": "AC-RODABASE COZINHA PRETO SG",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3248
+        },
+        {
+          "item_number": 4,
+          "description": "AD-CUBA LAVABO PRETO SG",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 5808
+        },
+        {
+          "item_number": 5,
+          "description": "AE-BANCADA E NICHO SU�TE MASTER",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 6818
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1671 - MARCOS MV",
+      "file_name": "100001671.pdf",
+      "file_path": "1671 - MARCOS MV\\CONTRATO\\100001671.pdf",
+      "extension": ".pdf",
+      "file_size": 201678,
+      "folder_client": "MARCOS MV",
+      "document_client": "LION ADMINISTRADORA DE BENS LTDA",
+      "document_masked": "457***01",
+      "contract_number": "100001671",
+      "crm_client": "LION ADMINISTRADORA DE BENS LTDA",
+      "crm_client_id": "dc4dc2e254bd4052bd6c28664505d313",
+      "crm_contract_id": "42fccd4c296346aaaad35f44a5def947",
+      "crm_contract_status": "ATIVO_DIVERGENTE",
+      "crm_piece_count": 15,
+      "crm_total": 225000,
+      "total_document_items": 15,
+      "masonry_items": 0,
+      "ignored_non_masonry_items": 15,
+      "masonry_total": 0,
+      "document_total": 225000,
+      "pieces": [],
+      "status": "SEM_ITEM_MARMORARIA",
+      "differences": [
+        "Quantidade de pecas divergente: CRM=15, Drive=0",
+        "Total divergente: CRM=225000, Drive=0",
+        "Lista de pecas/valores diverge."
+      ],
+      "warnings": [],
+      "candidates": [
+        {
+          "id": "dc4dc2e254bd4052bd6c28664505d313",
+          "name": "LION ADMINISTRADORA DE BENS LTDA"
+        }
+      ]
+    },
+    {
+      "folder_name": "1599 - GUSTAVO BRANCO",
+      "file_name": "100001599-1.pdf",
+      "file_path": "1599 - GUSTAVO BRANCO\\CONTRATO\\100001599-1.pdf",
+      "extension": ".pdf",
+      "file_size": 47787,
+      "folder_client": "GUSTAVO BRANCO",
+      "document_client": "GUSTAVO BRANCO ANGELO",
+      "document_masked": "404***82",
+      "contract_number": "100001599-1",
+      "crm_client": "GUSTAVO BRANCO ANGELO",
+      "crm_client_id": "TmodWUKDzWwGTXhGu1Hp",
+      "crm_contract_id": "58a077f92dc544fe93519353c30426a4",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 1,
+      "crm_total": 20229.73,
+      "total_document_items": 25,
+      "masonry_items": 1,
+      "ignored_non_masonry_items": 24,
+      "masonry_total": 20229.73,
+      "document_total": 400000,
+      "pieces": [
+        {
+          "item_number": 6,
+          "description": "BK-L�MINAS COZINHA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 20229.73
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1685 - TR2",
+      "file_name": "100001685-1.pdf",
+      "file_path": "1685 - TR2\\CONTRATO\\100001685-1.pdf",
+      "extension": ".pdf",
+      "file_size": 204000,
+      "folder_client": "TR2",
+      "document_client": "TR2 COMERCIO E SERVI�OS DE PAPELARIA EIRELI",
+      "document_masked": "086***01",
+      "contract_number": "100001685-1",
+      "crm_client": "TR2 COMERCIO E SERVIÇOS DE PAPELARIA EIRELI",
+      "crm_client_id": "3LCQXeeZiD3MKdOVaOXd",
+      "crm_contract_id": "f7a711e553e641c29935b721177be64c",
+      "crm_contract_status": "SOFT_DELETED_REVIEW",
+      "crm_piece_count": 0,
+      "crm_total": 198900,
+      "total_document_items": 19,
+      "masonry_items": 0,
+      "ignored_non_masonry_items": 19,
+      "masonry_total": 0,
+      "document_total": 198900,
+      "pieces": [],
+      "status": "SEM_ITEM_MARMORARIA",
+      "differences": [
+        "Registro existe apenas como soft-deleted; nao restaurar automaticamente."
+      ],
+      "warnings": [],
+      "candidates": [
+        {
+          "id": "3LCQXeeZiD3MKdOVaOXd",
+          "name": "TR2 COMERCIO E SERVIÇOS DE PAPELARIA EIRELI",
+          "score": 0.763
+        },
+        {
+          "id": "tPRD7cuLpZUIbcCYTC9R",
+          "name": "GERALDO DE PAIVA",
+          "score": 0.175
+        },
+        {
+          "id": "Gd8kXN6q0J3o12KM6tiW",
+          "name": "THIAGO MIRANDA DE CASTRO",
+          "score": 0.131
+        }
+      ]
+    },
+    {
+      "folder_name": "1711 - AILTON",
+      "file_name": "100001711.pdf",
+      "file_path": "1711 - AILTON\\CONTRATO\\100001711.pdf",
+      "extension": ".pdf",
+      "file_size": 192380,
+      "folder_client": "AILTON",
+      "document_client": "ANTONIO AILTON CARDOSO SOARES",
+      "document_masked": "090***30",
+      "contract_number": "100001711",
+      "crm_client": "ANTONIO AILTON CARDOSO SOARES",
+      "crm_client_id": "hYdXOdUgVP1MBLXpttu9",
+      "crm_contract_id": "af5f89a8e5e24224b7698ef2b393f5a3",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 1,
+      "crm_total": 550,
+      "total_document_items": 1,
+      "masonry_items": 1,
+      "ignored_non_masonry_items": 0,
+      "masonry_total": 550,
+      "document_total": 550,
+      "pieces": [
+        {
+          "item_number": 1,
+          "description": "AA-BANCADA VERDE UBATUBA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 550
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1710 - MARCIO DAL",
+      "file_name": "CONTRATO PINGADEIRAS - MARCIO DAL BELLO.pdf",
+      "file_path": "1710 - MARCIO DAL\\CONTRATO\\CONTRATO PINGADEIRAS - MARCIO DAL BELLO.pdf",
+      "extension": ".pdf",
+      "file_size": 192307,
+      "folder_client": "MARCIO DAL",
+      "document_client": "MARCIO DAL BELLO",
+      "document_masked": "716***20",
+      "contract_number": "100001710",
+      "crm_client": "MARCIO DAL BELLO",
+      "crm_client_id": "MD5n3US8nLIhAFSheb47",
+      "crm_contract_id": "79fd01aab9044e9e9f506d124cd15e0b",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 1,
+      "crm_total": 8215.37,
+      "total_document_items": 1,
+      "masonry_items": 1,
+      "ignored_non_masonry_items": 0,
+      "masonry_total": 8215.37,
+      "document_total": 8215.37,
+      "pieces": [
+        {
+          "item_number": 1,
+          "description": "BB-PINGADEIRAS E SOLEIRAS",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 8215.37
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1662 - PEDRO OLAVO",
+      "file_name": "1662-2.pdf",
+      "file_path": "1662 - PEDRO OLAVO\\CONTRATO\\1662-2.pdf",
+      "extension": ".pdf",
+      "file_size": 209931,
+      "folder_client": "PEDRO OLAVO",
+      "document_client": "PEDRO OLAVO SEVERINI FILHO",
+      "document_masked": "271***20",
+      "contract_number": "100001662-2",
+      "crm_client": "PEDRO OLAVO SEVERINI FILHO",
+      "crm_client_id": "b4kZzhJg4WNF5e6opsD0",
+      "crm_contract_id": "e3eb24bccc444742b84797a6f652b2a6",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 1,
+      "crm_total": 19881.81,
+      "total_document_items": 29,
+      "masonry_items": 1,
+      "ignored_non_masonry_items": 28,
+      "masonry_total": 19881.81,
+      "document_total": 639900,
+      "pieces": [
+        {
+          "item_number": 28,
+          "description": "BB-COZINHA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 19881.81
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": [
+        {
+          "id": "b4kZzhJg4WNF5e6opsD0",
+          "name": "PEDRO OLAVO SEVERINI FILHO",
+          "score": 0.97
+        },
+        {
+          "id": "0yGJpdRagZOOIfO1GP4K",
+          "name": "GABRIEL UVA",
+          "score": 0
+        },
+        {
+          "id": "MD5n3US8nLIhAFSheb47",
+          "name": "MARCIO DAL BELLO",
+          "score": 0
+        }
+      ]
+    },
+    {
+      "folder_name": "1728 - DIEGO SANCHES",
+      "file_name": "1728.pdf",
+      "file_path": "1728 - DIEGO SANCHES\\CONTRATO\\1728.pdf",
+      "extension": ".pdf",
+      "file_size": 192804,
+      "folder_client": "DIEGO SANCHES",
+      "document_client": "DIEGO SANCHES AZEVEDO",
+      "document_masked": "390***00",
+      "contract_number": "100001728",
+      "crm_client": "DIEGO SANCHES AZEVEDO",
+      "crm_client_id": "7smRO3UcvMp36IkwXOhZ",
+      "crm_contract_id": "cb052700d2ce4afa9ce8b28b8852f0f2",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 2,
+      "crm_total": 32000,
+      "total_document_items": 2,
+      "masonry_items": 2,
+      "ignored_non_masonry_items": 0,
+      "masonry_total": 32000,
+      "document_total": 32000,
+      "pieces": [
+        {
+          "item_number": 1,
+          "description": "AA-LAMINA COZINHA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 30259.99
+        },
+        {
+          "item_number": 2,
+          "description": "AB-GRANITO LAVANDERIA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1740.01
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1741 - DR. GERALDO",
+      "file_name": "1741.pdf",
+      "file_path": "1741 - DR. GERALDO\\CONTRATO\\1741.pdf",
+      "extension": ".pdf",
+      "file_size": 194568,
+      "folder_client": "DR. GERALDO",
+      "document_client": "GERALDO DE PAIVA",
+      "document_masked": "953***87",
+      "contract_number": "100001741",
+      "crm_client": "GERALDO DE PAIVA",
+      "crm_client_id": "tPRD7cuLpZUIbcCYTC9R",
+      "crm_contract_id": "4f4bc5958a9b457eaa1992f77cbb4ddd",
+      "crm_contract_status": "SOFT_DELETED_REVIEW",
+      "crm_piece_count": 0,
+      "crm_total": 70000,
+      "total_document_items": 2,
+      "masonry_items": 0,
+      "ignored_non_masonry_items": 2,
+      "masonry_total": 0,
+      "document_total": 70000,
+      "pieces": [],
+      "status": "SEM_ITEM_MARMORARIA",
+      "differences": [
+        "Registro existe apenas como soft-deleted; nao restaurar automaticamente."
+      ],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1699 - RODOLFO NOGUEIRA",
+      "file_name": "1699.pdf",
+      "file_path": "1699 - RODOLFO NOGUEIRA\\CONTRATO\\1699.pdf",
+      "extension": ".pdf",
+      "file_size": 196076,
+      "folder_client": "RODOLFO NOGUEIRA",
+      "document_client": "RODOLFO NOGUEIRA",
+      "document_masked": "340***70",
+      "contract_number": "100001699",
+      "crm_client": "RODOLFO NOGUEIRA",
+      "crm_client_id": "YTOrYpwpc4k4pyOBIywP",
+      "crm_contract_id": "8268e3a3562847288cd3f279b176a13a",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 2,
+      "crm_total": 33978.45,
+      "total_document_items": 5,
+      "masonry_items": 2,
+      "ignored_non_masonry_items": 3,
+      "masonry_total": 33978.45,
+      "document_total": 89900,
+      "pieces": [
+        {
+          "item_number": 4,
+          "description": "AG-QUARTZO COZINHA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 25031.09
+        },
+        {
+          "item_number": 5,
+          "description": "AH-GRANITO GOURMET",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 8947.36
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1726 - MARGARIDA APARECIDA",
+      "file_name": "1726.pdf",
+      "file_path": "1726 - MARGARIDA APARECIDA\\CONTRATO\\1726.pdf",
+      "extension": ".pdf",
+      "file_size": 194406,
+      "folder_client": "MARGARIDA APARECIDA",
+      "document_client": "MARGARIDA APARECIDA GON�ALVES SOUZA",
+      "document_masked": "143***06",
+      "contract_number": "100001726",
+      "crm_client": "MARGARIDA APARECIDA GONÇALVES SOUZA",
+      "crm_client_id": "B6nHppEtk5T6rcz9Rf4g",
+      "crm_contract_id": "45299b5ec91748efb070a78721a120aa",
+      "crm_contract_status": "SOFT_DELETED_REVIEW",
+      "crm_piece_count": 0,
+      "crm_total": 12500,
+      "total_document_items": 2,
+      "masonry_items": 0,
+      "ignored_non_masonry_items": 2,
+      "masonry_total": 0,
+      "document_total": 12500,
+      "pieces": [],
+      "status": "SEM_ITEM_MARMORARIA",
+      "differences": [
+        "Registro existe apenas como soft-deleted; nao restaurar automaticamente."
+      ],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1717 - MARCIO DAL",
+      "file_name": "1717.pdf",
+      "file_path": "1717 - MARCIO DAL\\CONTRATO\\1717.pdf",
+      "extension": ".pdf",
+      "file_size": 202152,
+      "folder_client": "MARCIO DAL",
+      "document_client": "MARCIO DAL BELLO",
+      "document_masked": "716***20",
+      "contract_number": "100001717",
+      "crm_client": "MARCIO DAL BELLO",
+      "crm_client_id": "MD5n3US8nLIhAFSheb47",
+      "crm_contract_id": "a54828168c8d43b2a92a61747143eaeb",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 11,
+      "crm_total": 26031.58,
+      "total_document_items": 15,
+      "masonry_items": 11,
+      "ignored_non_masonry_items": 4,
+      "masonry_total": 26031.58,
+      "document_total": 52000,
+      "pieces": [
+        {
+          "item_number": 3,
+          "description": "AP-BANCADA WC EXTERNO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1018.02
+        },
+        {
+          "item_number": 4,
+          "description": "AQ-NICHO WC EXTERNO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1199.99
+        },
+        {
+          "item_number": 6,
+          "description": "AS-RODABASE COZINHA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1222.53
+        },
+        {
+          "item_number": 7,
+          "description": "AT-BANCADA WC FILHA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 884
+        },
+        {
+          "item_number": 8,
+          "description": "AU-NICHO WC FILHA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1199.99
+        },
+        {
+          "item_number": 9,
+          "description": "AV-BANCADA WC H�SPEDES",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 884
+        },
+        {
+          "item_number": 10,
+          "description": "AW-NICHO WC H�SPEDES",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1199.99
+        },
+        {
+          "item_number": 11,
+          "description": "AX-BANCADA WC SU�TE MASTER",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2115.96
+        },
+        {
+          "item_number": 12,
+          "description": "AY-NICHO 1 WC SU�TE MASTER",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1199.99
+        },
+        {
+          "item_number": 13,
+          "description": "AZ-NICHO 2 WC SU�TE MASTER",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1199.99
+        },
+        {
+          "item_number": 15,
+          "description": "BC-ESCADA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 13907.12
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1744 - TIAGO SBI",
+      "file_name": "1744.pdf",
+      "file_path": "1744 - TIAGO SBI\\CONTRATO\\1744.pdf",
+      "extension": ".pdf",
+      "file_size": 192401,
+      "folder_client": "TIAGO SBI",
+      "document_client": "TIAGO DE OLIVEIRA",
+      "document_masked": "057***56",
+      "contract_number": "100001744",
+      "crm_client": "CAMILA SBI",
+      "crm_client_id": "lciBChMXNKk93TBOSeHx",
+      "crm_contract_id": "d37afe3a058845009735eb0f7e56a6ca",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 1,
+      "crm_total": 7091,
+      "total_document_items": 1,
+      "masonry_items": 1,
+      "ignored_non_masonry_items": 0,
+      "masonry_total": 7091,
+      "document_total": 7091,
+      "pieces": [
+        {
+          "item_number": 1,
+          "description": "AA-LAVAT�RIO QUARTZO BRANCO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 7091
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": [
+        {
+          "id": "lciBChMXNKk93TBOSeHx",
+          "name": "CAMILA SBI"
+        }
+      ]
+    },
+    {
+      "folder_name": "1754 - GERALDO PAIVA",
+      "file_name": "Contrato - Geraldo de Paiva.pdf",
+      "file_path": "1754 - GERALDO PAIVA\\CONTRATO\\Contrato - Geraldo de Paiva.pdf",
+      "extension": ".pdf",
+      "file_size": 192179,
+      "folder_client": "GERALDO PAIVA",
+      "document_client": "GERALDO DE PAIVA Produto de Mostru�rio",
+      "document_masked": "953***87",
+      "contract_number": "100001754",
+      "crm_client": "GERALDO DE PAIVA",
+      "crm_client_id": "tPRD7cuLpZUIbcCYTC9R",
+      "crm_contract_id": "566baa873ae442debe616ec3af54b494",
+      "crm_contract_status": "SOFT_DELETED_REVIEW",
+      "crm_piece_count": 0,
+      "crm_total": 4035.81,
+      "total_document_items": 1,
+      "masonry_items": 1,
+      "ignored_non_masonry_items": 0,
+      "masonry_total": 4035.81,
+      "document_total": 4035.81,
+      "pieces": [
+        {
+          "item_number": 1,
+          "description": "AK-BANCADA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 4035.81
+        }
+      ],
+      "status": "SOFT_DELETED_REVIEW",
+      "differences": [
+        "Registro existe apenas como soft-deleted; nao restaurar automaticamente."
+      ],
+      "warnings": [],
+      "candidates": []
+    },
+    {
+      "folder_name": "1690 - BIANCA JURTICK",
+      "file_name": "1690.pdf",
+      "file_path": "1690 - BIANCA JURTICK\\CONTRATO\\1690.pdf",
+      "extension": ".pdf",
+      "file_size": 204018,
+      "folder_client": "BIANCA JURTICK",
+      "document_client": "BIANCA ARA�JO JURTICK",
+      "document_masked": "373***73",
+      "contract_number": "100001690",
+      "crm_client": "BIANCA JURTICK",
+      "crm_client_id": "814c6dee4c384155b90f4b4d53d3567f",
+      "crm_contract_id": "e65fe65090204532a3c0f1fdc53bc42b",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 5,
+      "crm_total": 10126.41,
+      "total_document_items": 20,
+      "masonry_items": 5,
+      "ignored_non_masonry_items": 15,
+      "masonry_total": 10126.41,
+      "document_total": 155000,
+      "pieces": [
+        {
+          "item_number": 16,
+          "description": "CY-BANCADA WC MASTER",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2328.75
+        },
+        {
+          "item_number": 17,
+          "description": "CZ-BANCADA WC DORM 1",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1738.66
+        },
+        {
+          "item_number": 18,
+          "description": "DA-BANCADA WC DORM FUNDO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1844.04
+        },
+        {
+          "item_number": 19,
+          "description": "DB-COMPLEMENTO COZ",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2370.91
+        },
+        {
+          "item_number": 20,
+          "description": "DC-BANCADA WC ESCRITORIO",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1844.05
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [],
+      "candidates": [
+        {
+          "id": "814c6dee4c384155b90f4b4d53d3567f",
+          "name": "BIANCA JURTICK"
+        }
+      ]
+    },
+    {
+      "folder_name": "(fora de CONTRATO)",
+      "file_name": "eric ferreira.pdf",
+      "file_path": "eric ferreira.pdf",
+      "extension": ".pdf",
+      "file_size": 38471,
+      "folder_client": "eric ferreira",
+      "document_client": "ERIC FERREIRA DA SILVA",
+      "document_masked": "373***07",
+      "contract_number": "100001286",
+      "crm_client": "ERIC FERREIRA DA SILVA",
+      "crm_client_id": "i5KL1uIQh7JeVnQqZ16D",
+      "crm_contract_id": "b0cb402cce7641ebbe45c2872b2b2012",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 8,
+      "crm_total": 19492.61,
+      "total_document_items": 9,
+      "masonry_items": 8,
+      "ignored_non_masonry_items": 1,
+      "masonry_total": 19492.61,
+      "document_total": 20000,
+      "pieces": [
+        {
+          "item_number": 1,
+          "description": "AA-BANCADA E RODABASE",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1770.74
+        },
+        {
+          "item_number": 2,
+          "description": "AB-BANCADA E RODABASE COZINHA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3063.77
+        },
+        {
+          "item_number": 3,
+          "description": "AC-BANCADA E RODABASE AREA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2638.35
+        },
+        {
+          "item_number": 4,
+          "description": "AD-BOCA PARA CHURRASQUEIRA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 608.85
+        },
+        {
+          "item_number": 5,
+          "description": "AE-BANCADA BANHO H�SPEDES 01",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2841.3
+        },
+        {
+          "item_number": 6,
+          "description": "AF-BANCADA BANHO H�SPEDES 02",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 2739.82
+        },
+        {
+          "item_number": 7,
+          "description": "AG-BANCADA BANHO MASTER",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 5449.22
+        },
+        {
+          "item_number": 9,
+          "description": "AI-PINGADEIRAS PRETO SG",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 380.56
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [
+        "Documento destacado encontrado fora de uma pasta CONTRATO."
+      ],
+      "candidates": []
+    },
+    {
+      "folder_name": "(fora de CONTRATO)",
+      "file_name": "GUERRINO.pdf",
+      "file_path": "GUERRINO.pdf",
+      "extension": ".pdf",
+      "file_size": 38149,
+      "folder_client": "GUERRINO",
+      "document_client": "CAMILA GUERINO DE OLIVEIRA MARTINS",
+      "document_masked": "374***73",
+      "contract_number": "100001611",
+      "crm_client": "CAMILA GUERINO DE OLIVEIRA MARTINS",
+      "crm_client_id": "lXjeVlTH9Lz5ia0EeRat",
+      "crm_contract_id": "5b5061dfc78d431eaa2fefdce92378e0",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 4,
+      "crm_total": 15618.66,
+      "total_document_items": 8,
+      "masonry_items": 4,
+      "ignored_non_masonry_items": 4,
+      "masonry_total": 15618.66,
+      "document_total": 50000,
+      "pieces": [
+        {
+          "item_number": 5,
+          "description": "AI-QUARTZO BRANCO WC SOCIAL",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3165.12
+        },
+        {
+          "item_number": 6,
+          "description": "AJ-QUARTZO BRANCO WC SUITE",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 5524.96
+        },
+        {
+          "item_number": 7,
+          "description": "AK-DUAS BAGUETES WC SUITE",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1200.06
+        },
+        {
+          "item_number": 8,
+          "description": "AL-BANCADA PRETO SAO GABRIEL",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 5728.52
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [
+        "Documento destacado encontrado fora de uma pasta CONTRATO."
+      ],
+      "candidates": []
+    },
+    {
+      "folder_name": "(fora de CONTRATO)",
+      "file_name": "SER FINANCE.pdf",
+      "file_path": "SER FINANCE.pdf",
+      "extension": ".pdf",
+      "file_size": 193031,
+      "folder_client": "SER FINANCE",
+      "document_client": "SER FINANCE SOCIEDADE DE CREDITO DIRETO S.A.",
+      "document_masked": "478***01",
+      "contract_number": "100001676",
+      "crm_client": "SER FINANCE SOCIEDADE DE CREDITO DIRETO S.A.",
+      "crm_client_id": "hZVbhenoSmVyRkhsFnxK",
+      "crm_contract_id": "3959d9b312094e6eacb48823b568a82f",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 2,
+      "crm_total": 4200,
+      "total_document_items": 2,
+      "masonry_items": 2,
+      "ignored_non_masonry_items": 0,
+      "masonry_total": 4200,
+      "document_total": 4200,
+      "pieces": [
+        {
+          "item_number": 1,
+          "description": "AA-BANCADA PARA WC",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 3355.5
+        },
+        {
+          "item_number": 2,
+          "description": "AB-BANCADA",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 844.5
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [
+        "Documento destacado encontrado fora de uma pasta CONTRATO."
+      ],
+      "candidates": [
+        {
+          "id": "hZVbhenoSmVyRkhsFnxK",
+          "name": "SER FINANCE SOCIEDADE DE CREDITO DIRETO S.A.",
+          "score": 0.97
+        },
+        {
+          "id": "tPRD7cuLpZUIbcCYTC9R",
+          "name": "GERALDO DE PAIVA",
+          "score": 0.175
+        },
+        {
+          "id": "Gd8kXN6q0J3o12KM6tiW",
+          "name": "THIAGO MIRANDA DE CASTRO",
+          "score": 0.14
+        }
+      ]
+    },
+    {
+      "folder_name": "(fora de CONTRATO)",
+      "file_name": "thiago miranda.pdf",
+      "file_path": "thiago miranda.pdf",
+      "extension": ".pdf",
+      "file_size": 38981,
+      "folder_client": "thiago miranda",
+      "document_client": "THIAGO MIRANDA DE CASTRO",
+      "document_masked": "387***66",
+      "contract_number": "100001145",
+      "crm_client": "THIAGO MIRANDA DE CASTRO",
+      "crm_client_id": "Gd8kXN6q0J3o12KM6tiW",
+      "crm_contract_id": "218db511c1f648f5b7a692a2ae3c27fe",
+      "crm_contract_status": "ATIVO_CORRETO",
+      "crm_piece_count": 2,
+      "crm_total": 3211.1,
+      "total_document_items": 10,
+      "masonry_items": 2,
+      "ignored_non_masonry_items": 8,
+      "masonry_total": 3211.1,
+      "document_total": 35000,
+      "pieces": [
+        {
+          "item_number": 7,
+          "description": "BS-WC SUITE PRETO SG",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1605.55
+        },
+        {
+          "item_number": 8,
+          "description": "BT-WC SOCIAL PRETO SG",
+          "supplier": "DCORATTO SOB MEDIDA",
+          "line": "GRANITOS E",
+          "value": 1605.55
+        }
+      ],
+      "status": "ATIVO_CORRETO",
+      "differences": [],
+      "warnings": [
+        "Documento destacado encontrado fora de uma pasta CONTRATO."
+      ],
+      "candidates": []
+    },
+    {
+      "folder_name": "(fora de CONTRATO)",
+      "file_name": "05- MARMORARIA.pdf",
+      "file_path": "---- - ERIC FERREIRA\\PROJETO ARQ\\05- MARMORARIA.pdf",
+      "extension": ".pdf",
+      "file_size": 903709,
+      "folder_client": "05- MARMORARIA",
+      "document_client": "",
+      "document_masked": "",
+      "contract_number": "",
+      "crm_client": "",
+      "crm_client_id": "",
+      "crm_contract_id": "",
+      "crm_contract_status": "ERRO_EXTRACAO",
+      "crm_piece_count": 0,
+      "crm_total": 0,
+      "total_document_items": 0,
+      "masonry_items": 0,
+      "ignored_non_masonry_items": 0,
+      "masonry_total": 0,
+      "document_total": null,
+      "pieces": [],
+      "status": "ERRO_EXTRACAO",
+      "differences": [
+        "Numero do contrato nao identificado."
+      ],
+      "warnings": [
+        "Documento destacado encontrado fora de uma pasta CONTRATO."
+      ],
+      "candidates": [
+        {
+          "id": "0yGJpdRagZOOIfO1GP4K",
+          "name": "GABRIEL UVA",
+          "score": 0
+        },
+        {
+          "id": "MD5n3US8nLIhAFSheb47",
+          "name": "MARCIO DAL BELLO",
+          "score": 0
+        },
+        {
+          "id": "uqUzw313XoV94aNekZzM",
+          "name": "ELISABETH",
+          "score": 0
+        }
+      ]
+    }
+  ]
+}

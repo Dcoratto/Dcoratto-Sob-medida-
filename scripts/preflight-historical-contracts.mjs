@@ -6,6 +6,7 @@ import {promisify} from 'node:util';
 import dotenv from 'dotenv';
 import {createClient} from '@supabase/supabase-js';
 import {extractOfficialContractNumber, parseClientContractPdf, parseLegacyQuotePdf} from '../src/lib/contractParser.ts';
+import {parseHistoricalContractItemsFromText, sumMasonryPieces, toMasonryPieces} from '../src/lib/masonryContractItems.ts';
 
 dotenv.config({path: '.env'});
 dotenv.config({path: '.env.local', override: true});
@@ -272,23 +273,24 @@ const parsePdfTextFallback = (text, filePath) => {
   const clientMatch = text.match(/CLIENTE\s+TIPO DE CONTRATO\s+([\s\S]{1,180}?)(?:\s+Normal|\s+Especial|\s+CPF\/CNPJ|\n)/i);
   const cpfMatch = text.match(/CPF\/CNPJ[\s\S]{0,160}?(\d{2,3}\.?\d{3}\.?\d{3}[-/.]?\d{2,4}(?:\/\d{4}-?\d{2})?)/i);
   const totalMatch = text.match(/Total do pedido:\s*([\d.]+,\d{2})/i);
-  const pieces = [];
-  const itemPattern = /^\s*\d+\s+[\d,.]+\s+(.+?)\s+DCORATTO SOB MEDIDA\s+GRANITOS E\s+\d{1,3}\s+([\d.]+,\d{2})\s*$/gim;
-  for (const match of text.matchAll(itemPattern)) {
-    pieces.push({
-      name: String(match[1] || '').replace(/\s+/g, ' ').trim(),
-      value: parseBrazilianCurrency(match[2]),
-    });
-  }
+  const documentItems = parseHistoricalContractItemsFromText(text);
+  const masonryPieces = toMasonryPieces(documentItems);
 
   return {
     contractNumber,
     contractDate: dateMatch?.[1] || '',
     clientName: String(clientMatch?.[1] || '').replace(/\s+/g, ' ').replace(/^\d+\s*-\s*/, '').trim(),
     cpfCnpj: cpfMatch?.[1] || '',
-    pieces: pieces.filter((piece) => piece.name && piece.value > 0),
-    contractTotal: totalMatch ? parseBrazilianCurrency(totalMatch[1]) : null,
-    needsManualReview: !contractNumber || pieces.length === 0,
+    pieces: masonryPieces.filter((piece) => piece.label && piece.value > 0).map((piece) => ({
+      name: piece.label,
+      value: piece.value,
+    })),
+    totalItems: documentItems.length,
+    masonryItems: masonryPieces.length,
+    ignoredNonMasonryItems: Math.max(0, documentItems.length - masonryPieces.length),
+    documentTotal: totalMatch ? parseBrazilianCurrency(totalMatch[1]) : null,
+    contractTotal: sumMasonryPieces(masonryPieces),
+    needsManualReview: !contractNumber || masonryPieces.length === 0,
   };
 };
 
@@ -296,7 +298,16 @@ const parsePdfForPreflight = async (filePath) => {
   try {
     const parsed = await parsePdf(filePath);
     if (parsed.contractNumber && parsed.pieces.length > 0) {
-      return {...parsed, contractTotal: parsed.pieces.reduce((sum, piece) => sum + (money(piece.value) || 0), 0), parserMode: 'contractParser'};
+      const contractTotal = parsed.pieces.reduce((sum, piece) => sum + (money(piece.value) || 0), 0);
+      return {
+        ...parsed,
+        totalItems: parsed.pieces.length,
+        masonryItems: parsed.pieces.length,
+        ignoredNonMasonryItems: 0,
+        documentTotal: null,
+        contractTotal,
+        parserMode: 'contractParser',
+      };
     }
   } catch {
     // The local PDF text fallback below keeps this read-only preflight useful without Gemini.
@@ -410,7 +421,12 @@ const main = async () => {
           contractDate: parsed.contractDate,
           parsedClientName: parsed.clientName,
           parsedDocumentMasked: maskDocument(parsed.cpfCnpj),
+          totalItems: parsed.totalItems ?? parsed.pieces.length,
+          masonryItems: parsed.masonryItems ?? parsed.pieces.length,
+          ignoredNonMasonryItems: parsed.ignoredNonMasonryItems ?? 0,
           pieceCount: parsed.pieces.length,
+          documentTotal: money(parsed.documentTotal),
+          masonryTotal: money(contractTotal),
           contractTotal: money(contractTotal),
           parserMode: parsed.parserMode,
           matchStatus: match.status,

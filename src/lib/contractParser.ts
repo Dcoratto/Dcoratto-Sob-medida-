@@ -1,4 +1,5 @@
 import {GoogleGenAI} from '@google/genai';
+import {isMasonryContractItem, isMasonryContractItemText} from './masonryContractItems';
 
 export type ParsedContractClient = {
   sellerName: string;
@@ -350,8 +351,9 @@ const coerceParsedLegacyPieces = (payload: unknown): ParsedLegacyQuotePiece[] =>
       name: sanitizeValue(String((item as any)?.name || '')),
       value: Number((item as any)?.value || 0),
       line: sanitizeValue(String((item as any)?.line || '')),
+      supplier: sanitizeValue(String((item as any)?.supplier || '')),
     }))
-    .filter((item) => item.name && item.value > 0 && isGranitosEMarmoresLine(item.line || ''))
+    .filter((item) => item.name && item.value > 0 && isMasonryContractItem(item))
     .map(({name, value}) => ({name, value}));
 };
 
@@ -491,6 +493,7 @@ Formato esperado:
   "pieces": [
     {
       "name": "texto da coluna DESCRICAO AMBIENTE/PRODUTO",
+      "supplier": "texto da coluna FORNECEDOR",
       "line": "texto da coluna LINHA",
       "value": 1234.56
     }
@@ -498,8 +501,9 @@ Formato esperado:
 }
 
 Regras:
-- Considere apenas itens onde a coluna LINHA seja GRANITOS E MARMORES.
+- Considere apenas itens onde a coluna FORNECEDOR seja DCORATTO SOB MEDIDA e a coluna LINHA seja GRANITOS E MARMORES.
 - O campo name deve vir da coluna DESCRICAO AMBIENTE/PRODUTO.
+- O campo supplier deve vir da coluna FORNECEDOR.
 - O campo value deve vir da coluna VALOR em numero.
 - Ignore qualquer linha de outra categoria.
 - Ignore total do pedido.
@@ -587,7 +591,7 @@ export const parseLegacyQuotePdf = async (file: File): Promise<ParsedLegacyQuote
     const lineText = middleTokens.join(' ');
     const value = parseBrazilianCurrency(bodyTokens[deadlineIndex + 1]);
 
-    if (isGranitosEMarmoresLine(lineText) && descriptionToken.trim() && value > 0) {
+    if (isMasonryContractItemText(lineText) && descriptionToken.trim() && value > 0) {
       pieces.push({
         name: descriptionToken.trim(),
         value,

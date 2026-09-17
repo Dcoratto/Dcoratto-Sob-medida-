@@ -5,6 +5,7 @@ import {promisify} from 'node:util';
 import dotenv from 'dotenv';
 import {createClient} from '@supabase/supabase-js';
 import {extractOfficialContractNumber} from '../src/lib/contractParser.ts';
+import {parseHistoricalContractItemsFromText, sumMasonryPieces, toMasonryPieces} from '../src/lib/masonryContractItems.ts';
 
 dotenv.config({path: '.env'});
 dotenv.config({path: '.env.local', override: true});
@@ -124,30 +125,6 @@ const extractContractNumberFromFileName = (filePath) => {
   return match ? match[0] : '';
 };
 
-const splitPieceLabel = (body) => {
-  const knownSupplier = /(DCORATTO SOB MEDIDA|BOA VISTA PLANEJADOS|VITTA PLANEJADOS|GRANITOS E|PLANEJADOS)/i;
-  const match = body.match(knownSupplier);
-  return cleanText(match ? body.slice(0, match.index) : body);
-};
-
-const extractPieces = (text) => {
-  const itemBlockMatch = text.match(/ITEM\s+QTD\s+DESCRI[\s\S]{0,80}?VALOR\s+([\s\S]*?)Total do pedido:/i);
-  const sourceText = itemBlockMatch?.[1] || '';
-  const pieces = [];
-  const seen = new Set();
-  const linePattern = /^\s*(\d{1,3})\s+[\d,.]+\s+(.+?)\s+\d{1,3}\s+([\d.]+,\d{2})\s*$/gim;
-  for (const match of sourceText.matchAll(linePattern)) {
-    const sortOrder = Number(match[1]);
-    const label = splitPieceLabel(match[2]);
-    const value = parseBrazilianCurrency(match[3]);
-    const key = `${sortOrder}:${label}:${value}`;
-    if (!label || !value || seen.has(key)) continue;
-    seen.add(key);
-    pieces.push({label: label.slice(0, 180), value, sortOrder});
-  }
-  return pieces.sort((a, b) => a.sortOrder - b.sortOrder);
-};
-
 const extractClientData = (text, fallbackName) => {
   const clientMatch = text.match(/CLIENTE\s+TIPO DE CONTRATO\s+([\s\S]{1,180}?)(?:\s+Normal|\s+Especial|\s+CPF\/CNPJ|\n)/i);
   const cpfMatch = text.match(/CPF\/CNPJ[\s\S]{0,160}?(\d{2,3}\.?\d{3}\.?\d{3}[-/.]?\d{2,4}(?:\/\d{4}-?\d{2})?)/i);
@@ -171,12 +148,15 @@ const parsePdf = async (absolutePath, fallbackName) => {
   const contractNumber = extractOfficialContractNumber(text) || extractContractNumberFromFileName(absolutePath);
   const dateMatch = text.match(/DATA DO CONTRATO[\s\S]{0,220}?(\d{2}\/\d{2}\/\d{4})/i) || text.match(/\b\d{2}\/\d{2}\/\d{4}\b/);
   const totalMatch = text.match(/Total do pedido:\s*([\d.]+,\d{2})/i) || text.match(/TOTAL A PRAZO\s+[\s\S]{0,80}?([\d.]+,\d{2})/i);
-  const pieces = extractPieces(text);
+  const documentItems = parseHistoricalContractItemsFromText(text);
+  const masonryPieces = toMasonryPieces(documentItems);
   return {
     contractNumber,
     contractDate: parseBrazilianDate(dateMatch?.[1] || ''),
-    contractTotal: totalMatch ? parseBrazilianCurrency(totalMatch[1]) : null,
-    pieces: pieces.map((piece, index) => ({...piece, sortOrder: index + 1})),
+    documentTotal: totalMatch ? parseBrazilianCurrency(totalMatch[1]) : null,
+    masonryTotal: sumMasonryPieces(masonryPieces),
+    documentItems,
+    masonryPieces: masonryPieces.map((piece, index) => ({...piece, sortOrder: index + 1})),
     clientData: extractClientData(text, fallbackName),
   };
 };
@@ -270,8 +250,12 @@ const main = async () => {
         file: row.filePath,
         crm_client: row.crmClientName || '',
         contract_number: contractNumber,
-        piece_count: parsed.pieces.length,
-        contract_total: money(parsed.contractTotal),
+        total_items: parsed.documentItems.length,
+        masonry_items: parsed.masonryPieces.length,
+        ignored_non_masonry_items: Math.max(0, parsed.documentItems.length - parsed.masonryPieces.length),
+        piece_count: parsed.masonryPieces.length,
+        document_total: money(parsed.documentTotal),
+        contract_total: money(parsed.masonryTotal),
         status: duplicate.status,
         reason: duplicate.status === 'SOFT_DELETED_SKIPPED' ? 'Contrato existe como soft-deleted e nao sera restaurado.' : 'Contrato ja existe no CRM.',
         warnings,
@@ -279,16 +263,20 @@ const main = async () => {
       continue;
     }
 
-    if (parsed.pieces.length === 0) {
+    if (parsed.masonryPieces.length === 0) {
       rows.push({
         folder: row.folderName,
         file: row.filePath,
         crm_client: row.crmClientName || '',
         contract_number: contractNumber,
+        total_items: parsed.documentItems.length,
+        masonry_items: 0,
+        ignored_non_masonry_items: parsed.documentItems.length,
         piece_count: 0,
-        contract_total: money(parsed.contractTotal),
-        status: 'PENDING_REVIEW',
-        reason: 'Sem pecas identificadas com seguranca.',
+        document_total: money(parsed.documentTotal),
+        contract_total: null,
+        status: 'NO_MASONRY_ITEMS',
+        reason: 'Contrato sem itens elegiveis da marmoraria.',
         warnings,
       });
       continue;
@@ -302,8 +290,12 @@ const main = async () => {
         file: row.filePath,
         crm_client: '',
         contract_number: contractNumber,
-        piece_count: parsed.pieces.length,
-        contract_total: money(parsed.contractTotal),
+        total_items: parsed.documentItems.length,
+        masonry_items: parsed.masonryPieces.length,
+        ignored_non_masonry_items: Math.max(0, parsed.documentItems.length - parsed.masonryPieces.length),
+        piece_count: parsed.masonryPieces.length,
+        document_total: money(parsed.documentTotal),
+        contract_total: money(parsed.masonryTotal),
         status: 'PENDING_REVIEW',
         reason: 'Sem cliente CRM definido.',
         warnings,
@@ -318,8 +310,12 @@ const main = async () => {
         file: row.filePath,
         crm_client: targetClientName,
         contract_number: contractNumber,
-        piece_count: parsed.pieces.length,
-        contract_total: money(parsed.contractTotal),
+        total_items: parsed.documentItems.length,
+        masonry_items: parsed.masonryPieces.length,
+        ignored_non_masonry_items: Math.max(0, parsed.documentItems.length - parsed.masonryPieces.length),
+        piece_count: parsed.masonryPieces.length,
+        document_total: money(parsed.documentTotal),
+        contract_total: money(parsed.masonryTotal),
         status: 'PENDING_REVIEW',
         reason: 'Cliente alvo ambiguo no CRM.',
         warnings,
@@ -361,11 +357,15 @@ const main = async () => {
       file: row.filePath,
       contractNumber,
       contractDate: parsed.contractDate,
-      contractTotal: money(parsed.contractTotal),
+      documentTotal: money(parsed.documentTotal),
+      contractTotal: money(parsed.masonryTotal),
+      totalItems: parsed.documentItems.length,
+      masonryItems: parsed.masonryPieces.length,
+      ignoredNonMasonryItems: Math.max(0, parsed.documentItems.length - parsed.masonryPieces.length),
       parsedClientName: parsed.clientData.parsedClientName,
       parsedDocumentMasked: maskDocument(parsed.clientData.cpf),
       targetClient: clientPayload,
-      pieces: parsed.pieces.map((piece) => ({
+      pieces: parsed.masonryPieces.map((piece) => ({
         label: piece.label,
         value: money(piece.value),
       })),
@@ -377,7 +377,11 @@ const main = async () => {
       file: row.filePath,
       crm_client: clientPayload.name,
       contract_number: contractNumber,
+      total_items: importItem.totalItems,
+      masonry_items: importItem.masonryItems,
+      ignored_non_masonry_items: importItem.ignoredNonMasonryItems,
       piece_count: importItem.pieces.length,
+      document_total: importItem.documentTotal,
       contract_total: importItem.contractTotal,
       status: 'READY_TO_IMPORT',
       reason: clientPayload.action === 'CREATE' ? 'Cliente novo autorizado sera criado.' : 'Cliente existente sera reutilizado.',
@@ -400,12 +404,16 @@ const main = async () => {
         p_source_document: {
           historicalImport: {
             phase: 'FASE_2',
-            folder: item.folder,
-            file: item.file,
-            parsedClientName: item.parsedClientName,
-            parsedDocumentMasked: item.parsedDocumentMasked,
-          },
+          folder: item.folder,
+          file: item.file,
+          parsedClientName: item.parsedClientName,
+          parsedDocumentMasked: item.parsedDocumentMasked,
+          documentTotal: item.documentTotal,
+          totalItems: item.totalItems,
+          masonryItems: item.masonryItems,
+          ignoredNonMasonryItems: item.ignoredNonMasonryItems,
         },
+      },
         p_actor_name: actorName,
       });
 
@@ -415,7 +423,11 @@ const main = async () => {
           file: item.file,
           crm_client: item.targetClient.name,
           contract_number: item.contractNumber,
+          total_items: item.totalItems,
+          masonry_items: item.masonryItems,
+          ignored_non_masonry_items: item.ignoredNonMasonryItems,
           piece_count: item.pieces.length,
+          document_total: item.documentTotal,
           contract_total: item.contractTotal,
           status: 'FAILED',
           reason: error.message,
@@ -429,7 +441,11 @@ const main = async () => {
         file: item.file,
         crm_client: item.targetClient.name,
         contract_number: item.contractNumber,
+        total_items: item.totalItems,
+        masonry_items: item.masonryItems,
+        ignored_non_masonry_items: item.ignoredNonMasonryItems,
         piece_count: item.pieces.length,
+        document_total: item.documentTotal,
         contract_total: item.contractTotal,
         status: data?.status || 'IMPORTED',
         reason: data?.status === 'IMPORTED' ? 'Importado via RPC atomica.' : 'RPC retornou status idempotente.',
@@ -458,9 +474,11 @@ const main = async () => {
       alreadyExists: finalRows.filter((row) => row.status === 'ALREADY_EXISTS').length,
       softDeletedSkipped: finalRows.filter((row) => row.status === 'SOFT_DELETED_SKIPPED').length,
       pendingReview: finalRows.filter((row) => row.status === 'PENDING_REVIEW').length,
+      noMasonryItems: finalRows.filter((row) => row.status === 'NO_MASONRY_ITEMS').length,
       failed: finalRows.filter((row) => row.status === 'FAILED').length,
       piecesImported: finalRows.filter((row) => row.status === 'IMPORTED').reduce((sum, item) => sum + item.piece_count, 0),
       totalImported: money(finalRows.filter((row) => row.status === 'IMPORTED').reduce((sum, item) => sum + (Number(item.contract_total) || 0), 0)),
+      ignoredNonMasonryItems: finalRows.reduce((sum, item) => sum + (Number(item.ignored_non_masonry_items) || 0), 0),
       clientsCreated: Array.from(new Set(finalRows.filter((item) => item.status === 'IMPORTED' && item.client_created).map((item) => item.crm_client))),
       clientsReused: Array.from(new Set(finalRows.filter((item) => item.status === 'IMPORTED' && !item.client_created).map((item) => item.crm_client))),
       clientsToCreate: Array.from(new Set(payload.filter((item) => item.targetClient.action === 'CREATE').map((item) => item.targetClient.name))),

@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {addBusinessDays, businessDaysBetween, deadlineStatus, filterOperationalBoard, isBusinessDay, safeDriveUrl, stages} from './operationalDomain';
+import {addBusinessDays, businessDaysBetween, canFinalize, canRegisterInstallation, canScheduleInstallation, canScheduleMeasurement, deadlineStatus, filterOperationalBoard, isBusinessDay, safeDriveUrl, stages, stageTargets} from './operationalDomain';
 import type {OperationalBoard, OperationalCard} from './operational';
 import {isMasonryContractItem} from './masonryContractItems';
 
@@ -30,6 +30,17 @@ test('stable states keep completed as normal closure and aftercare separate', ()
   assert.equal(new Set(stages.map(([id]) => id)).size, 14);
   assert.equal(stages[12][0], 'completed');
   assert.equal(stages[13][0], 'aftercare');
+});
+test('operational actions and stage targets are contextual', () => {
+  assert.equal(canScheduleMeasurement('sold'), true);
+  assert.equal(canScheduleInstallation('sold'), false);
+  assert.equal(canRegisterInstallation('sold'), false);
+  assert.equal(canRegisterInstallation('installation'), true);
+  assert.equal(canFinalize('installation', 2, 3), false);
+  assert.equal(canFinalize('installation', 3, 3), true);
+  assert.deepEqual(stageTargets('sold'), ['sold', 'measurement']);
+  assert.equal(stageTargets('sold').includes('completed'), false);
+  assert.equal(stageTargets('installation').includes('completed'), true);
 });
 test('canonical masonry classifier excludes furniture and VITTA', () => {
   assert.equal(isMasonryContractItem({supplier: 'DCORATTO SOB MEDIDA', line: 'GRANITOS E MARMORES'}), true);

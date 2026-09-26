@@ -12,13 +12,13 @@ export type OperationalCard = {
 };
 export type OperationalDetail = {
   card: OperationalCard; drive_url: string | null; settings: OperationalSettings;
-  pieces: {id: string; label: string; stage: Stage; installed: boolean}[];
+  pieces: {id: string; label: string; stage: Stage; installed: boolean; installed_at: string | null}[];
   dependencies: {id: string; piece_id: string; kind: string; note: string; released_at: string | null}[];
   blocks: {id: string; reason: string; note: string; pause_sla: boolean; started_at: string; ended_at: string | null}[];
   slas: {id: string; kind: string; started_on: string; original_due: string; due_date: string; closed_at: string | null}[];
   events: {id: string; kind: string; payload: Record<string, any>; actor_name: string; created_at: string}[];
   schedules: {id: string; operational_kind: string; date_key: string; event_time: string | null; status: string | null}[];
-  visits: {id: string; calendar_event_id: string; completed_at: string; piece_count: number}[];
+  visits: {id: string; calendar_event_id: string; completed_at: string; piece_count: number; corrected_count: number}[];
   aftercare: {id: string; description: string; note: string; opened_at: string; resolved_at: string | null; resolution: string | null; piece_ids: string[]}[];
 };
 export type OperationalBoard = {cards: OperationalCard[]; total: number; settings: OperationalSettings; indicators: Record<string, number>};

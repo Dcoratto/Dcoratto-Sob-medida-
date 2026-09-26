@@ -10,6 +10,16 @@ export const stages = [
 ] as const;
 export type Stage = typeof stages[number][0];
 export const stageLabel = (key: string) => stages.find(([id]) => id === key)?.[1] || key;
+const flowStages = stages.filter(([id]) => id !== 'aftercare').map(([id]) => id);
+export const stageTargets = (current: Stage): Stage[] => {
+  if (current === 'completed' || current === 'aftercare') return [current];
+  const index = flowStages.indexOf(current);
+  return flowStages.filter((_, targetIndex) => targetIndex <= index + 1) as Stage[];
+};
+export const canScheduleMeasurement = (stage: Stage) => ['sold', 'measurement'].includes(stage);
+export const canScheduleInstallation = (stage: Stage) => ['delivery', 'installation'].includes(stage);
+export const canRegisterInstallation = (stage: Stage) => stage === 'installation';
+export const canFinalize = (stage: Stage, installed: number, total: number) => stage === 'installation' && total > 0 && installed === total;
 export const priorities = {normal: 'Normal', high: 'Alta', urgent: 'Urgente'} as const;
 export const dependencyTypes = {furniture: 'Móveis', sink: 'Cuba', appliance: 'Eletrodoméstico', metalwork: 'Serralheria', civil: 'Obra civil', client: 'Cliente', other: 'Outro'};
 export const blockTypes = {client: 'Cliente', furniture: 'Móveis', material: 'Material', civil: 'Obra civil', supplier: 'Fornecedor', payment: 'Pagamento', other: 'Outro'};

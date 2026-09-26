@@ -12,9 +12,14 @@ export type Stage = typeof stages[number][0];
 export const stageLabel = (key: string) => stages.find(([id]) => id === key)?.[1] || key;
 const flowStages = stages.filter(([id]) => id !== 'aftercare').map(([id]) => id);
 export const stageTargets = (current: Stage): Stage[] => {
-  if (current === 'completed' || current === 'aftercare') return [current];
-  const index = flowStages.indexOf(current);
-  return flowStages.filter((_, targetIndex) => targetIndex <= index + 1) as Stage[];
+  if (current === 'aftercare') return ['aftercare'];
+  return flowStages as Stage[];
+};
+export const isNormalStageMove = (current: Stage, target: Stage) => {
+  if (current === 'aftercare' || target === 'aftercare') return false;
+  const currentIndex = flowStages.indexOf(current);
+  const targetIndex = flowStages.indexOf(target);
+  return currentIndex >= 0 && targetIndex === currentIndex + 1;
 };
 export const canScheduleMeasurement = (stage: Stage) => ['sold', 'measurement'].includes(stage);
 export const canScheduleInstallation = (stage: Stage) => ['delivery', 'installation'].includes(stage);

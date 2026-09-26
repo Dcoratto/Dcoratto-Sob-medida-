@@ -7,12 +7,14 @@ insert into public.clients(id,empresa_id,name,city,google_drive_url) values('ope
 insert into public.client_contracts(id,empresa_id,client_id,contract_number,deleted_at) values
  ('operational-test-a','operational-test-tenant','operational-test-client','OP-TEST-A',null),
  ('operational-test-b','operational-test-tenant','operational-test-client','OP-TEST-B',null),
+ ('operational-test-c','operational-test-tenant','operational-test-client','OP-TEST-C',null),
  ('operational-test-deleted','operational-test-tenant','operational-test-client','OP-TEST-DELETED',now()),
  ('operational-test-empty','operational-test-tenant','operational-test-client','OP-TEST-EMPTY',null);
 insert into public.client_contract_pieces(id,empresa_id,contract_id,piece_label) values
  ('operational-test-p1','operational-test-tenant','operational-test-a','Bancada'),
  ('operational-test-p2','operational-test-tenant','operational-test-a','Ilha'),
  ('operational-test-p3','operational-test-tenant','operational-test-b','Lavatório'),
+ ('operational-test-p5','operational-test-tenant','operational-test-c','Soleira histórica'),
  ('operational-test-p4','operational-test-tenant','operational-test-deleted','Soleira');
 select set_config('request.jwt.claim.sub','00000000-0000-4000-8000-000000000091',true);
 set local role authenticated;
@@ -20,7 +22,7 @@ do $$
 declare d jsonb; board jsonb; version int:=0; failed boolean; event_id text; dependency_id text; occurrence text; due date; today date:=(now() at time zone 'America/Sao_Paulo')::date;
 begin
   board:=public.operational_board('{}');
-  if (board->>'total')::int<>2 or board->'cards'->0->>'stage'<>'sold' then raise exception 'FAIL: automatic cards/tenant/soft-delete'; end if;
+  if (board->>'total')::int<>3 or board->'cards'->0->>'stage'<>'sold' then raise exception 'FAIL: automatic cards/tenant/soft-delete'; end if;
   if app_private.operational_add_days('2026-09-04',1,'Itaquaquecetuba')<>date '2026-09-09' then raise exception 'FAIL: business days'; end if;
   failed:=false; begin perform public.operational_mutate('operational-test-a',version,'move','{"stage":"measurement"}'); exception when others then failed:=true; end;
   if not failed then raise exception 'FAIL: measurement date required'; end if;
@@ -98,6 +100,19 @@ begin
   if not failed then raise exception 'FAIL: deleted contract'; end if;
   failed:=false; begin perform public.operational_mutate('operational-test-b',0,'note','{"note":"<script>alert(1)</script>"}'); exception when others then failed:=true; end;
   if not failed then raise exception 'FAIL: HTML input'; end if;
+  failed:=false; begin perform public.operational_mutate('operational-test-c',0,'manual_stage_adjust','{"stage":"cutting"}'); exception when others then failed:=true; end;
+  if not failed then raise exception 'FAIL: manual adjustment reason required'; end if;
+  d:=public.operational_mutate('operational-test-c',0,'manual_stage_adjust','{"stage":"cutting","reason":"Contrato ja estava em producao antes da implantacao"}');
+  if d->'card'->>'stage'<>'cutting' or jsonb_array_length(d->'schedules')<>0 or jsonb_array_length(d->'slas')<>0 then raise exception 'FAIL: manual stage adjustment without invented dates'; end if;
+  if (select count(*) from public.operational_events where contract_id='operational-test-c')<>1 or exists(select 1 from public.operational_events where contract_id='operational-test-c' and kind='move') then raise exception 'FAIL: manual adjustment single honest event'; end if;
+  failed:=false; begin perform public.operational_mutate('operational-test-b',0,'move','{"stage":"cutting","production_released":true}'); exception when others then failed:=true; end;
+  if not failed then raise exception 'FAIL: manual adjustment must not loosen normal move guard'; end if;
+  failed:=false; begin perform public.operational_mutate('operational-test-c',0,'manual_stage_adjust','{"stage":"completed","reason":"stale"}'); exception when serialization_failure then failed:=true; end;
+  if not failed then raise exception 'FAIL: manual adjustment stale version'; end if;
+  d:=public.operational_mutate('operational-test-c',1,'manual_stage_adjust','{"stage":"completed","reason":"Contrato finalizado antes da implantacao"}');
+  if d->'card'->>'stage'<>'completed' or (d->'card'->>'installed_count')::int<>0 then raise exception 'FAIL: historical completion state'; end if;
+  if exists(select 1 from public.operational_visits where contract_id='operational-test-c') or exists(select 1 from public.operational_pieces where contract_id='operational-test-c' and installed_at is not null) then raise exception 'FAIL: historical completion must not create fake installation'; end if;
+  if not exists(select 1 from public.operational_events where contract_id='operational-test-c' and kind='manual_stage_adjust' and payload->>'historical_completed'='true') then raise exception 'FAIL: historical completion audit'; end if;
   failed:=false; begin update public.operational_events set kind='tampered'; exception when insufficient_privilege then failed:=true; end;
   if not failed then raise exception 'FAIL: immutable history'; end if;
   failed:=false; begin update public.calendar_events set date_key=(today+2)::text where id=event_id; exception when others then failed:=true; end;

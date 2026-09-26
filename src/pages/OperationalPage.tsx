@@ -4,7 +4,7 @@ import {AlertTriangle, CalendarDays, CheckCircle2, Clock3, ExternalLink, GripVer
 import {useAuth} from '../contexts/AuthContext';
 import {cn} from '../lib/utils';
 import {loadOperationalBoard, loadOperationalDetail, loadOperationalEvents, mutateOperational, type BoardFilter, type OperationalBoard, type OperationalCard, type OperationalDetail} from '../lib/operational';
-import {blockTypes, canFinalize, canRegisterInstallation, canScheduleInstallation, canScheduleMeasurement, dateKey, deadlineStatus, dependencyTypes, filterOperationalBoard, priorities, safeDriveUrl, stageLabel, stages, stageTargets, type Stage} from '../lib/operationalDomain';
+import {blockTypes, canRegisterInstallation, canScheduleInstallation, canScheduleMeasurement, dateKey, deadlineStatus, dependencyTypes, filterOperationalBoard, isNormalStageMove, priorities, safeDriveUrl, stageLabel, stages, stageTargets, type Stage} from '../lib/operationalDomain';
 
 const inputClass = 'w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-primary/20';
 const buttonClass = 'inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 disabled:opacity-50';
@@ -128,11 +128,15 @@ export function OperationalPage() {
     const schedule = data.schedules.find(item => item.operational_kind === target && item.status !== 'completed');
     return {stage: target, date: schedule?.date_key || '', time: schedule?.event_time || '', event_id: schedule?.id};
   };
+  const beginStageChange = (data: OperationalDetail, target: Stage) => {
+    if (data.card.stage === target) return;
+    if (isNormalStageMove(data.card.stage, target)) begin('move', movementPayload(target, data));
+    else begin('manual_stage_adjust', {stage: target, historical_completed: target === 'completed' && data.card.installed_count < data.card.piece_count});
+  };
   const move = async (card: OperationalCard, target: Stage) => {
     if (busy || card.stage === target) return;
-    if (!stageTargets(card.stage).includes(target)) {setError('Avance uma etapa por vez no fluxo operacional.'); return;}
     const opened = await open(card.contract_id);
-    if (opened) begin(target === 'aftercare' ? 'aftercare_open' : 'move', movementPayload(target, opened));
+    if (opened) beginStageChange(opened, target);
   };
   const patch = (key: string, value: unknown) => setPayload(current => ({...current, [key]: value}));
   const selectedPieces: string[] = payload.piece_ids || [];
@@ -195,7 +199,12 @@ export function OperationalPage() {
         <div className="flex-1 space-y-4 overflow-y-auto p-5">
           {error && <p role="alert" className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}{notice && <p role="status" className="text-sm text-emerald-700">{notice}</p>}
           {action && <form className="space-y-3 rounded-2xl border border-brand-primary/30 bg-slate-50 p-4" onSubmit={event => {event.preventDefault(); void submit(card, action, payload);}}>
-            <h3 className="font-semibold text-slate-900">{action === 'move' ? `Mover para ${stageLabel(payload.stage)}` : ({schedule: 'Agendamento', block: 'Bloquear contrato', note: 'Observação operacional', dependency: 'Dependência da peça', install_pieces: 'Registrar visita de instalação', correct_installation: 'Corrigir instalação', aftercare_open: 'Abrir Pós-Instalação', aftercare_resolve: 'Resolver ocorrência'} as Record<string, string>)[action]}</h3>
+            <h3 className="font-semibold text-slate-900">{action === 'move' ? `Mover para ${stageLabel(payload.stage)}` : action === 'manual_stage_adjust' ? (payload.stage === 'completed' && card.installed_count < card.piece_count ? 'Marcar contrato existente como finalizado' : 'Ajustar etapa do contrato') : ({schedule: 'Agendamento', block: 'Bloquear contrato', note: 'Observação operacional', dependency: 'Dependência da peça', install_pieces: 'Registrar visita de instalação', correct_installation: 'Corrigir instalação', aftercare_open: 'Abrir Pós-Instalação', aftercare_resolve: 'Resolver ocorrência'} as Record<string, string>)[action]}</h3>
+            {action === 'manual_stage_adjust' && <div className="space-y-3 rounded-xl bg-white p-3 text-sm text-slate-600">
+              <div className="grid gap-2 sm:grid-cols-2"><p><span className="block text-xs text-slate-400">Etapa atual</span>{stageLabel(card.stage)}</p><p><span className="block text-xs text-slate-400">Nova etapa</span>{stageLabel(payload.stage)}</p></div>
+              {payload.stage === 'completed' && card.installed_count < card.piece_count ? <p className="text-amber-700">Este contrato possui {card.installed_count}/{card.piece_count} peças registradas como instaladas no Operacional. A finalização histórica não cria visitas fictícias nem marca peças como instaladas.</p> : <p>Você está alterando manualmente a etapa atual deste contrato. As etapas intermediárias não serão registradas como concluídas automaticamente.</p>}
+              <textarea required maxLength={2000} value={payload.reason || ''} onChange={event => patch('reason', event.target.value)} placeholder="Motivo do ajuste" className={inputClass} />
+            </div>}
             {scheduleKind && <><div className="grid grid-cols-2 gap-3"><label className="text-sm text-slate-600">Data<input required type="date" value={payload.date || ''} onChange={event => patch('date', event.target.value)} className={inputClass} /></label><label className="text-sm text-slate-600">Horário (opcional)<input type="time" value={payload.time || ''} onChange={event => patch('time', event.target.value)} className={inputClass} /></label></div><label className="block text-sm text-slate-600">Motivo do reagendamento<input maxLength={2000} value={payload.reason || ''} onChange={event => patch('reason', event.target.value)} className={inputClass} /></label></>}
             {installationWarning && <div role="alert" className="space-y-2 rounded-xl bg-amber-50 p-3 text-sm text-amber-800"><p>{card.dependent_count > 0 ? `${card.dependent_count} de ${card.piece_count} peças possuem dependências. ` : ''}{card.due_date && payload.date > card.due_date ? `Instalação após o prazo previsto (${displayDate(card.due_date)}).` : ''}</p><button type="button" className="underline" onClick={() => {setAction(''); setTab('pieces');}}>Visualizar peças</button><label className="flex gap-2"><input required type="checkbox" checked={!!payload.confirm_warning} onChange={event => patch('confirm_warning', event.target.checked)} />Confirmo o agendamento mesmo assim</label></div>}
             {action === 'move' && payload.stage === 'ready' && <>{[['approved', 'Executivo aprovado'], ['measures_checked', 'Medidas e conferências concluídas']].map(([key, label]) => <label key={key} className="flex gap-2 text-sm"><input required type="checkbox" checked={!!payload[key]} onChange={event => patch(key, event.target.checked)} />{label}</label>)}</>}
@@ -212,7 +221,7 @@ export function OperationalPage() {
           </form>}
           {tab === 'summary' && <>
             <div className="rounded-2xl border border-slate-100 p-4"><h3 className="font-semibold text-slate-900">Contrato e prazos</h3><p className="mt-2 text-sm text-slate-600">{deadlineText(card)}{card.due_date && ` · limite ${displayDate(card.due_date)}`}</p>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-sm text-slate-600">Etapa<select value={card.stage} disabled={busy || !canEdit && !hasPermission('projeto', 'aprovar')} className={inputClass} onChange={event => begin('move', movementPayload(event.target.value as Stage, detail))}>{stages.filter(([id]) => stageTargets(card.stage).includes(id) && (id !== 'completed' || canFinalize(card.stage, card.installed_count, card.piece_count))).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label><label className="text-sm text-slate-600">Prioridade<select value={card.priority} disabled={busy || !canEdit} className={inputClass} onChange={event => void submit(card, 'priority', {priority: event.target.value})}>{Object.entries(priorities).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label></div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-sm text-slate-600">Etapa<select value={card.stage} disabled={busy || !canEdit && !hasPermission('projeto', 'aprovar')} className={inputClass} onChange={event => beginStageChange(detail, event.target.value as Stage)}>{stages.filter(([id]) => stageTargets(card.stage).includes(id)).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label><label className="text-sm text-slate-600">Prioridade<select value={card.priority} disabled={busy || !canEdit} className={inputClass} onChange={event => void submit(card, 'priority', {priority: event.target.value})}>{Object.entries(priorities).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label></div>
               {card.stage === 'installation' && <p className={cn('mt-3 text-sm', card.installed_count === card.piece_count ? 'text-emerald-700' : 'text-amber-700')}>{card.installed_count === card.piece_count ? 'Todas as peças instaladas. O contrato pode ser finalizado.' : `${card.piece_count - card.installed_count} peça(s) ainda precisam ser instaladas antes de finalizar.`}</p>}
               {detail.slas.map(sla => <p key={sla.id} className="mt-3 text-sm text-slate-500">{sla.kind === 'executive' ? 'Projeto Executivo' : 'Executivo Pronto até Instalação'}: {displayDate(sla.due_date)} · original {displayDate(sla.original_due)}{sla.closed_at ? ' · encerrado' : ''}</p>)}
             </div>
@@ -239,6 +248,7 @@ export function OperationalPage() {
 function eventText(event: OperationalDetail['events'][number]) {
   const p = event.payload;
   if (event.kind === 'move') return `${stageLabel(p.from)} → ${stageLabel(p.to)}${p.date ? `\nAgendamento: ${displayDate(p.date)} ${p.time || ''}` : ''}${p.reason ? `\nMotivo: ${p.reason}` : ''}${p.confirm_warning ? '\nConfirmado com alerta operacional.' : ''}`;
+  if (event.kind === 'manual_stage_adjust') return `Ajuste manual de etapa: ${stageLabel(p.from)} → ${stageLabel(p.to)}${p.historical_completed ? `\nFinalização histórica sem visita fictícia (${p.installed_count}/${p.piece_count} peças instaladas no Operacional).` : ''}\nMotivo: ${p.reason}`;
   if (event.kind === 'note') return p.note;
   if (event.kind === 'priority') return `Prioridade: ${priorities[p.from as keyof typeof priorities]} → ${priorities[p.to as keyof typeof priorities]}`;
   if (event.kind === 'schedule' || p.date) return `${p.kind === 'measurement' || p.stage === 'measurement' ? 'Medição' : 'Instalação'} ${p.previous_date ? `reagendada: ${displayDate(p.previous_date)} → ` : 'agendada: '}${displayDate(p.date)} ${p.time || ''}${p.reason ? `\nMotivo: ${p.reason}` : ''}${p.confirm_warning ? '\nConfirmado com alerta operacional.' : ''}`;

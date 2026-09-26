@@ -8,6 +8,7 @@ import {cn, repairText} from '../lib/utils';
 import {getHolidayInfo} from '../lib/holidays';
 import {useAuth} from '../contexts/AuthContext';
 import {ClientNavigationButtons} from '../components/ClientNavigationButtons';
+import {supabase} from '../lib/supabase';
 
 type EventType = 'medicao' | 'entrega' | 'manual' | 'pedido';
 
@@ -35,6 +36,8 @@ interface CalendarEvent {
   scheduleNote?: string;
   crisisTaskId?: string;
   crisisClientId?: string;
+  operationalContractId?: string;
+  operationalKind?: string;
 }
 
 interface ManualCalendarEvent {
@@ -59,6 +62,8 @@ interface ManualCalendarEvent {
   scheduleNote?: string;
   crisisTaskId?: string;
   crisisClientId?: string;
+  operationalContractId?: string;
+  operationalKind?: string;
 }
 
 const altoTieteCities = ['São Paulo', 'Arujá', 'Mogi das Cruzes', 'Suzano', 'Poá', 'Itaquaquecetuba', 'Ferraz de Vasconcelos', 'Guarulhos', 'Biritiba Mirim', 'Salesópolis', 'Santa Isabel'];
@@ -180,6 +185,27 @@ export const CalendarPage: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [condominiums, setCondominiums] = useState<CondominiumRule[]>([]);
   const [manualEvents, setManualEvents] = useState<ManualCalendarEvent[]>([]);
+  const [operationalQuoteSchedules, setOperationalQuoteSchedules] = useState<Map<string, Set<string>>>(new Map());
+  const operationalScheduleKey = manualEvents.filter(event => event.operationalContractId).map(event => `${event.id}:${event.operationalContractId}:${event.operationalKind}`).sort().join('|');
+
+  useEffect(() => {
+    let active = true;
+    const events = manualEvents.filter(event => event.operationalContractId);
+    const ids = [...new Set(events.map(event => event.operationalContractId!))];
+    if (!ids.length) {setOperationalQuoteSchedules(new Map()); return;}
+    // One batch maps existing quote-derived appointments, so the same schedule is not shown twice.
+    supabase.from('client_contracts').select('id,quote_id').in('id', ids).is('deleted_at', null).then(({data, error}) => {
+      if (!active || error) return;
+      const result = new Map<string, Set<string>>();
+      for (const contract of data || []) {
+        if (!contract.quote_id) continue;
+        const kinds = new Set<string>(events.filter(event => event.operationalContractId === contract.id).map(event => event.operationalKind || ''));
+        result.set(contract.quote_id, kinds);
+      }
+      setOperationalQuoteSchedules(result);
+    });
+    return () => {active = false;};
+  }, [operationalScheduleKey]);
   const [baseDate, setBaseDate] = useState(new Date());
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -240,7 +266,7 @@ export const CalendarPage: React.FC = () => {
     const unsubManualEvents = onSnapshot(
       query(
         collection(db, 'calendarEvents'),
-        selectFields('title', 'description', 'date', 'dateKey', 'clientId', 'clientName', 'city', 'eventTime', 'endTime', 'allDay', 'createdByUid', 'createdByName', 'sourceType', 'status', 'supplier', 'materialName', 'purchaseGroupId', 'scheduleNote', 'crisisTaskId', 'crisisClientId'),
+        selectFields('title', 'description', 'date', 'dateKey', 'clientId', 'clientName', 'city', 'eventTime', 'endTime', 'allDay', 'createdByUid', 'createdByName', 'sourceType', 'status', 'supplier', 'materialName', 'purchaseGroupId', 'scheduleNote', 'crisisTaskId', 'crisisClientId', 'operationalContractId', 'operationalKind'),
       ),
       (s) => setManualEvents(s.docs.map((d) => ({id: d.id, ...d.data()} as ManualCalendarEvent))),
       (error) => console.error('Erro ao carregar eventos manuais', error),
@@ -281,7 +307,7 @@ export const CalendarPage: React.FC = () => {
       const measurementDate = toDate(quote.measurementDate);
       const deliveryDate = toDate(quote.deliveryDate);
 
-      if (measurementDate) {
+      if (measurementDate && !operationalQuoteSchedules.get(quote.id)?.has('measurement')) {
         list.push({
           id: `${quote.id}-medicao`,
           quoteId: quote.id,
@@ -336,11 +362,13 @@ export const CalendarPage: React.FC = () => {
         scheduleNote: manualEvent.scheduleNote,
         crisisTaskId: manualEvent.crisisTaskId,
         crisisClientId: manualEvent.crisisClientId,
+        operationalContractId: manualEvent.operationalContractId,
+        operationalKind: manualEvent.operationalKind,
       });
     });
 
     return list;
-  }, [clients, manualEvents, quotes]);
+  }, [clients, manualEvents, quotes, operationalQuoteSchedules]);
 
   const upcomingEvents = useMemo(() => {
     return events
@@ -843,7 +871,10 @@ export const CalendarPage: React.FC = () => {
                 </button>
               )}
 
-              {selectedEvent.type === 'manual' && selectedEvent.sourceType !== 'gestao-crise' && (
+              {selectedEvent.sourceType === 'operacional' && selectedEvent.operationalContractId && (
+                <button type="button" className="w-full rounded-xl bg-brand-primary px-3 py-3 text-sm text-[#3F3A34]" onClick={() => navigate(`/projects?contract=${encodeURIComponent(selectedEvent.operationalContractId!)}`)}>Abrir Operacional / reagendar com histórico</button>
+              )}
+              {selectedEvent.type === 'manual' && selectedEvent.sourceType !== 'gestao-crise' && selectedEvent.sourceType !== 'operacional' && (
                 <>
                   <button type="button" onClick={openEditModal} className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50">Editar evento</button>
                   <button type="button" onClick={handleDeleteEvent} disabled={isDeletingEvent} className="w-full rounded-xl bg-red-600 px-3 py-2 text-sm font-bold text-white hover:bg-red-700 disabled:opacity-70">{isDeletingEvent ? 'Excluindo...' : 'Excluir evento'}</button>

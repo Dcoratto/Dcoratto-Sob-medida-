@@ -17,6 +17,7 @@ import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {AdminVehiclesPanel} from '../components/admin/AdminVehiclesPanel';
+import {OperationalSettingsPanel} from '../components/admin/OperationalSettingsPanel';
 
 const slugify = (value: string) =>
   value
@@ -723,6 +724,10 @@ export const AdminPage: React.FC = () => {
         <h1 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Administração</h1>
         <p className="text-slate-500 mt-1">Gerencie usuários, permissões, catálogos e configurações do sistema.</p>
       </header>
+
+      <AdminAccordionSection title="Prazos Operacionais" description="SLAs e alertas em dias úteis, por empresa.">
+        <OperationalSettingsPanel />
+      </AdminAccordionSection>
 
       <AdminAccordionSection
         title="Catálogo de pedras e chapas"

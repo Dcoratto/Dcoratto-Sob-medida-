@@ -52,7 +52,8 @@ const MaterialsPage = lazy(() => loadMaterialsPage().then((module) => ({default:
 const AdminPage = lazy(() => loadAdminPage().then((module) => ({default: module.AdminPage})));
 const ProfilePage = lazy(() => loadProfilePage().then((module) => ({default: module.ProfilePage})));
 const ReportsPage = lazy(() => loadReportsPage().then((module) => ({default: module.ReportsPage})));
-const ProjectsPage = lazy(() => loadProjectsPage().then((module) => ({default: module.ProjectsPage})));
+const ProjectsPage = lazy(() => loadProjectsPage().then((module) => ({default: module.OperationalPage})));
+const LegacyProjectsPage = lazy(() => import('./pages/ProjectsPage').then((module) => ({default: module.ProjectsPage})));
 const CalendarPage = lazy(() => loadCalendarPage().then((module) => ({default: module.CalendarPage})));
 
 const NoPermission = () => (
@@ -115,6 +116,8 @@ export default function App() {
             <Route path="/quotes/new" element={<ProtectedRoute permission={['orcamento', 'criar']}><QuoteEditor /></ProtectedRoute>} />
             <Route path="/quotes/edit/:id" element={<ProtectedRoute permission={['orcamento', 'editar']}><QuoteEditor /></ProtectedRoute>} />
             <Route path="/projects" element={<ProtectedRoute permission={['projeto', 'visualizar']}><ProjectsPage /></ProtectedRoute>} />
+            <Route path="/operational" element={<ProtectedRoute permission={['projeto', 'visualizar']}><ProjectsPage /></ProtectedRoute>} />
+            <Route path="/projects/legacy" element={<ProtectedRoute permission={['projeto', 'visualizar']}><LegacyProjectsPage /></ProtectedRoute>} />
             <Route path="/calendar" element={<ProtectedRoute permission={['medicao', 'visualizar']}><CalendarPage /></ProtectedRoute>} />
             <Route path="/clients" element={<ProtectedRoute permission={['cliente', 'visualizar']}><ClientsPage /></ProtectedRoute>} />
             <Route path="/contracts" element={<ProtectedRoute permission={['cliente', 'visualizar']}><ClientContractsPage /></ProtectedRoute>} />

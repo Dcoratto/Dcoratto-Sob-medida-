@@ -36,7 +36,7 @@ export const Sidebar: React.FC = () => {
   const menuItems = [
     hasPermission('dashboard', 'visualizar') ?{icon: LayoutDashboard, label: 'Dashboard', path: '/'} : null,
     hasPermission('orcamento', 'visualizar') ?{icon: FileText, label: 'Orçamentos', path: '/quotes'} : null,
-    hasPermission('projeto', 'visualizar') ?{icon: FolderKanban, label: 'Projetos', path: '/projects'} : null,
+    hasPermission('projeto', 'visualizar') ?{icon: FolderKanban, label: 'Operacional', path: '/projects'} : null,
     hasPermission('projeto', 'visualizar') ?{icon: ClipboardList, label: 'Instalacao', path: '/installation'} : null,
     hasPermission('cliente', 'visualizar') ?{icon: Users, label: 'Clientes', path: '/clients'} : null,
     hasPermission('cliente', 'visualizar') ?{icon: ClipboardList, label: 'Contratos Realizados', path: '/contracts'} : null,

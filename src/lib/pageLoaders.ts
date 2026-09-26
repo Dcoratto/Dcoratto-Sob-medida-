@@ -16,7 +16,7 @@ export const loadMaterialsPage = () => import('../pages/MaterialsPage');
 export const loadAdminPage = () => import('../pages/AdminPage');
 export const loadProfilePage = () => import('../pages/ProfilePage');
 export const loadReportsPage = () => import('../pages/ReportsPage');
-export const loadProjectsPage = () => import('../pages/ProjectsPage');
+export const loadProjectsPage = () => import('../pages/OperationalPage');
 export const loadCalendarPage = () => import('../pages/CalendarPage');
 
 export const preloadRoute = (path: string) => {
@@ -24,7 +24,7 @@ export const preloadRoute = (path: string) => {
   if (path.startsWith('/proposta/')) return loadQuotePresentationPage();
   if (path.startsWith('/quotes/new') || path.startsWith('/quotes/edit/')) return loadQuoteEditorPage();
   if (path.startsWith('/quotes') || path.startsWith('/history')) return loadQuotesPage();
-  if (path.startsWith('/projects')) return loadProjectsPage();
+  if (path.startsWith('/projects') || path.startsWith('/operational')) return loadProjectsPage();
   if (path.startsWith('/calendar')) return loadCalendarPage();
   if (path.startsWith('/clients')) return loadClientsPage();
   if (path.startsWith('/contracts')) return loadClientContractsPage();

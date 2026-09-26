@@ -128,12 +128,12 @@ export default async function handler(req, res) {
 
     const {data: profile, error: profileError} = await supabase
       .from('profiles')
-      .select('id, calendar_feed_token')
+      .select('id, calendar_feed_token, empresa_id')
       .eq('id', String(uid))
       .maybeSingle();
 
     if (profileError) throw profileError;
-    if (!profile || profile.calendar_feed_token !== token) {
+    if (!profile || !profile.empresa_id || profile.calendar_feed_token !== token) {
       res.status(403).send('Invalid calendar token.');
       return;
     }
@@ -142,18 +142,30 @@ export default async function handler(req, res) {
       supabase
         .from('quotes')
         .select('id, client_id, client_name, environment, status, measurement_date, delivery_date')
+        .eq('empresa_id', profile.empresa_id)
         .or('measurement_date.not.is.null,delivery_date.not.is.null'),
       supabase
         .from('clients')
-        .select('id, phone, email, address, neighborhood, city, zip_code, condominium_name, tower, apartment_number, block, lot'),
+        .select('id, phone, email, address, neighborhood, city, zip_code, condominium_name, tower, apartment_number, block, lot')
+        .eq('empresa_id', profile.empresa_id),
       supabase
         .from('calendar_events')
-        .select('id, title, description, date, date_key, client_id, client_name, event_time, created_by_name'),
+        .select('id, title, description, date, date_key, client_id, client_name, event_time, created_by_name, operational_contract_id, operational_kind, all_day')
+        .eq('empresa_id', profile.empresa_id),
     ]);
 
     if (quotesError) throw quotesError;
     if (clientsError) throw clientsError;
     if (manualEventsError) throw manualEventsError;
+
+    const operationalIds = [...new Set((manualEvents || []).map(event => event.operational_contract_id).filter(Boolean))];
+    const {data: operationalContracts, error: operationalError} = operationalIds.length
+      ? await supabase.from('client_contracts').select('id,quote_id').eq('empresa_id', profile.empresa_id).in('id', operationalIds).is('deleted_at', null).eq('status', 'active')
+      : {data: [], error: null};
+    if (operationalError) throw operationalError;
+    const activeOperationalIds = new Set((operationalContracts || []).map(contract => contract.id));
+    const measurementContractIds = new Set((manualEvents || []).filter(event => event.operational_kind === 'measurement').map(event => event.operational_contract_id));
+    const operationalMeasurementQuotes = new Set((operationalContracts || []).filter(contract => measurementContractIds.has(contract.id)).map(contract => contract.quote_id));
 
     const clientMap = new Map((clients || []).map((client) => [client.id, client]));
     const events = [];
@@ -163,7 +175,7 @@ export default async function handler(req, res) {
       const measurementDate = toDate(quote.measurement_date);
       const deliveryDate = toDate(quote.delivery_date);
 
-      if (measurementDate) {
+      if (measurementDate && !operationalMeasurementQuotes.has(quote.id)) {
         events.push({
           uid: `${quote.id}-medicao@dcoratto`,
           title: `${eventLabel('medicao')} | ${quote.client_name || 'Cliente'}`,
@@ -199,6 +211,7 @@ export default async function handler(req, res) {
     }
 
     for (const manualEvent of manualEvents || []) {
+      if (manualEvent.operational_contract_id && !activeOperationalIds.has(manualEvent.operational_contract_id)) continue;
       const eventDate = parseDateKey(manualEvent.date_key, manualEvent.event_time) || toDate(manualEvent.date);
       if (!eventDate) continue;
       const client = manualEvent.client_id ? clientMap.get(manualEvent.client_id) : null;
@@ -214,6 +227,7 @@ export default async function handler(req, res) {
         ].filter(Boolean).join('\n'),
         location: clientFullAddress(client),
         start: eventDate,
+        operationalDay: manualEvent.operational_contract_id && manualEvent.all_day ? manualEvent.date_key : null,
       });
     }
 
@@ -234,8 +248,8 @@ export default async function handler(req, res) {
         'BEGIN:VEVENT',
         `UID:${escapeIcsText(event.uid)}`,
         `DTSTAMP:${nowStamp}`,
-        `DTSTART;TZID=America/Sao_Paulo:${formatDateTimeLocal(event.start)}`,
-        `DTEND;TZID=America/Sao_Paulo:${formatDateTimeLocal(addOneHour(event.start))}`,
+        event.operationalDay ? `DTSTART;VALUE=DATE:${event.operationalDay.replaceAll('-', '')}` : `DTSTART;TZID=America/Sao_Paulo:${formatDateTimeLocal(event.start)}`,
+        event.operationalDay ? `DTEND;VALUE=DATE:${formatDateTimeLocal(new Date(event.start.getFullYear(), event.start.getMonth(), event.start.getDate() + 1)).slice(0, 8)}` : `DTEND;TZID=America/Sao_Paulo:${formatDateTimeLocal(addOneHour(event.start))}`,
         `SUMMARY:${escapeIcsText(event.title)}`,
         event.description ? `DESCRIPTION:${escapeIcsText(event.description)}` : '',
         event.location ? `LOCATION:${escapeIcsText(event.location)}` : '',

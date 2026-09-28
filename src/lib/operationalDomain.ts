@@ -24,6 +24,7 @@ export const isNormalStageMove = (current: Stage, target: Stage) => {
 export const canScheduleMeasurement = (stage: Stage) => ['sold', 'measurement'].includes(stage);
 export const canScheduleInstallation = (stage: Stage) => ['delivery', 'installation'].includes(stage);
 export const canRegisterInstallation = (stage: Stage) => stage === 'installation';
+export const canRegisterPieceInstallation = (contractStage: Stage, pieceStage: Stage) => contractStage === 'installation' || pieceStage === 'installation';
 export const canFinalize = (stage: Stage, installed: number, total: number) => stage === 'installation' && total > 0 && installed === total;
 export const priorities = {normal: 'Normal', high: 'Alta', urgent: 'Urgente'} as const;
 export const dependencyTypes = {furniture: 'Móveis', sink: 'Cuba', appliance: 'Eletrodoméstico', metalwork: 'Serralheria', civil: 'Obra civil', client: 'Cliente', other: 'Outro'};

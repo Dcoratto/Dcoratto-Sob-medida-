@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {addBusinessDays, businessDaysBetween, canFinalize, canRegisterInstallation, canScheduleInstallation, canScheduleMeasurement, deadlineStatus, filterOperationalBoard, isBusinessDay, isNormalStageMove, safeDriveUrl, stages, stageTargets} from './operationalDomain';
+import {addBusinessDays, businessDaysBetween, canFinalize, canRegisterInstallation, canRegisterPieceInstallation, canScheduleInstallation, canScheduleMeasurement, deadlineStatus, filterOperationalBoard, isBusinessDay, isNormalStageMove, safeDriveUrl, stages, stageTargets} from './operationalDomain';
 import type {OperationalBoard, OperationalCard} from './operational';
 import {isMasonryContractItem} from './masonryContractItems';
 
@@ -36,6 +36,9 @@ test('operational actions and stage targets are contextual', () => {
   assert.equal(canScheduleInstallation('sold'), false);
   assert.equal(canRegisterInstallation('sold'), false);
   assert.equal(canRegisterInstallation('installation'), true);
+  assert.equal(canRegisterPieceInstallation('sold', 'installation'), true);
+  assert.equal(canRegisterPieceInstallation('sold', 'sold'), false);
+  assert.equal(canRegisterPieceInstallation('installation', 'sold'), true);
   assert.equal(canFinalize('installation', 2, 3), false);
   assert.equal(canFinalize('installation', 3, 3), true);
   assert.equal(stageTargets('sold').includes('completed'), true);

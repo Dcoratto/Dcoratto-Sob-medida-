@@ -173,10 +173,10 @@ export function OperationalPage() {
       <label className="flex min-h-11 items-center gap-2 text-sm text-slate-600"><input type="checkbox" checked={!!filter.completed} onChange={event => setFilter(current => ({...current, completed: event.target.checked, offset: 0}))} />Mostrar finalizados</label>
     </section>
     {(loading || opening) && <p role="status" className="text-sm text-slate-500">{opening ? 'Abrindo contrato...' : 'Carregando quadro...'}</p>}
-    <div className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4" aria-label="Kanban de contratos">
+    <div className="flex max-w-full snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-4 [scrollbar-color:#E1C6A4_#E2E8F0] [scrollbar-width:thin] [touch-action:pan-x]" aria-label="Kanban de contratos">
       {visibleStages.map(([id, label]) => {
         const cards = (board?.cards || []).filter(item => item.stage === id && locallyVisible(item)).sort((a, b) => ({urgent: 0, high: 1, normal: 2}[a.priority] - {urgent: 0, high: 1, normal: 2}[b.priority]));
-        return <section key={id} onDragOver={event => {if (canEdit) event.preventDefault();}} onDrop={event => {event.preventDefault(); if (dragged) void move(dragged, id); setDragged(null);}} className="w-[min(85vw,280px)] shrink-0 snap-start rounded-2xl border border-slate-100 bg-slate-50/80 p-3">
+        return <section key={id} onDragOver={event => {if (canEdit) event.preventDefault();}} onDrop={event => {event.preventDefault(); if (dragged) void move(dragged, id); setDragged(null);}} className="w-[18rem] shrink-0 snap-start rounded-2xl border border-slate-100 bg-slate-50/80 p-3 sm:w-[19rem]">
           <h2 className="mb-3 flex min-h-10 items-center justify-between border-b border-slate-200 pb-3 text-sm font-semibold text-slate-800">{label}<span className="rounded-full bg-white px-2 py-1 text-xs font-normal text-slate-500">{cards.length}</span></h2>
           <div className="space-y-3">{cards.map(item => {
             const status = deadlineStatus(item.remaining_days, board!.settings.attention_days, board!.settings.urgent_days);

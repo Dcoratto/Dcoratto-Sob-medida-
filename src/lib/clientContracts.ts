@@ -330,6 +330,30 @@ export const confirmClientContractImport = async (input: {
   })) as string;
 };
 
+export const createManualClientContract = async (input: {
+  clientId: string;
+  contractNumber: string;
+  contractDate?: string;
+  contractTotal?: number | null;
+  observation?: string;
+  pieces: ContractImportPieceDraft[];
+}, actor: Actor) => {
+  return ensureSuccess(await supabase.rpc('create_manual_client_contract', {
+    p_client_id: input.clientId,
+    p_contract_number: input.contractNumber,
+    p_contract_date: input.contractDate || null,
+    p_contract_total: input.contractTotal ?? null,
+    p_observation: input.observation || null,
+    p_pieces: input.pieces.map((piece) => ({
+      label: piece.label,
+      pieceTypeKey: piece.pieceTypeKey || null,
+      value: piece.value ?? null,
+    })),
+    p_actor_uid: actor.uid,
+    p_actor_name: actor.name,
+  })) as string;
+};
+
 export const deleteClientContract = async (input: {
   clientId: string;
   contractId: string;

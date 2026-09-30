@@ -1,5 +1,5 @@
 import {GoogleGenAI} from '@google/genai';
-import {isMasonryContractItem, isMasonryContractItemText} from './masonryContractItems';
+import {isMasonryContractItem, isMasonryContractItemText, parseHistoricalContractItemsFromText, toMasonryPieces} from './masonryContractItems';
 
 export type ParsedContractClient = {
   sellerName: string;
@@ -287,6 +287,29 @@ const getContractNumber = (tokens: string[], rawText: string) => {
   return extractOfficialContractNumber(fullText);
 };
 
+const parseClientContractFromBuffer = async (buffer: ArrayBuffer, extractedTokens = extractPdfTokens(buffer)): Promise<ParsedContractClient> => {
+  const firstPageTokens = trimToFirstPageTokens(extractedTokens);
+  const rawText = buildRawText(firstPageTokens);
+  const {result, positions} = parseFromTokens(firstPageTokens);
+  const contractNumber = getContractNumber(firstPageTokens, rawText);
+
+  const principalFields = [result.clientName, result.currentAddress, result.phone].filter(Boolean).length;
+  const foundCoreLabels = positions.length;
+
+  if (principalFields < 2) {
+    if (foundCoreLabels < 3) {
+      return parseWithGeminiFallback(buffer);
+    }
+    throw new Error('PDF_PADRAO_NAO_RECONHECIDO');
+  }
+
+  return {
+    ...result,
+    contractNumber,
+    rawText,
+  };
+};
+
 const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
   let binary = '';
   const bytes = new Uint8Array(buffer);
@@ -447,27 +470,7 @@ Regras:
 export const parseClientContractPdf = async (file: File): Promise<ParsedContractClient> => {
   await validatePdfFile(file);
   const buffer = await file.arrayBuffer();
-  const extractedTokens = extractPdfTokens(buffer);
-  const firstPageTokens = trimToFirstPageTokens(extractedTokens);
-  const rawText = buildRawText(firstPageTokens);
-  const {result, positions} = parseFromTokens(firstPageTokens);
-  const contractNumber = getContractNumber(firstPageTokens, rawText);
-
-  const principalFields = [result.clientName, result.currentAddress, result.phone].filter(Boolean).length;
-  const foundCoreLabels = positions.length;
-
-  if (principalFields < 2) {
-    if (foundCoreLabels < 3) {
-      return parseWithGeminiFallback(buffer);
-    }
-    throw new Error('PDF_PADRAO_NAO_RECONHECIDO');
-  }
-
-  return {
-    ...result,
-    contractNumber,
-    rawText,
-  };
+  return parseClientContractFromBuffer(buffer);
 };
 
 const isItemToken = (value: string) => /^\d{1,3}$/.test(sanitizeValue(value));
@@ -477,6 +480,75 @@ const isCurrencyToken = (value: string) => /^\d{1,3}(?:\.\d{3})*,\d{2}$/.test(sa
 
 const isGranitosEMarmoresLine = (value: string) =>
   normalizeText(value).includes('GRANITOS E MARMORES');
+
+const toParsedLegacyPieces = (pieces: Array<{label: string; value: number}>) =>
+  pieces
+    .filter((piece) => piece.label && piece.value > 0)
+    .map((piece) => ({name: piece.label, value: piece.value}));
+
+export const parseLegacyQuotePiecesFromTokens = (rawTokens: string[]): ParsedLegacyQuotePiece[] => {
+  const tokens = rawTokens.map((token) => sanitizeValue(token)).filter(Boolean);
+  const textPieces = toParsedLegacyPieces(toMasonryPieces(parseHistoricalContractItemsFromText(tokens.join('\n'))));
+  if (textPieces.length > 0) return textPieces;
+
+  const headerIndex = tokens.findIndex((token) => normalizeToken(token).includes('DESCRICAO AMBIENTE/PRODUTO'));
+  const bodyStart = headerIndex === -1
+    ? tokens.findIndex((token) => normalizeToken(token).includes('VALOR'))
+    : headerIndex;
+
+  if (bodyStart === -1) return [];
+
+  const totalIndex = tokens.findIndex((token, index) =>
+    index > bodyStart && normalizeToken(token).includes('TOTAL DO PEDIDO'),
+  );
+  const bodyTokens = tokens.slice(bodyStart + 1, totalIndex === -1 ? tokens.length : totalIndex);
+
+  const pieces: ParsedLegacyQuotePiece[] = [];
+
+  for (let index = 0; index < bodyTokens.length; index += 1) {
+    const itemToken = bodyTokens[index];
+    const quantityToken = bodyTokens[index + 1];
+    const descriptionToken = bodyTokens[index + 2];
+
+    if (!isItemToken(itemToken) || !isQuantityToken(quantityToken) || !descriptionToken) continue;
+
+    let deadlineIndex = -1;
+    for (let cursor = index + 3; cursor < Math.min(bodyTokens.length - 1, index + 14); cursor += 1) {
+      if (isDeadlineToken(bodyTokens[cursor]) && isCurrencyToken(bodyTokens[cursor + 1])) {
+        deadlineIndex = cursor;
+        break;
+      }
+    }
+
+    if (deadlineIndex === -1) continue;
+
+    const middleTokens = bodyTokens.slice(index + 3, deadlineIndex);
+    const lineText = middleTokens.join(' ');
+    const value = parseBrazilianCurrency(bodyTokens[deadlineIndex + 1]);
+
+    if ((isGranitosEMarmoresLine(lineText) || isMasonryContractItemText(lineText)) && descriptionToken.trim() && value > 0) {
+      pieces.push({
+        name: descriptionToken.trim(),
+        value,
+      });
+    }
+
+    index = deadlineIndex + 1;
+  }
+
+  return pieces;
+};
+
+const parseLegacyQuoteFromBuffer = async (buffer: ArrayBuffer, extractedTokens = extractPdfTokens(buffer)): Promise<ParsedLegacyQuotePiece[]> => {
+  const pieces = parseLegacyQuotePiecesFromTokens(extractedTokens);
+  if (pieces.length > 0) return pieces;
+
+  const fallbackPieces = await parseLegacyQuoteWithGeminiFallback(buffer);
+  if (fallbackPieces.length === 0) {
+    throw new Error('PDF_ORCAMENTO_SEM_PECAS_GRANITOS');
+  }
+  return fallbackPieces;
+};
 
 const parseLegacyQuoteWithGeminiFallback = async (buffer: ArrayBuffer) => {
   if (!GEMINI_API_KEY) {
@@ -552,70 +624,16 @@ Regras:
 export const parseLegacyQuotePdf = async (file: File): Promise<ParsedLegacyQuotePiece[]> => {
   await validatePdfFile(file);
   const buffer = await file.arrayBuffer();
-  const tokens = extractPdfTokens(buffer).map((token) => sanitizeValue(token)).filter(Boolean);
-
-  const headerIndex = tokens.findIndex((token) => normalizeToken(token).includes('DESCRICAO AMBIENTE/PRODUTO'));
-  const bodyStart = headerIndex === -1
-    ? tokens.findIndex((token) => normalizeToken(token).includes('VALOR'))
-    : headerIndex;
-
-  if (bodyStart === -1) {
-    return parseLegacyQuoteWithGeminiFallback(buffer);
-  }
-
-  const totalIndex = tokens.findIndex((token, index) =>
-    index > bodyStart && normalizeToken(token).includes('TOTAL DO PEDIDO'),
-  );
-  const bodyTokens = tokens.slice(bodyStart + 1, totalIndex === -1 ? tokens.length : totalIndex);
-
-  const pieces: ParsedLegacyQuotePiece[] = [];
-
-  for (let index = 0; index < bodyTokens.length; index += 1) {
-    const itemToken = bodyTokens[index];
-    const quantityToken = bodyTokens[index + 1];
-    const descriptionToken = bodyTokens[index + 2];
-
-    if (!isItemToken(itemToken) || !isQuantityToken(quantityToken) || !descriptionToken) continue;
-
-    let deadlineIndex = -1;
-    for (let cursor = index + 3; cursor < Math.min(bodyTokens.length - 1, index + 12); cursor += 1) {
-      if (isDeadlineToken(bodyTokens[cursor]) && isCurrencyToken(bodyTokens[cursor + 1])) {
-        deadlineIndex = cursor;
-        break;
-      }
-    }
-
-    if (deadlineIndex === -1) continue;
-
-    const middleTokens = bodyTokens.slice(index + 3, deadlineIndex);
-    const lineText = middleTokens.join(' ');
-    const value = parseBrazilianCurrency(bodyTokens[deadlineIndex + 1]);
-
-    if (isMasonryContractItemText(lineText) && descriptionToken.trim() && value > 0) {
-      pieces.push({
-        name: descriptionToken.trim(),
-        value,
-      });
-    }
-
-    index = deadlineIndex + 1;
-  }
-
-  if (pieces.length === 0) {
-    const fallbackPieces = await parseLegacyQuoteWithGeminiFallback(buffer);
-    if (fallbackPieces.length === 0) {
-      throw new Error('PDF_ORCAMENTO_SEM_PECAS_GRANITOS');
-    }
-    return fallbackPieces;
-  }
-
-  return pieces;
+  return parseLegacyQuoteFromBuffer(buffer);
 };
 
 export const parseOperationalContractPdf = async (file: File): Promise<ParsedOperationalContract> => {
+  await validatePdfFile(file);
+  const buffer = await file.arrayBuffer();
+  const extractedTokens = extractPdfTokens(buffer);
   const [client, pieces] = await Promise.all([
-    parseClientContractPdf(file),
-    parseLegacyQuotePdf(file).catch(() => [] as ParsedLegacyQuotePiece[]),
+    parseClientContractFromBuffer(buffer, extractedTokens),
+    parseLegacyQuoteFromBuffer(buffer, extractedTokens).catch(() => [] as ParsedLegacyQuotePiece[]),
   ]);
 
   return {

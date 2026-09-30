@@ -1,7 +1,7 @@
 import React from 'react';
-import {ArrowLeft, CalendarDays, CheckCircle2, ChevronRight, FileUp, Loader2, PackageCheck, Plus, Search, Trash2, UserRound, X} from 'lucide-react';
+import {AlertTriangle, ArrowLeft, CalendarDays, CheckCircle2, ChevronRight, FileUp, Loader2, PackageCheck, Plus, Search, Trash2, UserRound, X} from 'lucide-react';
 import {useAuth} from '../contexts/AuthContext';
-import {confirmClientContractImport, deleteClientContract, getContractClientSummary, listContractClients, listContractsForClient, type ContractClientSummary, type ContractImportPieceDraft, type ContractSummary} from '../lib/clientContracts';
+import {confirmClientContractImport, createManualClientContract, deleteClientContract, getContractClientSummary, listContractClients, listContractsForClient, type ContractClientSummary, type ContractImportPieceDraft, type ContractSummary} from '../lib/clientContracts';
 import {resolveContractFinancialTotal} from '../lib/contractFinancials';
 import {parseOperationalContractPdf} from '../lib/contractParser';
 import {cn, formatCurrency} from '../lib/utils';
@@ -42,11 +42,18 @@ export const ClientContractsPage: React.FC = () => {
   const [reviewOpen, setReviewOpen] = React.useState(false);
   const [reviewLoading, setReviewLoading] = React.useState(false);
   const [savingImport, setSavingImport] = React.useState(false);
+  const [manualOpen, setManualOpen] = React.useState(false);
+  const [savingManual, setSavingManual] = React.useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
   const [deletingContract, setDeletingContract] = React.useState(false);
   const [reviewNumber, setReviewNumber] = React.useState('');
   const [reviewDate, setReviewDate] = React.useState('');
   const [reviewPieces, setReviewPieces] = React.useState<ContractImportPieceDraft[]>([]);
+  const [manualNumber, setManualNumber] = React.useState('');
+  const [manualDate, setManualDate] = React.useState('');
+  const [manualTotal, setManualTotal] = React.useState<number | null>(null);
+  const [manualObservation, setManualObservation] = React.useState('');
+  const [manualPieces, setManualPieces] = React.useState<ContractImportPieceDraft[]>([{id: 'manual-1', label: '', value: null}]);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   const selectedClient = React.useMemo(
@@ -58,6 +65,10 @@ export const ClientContractsPage: React.FC = () => {
     () => selectedClientContracts.find((item) => item.id === selectedContractId) || null,
     [selectedClientContracts, selectedContractId],
   );
+  const manualPieceSum = manualPieces.reduce((sum, piece) => sum + (normalizeMoneyDraft(piece.value) || 0), 0);
+  const manualHasPieceValues = manualPieces.some((piece) => piece.value !== null && typeof piece.value !== 'undefined');
+  const manualNormalizedTotal = normalizeMoneyDraft(manualTotal);
+  const manualHasTotalMismatch = manualNormalizedTotal !== null && manualHasPieceValues && Math.abs(manualPieceSum - manualNormalizedTotal) >= 0.01;
 
   const refreshClients = React.useCallback(async () => {
     setLoadingClients(true);
@@ -111,10 +122,31 @@ export const ClientContractsPage: React.FC = () => {
     setSelectedClientId('');
     setSelectedContractId('');
     setReviewOpen(false);
+    setManualOpen(false);
     setDeleteConfirmOpen(false);
     setReviewPieces([]);
     setReviewNumber('');
     setReviewDate('');
+    resetManualForm();
+  };
+
+  const resetManualForm = () => {
+    setManualNumber('');
+    setManualDate('');
+    setManualTotal(null);
+    setManualObservation('');
+    setManualPieces([{id: `manual-${Date.now()}`, label: '', value: null}]);
+  };
+
+  const openManualForm = () => {
+    if (!selectedClient) {
+      setFeedback({type: 'error', message: 'Selecione um cliente antes de adicionar contrato manualmente.'});
+      return;
+    }
+    resetManualForm();
+    setSelectedContractId('');
+    setManualOpen(true);
+    setFeedback(null);
   };
 
   const openImport = () => {
@@ -197,6 +229,46 @@ export const ClientContractsPage: React.FC = () => {
       setFeedback({type: 'error', message: (error as Error).message || 'Nao foi possivel confirmar o contrato.'});
     } finally {
       setSavingImport(false);
+    }
+  };
+
+  const saveManualContract = async () => {
+    if (!selectedClient || savingManual) return;
+    if (!manualNumber.trim()) {
+      setFeedback({type: 'error', message: 'Informe o numero do contrato antes de salvar.'});
+      return;
+    }
+    const pieces = manualPieces
+      .map((piece) => ({...piece, label: piece.label.trim(), value: normalizeMoneyDraft(piece.value)}))
+      .filter((piece) => piece.label);
+    if (pieces.length === 0) {
+      setFeedback({type: 'error', message: 'Adicione ao menos uma peca ao contrato.'});
+      return;
+    }
+
+    setSavingManual(true);
+    setFeedback(null);
+    try {
+      await createManualClientContract({
+        clientId: selectedClient.id,
+        contractNumber: manualNumber.trim(),
+        contractDate: manualDate || undefined,
+        contractTotal: manualNormalizedTotal,
+        observation: manualObservation.trim(),
+        pieces,
+      }, actor);
+      resetManualForm();
+      setManualOpen(false);
+      setSelectedContractId('');
+      await Promise.all([
+        loadClientContracts(selectedClient.id, true),
+        refreshClientCard(selectedClient.id),
+      ]);
+      setFeedback({type: 'success', message: 'Contrato manual cadastrado com sucesso.'});
+    } catch (error) {
+      setFeedback({type: 'error', message: (error as Error).message || 'Nao foi possivel cadastrar o contrato manual.'});
+    } finally {
+      setSavingManual(false);
     }
   };
 
@@ -296,7 +368,94 @@ export const ClientContractsPage: React.FC = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-              {!selectedContract ? (
+              {manualOpen ? (
+                <div className="space-y-5">
+                  <button type="button" onClick={() => setManualOpen(false)} disabled={savingManual} className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-200 disabled:opacity-60">
+                    <ArrowLeft className="h-4 w-4" />
+                    Voltar aos contratos
+                  </button>
+
+                  <section className="rounded-[28px] bg-slate-50 p-5">
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">Cadastro manual</p>
+                    <h3 className="mt-1 text-2xl font-display font-semibold text-slate-900">Novo contrato para {selectedClient.name}</h3>
+                    <p className="mt-2 text-sm text-slate-500">Use quando o contrato nao veio de PDF/importacao. O numero sera validado no banco, inclusive contra contratos excluidos.</p>
+                  </section>
+
+                  <section className="grid gap-4 sm:grid-cols-2">
+                    <label className="space-y-1.5">
+                      <span className="text-sm font-medium text-slate-500">Numero do contrato *</span>
+                      <input value={manualNumber} onChange={(event) => setManualNumber(event.target.value)} maxLength={80} className={inputClass} placeholder="Ex.: 100001754 ou DC-2026-01" />
+                    </label>
+                    <label className="space-y-1.5">
+                      <span className="text-sm font-medium text-slate-500">Data do contrato</span>
+                      <input type="date" value={manualDate} onChange={(event) => setManualDate(event.target.value)} className={inputClass} />
+                    </label>
+                    <label className="space-y-1.5">
+                      <span className="text-sm font-medium text-slate-500">Valor total do contrato</span>
+                      <input type="number" min="0" step="0.01" value={manualTotal ?? ''} onChange={(event) => setManualTotal(event.target.value === '' ? null : Number(event.target.value))} className={inputClass} placeholder="Valor opcional" />
+                    </label>
+                    <label className="space-y-1.5 sm:col-span-2">
+                      <span className="text-sm font-medium text-slate-500">Observacao</span>
+                      <textarea value={manualObservation} onChange={(event) => setManualObservation(event.target.value)} maxLength={2000} className={cn(inputClass, 'min-h-24 resize-none')} placeholder="Informacoes internas opcionais sobre este contrato" />
+                    </label>
+                  </section>
+
+                  <section className="rounded-[28px] border border-slate-100 p-4 sm:p-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <h4 className="text-lg font-display font-semibold text-slate-900">Pecas do contrato</h4>
+                        <p className="mt-1 text-sm text-slate-500">Informe ao menos uma peca. Valores por peca sao opcionais e nao serao distribuidos automaticamente.</p>
+                      </div>
+                      <button type="button" onClick={() => setManualPieces((current) => [...current, {id: `manual-${Date.now()}`, label: '', value: null}])} disabled={savingManual} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 disabled:opacity-60">
+                        <Plus className="h-3.5 w-3.5" />
+                        Adicionar peca
+                      </button>
+                    </div>
+
+                    <div className="mt-4 space-y-2">
+                      {manualPieces.map((piece, index) => (
+                        <div key={piece.id || index} className="grid gap-2 sm:grid-cols-[1fr_180px_44px]">
+                          <input value={piece.label} onChange={(event) => setManualPieces((current) => current.map((item, itemIndex) => itemIndex === index ? {...item, label: event.target.value} : item))} maxLength={180} className={inputClass} placeholder={`Peca ${index + 1} *`} />
+                          <input type="number" min="0" step="0.01" value={piece.value ?? ''} onChange={(event) => setManualPieces((current) => current.map((item, itemIndex) => itemIndex === index ? {...item, value: event.target.value === '' ? null : Number(event.target.value)} : item))} className={inputClass} placeholder="Valor" />
+                          <button type="button" onClick={() => setManualPieces((current) => current.length === 1 ? current : current.filter((_, itemIndex) => itemIndex !== index))} disabled={savingManual || manualPieces.length === 1} className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:cursor-not-allowed disabled:opacity-40" aria-label={`Remover peca ${index + 1}`}>
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-4 grid gap-3 rounded-2xl bg-slate-50 p-4 text-sm sm:grid-cols-3">
+                      <div>
+                        <div className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">Total informado</div>
+                        <div className="mt-1 font-semibold text-slate-900">{manualNormalizedTotal === null ? 'Nao informado' : formatCurrency(manualNormalizedTotal)}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">Soma das pecas</div>
+                        <div className="mt-1 font-semibold text-slate-900">{manualHasPieceValues ? formatCurrency(manualPieceSum) : 'Nao informada'}</div>
+                      </div>
+                      <div>
+                        <div className="text-xs font-medium uppercase tracking-[0.16em] text-slate-400">Quantidade</div>
+                        <div className="mt-1 font-semibold text-slate-900">{pluralize(manualPieces.filter((piece) => piece.label.trim()).length, 'peca', 'pecas')}</div>
+                      </div>
+                    </div>
+
+                    {manualHasTotalMismatch ? (
+                      <div className="mt-4 flex gap-3 rounded-2xl bg-amber-50 p-4 text-sm text-amber-800">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                        <p>A soma das pecas ({formatCurrency(manualPieceSum)}) e diferente do valor do contrato ({formatCurrency(manualNormalizedTotal || 0)}). Voce pode salvar mesmo assim; o sistema nao vai redistribuir valores automaticamente.</p>
+                      </div>
+                    ) : null}
+                  </section>
+
+                  <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <button type="button" onClick={() => setManualOpen(false)} disabled={savingManual} className="rounded-2xl bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-600 disabled:opacity-60">Cancelar</button>
+                    <button type="button" onClick={() => void saveManualContract()} disabled={savingManual} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-semibold text-[#3F3A34] disabled:opacity-60">
+                      {savingManual ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      {savingManual ? 'Salvando...' : 'Salvar contrato'}
+                    </button>
+                  </div>
+                </div>
+              ) : !selectedContract ? (
                 <div className="space-y-5">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -304,10 +463,16 @@ export const ClientContractsPage: React.FC = () => {
                       <p className="mt-1 text-sm text-slate-500">Mais recentes primeiro. Abra um contrato para ver somente as pecas dele.</p>
                     </div>
                     {canManage ? (
-                      <button type="button" onClick={openImport} disabled={reviewLoading} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-semibold text-[#3F3A34] shadow-lg shadow-brand-primary/20 disabled:opacity-60">
-                        {reviewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
-                        Adicionar contrato
-                      </button>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <button type="button" onClick={openImport} disabled={reviewLoading} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-brand-primary px-5 py-3 text-sm font-semibold text-[#3F3A34] shadow-lg shadow-brand-primary/20 disabled:opacity-60">
+                          {reviewLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />}
+                          Adicionar contrato
+                        </button>
+                        <button type="button" onClick={openManualForm} disabled={reviewLoading} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl bg-slate-100 px-5 py-3 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-200 disabled:opacity-60">
+                          <Plus className="h-4 w-4" />
+                          Adicionar manualmente
+                        </button>
+                      </div>
                     ) : null}
                   </div>
 

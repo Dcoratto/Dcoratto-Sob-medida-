@@ -9,6 +9,9 @@ export type OperationalCard = {
   due_date: string | null; remaining_days: number | null; paused: boolean;
   measurement_date: string | null; measurement_time: string | null;
   installation_date: string | null; installation_time: string | null;
+  automatic_due_date?: string | null; automatic_remaining_days?: number | null;
+  deadline_source?: 'automatic' | 'manual' | 'none' | null;
+  manual_due_date?: string | null; manual_due_reason?: string | null;
 };
 export type OperationalDetail = {
   card: OperationalCard; drive_url: string | null; settings: OperationalSettings;

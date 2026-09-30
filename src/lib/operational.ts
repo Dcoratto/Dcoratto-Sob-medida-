@@ -10,7 +10,12 @@ export type OperationalCard = {
   measurement_date: string | null; measurement_time: string | null;
   installation_date: string | null; installation_time: string | null;
   automatic_due_date?: string | null; automatic_remaining_days?: number | null;
-  deadline_source?: 'automatic' | 'manual' | 'none' | null;
+  deadline_source?: 'structured' | 'automatic' | 'manual' | 'none' | null;
+  active_deadline_kind?: 'executive' | 'production' | 'legacy' | null;
+  client_city?: string | null;
+  contract_date?: string | null; contract_signed_on?: string | null;
+  executive_budget_days?: number | null; executive_due_date?: string | null; executive_signed_on?: string | null;
+  production_budget_days?: number | null; production_due_date?: string | null;
   manual_due_date?: string | null; manual_due_reason?: string | null;
 };
 export type OperationalDetail = {

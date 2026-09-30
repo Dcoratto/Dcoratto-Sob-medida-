@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {addBusinessDays, businessDaysBetween, canFinalize, canRegisterInstallation, canRegisterPieceInstallation, canScheduleInstallation, canScheduleMeasurement, deadlineStatus, filterOperationalBoard, isBusinessDay, isNormalStageMove, safeDriveUrl, stages, stageTargets} from './operationalDomain';
+import {addBusinessDays, businessDaysBetween, calculateStructuredDeadlines, canFinalize, canRegisterInstallation, canRegisterPieceInstallation, canScheduleInstallation, canScheduleMeasurement, deadlineStatus, filterOperationalBoard, isBusinessDay, isNormalStageMove, safeDriveUrl, stages, stageTargets} from './operationalDomain';
 import type {OperationalBoard, OperationalCard} from './operational';
 import {isMasonryContractItem} from './masonryContractItems';
 
@@ -19,6 +19,17 @@ test('remaining/overdue business days and configurable thresholds', () => {
   assert.equal(deadlineStatus(2, 5, 2), 'urgent');
   assert.equal(deadlineStatus(5, 5, 2), 'attention');
   assert.equal(deadlineStatus(6, 5, 2), 'normal');
+});
+test('structured deadlines use explicit signature dates as calculation bases', () => {
+  const deadlines = calculateStructuredDeadlines({
+    contract_signed_on: '2026-09-18',
+    executive_budget_days: 3,
+    executive_signed_on: '2026-09-23',
+    production_budget_days: 2,
+  });
+  assert.equal(deadlines.executive_due_date, '2026-09-23');
+  assert.equal(deadlines.production_due_date, '2026-09-25');
+  assert.deepEqual(calculateStructuredDeadlines({executive_budget_days: 10, production_budget_days: 5}), {executive_due_date: null, production_due_date: null});
 });
 test('Drive only accepts existing Google HTTPS links, never executable URLs', () => {
   assert.equal(safeDriveUrl('https://drive.google.com/drive/folders/example'), 'https://drive.google.com/drive/folders/example');

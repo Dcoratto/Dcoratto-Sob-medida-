@@ -21,6 +21,8 @@ import {logSystemEvent} from '../lib/systemEvents';
 import {normalizeQuoteStatus, QUOTE_STATUSES, quoteStatusColor} from '../lib/quoteStatus';
 import {formatMaterialSpecs} from '../lib/materialSpecs';
 import {buildMaterialVariantKey} from '../lib/materialVariants';
+import {buildQuoteMaterialOptions, matchesMaterialSearch, materialPiecePatch, planMaterialApplication} from '../lib/quoteMaterials';
+import {MaterialApplicationDialog, type MaterialApplicationSelection} from '../components/MaterialApplicationDialog';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
@@ -64,6 +66,22 @@ type PieceEditorMode = 'draw' | 'manual' | 'stair' | null;
 type PieceKindChoice = QuotePieceKind;
 
 const MATERIAL_PRICE_MINIMUM_ERROR = 'O valor personalizado não pode ser menor que o valor mínimo definido para este material.';
+
+const MaterialPriceReference = ({standard, custom, error, onReset}: {
+  standard: number; custom?: number; error?: string; onReset: () => void;
+}) => {
+  const difference = custom == null ? null : custom - standard;
+  return (
+    <div className="mt-3 space-y-2 text-xs text-slate-600">
+      <div>Preço padrão: <span className="font-mono">{formatCurrency(standard)} / m²</span></div>
+      {custom == null ? <div>Usando preço padrão. Preencha abaixo para definir preço personalizado.</div> : !error && (
+        <div>Diferença: {difference! >= 0 ? '+' : '-'} {formatCurrency(Math.abs(difference!))}/m²{standard > 0 ? ` (${difference! >= 0 ? '+' : '-'}${formatPercentage(Math.abs(difference!) / standard * 100)})` : ''}</div>
+      )}
+      {(custom != null || error) && <button type="button" onClick={onReset} className="text-brand-primary underline underline-offset-2">Usar preço padrão</button>}
+      {error && <div role="alert" className="text-red-600">{error}</div>}
+    </div>
+  );
+};
 
 const quoteMaterialPriceKey = (materialId?: string, materialVariantKey?: string) =>
   `${materialId || ''}::${materialVariantKey || ''}`;
@@ -395,6 +413,7 @@ export const QuoteEditor: React.FC = () => {
   const [clientPickerOpen, setClientPickerOpen] = useState(false);
   const [pieceMaterialSearch, setPieceMaterialSearch] = useState<Record<string, string>>({});
   const [pieceMaterialPickerOpen, setPieceMaterialPickerOpen] = useState<Record<string, boolean>>({});
+  const [materialApplication, setMaterialApplication] = useState<MaterialApplicationSelection | null>(null);
   const [environment, setEnvironment] = useState('');
   const [responsible, setResponsible] = useState(user?.user_metadata?.name || '');
   const [materialId, setMaterialId] = useState('');
@@ -453,65 +472,7 @@ export const QuoteEditor: React.FC = () => {
     [pricingSnapshot, settings],
   );
 
-  const materialVariantOptions = useMemo(() => {
-    const grouped = new Map<string, Material & {variantKey: string; availableArea: number; stockArea: number;}>();
-
-    inventory
-      .filter((item) => !['usada', 'descarte'].includes(normalizeStockStatus(item.status)))
-      .forEach((item) => {
-        const baseMaterial = materials.find((material) => material.id === item.materialId);
-        const variantKey = buildMaterialVariantKey(item);
-        const current = grouped.get(variantKey);
-        const availableArea = normalizeStockStatus(item.status) === 'reservada' ? 0 : (item.area || 0);
-
-        if (current) {
-          current.stockArea += item.area || 0;
-          current.availableArea += availableArea;
-          return;
-        }
-
-        grouped.set(variantKey, {
-          ...(baseMaterial || {
-            id: item.materialId,
-            name: item.materialName,
-            pricePerM2: 0,
-            provider: item.provider || '',
-            category: item.category || '',
-            active: true,
-          }),
-          provider: item.provider || baseMaterial?.provider || '',
-          category: item.category || baseMaterial?.category || '',
-          materialLine: item.materialLine || baseMaterial?.materialLine || item.category || baseMaterial?.category || '',
-          materialType: item.materialType || baseMaterial?.materialType || '',
-          thicknessLabel: item.thicknessLabel || baseMaterial?.thicknessLabel || '',
-          texture: item.texture || baseMaterial?.texture || '',
-          imageUrl: item.photoUrl || baseMaterial?.imageUrl || '',
-          thumbnailUrl: item.thumbnailUrl || baseMaterial?.thumbnailUrl || '',
-          mediumUrl: item.mediumUrl || baseMaterial?.mediumUrl || '',
-          originalUrl: item.originalUrl || item.photoUrl || baseMaterial?.originalUrl || baseMaterial?.imageUrl || '',
-          variantKey,
-          availableArea,
-          stockArea: item.area || 0,
-        });
-      });
-
-    materials.forEach((material) => {
-      const variantKey = buildMaterialVariantKey(material);
-      if (grouped.has(variantKey)) return;
-      grouped.set(variantKey, {
-        ...material,
-        variantKey,
-        availableArea: 0,
-        stockArea: 0,
-      });
-    });
-
-    return Array.from(grouped.values()).sort((a, b) => {
-      const byName = a.name.localeCompare(b.name);
-      if (byName !== 0) return byName;
-      return formatMaterialSpecs(a).localeCompare(formatMaterialSpecs(b));
-    });
-  }, [inventory, materials]);
+  const materialVariantOptions = useMemo(() => buildQuoteMaterialOptions(materials, inventory), [inventory, materials]);
 
   const minimumSaleFromInventory = (materialIdToFind?: string, materialVariantKey?: string) => {
     if (!materialIdToFind) return 0;
@@ -564,6 +525,7 @@ export const QuoteEditor: React.FC = () => {
       customPricePerM2?: number;
       usedPricePerM2: number;
       pieceNames: string[];
+      pieceIds: string[];
       error?: string;
     };
 
@@ -593,6 +555,7 @@ export const QuoteEditor: React.FC = () => {
 
       const existing = rows.get(key);
       if (existing) {
+        existing.pieceIds.push(piece.id);
         if (piece.name && !existing.pieceNames.includes(piece.name)) existing.pieceNames.push(piece.name);
         return;
       }
@@ -609,6 +572,7 @@ export const QuoteEditor: React.FC = () => {
         customPricePerM2,
         usedPricePerM2,
         pieceNames: piece.name ? [piece.name] : [],
+        pieceIds: [piece.id],
         error,
       });
     });
@@ -1097,10 +1061,9 @@ export const QuoteEditor: React.FC = () => {
     const searchText = `${client.name} ${client.phone} ${client.email || ''} ${client.cpf || ''} ${client.rg || ''} ${client.address}`.toLowerCase();
     return searchText.includes(clientSearch.toLowerCase());
   });
-  const filteredMaterialsForPiece = (pieceId: string) => materialVariantOptions.filter((material) => {
-    const searchText = `${material.name} ${material.provider || ''} ${material.category || ''} ${material.materialLine || ''} ${material.materialType || ''} ${material.thicknessLabel || ''} ${material.texture || ''}`.toLowerCase();
-    return searchText.includes((pieceMaterialSearch[pieceId] || '').toLowerCase());
-  });
+  const filteredMaterialsForPiece = (pieceId: string) => materialVariantOptions.filter((material) =>
+    matchesMaterialSearch(material, pieceMaterialSearch[pieceId] ?? ''),
+  );
 
   const formatDateInput = (value: any) => {
     if (!value) return '';
@@ -1599,7 +1562,7 @@ export const QuoteEditor: React.FC = () => {
     setPieceMaterialSearch((current) => {
       const next = {...current};
       pieces.forEach((piece) => {
-        if (!piece.materialId || next[piece.id]) return;
+        if (!piece.materialId || Object.prototype.hasOwnProperty.call(next, piece.id)) return;
         const found = materials.find((material) => material.id === piece.materialId);
         if (found) next[piece.id] = found.name;
       });
@@ -1882,10 +1845,31 @@ export const QuoteEditor: React.FC = () => {
   };
 
   const updatePiece = (id: string, data: Partial<QuotePiece>) => {
-    setPieces(pieces.map((piece) => {
+    setPieces((current) => current.map((piece) => {
       if (piece.id !== id) return piece;
       return ensurePieceWorkflowStatus({...piece, ...data}, status);
     }));
+  };
+
+  const applyMaterialSelection = () => {
+    if (!materialApplication) return;
+    const material = materials.find((item) => item.id === materialApplication.materialId);
+    const variant = materialVariantOptions.find((item) => item.id === material?.id && item.variantKey === materialApplication.variantKey);
+    if (!material || material.active === false) {
+      window.alert('Este material não está disponível no cadastro ativo.');
+      return;
+    }
+    const selectedIds = materialApplication.mode === 'all' ? pieces.map((piece) => piece.id) : materialApplication.selectedIds;
+    const variantKey = materialApplication.variantKey;
+    try {
+      const plan = planMaterialApplication(pieces, selectedIds, variant || material, variantKey);
+      if (plan.replacementCount && !window.confirm(`Este material será aplicado ${materialApplication.mode === 'all' ? 'a todas as peças' : 'às peças selecionadas'} e substituirá o material atualmente selecionado em ${plan.replacementCount} peças. Deseja aplicar o material?`)) return;
+      setPieces(plan.pieces);
+      setPieceMaterialSearch((current) => ({...current, ...Object.fromEntries(selectedIds.map((pieceId) => [pieceId, material.name]))}));
+      setMaterialApplication(null);
+    } catch (error) {
+      window.alert((error as Error).message);
+    }
   };
 
   const applyDrawingToPiece = (
@@ -2633,9 +2617,10 @@ export const QuoteEditor: React.FC = () => {
                   <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm font-semibold text-slate-400">Selecione materiais nas peças para visualizar os dados aqui.</div>
                 ) : quoteMaterialPriceRows.map((row) => (
                   <div key={row.key} className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-4">
-                    <div className="font-bold text-slate-900">{row.name}</div>
-                    <div className="mt-1 text-[11px] font-semibold text-slate-400">{row.specs || 'Sem especificações adicionais'}</div>
-                    <div className="mt-3 text-sm text-slate-600">{row.pieceNames.length ? `Aplicado em: ${row.pieceNames.join(', ')}` : 'Sem observações adicionais.'}</div>
+                    <div className="font-semibold text-slate-900">{row.name}</div>
+                    <div className="mt-1 text-[11px] text-slate-400">{row.specs || 'Sem especificações adicionais'}</div>
+                    <div className="mt-3 text-sm text-slate-600">Aplicado em {row.pieceIds.length} peças</div>
+                    <button type="button" disabled={saving} onClick={() => setMaterialApplication({materialId: row.materialId, variantKey: row.materialVariantKey, mode: 'specific', selectedIds: [...row.pieceIds], search: ''})} className="mt-3 text-sm text-brand-primary underline underline-offset-2 disabled:opacity-50">Gerenciar aplicação</button>
                   </div>
                 ))}
               </div>
@@ -2754,11 +2739,14 @@ export const QuoteEditor: React.FC = () => {
                         <div className="flex items-center justify-between gap-3">
                           <div>
                             <div className="font-semibold text-slate-900">{row.name}</div>
-                            <div className="text-[11px] font-semibold text-slate-400">{row.specs || row.pieceNames.join(', ') || 'Material selecionado'}</div>
+                            <div className="text-[11px] text-slate-400">{row.specs || 'Material selecionado'}</div>
                           </div>
                           <span className={cn('inline-flex self-start rounded-full px-3 py-1 text-[10px] font-bold uppercase', row.error ? 'bg-red-50 text-red-600' : isValidCustom ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500')}>{row.error ? 'Inválido' : isValidCustom ? 'Válido' : 'Preço padrão'}</span>
                         </div>
-                        <CurrencyInput value={row.customInput} onValueChange={(_, rawValue) => updateMaterialCustomPriceInput(row.key, rawValue)} onBlur={() => formatMaterialCustomPriceInput(row.key)} className={cn('mt-3 w-full rounded-xl border bg-white px-4 py-2.5 text-sm font-mono outline-none transition-all focus:ring-2', row.error ? 'border-red-300 text-red-700 focus:ring-red-100' : isValidCustom ? 'border-green-200 text-slate-900 focus:ring-green-100' : 'border-slate-100 text-slate-900 focus:ring-brand-primary/20')} placeholder="R$ 0,00" />
+                        <MaterialPriceReference standard={row.defaultPricePerM2} custom={row.customPricePerM2} error={row.error} onReset={() => updateMaterialCustomPriceInput(row.key, '')} />
+                        <label className="mt-3 block text-xs text-slate-500">Preço neste orçamento
+                        <CurrencyInput value={row.customInput} onValueChange={(_, rawValue) => updateMaterialCustomPriceInput(row.key, rawValue)} onBlur={() => formatMaterialCustomPriceInput(row.key)} className={cn('mt-1 w-full rounded-xl border bg-white px-4 py-2.5 text-sm font-mono outline-none transition-all focus:ring-2', row.error ? 'border-red-300 text-red-700 focus:ring-red-100' : isValidCustom ? 'border-green-200 text-slate-900 focus:ring-green-100' : 'border-slate-100 text-slate-900 focus:ring-brand-primary/20')} placeholder={formatCurrency(row.defaultPricePerM2)} />
+                        </label>
                       </div>
                     );
                   })}
@@ -2961,10 +2949,8 @@ export const QuoteEditor: React.FC = () => {
                         <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                           <div className="min-w-0">
                             <div className="font-bold text-slate-900">{row.name}</div>
-                            <div className="text-[11px] font-semibold text-slate-400">{row.specs || row.pieceNames.join(', ') || 'Material selecionado'}</div>
-                            {row.pieceNames.length > 0 && (
-                              <div className="mt-1 text-[11px] text-slate-500">Peças: {row.pieceNames.join(', ')}</div>
-                            )}
+                            <div className="text-[11px] text-slate-400">{row.specs || 'Material selecionado'}</div>
+                            <div className="mt-1 text-[11px] text-slate-500">Aplicado em {row.pieceIds.length} peças</div>
                           </div>
                           <span className={cn('inline-flex self-start rounded-full px-3 py-1 text-[10px] font-bold uppercase', row.error ? 'bg-red-50 text-red-600' : isValidCustom ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500')}>
                             {row.error ? 'Inválido' : isValidCustom ? 'Válido' : 'Preço padrão'}
@@ -2982,6 +2968,7 @@ export const QuoteEditor: React.FC = () => {
                           </div>
                         </div>
 
+                        <MaterialPriceReference standard={row.defaultPricePerM2} custom={row.customPricePerM2} error={row.error} onReset={() => updateMaterialCustomPriceInput(row.key, '')} />
                         <label className="mt-3 block space-y-1">
                           <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Valor personalizado neste orçamento</span>
                           <CurrencyInput
@@ -3421,17 +3408,28 @@ export const QuoteEditor: React.FC = () => {
                         </div>
                         <div className="relative">
                           <input
-                            value={pieceMaterialSearch[piece.id] || pieceMaterial?.name || ''}
-                            onFocus={() => setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: true}))}
+                            value={pieceMaterialPickerOpen[piece.id] ? (pieceMaterialSearch[piece.id] ?? '') : (pieceMaterial?.name || '')}
+                            onFocus={() => {
+                              setPieceMaterialSearch((current) => ({...current, [piece.id]: ''}));
+                              setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: true}));
+                            }}
+                            onBlur={(event) => {
+                              if (!event.currentTarget.parentElement?.contains(event.relatedTarget)) setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: false}));
+                            }}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Escape') {
+                                event.stopPropagation();
+                                setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: false}));
+                              }
+                            }}
                             onChange={(e) => {
                               setPieceMaterialSearch((current) => ({...current, [piece.id]: e.target.value}));
-                              updatePiece(piece.id, {materialId: '', materialVariantKey: undefined, materialLine: undefined, materialType: undefined, thicknessLabel: undefined, texture: undefined, provider: undefined});
                               setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: true}));
                             }}
                             className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 pr-10 text-sm outline-none transition-all focus:ring-2 focus:ring-brand-primary/20"
                             placeholder="Pesquisar material para esta peça..."
                           />
-                          <button type="button" onClick={() => setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: !current[piece.id]}))} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
+                          <button type="button" aria-label="Abrir seleção de material" onClick={() => {setPieceMaterialSearch((current) => ({...current, [piece.id]: ''})); setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: !current[piece.id]}));}} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400">
                             <ChevronDown className="h-4 w-4" />
                           </button>
                           {pieceMaterialPickerOpen[piece.id] && (
@@ -3451,38 +3449,32 @@ export const QuoteEditor: React.FC = () => {
                               {filteredPieceMaterials.map((material) => {
                                 const itemStock = materialStock(material.id, material.variantKey);
                                 const available = itemStock.available > 0;
+                                const isSelectedMaterial = piece.materialId === material.id && piece.materialVariantKey === material.variantKey;
                                 return (
                                   <button
-                                    key={material.id}
+                                    key={`${material.id}::${material.variantKey}`}
                                     type="button"
                                     onMouseDown={(event) => event.preventDefault()}
                                     onClick={() => {
-                                      updatePiece(piece.id, {
-                                        materialId: material.id,
-                                        materialVariantKey: material.variantKey,
-                                        materialLine: material.materialLine,
-                                        materialType: material.materialType,
-                                        thicknessLabel: material.thicknessLabel,
-                                        texture: material.texture,
-                                        provider: material.provider,
-                                      });
+                                      updatePiece(piece.id, materialPiecePatch(material, material.variantKey));
                                       setPieceMaterialSearch((current) => ({...current, [piece.id]: material.name}));
                                       setPieceMaterialPickerOpen((current) => ({...current, [piece.id]: false}));
                                     }}
-                                    className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-semibold hover:bg-brand-primary/10', piece.materialId === material.id ? 'bg-brand-primary text-[#3F3A34] hover:bg-brand-primary' : 'text-slate-700')}
+                                    aria-pressed={isSelectedMaterial}
+                                    className={cn('flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm hover:bg-brand-primary/10', isSelectedMaterial ? 'bg-brand-primary text-[#3F3A34] hover:bg-brand-primary' : 'text-slate-700')}
                                   >
                                     <div className={cn('h-12 w-12 shrink-0 overflow-hidden rounded-xl border', piece.materialId === material.id ? 'border-white/30 bg-white/15' : 'border-slate-100 bg-slate-50')}>
                                       {imageVariantUrl(material, 'thumbnail') ? <img src={imageVariantUrl(material, 'thumbnail')} alt={material.name} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <div className="flex h-full w-full items-center justify-center text-[10px] font-bold uppercase text-slate-300">Sem foto</div>}
                                     </div>
                                     <span className="min-w-0 flex-1">
-                                      <span className="block truncate">{material.name}</span>
+                                      <span className="block truncate font-semibold">{material.name}</span>
                                       <span className={cn('block text-[11px] font-medium', piece.materialId === material.id ? 'text-[#5F5549]' : 'text-slate-400')}>
                                         {formatMaterialSpecs(material) || material.category || 'Sem categoria'}
                                       </span>
                                     </span>
                                     <span className={cn('inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-[10px] font-bold uppercase', available ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600', piece.materialId === material.id && 'bg-white/20 text-[#3F3A34]')}>
                                       <span className={cn('h-2 w-2 rounded-full', available ? 'bg-green-500' : 'bg-red-500')} />
-                                      {available ? 'Disponível' : 'Indisponível'}
+                                      {available ? 'Com estoque' : 'Sem estoque'}
                                     </span>
                                   </button>
                                 );
@@ -4003,6 +3995,8 @@ export const QuoteEditor: React.FC = () => {
           </section>
         </div>
       </div>
+
+      {materialApplication && <MaterialApplicationDialog selection={materialApplication} name={materials.find((material) => material.id === materialApplication.materialId)?.name || 'Material'} pieces={pieces} onChange={setMaterialApplication} onClose={() => setMaterialApplication(null)} onApply={applyMaterialSelection} />}
 
       {showDrawing && (
         <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 p-2 backdrop-blur-md overscroll-contain sm:flex sm:items-center sm:justify-center sm:p-4">

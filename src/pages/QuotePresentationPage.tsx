@@ -1,4 +1,5 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
+import {getPieceQuantity} from '../lib/quotePieceQuantity';
 import {useParams} from 'react-router-dom';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
@@ -30,7 +31,7 @@ import {
   resolveQuotePaymentSimulationBase,
   validateQuoteSimulationEntryAmount,
 } from '../lib/quotePaymentSimulation';
-import {cn, formatCurrency, formatCurrencyInputFromCents} from '../lib/utils';
+import {cn, formatCurrency, formatCurrencyInputFromCents, formatMeasure} from '../lib/utils';
 
 const BUSINESS_TIME_ZONE = 'America/Sao_Paulo';
 
@@ -450,6 +451,7 @@ export const QuotePresentationPage: React.FC = () => {
     if (!Array.isArray(snapshot?.pieces)) return [];
     return snapshot.pieces.map((piece) => ({
       ...piece,
+      quantity: getPieceQuantity(piece),
       name: normalizeLegacyPresentationText(piece.name) || 'Peça',
       environment: normalizeLegacyPresentationText(piece.environment),
       materialName: normalizeLegacyPresentationText(piece.materialName || piece.material),
@@ -839,8 +841,8 @@ export const QuotePresentationPage: React.FC = () => {
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-4">
-                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Peças</div>
-                        <div className="mt-2 text-lg text-[#f7f1ea]">{projectPieces.length || snapshot?.summary?.pieceCount || 0}</div>
+                        <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Unidades</div>
+                        <div className="mt-2 text-lg text-[#f7f1ea]">{projectPieces.length ? projectPieces.reduce((total, piece) => total + piece.quantity, 0) : snapshot?.summary?.unitCount || snapshot?.summary?.pieceCount || 0}</div>
                       </div>
                       <div className="rounded-[24px] border border-white/8 bg-white/[0.03] px-5 py-4">
                         <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Materiais</div>
@@ -943,6 +945,8 @@ export const QuotePresentationPage: React.FC = () => {
                       <div className="rounded-[28px] border border-white/8 bg-[#15120f] px-5 py-5">
                         <div className="text-[11px] uppercase tracking-[0.24em] text-[#c9a46b]">Peça</div>
                         <div className="mt-2 text-2xl leading-tight text-[#f7f1ea]">{piece.name}</div>
+                        <div className="mt-2 text-sm text-[#d7c7b5]">Quantidade: {piece.quantity} un.</div>
+                        {piece.area != null && <div className="mt-2 text-sm text-[#d7c7b5]">Área: {formatMeasure(piece.unitArea ?? piece.area / piece.quantity)} m²{piece.quantity > 1 && ` × ${piece.quantity} = ${formatMeasure(piece.area)} m²`}</div>}
                         <div className="mt-5 grid gap-3 sm:grid-cols-2">
                           {piece.environment ? (
                             <div>
@@ -958,8 +962,9 @@ export const QuotePresentationPage: React.FC = () => {
                           ) : null}
                           {piece.value != null && piece.value > 0 ? (
                             <div>
-                              <div className="text-[10px] uppercase tracking-[0.2em] text-[#99836c]">Valor</div>
+                              <div className="text-[10px] uppercase tracking-[0.2em] text-[#99836c]">Subtotal</div>
                               <div className="mt-1 text-sm text-[#f1e6dc]">{formatCurrency(piece.value)}</div>
+                              {piece.quantity > 1 && <div className="mt-1 text-xs text-[#d7c7b5]">{formatCurrency(piece.unitValue ?? piece.value / piece.quantity)} × {piece.quantity} un.</div>}
                             </div>
                           ) : null}
                         </div>

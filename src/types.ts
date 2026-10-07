@@ -886,6 +886,7 @@ export type QuotePieceKind = 'bancada' | 'escada' | 'soleira_baguete';
 export interface QuotePiece {
   id: string;
   name: string;
+  quantity?: number;
   kind?: QuotePieceKind;
   pieceStatus?: QuoteStatus;
   pricingMode?: 'automatic' | 'manual';

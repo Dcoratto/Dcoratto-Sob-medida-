@@ -21,6 +21,7 @@ import {validateClientPayload} from '../lib/businessRules';
 import {CurrencyInput} from '../components/inputs/NumericInput';
 import {ClientNavigationButtons} from '../components/ClientNavigationButtons';
 import {getEffectivePieceBaseArea} from '../lib/quotePieceArea';
+import {getPieceQuantity, getPieceTotalArea} from '../lib/quotePieceQuantity';
 
 type ClientStage = 'pre' | 'approved' | 'production' | 'ready' | 'done' | 'none';
 
@@ -106,7 +107,7 @@ const getPieceDisplayStatus = (piece: QuotePiece, quote?: Quote): QuoteStatus =>
   normalizeQuoteStatus(piece.pieceStatus || quote?.status || 'Orçamento');
 
 const getPieceAreaValue = (piece: QuotePiece) =>
-  getEffectivePieceBaseArea(piece);
+  getPieceTotalArea(piece, getEffectivePieceBaseArea(piece));
 
 const summarizeQuotePieces = (quote?: Quote) => {
   const pieces = quote?.pieces || [];
@@ -500,9 +501,9 @@ export const ClientsPage: React.FC = () => {
   };
   const selectedQuoteMaterialUsage = (selectedQuote?.pieces || []).reduce((map, piece) => {
     if (!piece.materialId) return map;
-    const area = getEffectivePieceBaseArea(piece);
+    const area = getPieceTotalArea(piece, getEffectivePieceBaseArea(piece));
     const current = map.get(piece.materialId) || {area: 0, pieces: 0};
-    map.set(piece.materialId, {area: current.area + area, pieces: current.pieces + 1});
+    map.set(piece.materialId, {area: current.area + area, pieces: current.pieces + getPieceQuantity(piece)});
     return map;
   }, new Map<string, {area: number; pieces: number}>());
   const selectedQuoteSlabRows = Array.from(selectedQuoteMaterialUsage.entries()).map(([materialId, usage]) => {
@@ -1726,7 +1727,8 @@ export const ClientsPage: React.FC = () => {
                                       </span>
                                     </div>
                                     <div className="text-xs text-slate-400">{formatCentimeters(piece.length || 0)} x {formatCentimeters(piece.width || 0)}</div>
-                                    <div className="mt-1 text-xs text-slate-500">{materialById(piece.materialId)?.name || selectedQuote.materialName || 'Sem material'}</div>
+                                    <div className="mt-1 text-xs text-slate-500">{getPieceQuantity(piece)} un. · {materialById(piece.materialId)?.name || selectedQuote.materialName || 'Sem material'}</div>
+                                    {getPieceQuantity(piece) > 1 && <div className="mt-1 text-xs text-slate-500">Área unitária: {formatArea(getEffectivePieceBaseArea(piece))}</div>}
                                     <div className="mt-2 text-sm font-bold text-brand-primary">{formatArea(getPieceAreaValue(piece))}</div>
                                     {piece.sides?.length > 0 && (
                                       <div className="mt-1 text-xs text-slate-500">{piece.sides.length} adicional(is)</div>

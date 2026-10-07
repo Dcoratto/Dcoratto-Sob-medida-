@@ -1,6 +1,7 @@
 import {Settings, Quote, QuoteComplexityOption, QuotePiece} from '../types';
 import {getRegionalLaborMinimum} from './laborRegion';
 import {getEffectivePieceLinearLength} from './pieceDimensions';
+import {getPieceQuantity} from './quotePieceQuantity';
 import {
   buildCutoutCatalog,
   getCutoutLabel,
@@ -15,6 +16,8 @@ export type PieceCutoutRow = {
 };
 
 export type PiecePricingBreakdown = {
+  quantity: number;
+  unitSubtotalValue: number;
   stoneBaseValue: number;
   materialLossValue: number;
   calculatedLaborValue: number;
@@ -48,6 +51,7 @@ export const buildPieceCutoutSummary = ({
   settings: Settings;
 }) => {
   const scopedCutoutsExist = hasAnyScopedCutouts(pieces);
+  const quantity = scopedCutoutsExist ? getPieceQuantity(piece) : 1;
   const isLegacyFallbackPiece = !scopedCutoutsExist && pieces[0]?.id === piece.id;
   const pieceScopedCutouts = scopedCutoutsExist
     ? getPieceScopedCutoutCounts(piece)
@@ -65,7 +69,7 @@ export const buildPieceCutoutSummary = ({
   const rows: PieceCutoutRow[] = buildCutoutCatalog(settings)
     .map((item) => ({
       label: getCutoutLabel(item.type),
-      count: Number(pieceScopedCutouts[item.type] || 0),
+      count: Number(pieceScopedCutouts[item.type] || 0) * quantity,
       price: item.unitPrice,
     }))
     .filter((item) => item.count > 0);
@@ -86,7 +90,7 @@ export const calculatePieceLaborValue = (
     ? Math.max(piece.stair.stepWidth || 0, (piece.stair.stepCount || 0) * (piece.stair.treadDepth || 0)) / (piece.stair.unit === 'cm' ? 100 : 1)
     : getEffectivePieceLinearLength(piece);
   const calculatedLabor = roundCurrency(laborRatePerLinearMeter * largestSideM);
-  return roundCurrency(Math.max(calculatedLabor, regionalMinimum));
+  return roundCurrency(Math.max(calculatedLabor, regionalMinimum)) * getPieceQuantity(piece);
 };
 
 export const buildPiecePricingBreakdowns = ({
@@ -126,32 +130,41 @@ export const buildPiecePricingBreakdowns = ({
   const defaultComplexity = activeComplexityOptions.find((option) => Number(option.percent || 0) === 0)
     || activeComplexityOptions[0];
   const breakdowns = pieces.map((piece) => {
+    const quantity = getPieceQuantity(piece);
     const totals = calculatePieceArea(piece);
     const cutoutSummary = buildPieceCutoutSummary({piece, pieces, quoteCutouts, settings});
     const materialPricePerM2 = resolveMaterialPricePerM2(piece);
-    const stoneBaseValue = roundCurrency((totals.totalArea || 0) * materialPricePerM2);
-    const materialLossValue = includeMaterialLoss ? roundCurrency((totals.lossArea || 0) * materialPricePerM2) : 0;
+    const stoneBaseValue = roundCurrency(roundCurrency((totals.totalArea || 0) * materialPricePerM2) * quantity);
+    const materialLossValue = includeMaterialLoss ? roundCurrency(roundCurrency((totals.lossArea || 0) * materialPricePerM2) * quantity) : 0;
     const stoneWithLossValue = roundCurrency(stoneBaseValue + materialLossValue);
     const calculatedLaborValue = calculatePieceLaborValue(piece, settings.laborRatePerLinearMeter, regionalLaborMinimum);
     const laborValue = includeLabor ? calculatedLaborValue : 0;
     const calculatedCutoutValue = cutoutSummary.totalValue;
     const cutoutValue = includeCutouts ? calculatedCutoutValue : 0;
-    const sinkAdditionalValue = includeSculptedSink ? roundCurrency(totals.sinkAdditionalValue || 0) : 0;
+    const sinkAdditionalValue = includeSculptedSink ? roundCurrency(roundCurrency(totals.sinkAdditionalValue || 0) * quantity) : 0;
     const ownSubtotalBeforeComplexity = roundCurrency(stoneWithLossValue + laborValue + cutoutValue + sinkAdditionalValue);
     const resolvedComplexity = activeComplexityOptions.find((option) => option.key === piece.complexityKey)
       || defaultComplexity;
     const complexityPercent = includeComplexity ? Number(resolvedComplexity?.percent || 0) : 0;
-    const complexityValue = roundCurrency(ownSubtotalBeforeComplexity * (complexityPercent / 100));
+    const globalCutoutValue = hasAnyScopedCutouts(pieces) ? 0 : cutoutValue;
+    const complexityValue = quantity === 1
+      ? roundCurrency(ownSubtotalBeforeComplexity * (complexityPercent / 100))
+      : roundCurrency(
+        roundCurrency(((ownSubtotalBeforeComplexity - globalCutoutValue) / quantity) * (complexityPercent / 100)) * quantity
+        + roundCurrency(globalCutoutValue * (complexityPercent / 100)),
+      );
     const automaticPieceSubtotalValue = roundCurrency(ownSubtotalBeforeComplexity + complexityValue);
     const manualPiecePrice = resolveManualPiecePrice?.(piece);
     const pieceSubtotalValue = typeof manualPiecePrice === 'number'
-      ? roundCurrency(Math.max(0, manualPiecePrice))
+      ? roundCurrency(roundCurrency(Math.max(0, manualPiecePrice)) * quantity)
       : automaticPieceSubtotalValue;
     const ownSubtotalValue = typeof manualPiecePrice === 'number'
       ? pieceSubtotalValue
       : ownSubtotalBeforeComplexity;
 
     return {
+      quantity,
+      unitSubtotalValue: pieceSubtotalValue / quantity,
       stoneBaseValue,
       materialLossValue,
       calculatedLaborValue,

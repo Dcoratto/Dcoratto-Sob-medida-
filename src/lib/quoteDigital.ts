@@ -50,6 +50,7 @@ export type QuotePresentationSnapshot = {
     environment?: string;
     responsible?: string;
     pieceCount?: number;
+    unitCount?: number;
     materialCount?: number;
   };
   includedFeatures?: {
@@ -87,6 +88,9 @@ export type QuotePresentationSnapshot = {
   pieces?: Array<{
     id: string;
     name?: string;
+    quantity?: number;
+    unitArea?: number;
+    unitValue?: number;
     environment?: string;
     materialId?: string;
     materialName?: string;

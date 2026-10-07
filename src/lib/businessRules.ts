@@ -1,5 +1,6 @@
 import {Client, InventoryItem, InventoryPurchase, InventoryReservation, Material, Quote} from '../types';
 import {getPieceAreaMode, getStoredManualFinalArea} from './quotePieceArea';
+import {isValidPieceQuantity, MAX_PIECE_QUANTITY} from './quotePieceQuantity';
 
 const normalize = (value: unknown) =>
   String(value || '')
@@ -118,6 +119,9 @@ export const validateQuoteBeforeSave = ({
   if (pieces.some((piece) => !piece.name?.trim())) return 'Preencha o nome de todas as peças.';
 
   for (const piece of pieces) {
+    if (piece.quantity !== undefined && !isValidPieceQuantity(piece.quantity)) {
+      return `A peça "${piece.name}" precisa ter quantidade inteira entre 1 e ${MAX_PIECE_QUANTITY}.`;
+    }
     if (piece.stair?.active) {
       const unitLimit = piece.stair.unit === 'cm' ? MAX_DIMENSION_CM : MAX_DIMENSION_M;
       const values = [

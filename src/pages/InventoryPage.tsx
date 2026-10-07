@@ -20,6 +20,7 @@ import {validateInventoryBatchQuantity, validateInventoryItemPayload, validatePu
 import {CurrencyInput, NumericInput} from '../components/inputs/NumericInput';
 import {supabase} from '../lib/supabase';
 import {getEffectivePieceBaseArea} from '../lib/quotePieceArea';
+import {getPieceQuantity} from '../lib/quotePieceQuantity';
 
 const statusOptions: InventoryItem['status'][] = ['Disponível', 'Reservada', 'Usada', 'Retalho', 'Descarte'];
 
@@ -2394,7 +2395,7 @@ export const InventoryPage: React.FC = () => {
                     <option value="">Selecionar peça</option>
                     {(selectedLossQuote?.pieces || []).map((piece) => (
                       <option key={piece.id} value={piece.id}>
-                        {piece.name} · {formatArea(getEffectivePieceBaseArea(piece))}
+                        {piece.name} · {getPieceQuantity(piece)} un. · {formatArea(getEffectivePieceBaseArea(piece))} / un.
                       </option>
                     ))}
                   </select>

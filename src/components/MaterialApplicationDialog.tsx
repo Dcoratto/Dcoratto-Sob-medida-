@@ -1,6 +1,7 @@
 import {useEffect, useRef} from 'react';
 import type {QuotePiece} from '../types';
 import {normalizeMaterialSearch} from '../lib/quoteMaterials';
+import {getPieceQuantity} from '../lib/quotePieceQuantity';
 
 export type MaterialApplicationSelection = {
   materialId: string;
@@ -44,7 +45,7 @@ export function MaterialApplicationDialog({selection, name, pieces, onChange, on
             <span aria-live="polite">{pieces.filter((piece) => selected.has(piece.id)).length} de {pieces.length} peças selecionadas</span>
           </div>
           <div className="max-h-64 space-y-1 overflow-auto rounded-xl border border-slate-100 p-2">
-            {visible.map((piece) => <label key={piece.id} className="flex cursor-pointer items-center gap-3 rounded-lg p-3 text-sm hover:bg-slate-50"><input type="checkbox" checked={selected.has(piece.id)} onChange={(event) => onChange({...selection, selectedIds: event.target.checked ? [...selection.selectedIds, piece.id] : selection.selectedIds.filter((id) => id !== piece.id)})} />{piece.name || 'Peça sem nome'}</label>)}
+            {visible.map((piece) => <label key={piece.id} className="flex cursor-pointer items-center gap-3 rounded-lg p-3 text-sm hover:bg-slate-50"><input type="checkbox" checked={selected.has(piece.id)} onChange={(event) => onChange({...selection, selectedIds: event.target.checked ? [...selection.selectedIds, piece.id] : selection.selectedIds.filter((id) => id !== piece.id)})} />{piece.name || 'Peça sem nome'} · {getPieceQuantity(piece)} un.</label>)}
             {!visible.length && <p className="p-3 text-sm text-slate-500">Nenhuma peça encontrada.</p>}
           </div>
         </div>

@@ -8,6 +8,7 @@ import {cn, formatArea, formatCentimeters, formatCurrency} from '../lib/utils';
 import {getClientDisplayStatus, normalizeQuoteStatus, quoteStatusColor, shouldAppearInProjects} from '../lib/quoteStatus';
 import {ClientNavigationButtons} from '../components/ClientNavigationButtons';
 import {getEffectivePieceBaseArea} from '../lib/quotePieceArea';
+import {getPieceQuantity, getPieceTotalArea} from '../lib/quotePieceQuantity';
 
 const normalize = (value: unknown) =>
   String(value || '')
@@ -148,12 +149,12 @@ export const ProjectsPage: React.FC = () => {
       id: piece.id,
       name: piece.name,
       status: normalizeQuoteStatus(piece.pieceStatus || trackingModalProject.quote?.status || trackingModalProject.status),
-      area: getEffectivePieceBaseArea(piece),
+      area: getPieceTotalArea(piece, getEffectivePieceBaseArea(piece)),
       notes: piece.notes || '',
-      value: piece.manualPrice || 0,
-      dimensions: piece.unit === 'cm'
+      value: (piece.manualPrice || 0) * getPieceQuantity(piece),
+      dimensions: `${getPieceQuantity(piece)} un. · ${piece.unit === 'cm'
         ? `${formatCentimeters(piece.length || 0)} x ${formatCentimeters(piece.width || 0)}`
-        : `${piece.length || 0}m x ${piece.width || 0}m`,
+        : `${piece.length || 0}m x ${piece.width || 0}m`}`,
     }));
   }, [trackingModalProject]);
 

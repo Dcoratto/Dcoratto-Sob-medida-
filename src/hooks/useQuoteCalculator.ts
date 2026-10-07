@@ -2,6 +2,8 @@ import { QuotePiece, QuoteCutouts, Settings, Material, SculptedSink } from '../t
 import {getRegionalLaborMinimum} from '../lib/laborRegion';
 import {getEffectivePieceBaseArea} from '../lib/quotePieceArea';
 import {getEffectivePieceLinearLength} from '../lib/pieceDimensions';
+import {getPieceQuantity} from '../lib/quotePieceQuantity';
+import {resolveQuoteCutoutSource} from '../lib/quotePieceCutouts';
 
 export const MATERIAL_LOSS_PERCENTAGE = 10;
 
@@ -137,7 +139,7 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
       const largestSideM = p.stair?.active
         ? Math.max(p.stair.stepWidth || 0, (p.stair.stepCount || 0) * (p.stair.treadDepth || 0)) / (p.stair.unit === 'cm' ? 100 : 1)
         : getEffectivePieceLinearLength(p);
-      return acc + Math.max(settings.laborRatePerLinearMeter * largestSideM, regionalLaborMinimum);
+      return acc + Math.max(settings.laborRatePerLinearMeter * largestSideM, regionalLaborMinimum) * getPieceQuantity(p);
     }, 0);
   };
 
@@ -161,21 +163,21 @@ export const useQuoteCalculator = (settings: Settings, materialForPiece?: (piece
     clientLocation?: {city?: string; address?: string},
   ) => {
     const totals = pieces.map(p => calculatePieceArea(p));
-    const sinkAdditionalValue = totals.reduce((acc, t) => acc + (t.sinkAdditionalValue || 0), 0);
+    const sinkAdditionalValue = totals.reduce((acc, t, index) => acc + (t.sinkAdditionalValue || 0) * getPieceQuantity(pieces[index]), 0);
     
     const stonesCost = pieces.reduce((acc, piece, index) => {
       const pieceMaterial = materialForPiece?.(piece);
-      return acc + totals[index].totalArea * (pieceMaterial?.pricePerM2 || 0);
+      return acc + totals[index].totalArea * getPieceQuantity(piece) * (pieceMaterial?.pricePerM2 || 0);
     }, 0);
     const materialLossCost = pieces.reduce((acc, piece, index) => {
       const pieceMaterial = materialForPiece?.(piece);
-      return acc + (totals[index].lossArea || 0) * (pieceMaterial?.pricePerM2 || 0);
+      return acc + (totals[index].lossArea || 0) * getPieceQuantity(piece) * (pieceMaterial?.pricePerM2 || 0);
     }, 0);
     const laborCost = calculateLabor(pieces, clientLocation);
     
     // Drawing cutouts update the quote cutout counters when the drawing is saved.
     // Charging only from the counters avoids duplicating the same recorte.
-    let totalCutoutsCost = calculateCutouts(cutouts);
+    let totalCutoutsCost = calculateCutouts(resolveQuoteCutoutSource(pieces, cutouts));
 
     const subtotal = stonesCost + materialLossCost + laborCost + totalCutoutsCost + sinkAdditionalValue;
     const adjustmentValue = subtotal * (paymentMethodAdjustment / 100);

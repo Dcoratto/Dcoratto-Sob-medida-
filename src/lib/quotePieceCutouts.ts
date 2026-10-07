@@ -1,4 +1,5 @@
 import {Quote, QuotePiece, QuotePieceCutoutItem, Settings} from '../types';
+import {getPieceQuantity} from './quotePieceQuantity';
 
 export type QuoteCutoutState = {
   cooktop: number;
@@ -101,7 +102,7 @@ export const buildQuoteCutoutTotalsFromPieces = (pieces: QuotePiece[]) =>
   pieces.reduce((acc, piece) => {
     const pieceCounts = getPieceScopedCutoutCounts(piece);
     (Object.keys(acc) as Array<keyof QuoteCutoutState>).forEach((key) => {
-      acc[key] += Number(pieceCounts[key] || 0);
+      acc[key] += Number(pieceCounts[key] || 0) * getPieceQuantity(piece);
     });
     return acc;
   }, {...EMPTY_QUOTE_CUTOUTS});

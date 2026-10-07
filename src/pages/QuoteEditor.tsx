@@ -23,13 +23,15 @@ import {formatMaterialSpecs} from '../lib/materialSpecs';
 import {buildMaterialVariantKey} from '../lib/materialVariants';
 import {buildQuoteMaterialOptions, matchesMaterialSearch, materialPiecePatch, planMaterialApplication} from '../lib/quoteMaterials';
 import {MaterialApplicationDialog, type MaterialApplicationSelection} from '../components/MaterialApplicationDialog';
+import {getPieceQuantity, getQuoteUnitCount, getPieceTotalArea} from '../lib/quotePieceQuantity';
+import {PieceQuantityInput} from '../components/inputs/PieceQuantityInput';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
 import {DraftNotice} from '../components/DraftNotice';
 import {DraftAutosaveStatus} from '../components/DraftAutosaveStatus';
 import {validateQuoteBeforeSave} from '../lib/businessRules';
 import {getEffectivePieceLongestSide, getPieceMajorMinorSides} from '../lib/pieceDimensions';
 import {getInventoryItemArea} from '../lib/inventoryMetrics';
-import {buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
+import {buildPieceCutoutSummary, buildPiecePricingBreakdowns} from '../lib/quotePiecePricing';
 import {LABELS} from '../constants/labels';
 import {imageVariantUrl} from '../lib/storage';
 import {getEffectivePieceBaseArea, getPieceAreaMode, getStoredDrawingArea, getStoredManualFinalArea} from '../lib/quotePieceArea';
@@ -526,6 +528,7 @@ export const QuoteEditor: React.FC = () => {
       usedPricePerM2: number;
       pieceNames: string[];
       pieceIds: string[];
+      unitCount: number;
       error?: string;
     };
 
@@ -556,6 +559,7 @@ export const QuoteEditor: React.FC = () => {
       const existing = rows.get(key);
       if (existing) {
         existing.pieceIds.push(piece.id);
+        existing.unitCount += getPieceQuantity(piece);
         if (piece.name && !existing.pieceNames.includes(piece.name)) existing.pieceNames.push(piece.name);
         return;
       }
@@ -573,6 +577,7 @@ export const QuoteEditor: React.FC = () => {
         usedPricePerM2,
         pieceNames: piece.name ? [piece.name] : [],
         pieceIds: [piece.id],
+        unitCount: getPieceQuantity(piece),
         error,
       });
     });
@@ -753,7 +758,7 @@ export const QuoteEditor: React.FC = () => {
 
   const totalMethodAdjustment = findPaymentMethodAdjustment(effectiveQuoteSettings.paymentMethods, totalPaymentMethod);
   const remainingMethodAdjustment = findPaymentMethodAdjustment(effectiveQuoteSettings.paymentMethods, remainingPaymentMethod);
-  const totalArea = pieces.reduce((acc, p) => acc + calculatePieceArea(p).totalArea, 0);
+  const totalArea = pieces.reduce((acc, p) => acc + getPieceTotalArea(p, calculatePieceArea(p).totalArea), 0);
   const pieceAreaDetails = pieces.map((piece) => ({piece, totals: calculatePieceArea(piece), material: materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)}));
   const locationContext = {
     city: selectedClient?.city,
@@ -838,7 +843,7 @@ export const QuoteEditor: React.FC = () => {
 
       return {
         ...piece,
-        presentationArea: roundNumber(pieceTotals.totalArea, 4),
+        presentationArea: roundNumber(getPieceTotalArea(piece, pieceTotals.totalArea), 4),
         presentationValue: Number((pieceBreakdown?.pieceSubtotalValue || 0).toFixed(2)),
         presentationMaterialName: pieceMaterial?.name || '',
         presentationMaterialDescription: pieceMaterial?.quoteDescription || '',
@@ -981,10 +986,10 @@ export const QuoteEditor: React.FC = () => {
         : `Ajuste necessário: ${adjustment.calculatedPercent > 0 ? '+' : ''}${formatPercentage(Math.abs(adjustment.calculatedPercent))}.`,
     );
   };
-  const materialBaseCost = pieceAreaDetails.reduce((acc, {totals, material}) => {
+  const materialBaseCost = pieceAreaDetails.reduce((acc, {piece, totals, material}) => {
     const costPerM2 = Number(material?.baseCostPerM2 || 0);
     const lossArea = includeMaterialLoss ? Number(totals.lossArea || 0) : 0;
-    return acc + ((totals.totalArea || 0) + lossArea) * costPerM2;
+    return acc + ((totals.totalArea || 0) + lossArea) * getPieceQuantity(piece) * costPerM2;
   }, 0);
   const estimatedOperationalCost = materialBaseCost + laborCost + deliveryFee + cutoutsCost + sculptedLaborCost;
   const estimatedProfitPercent = estimatedOperationalCost > 0
@@ -1037,7 +1042,7 @@ export const QuoteEditor: React.FC = () => {
   const activePieceIndex = pieceEditorPieceId ? pieces.findIndex((piece) => piece.id === pieceEditorPieceId) : -1;
   const activePiece = activePieceIndex >= 0 ? pieces[activePieceIndex] : null;
   const activePieceTotals = activePiece ? calculatePieceArea(activePiece) : null;
-  const activePieceArea = activePieceTotals?.totalArea || 0;
+  const activePieceArea = activePiece ? getPieceTotalArea(activePiece, activePieceTotals?.totalArea || 0) : 0;
   const activePieceStairDetails = activePiece ? calculateStairArea(activePiece) : null;
   const activePieceMaterial = activePiece ? materialWithQuotePrice(activePiece.materialId, activePiece.materialVariantKey) : null;
   const activePieceStock = activePiece?.materialId ? materialStock(activePiece.materialId, activePiece.materialVariantKey) : {available: 0};
@@ -1589,6 +1594,7 @@ export const QuoteEditor: React.FC = () => {
     const newPiece: QuotePiece = {
       id: Math.random().toString(36).substr(2, 9),
       name: getPieceDefaultName(asStair ? 'escada' : undefined, pieces),
+      quantity: 1,
       kind: asStair ? 'escada' : undefined,
       pieceStatus: status,
       pricingMode: 'automatic',
@@ -2619,7 +2625,7 @@ export const QuoteEditor: React.FC = () => {
                   <div key={row.key} className="rounded-[24px] border border-slate-100 bg-slate-50/70 p-4">
                     <div className="font-semibold text-slate-900">{row.name}</div>
                     <div className="mt-1 text-[11px] text-slate-400">{row.specs || 'Sem especificações adicionais'}</div>
-                    <div className="mt-3 text-sm text-slate-600">Aplicado em {row.pieceIds.length} peças</div>
+                    <div className="mt-3 text-sm text-slate-600">Aplicado em {row.pieceIds.length} registros de peças · {row.unitCount} unidades</div>
                     <button type="button" disabled={saving} onClick={() => setMaterialApplication({materialId: row.materialId, variantKey: row.materialVariantKey, mode: 'specific', selectedIds: [...row.pieceIds], search: ''})} className="mt-3 text-sm text-brand-primary underline underline-offset-2 disabled:opacity-50">Gerenciar aplicação</button>
                   </div>
                 ))}
@@ -2950,7 +2956,7 @@ export const QuoteEditor: React.FC = () => {
                           <div className="min-w-0">
                             <div className="font-bold text-slate-900">{row.name}</div>
                             <div className="text-[11px] text-slate-400">{row.specs || 'Material selecionado'}</div>
-                            <div className="mt-1 text-[11px] text-slate-500">Aplicado em {row.pieceIds.length} peças</div>
+                            <div className="mt-1 text-[11px] text-slate-500">Aplicado em {row.pieceIds.length} registros de peças · {row.unitCount} unidades</div>
                           </div>
                           <span className={cn('inline-flex self-start rounded-full px-3 py-1 text-[10px] font-bold uppercase', row.error ? 'bg-red-50 text-red-600' : isValidCustom ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500')}>
                             {row.error ? 'Inválido' : isValidCustom ? 'Válido' : 'Preço padrão'}
@@ -3105,7 +3111,7 @@ export const QuoteEditor: React.FC = () => {
         {/* Right Column: Pieces */}
         <div className="min-w-0 space-y-6 lg:min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-2 lg:pb-6">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-2xl font-display font-bold text-slate-900">{LABELS.pieces.quotePieces}</h2>
+            <div><h2 className="text-2xl font-display font-bold text-slate-900">{LABELS.pieces.quotePieces}</h2><p className="mt-1 text-xs text-slate-500">{pieces.length} registros · {getQuoteUnitCount(pieces)} unidades</p></div>
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -3136,6 +3142,8 @@ export const QuoteEditor: React.FC = () => {
             {pieces.map((piece, pIdx) => {
               const pieceTotals = calculatePieceArea(piece);
               const pieceArea = pieceTotals.totalArea;
+              const pieceQuantity = getPieceQuantity(piece);
+              const pieceTotalArea = getPieceTotalArea(piece, pieceArea);
               const stairDetails = calculateStairArea(piece);
               const pieceMaterial = materialWithQuotePrice(piece.materialId, piece.materialVariantKey);
               const stock = piece.materialId ?materialStock(piece.materialId, piece.materialVariantKey) : {available: 0};
@@ -3147,11 +3155,12 @@ export const QuoteEditor: React.FC = () => {
               const manualFinalArea = getStoredManualFinalArea(piece);
               const pieceCutoutBreakdown = originalPiecePricingBreakdowns[pIdx];
               const pieceFinalBreakdown = finalPiecePricingBreakdowns[pIdx];
-              const pieceScopedCutouts = pieceCutoutBreakdown?.cutoutRows || [];
+              const pieceScopedCutouts = buildPieceCutoutSummary({piece: {...piece, quantity: 1}, pieces, quoteCutouts: effectiveQuoteCutouts, settings: effectiveQuoteSettings}).rows;
+              const cutoutQuantityMultiplier = hasAnyScopedCutouts(pieces) ? pieceQuantity : 1;
               const pieceScopedCutoutTotal = pieceCutoutBreakdown?.calculatedCutoutValue || 0;
               const hasMaterial = Boolean(piece.materialId);
-              const hasEnoughStock = hasMaterial && stock.available >= pieceArea;
-              const lotInfo = hasMaterial ?materialLotInfo(piece.materialId, pieceArea, piece.materialVariantKey) : null;
+              const hasEnoughStock = hasMaterial && stock.available >= pieceTotalArea;
+              const lotInfo = hasMaterial ?materialLotInfo(piece.materialId, pieceTotalArea, piece.materialVariantKey) : null;
               const pieceWorkflowStatus = normalizeQuoteStatus(piece.pieceStatus || status);
               const pieceMode = inferPieceEditorMode(piece);
               const pieceKind = inferPieceKind(piece);
@@ -3176,6 +3185,7 @@ export const QuoteEditor: React.FC = () => {
                             {pIdx + 1}
                           </div>
                           <div className="truncate font-display text-xl font-bold text-slate-900">{piece.name}</div>
+                          <span className="text-xs text-slate-500">{pieceQuantity} un.</span>
                           <span className={cn('inline-flex rounded-full border px-3 py-1 text-[10px] font-bold uppercase', quoteStatusColor(pieceWorkflowStatus))}>
                             {pieceWorkflowStatus}
                           </span>
@@ -3189,7 +3199,8 @@ export const QuoteEditor: React.FC = () => {
                         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                           <div className="rounded-2xl bg-slate-50 px-4 py-3">
                             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Área</div>
-                            <div className="mt-2 font-mono text-sm font-bold text-slate-900">{formatMeasure(pieceArea)}</div>
+                            <div className="mt-2 font-mono text-sm font-bold text-slate-900">{formatArea(pieceArea)}{pieceQuantity > 1 && ` × ${pieceQuantity}`}</div>
+                            {pieceQuantity > 1 && <div className="mt-1 text-xs text-slate-500">Total: {formatArea(pieceTotalArea)}</div>}
                           </div>
                           <div className="rounded-2xl bg-slate-50 px-4 py-3">
                             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Material</div>
@@ -3198,6 +3209,7 @@ export const QuoteEditor: React.FC = () => {
                           <div className="rounded-2xl bg-slate-50 px-4 py-3">
                             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Valor</div>
                             <div className="mt-2 font-mono text-sm font-bold text-slate-900">{formatCurrency(pieceCutoutBreakdown?.pieceSubtotalValue || 0)}</div>
+                            {pieceQuantity > 1 && <div className="mt-1 text-xs text-slate-500">{pieceQuantity} un. × {formatCurrency(pieceCutoutBreakdown?.unitSubtotalValue || 0)}</div>}
                           </div>
                           <div className="rounded-2xl bg-slate-50 px-4 py-3">
                             <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Recortes</div>
@@ -3300,6 +3312,7 @@ export const QuoteEditor: React.FC = () => {
                             {pieceWorkflowStatus}
                           </div>
                         </div>
+                        <PieceQuantityInput quantity={piece.quantity} onChange={(quantity) => updatePiece(piece.id, {quantity})} />
                       </div>
                       <button
                         type="button"
@@ -3484,13 +3497,13 @@ export const QuoteEditor: React.FC = () => {
                           )}
                         </div>
                         <div className={cn('rounded-2xl px-4 py-3 text-[11px] font-bold uppercase tracking-wide', !hasMaterial ? 'bg-slate-100 text-slate-500' : hasEnoughStock ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600')}>
-                          {!hasMaterial ? 'Selecione um material para validar o estoque' : hasEnoughStock ? `m² suficiente: ${formatArea(stock.available)} disponível` : `m² insuficiente: precisa ${formatArea(pieceArea)} e há ${formatArea(stock.available)}`}
+                          {!hasMaterial ? 'Selecione um material para validar o estoque' : hasEnoughStock ? `m² suficiente: ${formatArea(stock.available)} disponível` : `m² insuficiente: precisa ${formatArea(pieceTotalArea)} e há ${formatArea(stock.available)}`}
                         </div>
                         {hasMaterial && hasEnoughStock && lotInfo ? (
                           <div className={cn('rounded-2xl px-4 py-3 text-[11px] font-bold uppercase tracking-wide', lotInfo.canUseSingleLot ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700')}>
                             {lotInfo.canUseSingleLot
                               ? `Mesmo lote: cabe na chapa ${lotInfo.singleLot?.code || 'sem lote'} (${formatArea(lotInfo.singleLot?.availableArea || 0)})`
-                              : `Lotes diferentes: precisa combinar ${lotInfo.lotCountNeeded || 2} chapas para ${formatArea(pieceArea)}`}
+                              : `Lotes diferentes: precisa combinar ${lotInfo.lotCountNeeded || 2} chapas para ${formatArea(pieceTotalArea)}`}
                           </div>
                         ) : null}
                         {hasMaterial && !hasEnoughStock ? (
@@ -3643,13 +3656,15 @@ export const QuoteEditor: React.FC = () => {
                               <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Resumo das medidas</div>
                               <div className="mt-2 space-y-2 text-sm text-slate-700">
                                 <div className="flex items-center justify-between gap-3">
-                                  <span>Área em uso</span>
+                                  <span>Área por unidade</span>
                                   <strong className="font-mono text-slate-900">{formatMeasure(pieceArea)}</strong>
                                 </div>
                                 <div className="flex items-center justify-between gap-3">
-                                  <span>Maior lado em uso</span>
+                                  <span>Maior lado por unidade</span>
                                   <strong className="font-mono text-slate-900">{effectiveLongestSide > 0 ? formatCentimeters(effectiveLongestSide) : '-'}</strong>
                                 </div>
+                                <div className="flex items-center justify-between gap-3"><span>Quantidade</span><span>{pieceQuantity} un.</span></div>
+                                {pieceQuantity > 1 && <div className="flex items-center justify-between gap-3"><span>Área total</span><span className="font-mono">{formatArea(pieceTotalArea)}</span></div>}
                               </div>
                             </div>
                           </div>
@@ -3764,7 +3779,7 @@ export const QuoteEditor: React.FC = () => {
                           </div>
                           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 md:col-span-2">
                             <label className="block space-y-1">
-                              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Valor manual da peça</span>
+                              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Valor manual por unidade</span>
                               <CurrencyInput
                                 value={pieceManualPriceInputs[piece.id] || ''}
                                 onValueChange={(_, rawValue) => updatePieceManualPriceInput(piece.id, rawValue)}
@@ -3826,7 +3841,7 @@ export const QuoteEditor: React.FC = () => {
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                           <div>
                             <div className="text-[11px] font-bold uppercase tracking-[0.22em] text-slate-400">Recortes</div>
-                            <h3 className="mt-2 font-display text-lg font-bold text-slate-900">Serviços adicionais da peça</h3>
+                            <h3 className="mt-2 font-display text-lg font-bold text-slate-900">Serviços adicionais por unidade da peça</h3>
                             <p className="mt-2 text-sm text-slate-500">Os preços continuam vindo do catálogo oficial já carregado no orçamento.</p>
                           </div>
                           <select
@@ -3865,7 +3880,8 @@ export const QuoteEditor: React.FC = () => {
                                 <div key={row.label} className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                                   <div className="min-w-0">
                                     <div className="text-sm font-semibold text-slate-900">{row.label}</div>
-                                    <div className="text-xs text-slate-500">{row.count} un. · {formatCurrency(row.price)} por unidade</div>
+                                    <div className="text-xs text-slate-500">{row.count} recorte(s) {hasAnyScopedCutouts(pieces) ? 'por unidade da peça' : 'globais do orçamento'} · {formatCurrency(row.price)} por recorte</div>
+                                    {cutoutQuantityMultiplier > 1 && <div className="mt-1 text-xs text-slate-500">Total: {row.count * cutoutQuantityMultiplier} recortes · {formatCurrency(row.count * row.price * cutoutQuantityMultiplier)}</div>}
                                   </div>
                                   <div className="flex items-center justify-between gap-3 sm:justify-end">
                                     <div className="inline-flex items-center rounded-xl border border-slate-200 bg-white">
@@ -3931,7 +3947,8 @@ export const QuoteEditor: React.FC = () => {
                       <div className="grid grid-cols-2 gap-3 text-sm">
                         <div>
                           <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Área</div>
-                          <div className="mt-2 font-mono font-bold text-slate-900">{formatMeasure(pieceArea)}</div>
+                          <div className="mt-2 font-mono font-bold text-slate-900">{formatArea(pieceArea)}{pieceQuantity > 1 && ` × ${pieceQuantity}`}</div>
+                          {pieceQuantity > 1 && <div className="mt-1 text-xs text-slate-500">Total: {formatArea(pieceTotalArea)}</div>}
                         </div>
                         <div>
                           <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Material</div>
@@ -3939,7 +3956,9 @@ export const QuoteEditor: React.FC = () => {
                         </div>
                         <div>
                           <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Valor da peça</div>
+                          <div className="mt-1 text-xs text-slate-500">Quantidade: {pieceQuantity} un.</div>
                           <div className="mt-2 font-mono font-bold text-slate-900">{formatCurrency(pieceCutoutBreakdown?.pieceSubtotalValue || 0)}</div>
+                          {pieceQuantity > 1 && <div className="mt-1 text-xs text-slate-500">{formatCurrency(pieceCutoutBreakdown?.unitSubtotalValue || 0)} × {pieceQuantity} un.</div>}
                         </div>
                         <div>
                           <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Recortes</div>

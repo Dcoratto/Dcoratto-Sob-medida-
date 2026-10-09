@@ -1,5 +1,6 @@
 import {supabase} from './supabase';
-import {QuotePresentationStatus} from '../types';
+import {QuotePresentationStatus, QuoteMaterialAlternatives} from '../types';
+import type {MaterialSelections} from './quoteMaterialAlternatives';
 
 export type QuotePresentationVersionSummary = {
   id: string;
@@ -27,6 +28,8 @@ export type QuotePresentationAcceptanceSummary = {
 };
 
 export type QuotePresentationSnapshot = {
+  materialAlternatives?: QuoteMaterialAlternatives;
+  materialSelection?: {selections: MaterialSelections; total: number; originalTotal: number; confirmedAt: string};
   quoteId?: string;
   proposalCode?: string;
   versionLabel?: string;
@@ -280,10 +283,11 @@ export const getPublicQuotePresentation = async (token: string) => {
   return (payload || {state: 'missing'}) as PublicQuotePresentationResponse;
 };
 
-export const acceptQuotePresentation = async (token: string, acceptedName: string) => {
-  const payload = ensureSuccess(await supabase.rpc('accept_quote_presentation', {
+export const acceptQuotePresentation = async (token: string, acceptedName: string, materials?: {versionId: string; selections: MaterialSelections; expectedTotal: number}) => {
+  const payload = ensureSuccess(await supabase.rpc(materials ? 'accept_quote_presentation_materials' : 'accept_quote_presentation', {
     p_token: token,
     p_accepted_name: acceptedName,
+    ...(materials ? {p_version_id: materials.versionId, p_selections: materials.selections, p_expected_total: materials.expectedTotal} : {}),
   }));
   return payload as {
     accepted: boolean;

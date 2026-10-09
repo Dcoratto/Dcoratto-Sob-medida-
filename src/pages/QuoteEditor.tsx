@@ -23,6 +23,9 @@ import {formatMaterialSpecs} from '../lib/materialSpecs';
 import {buildMaterialVariantKey} from '../lib/materialVariants';
 import {buildQuoteMaterialOptions, matchesMaterialSearch, materialPiecePatch, planMaterialApplication} from '../lib/quoteMaterials';
 import {MaterialApplicationDialog, type MaterialApplicationSelection} from '../components/MaterialApplicationDialog';
+import {MaterialAlternativeDialog} from '../components/MaterialAlternativeDialog';
+import {alternativeReviewReason, calculateAlternativePieceDeltas, validateAlternative} from '../lib/quoteMaterialAlternatives';
+import type {QuoteMaterialAlternative, QuoteMaterialAlternatives} from '../types';
 import {getPieceQuantity, getQuoteUnitCount, getPieceTotalArea} from '../lib/quotePieceQuantity';
 import {PieceQuantityInput} from '../components/inputs/PieceQuantityInput';
 import {clearDraft, loadDraftMeta, saveDraft} from '../lib/draftStorage';
@@ -416,6 +419,8 @@ export const QuoteEditor: React.FC = () => {
   const [pieceMaterialSearch, setPieceMaterialSearch] = useState<Record<string, string>>({});
   const [pieceMaterialPickerOpen, setPieceMaterialPickerOpen] = useState<Record<string, boolean>>({});
   const [materialApplication, setMaterialApplication] = useState<MaterialApplicationSelection | null>(null);
+  const [materialAlternatives, setMaterialAlternatives] = useState<QuoteMaterialAlternative[]>([]);
+  const [alternativeDialog, setAlternativeDialog] = useState<QuoteMaterialAlternative | null>(null);
   const [environment, setEnvironment] = useState('');
   const [responsible, setResponsible] = useState(user?.user_metadata?.name || '');
   const [materialId, setMaterialId] = useState('');
@@ -927,6 +932,47 @@ export const QuoteEditor: React.FC = () => {
     negotiationDiscountPercent: normalizedNegotiationDiscountPercent,
     rtPercent: normalizedRtPercent,
   });
+  const alternativePriceRows = materialAlternatives.map((option) => {
+    const material = materialWithUserPrice(option.materialId, option.materialVariantKey);
+    const principal = materialWithQuotePrice(option.principalMaterialId, option.principalVariantKey);
+    const parsed = parseQuoteMaterialPriceInput(option.customPriceInput || '');
+    const minimumPrice = Math.max(0, Number(material?.baseMinimumSalePerM2 || 0));
+    const standardPrice = Math.max(0, Number(material?.pricePerM2 || 0));
+    const error = validateAlternative(option, materialAlternatives, pieces)
+      || (!material || material.active === false ? 'Material alternativo indisponível ou inativo.' : '')
+      || (parsed.status === 'invalid' || parsed.status === 'negative' ? 'Informe um preço alternativo válido.' : '')
+      || (parsed.status === 'valid' && Number(parsed.value) < minimumPrice ? MATERIAL_PRICE_MINIMUM_ERROR : '');
+    const pricePerM2 = !error && parsed.status === 'valid' ? Number(parsed.value) : Math.max(standardPrice, minimumPrice);
+    const reviewReason = alternativeReviewReason(pieces.filter((piece) => option.pieceIds.includes(piece.id)), principal, material);
+    return {...option, material, principal, minimumPrice, standardPrice, pricePerM2, error, reviewReason};
+  });
+  const alternativeError = alternativePriceRows.find((row) => row.error)?.error;
+  const buildMaterialAlternativesSnapshot = (): QuoteMaterialAlternatives => ({
+    ruleVersion: 1,
+    subtotalBeforeAdjustment,
+    legacyComplexityPercent: includeComplexity && !hasPieceScopedComplexity ? complexityPercent : 0,
+    totalsInput: {paymentMode, entryAmount: normalizedEntryAmount, selectedAdjustment: selectedPaymentAdjustment,
+      commissionPercent: normalizedCommissionPercent, negotiationDiscountPercent: normalizedNegotiationDiscountPercent, rtPercent: normalizedRtPercent},
+    options: alternativePriceRows.map((row) => {
+      const pieceDeltas = calculateAlternativePieceDeltas({pieces, quoteCutouts: effectiveQuoteCutouts, settings: effectiveQuoteSettings,
+        clientLocation: {city: selectedClient?.city, address: selectedClient?.address}, calculatePieceArea,
+        resolveMaterialPricePerM2: (piece) => materialWithQuotePrice(piece.materialId || materialId, piece.materialVariantKey)?.pricePerM2 || 0,
+        includeLabor: quotePricingMode !== 'cost' && usesLinearLaborPricing, includeMaterialLoss: true,
+        includeCutouts: true, includeSculptedSink: true, includeComplexity, complexityOptions: activeComplexityOptions,
+        resolveManualPiecePrice: (piece) => piece.pricingMode === 'manual' ? parseQuoteMaterialPriceInput(pieceManualPriceInputs[piece.id] || '').value : undefined,
+      }, row.pieceIds, row.pricePerM2, basePiecePricingBreakdowns, includeMaterialLoss);
+      const material = row.material!;
+      return {id: row.id, principalMaterialId: row.principalMaterialId, principalVariantKey: row.principalVariantKey,
+        materialId: row.materialId, materialVariantKey: row.materialVariantKey, pieceIds: row.pieceIds, customPriceInput: row.customPriceInput,
+        standardPrice: row.standardPrice, minimumPrice: row.minimumPrice, pricePerM2: row.pricePerM2, reviewReason: row.reviewReason,
+        material: {id: material.id, name: material.name, category: material.category, materialLine: material.materialLine,
+          materialType: material.materialType, thicknessLabel: material.thicknessLabel, texture: material.texture,
+          imageUrl: imageVariantUrl(material, 'medium') || material.imageUrl || ''},
+        pieceDeltas,
+      };
+    }),
+  });
+  const updateAlternativePrice = (optionId: string, customPriceInput: string) => setMaterialAlternatives((current) => current.map((option) => option.id === optionId ? {...option, customPriceInput} : option));
   const normalizedInstallmentCount = Math.max(1, Number(installmentCount) || 1);
   const installmentAmount = calculateQuoteInstallmentAmount({
     totalPrice,
@@ -1222,6 +1268,7 @@ export const QuoteEditor: React.FC = () => {
       setIncludeLabor(typeof draft.includeLabor === 'boolean' ? draft.includeLabor : true);
       setIncludeDelivery(typeof draft.includeDelivery === 'boolean' ? draft.includeDelivery : true);
       setIncludeComplexity(typeof draft.includeComplexity === 'boolean' ? draft.includeComplexity : true);
+      setMaterialAlternatives((draft.materialAlternatives as QuoteMaterialAlternative[]) || []);
       setMaterialCustomPriceInputs((draft.materialCustomPriceInputs as Record<string, string>) || inputValuesFromMaterialOverrides(draft.materialPriceOverrides as QuoteMaterialPriceOverride[]));
       setPieceManualPriceInputs((draft.pieceManualPriceInputs as Record<string, string>) || inputValuesFromPieceManualPrices(draftPieces));
       setCutouts((draft.cutouts as QuoteCutoutState) || EMPTY_QUOTE_CUTOUTS);
@@ -1277,6 +1324,7 @@ export const QuoteEditor: React.FC = () => {
           }, data.status));
           setPieces(loadedPieces);
           setMaterialCustomPriceInputs(inputValuesFromMaterialOverrides(data.materialPriceOverrides));
+          setMaterialAlternatives(data.materialAlternatives?.options || []);
           setPieceManualPriceInputs(inputValuesFromPieceManualPrices(loadedPieces));
           setPieceMaterialSearch(loadedPieces.reduce((acc, piece) => {
             const material = materials.find((item) => item.id === piece.materialId);
@@ -1403,13 +1451,14 @@ export const QuoteEditor: React.FC = () => {
       pieces,
       cutouts: effectiveQuoteCutouts,
       materialCustomPriceInputs,
+      materialAlternatives,
       pieceManualPriceInputs,
       employeeAssignments,
       statusHistory,
       pieceMaterialSearch,
     });
     if (savedAt) setQuoteDraftSavedAt(savedAt);
-  }, [clientId, clientSearch, commercialNotes, commissionPercent, complexityKey, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, includeComplexity, includeCutouts, includeDelivery, includeLabor, includeMaterialLoss, includeSculptedSink, installmentCount, loading, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, paymentNotes, pieceManualPriceInputs, pieceMaterialSearch, pieces, pricingSnapshot, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
+  }, [clientId, clientSearch, commercialNotes, commissionPercent, complexityKey, cutouts, deliveryDate, deliveryDays, employeeAssignments, entryAmount, environment, includeComplexity, includeCutouts, includeDelivery, includeLabor, includeMaterialLoss, includeSculptedSink, installmentCount, loading, materialAlternatives, materialCustomPriceInputs, materialId, measurementDate, negotiationDiscountPercent, originalStatus, paymentMethod, paymentMode, paymentNotes, pieceManualPriceInputs, pieceMaterialSearch, pieces, pricingSnapshot, quoteDraftKey, quotePricingMode, remainingPaymentMethod, responsible, rtPercent, status, statusHistory, totalPaymentMethod, validityDays]);
 
   const clearQuoteDraftState = () => {
     clearDraft(quoteDraftKey);
@@ -2104,6 +2153,9 @@ export const QuoteEditor: React.FC = () => {
     if (quoteMaterialPriceError) {
       failPersist(String(quoteMaterialPriceError));
     }
+    if (alternativeError) {
+      failPersist(alternativeError);
+    }
     if (pieceManualPriceError) {
       failPersist(String(pieceManualPriceError));
     }
@@ -2189,6 +2241,7 @@ export const QuoteEditor: React.FC = () => {
       pieces: piecesWithStatus,
       cutouts: effectiveQuoteCutouts,
       materialPriceOverrides,
+      materialAlternatives: buildMaterialAlternativesSnapshot(),
       employeeAssignments,
       statusHistory: nextStatusHistory,
       ...(id ?{} : {createdAt: Timestamp.now()}),
@@ -2297,7 +2350,7 @@ export const QuoteEditor: React.FC = () => {
         </div>
         <button
           onClick={handleSave}
-          disabled={saving || Boolean(quoteMaterialPriceError) || Boolean(pieceManualPriceError)}
+          disabled={saving || Boolean(alternativeError) || Boolean(quoteMaterialPriceError) || Boolean(pieceManualPriceError)}
           className="flex items-center gap-2 bg-brand-primary text-[#3F3A34] px-8 py-3 rounded-2xl font-bold shadow-lg shadow-brand-primary/20 hover:bg-brand-primary/90 transition-all active:scale-95 disabled:opacity-50"
         >
           <Save className="w-5 h-5" />
@@ -2627,6 +2680,14 @@ export const QuoteEditor: React.FC = () => {
                     <div className="mt-1 text-[11px] text-slate-400">{row.specs || 'Sem especificações adicionais'}</div>
                     <div className="mt-3 text-sm text-slate-600">Aplicado em {row.pieceIds.length} registros de peças · {row.unitCount} unidades</div>
                     <button type="button" disabled={saving} onClick={() => setMaterialApplication({materialId: row.materialId, variantKey: row.materialVariantKey, mode: 'specific', selectedIds: [...row.pieceIds], search: ''})} className="mt-3 text-sm text-brand-primary underline underline-offset-2 disabled:opacity-50">Gerenciar aplicação</button>
+                    <div className="mt-4 space-y-2 border-t border-slate-200 pt-3">
+                      <h4 className="text-xs font-semibold text-slate-700">Alternativas oferecidas</h4>
+                      {materialAlternatives.filter((option) => option.principalMaterialId === row.materialId && (option.principalVariantKey || '') === (row.materialVariantKey || '')).map((option) => <div key={option.id} className="flex items-center justify-between gap-2 text-sm">
+                        <button type="button" disabled={saving} onClick={() => setAlternativeDialog(option)} className="text-left underline underline-offset-2">{materials.find((material) => material.id === option.materialId)?.name || 'Material'} · {option.pieceIds.length} registros</button>
+                        <button type="button" disabled={saving} aria-label="Remover alternativa" onClick={() => setMaterialAlternatives((current) => current.filter((item) => item.id !== option.id))} className="p-2 text-red-600"><Trash2 className="h-4 w-4" /></button>
+                      </div>)}
+                      <button type="button" disabled={saving} onClick={() => setAlternativeDialog({id: crypto.randomUUID(), principalMaterialId: row.materialId, principalVariantKey: row.materialVariantKey, materialId: '', pieceIds: [...row.pieceIds]})} className="text-sm text-brand-primary underline underline-offset-2">+ Adicionar opções de materiais</button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -2757,6 +2818,20 @@ export const QuoteEditor: React.FC = () => {
                     );
                   })}
                 </div>
+                {alternativePriceRows.length > 0 && <section className="rounded-2xl border border-slate-100 bg-white p-4">
+                  <h3 className="text-sm font-semibold text-slate-900">Precificação — Materiais alternativos</h3>
+                  {alternativePriceRows.map((row) => <div key={row.id} className="mt-4 rounded-xl border border-slate-200 p-3 text-sm">
+                    <h4 className="font-semibold">{row.material?.name || 'Material indisponível'}</h4>
+                    <p className="mt-1 text-xs text-slate-500">Principal: {row.principal?.name || 'Material removido'} · {row.pieceIds.length} registros</p>
+                    <MaterialPriceReference standard={row.standardPrice} custom={parseQuoteMaterialPriceInput(row.customPriceInput || '').value} error={row.error} onReset={() => updateAlternativePrice(row.id, '')} />
+                    <label className="mt-3 block text-xs">Preço personalizado nesta proposta
+                      <CurrencyInput value={row.customPriceInput || ''} onValueChange={(_, raw) => updateAlternativePrice(row.id, raw)} onBlur={() => {const parsed = parseQuoteMaterialPriceInput(row.customPriceInput || ''); if (parsed.status === 'valid') updateAlternativePrice(row.id, formatPriceInputValue(parsed.value!));}} placeholder={formatCurrency(row.standardPrice)} className="mt-1 w-full rounded-xl border border-slate-200 p-3 text-sm" />
+                    </label>
+                    <p className="mt-2 text-xs">Diferença do principal: {row.pricePerM2 >= (row.principal?.pricePerM2 || 0) ? '+' : '−'} {formatCurrency(Math.abs(row.pricePerM2 - (row.principal?.pricePerM2 || 0)))} / m²</p>
+                    {row.reviewReason && <p className="mt-2 text-xs text-amber-700">{row.reviewReason} A simulação desta alternativa ficará indisponível.</p>}
+                    <div className="mt-3 flex gap-4 text-xs"><button type="button" disabled={saving} onClick={() => setAlternativeDialog(row)} className="underline">Editar peças</button><button type="button" disabled={saving} onClick={() => setMaterialAlternatives((current) => current.filter((option) => option.id !== row.id))} className="text-red-600 underline">Remover alternativa</button></div>
+                  </div>)}
+                </section>}
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="space-y-1"><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Comissão (%)</span><PercentageInput value={commissionPercent} onValueChange={(value) => setCommissionPercent(String(value))} className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-brand-primary/20" placeholder="0" /></label>
                   <label className="space-y-1"><span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Descontos (%)</span><PercentageInput value={negotiationDiscountPercent} onValueChange={(value) => setNegotiationDiscountPercent(String(value))} className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-2.5 text-sm outline-none transition-all focus:bg-white focus:ring-2 focus:ring-brand-primary/20" placeholder="0" /></label>
@@ -4015,6 +4090,7 @@ export const QuoteEditor: React.FC = () => {
         </div>
       </div>
 
+      {alternativeDialog && <MaterialAlternativeDialog initial={alternativeDialog} options={materialAlternatives} catalog={materialVariantOptions} pieces={pieces} environment={environment} onClose={() => setAlternativeDialog(null)} onSave={(option) => {setMaterialAlternatives((current) => [...current.filter((item) => item.id !== option.id), option]); setAlternativeDialog(null);}} />}
       {materialApplication && <MaterialApplicationDialog selection={materialApplication} name={materials.find((material) => material.id === materialApplication.materialId)?.name || 'Material'} pieces={pieces} onChange={setMaterialApplication} onClose={() => setMaterialApplication(null)} onApply={applyMaterialSelection} />}
 
       {showDrawing && (

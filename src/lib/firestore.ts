@@ -330,6 +330,9 @@ const executeSchemaAwareWrite = async (
     if (!error) return;
 
     const missingColumn = missingSchemaColumnFromError(error);
+    if (table === 'quotes' && missingColumn === 'material_alternatives') {
+      throw new Error('A migration de materiais alternativos precisa ser aplicada antes de salvar este orçamento. Nenhuma alternativa foi descartada.');
+    }
     if (!missingColumn || ignoredColumns.has(missingColumn) || !(missingColumn in nextPayload)) {
       throw error;
     }

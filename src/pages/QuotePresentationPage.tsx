@@ -1,5 +1,7 @@
 import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {getPieceQuantity} from '../lib/quotePieceQuantity';
+import {ProposalMaterialAlternatives} from '../components/ProposalMaterialAlternatives';
+import {simulateMaterialAlternatives, type MaterialSelections} from '../lib/quoteMaterialAlternatives';
 import {useParams} from 'react-router-dom';
 import {format} from 'date-fns';
 import {ptBR} from 'date-fns/locale';
@@ -340,6 +342,7 @@ export const QuotePresentationPage: React.FC = () => {
   const [selectedSimulationMethod, setSelectedSimulationMethod] = useState('');
   const [confirming, setConfirming] = useState(false);
   const [acceptedName, setAcceptedName] = useState('');
+  const [materialSelectionState, setMaterialSelectionState] = useState<{versionId: string; selections: MaterialSelections}>({versionId: '', selections: {}});
   const [accepting, setAccepting] = useState(false);
   const [acceptanceMessage, setAcceptanceMessage] = useState('');
 
@@ -412,7 +415,12 @@ export const QuotePresentationPage: React.FC = () => {
   }, [lightboxImage, simulatorOpen]);
 
   const availablePayload = payload?.state === 'available' ? payload : null;
-  const snapshot = availablePayload?.snapshot;
+  const originalSnapshot = availablePayload?.snapshot;
+  const materialSelections = originalSnapshot?.materialSelection?.selections
+    || (materialSelectionState.versionId === availablePayload?.meta.versionId ? materialSelectionState.selections : {});
+  const setMaterialSelections = (selections: MaterialSelections) => setMaterialSelectionState({versionId: availablePayload!.meta.versionId, selections});
+  const materialSimulation = useMemo(() => originalSnapshot ? simulateMaterialAlternatives(originalSnapshot, materialSelections) : null, [originalSnapshot, materialSelections]);
+  const snapshot = materialSimulation?.snapshot;
   const company = snapshot?.company;
   const investment = snapshot?.investment;
   const delivery = snapshot?.delivery;
@@ -617,7 +625,9 @@ export const QuotePresentationPage: React.FC = () => {
 
     setAccepting(true);
     try {
-      const result = await acceptQuotePresentation(token, acceptedName.trim());
+      const result = await acceptQuotePresentation(token, acceptedName.trim(), originalSnapshot?.materialAlternatives?.options.length ? {
+        versionId: availablePayload!.meta.versionId, selections: materialSelections, expectedTotal: materialSimulation!.total,
+      } : undefined);
       const nextAcceptedName = result.acceptedName || acceptedName.trim();
       setAcceptanceMessage(`Proposta ${result.versionLabel} aceita em ${formatDateLong(result.acceptedAt)}.`);
       setAcceptedName(nextAcceptedName);
@@ -627,6 +637,9 @@ export const QuotePresentationPage: React.FC = () => {
           ? {
             ...current,
             status: 'ACEITO',
+            snapshot: {...current.snapshot, materialSelection: originalSnapshot?.materialAlternatives?.options.length ? {
+              selections: materialSelections, total: materialSimulation!.total, originalTotal: Number(originalSnapshot.investment?.totalPrice || 0), confirmedAt: result.acceptedAt,
+            } : undefined},
             meta: {
               ...current.meta,
               acceptedAt: result.acceptedAt,
@@ -909,6 +922,7 @@ export const QuotePresentationPage: React.FC = () => {
           </div>
         </section>
 
+        {originalSnapshot && <ProposalMaterialAlternatives snapshot={originalSnapshot} selections={materialSelections} disabled={proposalAccepted || proposalExpired || accepting} onChange={setMaterialSelections} onZoom={setLightboxImage} onConfirm={() => {setConfirming(true); document.getElementById('aceite')?.scrollIntoView({behavior: 'smooth'});}} />}
         <section id="projeto" className="border-t border-white/6 px-5 py-16 sm:py-20">
           <div className="mx-auto max-w-6xl">
             <RevealBlock reducedMotion={prefersReducedMotion}>
@@ -1180,7 +1194,7 @@ export const QuotePresentationPage: React.FC = () => {
                           className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#e1c6a4] px-4 py-3 text-sm font-semibold text-[#3a2d22] transition hover:bg-[#f0d8b8] disabled:opacity-60"
                         >
                           {accepting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
-                          Confirmar aceite
+                          {originalSnapshot?.materialAlternatives?.options.length ? 'Confirmar materiais e aceite' : 'Confirmar aceite'}
                         </button>
                         <button
                           type="button"

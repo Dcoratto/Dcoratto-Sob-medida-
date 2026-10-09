@@ -1010,6 +1010,40 @@ export interface QuoteMaterialPriceOverride {
   updatedAt?: any;
 }
 
+export interface QuoteMaterialAlternative {
+  id: string;
+  principalMaterialId: string;
+  principalVariantKey?: string;
+  materialId: string;
+  materialVariantKey?: string;
+  pieceIds: string[];
+  customPriceInput?: string;
+}
+
+export interface PublishedMaterialAlternative extends QuoteMaterialAlternative {
+  material: Pick<Material, 'id' | 'name' | 'category' | 'materialLine' | 'materialType' | 'thicknessLabel' | 'texture' | 'imageUrl'>;
+  standardPrice: number;
+  pricePerM2: number;
+  minimumPrice: number;
+  reviewReason?: string;
+  pieceDeltas: Record<string, number>;
+}
+
+export interface QuoteMaterialAlternatives {
+  ruleVersion: 1;
+  options: PublishedMaterialAlternative[];
+  subtotalBeforeAdjustment: number;
+  legacyComplexityPercent: number;
+  totalsInput: {
+    paymentMode: 'total' | 'entry';
+    entryAmount: number;
+    selectedAdjustment: number;
+    commissionPercent: number;
+    negotiationDiscountPercent: number;
+    rtPercent: number;
+  };
+}
+
 export interface QuotePricingSnapshot {
   laborRatePerLinearMeter: number;
   laborMinimumByRegion: Settings['laborMinimumByRegion'];
@@ -1072,6 +1106,7 @@ export interface Quote {
   pieces: QuotePiece[];
   cutouts: QuoteCutouts;
   materialPriceOverrides?: QuoteMaterialPriceOverride[];
+  materialAlternatives?: QuoteMaterialAlternatives;
   pricingSnapshot?: QuotePricingSnapshot;
   createdAt: any;
   updatedAt?: any;

@@ -441,10 +441,10 @@ export const QuotePresentationPage: React.FC = () => {
       : `Válida até ${validUntilLabel}`
     : '';
   const materials = useMemo(() => {
-    const source = Array.isArray(snapshot?.materials) && snapshot.materials.length
-      ? snapshot.materials
-      : snapshot?.material
-        ? [snapshot.material]
+    const source = Array.isArray(originalSnapshot?.materials) && originalSnapshot.materials.length
+      ? originalSnapshot.materials
+      : originalSnapshot?.material
+        ? [originalSnapshot.material]
         : [];
 
     const seen = new Set<string>();
@@ -454,7 +454,7 @@ export const QuotePresentationPage: React.FC = () => {
       seen.add(key);
       return true;
     });
-  }, [snapshot?.material, snapshot?.materials]);
+  }, [originalSnapshot?.material, originalSnapshot?.materials]);
   const projectPieces = useMemo(() => {
     if (!Array.isArray(snapshot?.pieces)) return [];
     return snapshot.pieces.map((piece) => ({

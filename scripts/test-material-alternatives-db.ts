@@ -143,6 +143,50 @@ try {
   await db.exec(`reset role; set role authenticated; set test.empresa='other'`);
   assert.equal((await db.query(`select id from public.quotes`)).rows.length,0); assertions++;
   await db.exec(`reset role`);
+  // Capture a legacy partial acceptance BEFORE the new guard, then verify compatibility.
+  await db.exec(`insert into public.materials(id,empresa_id,name,price_per_m2,base_minimum_sale_per_m2) values
+    ('main2','tenant','Segundo principal',900,800), ('alt2','tenant','Segunda alternativa',1800,1000)`);
+  const groupConfig = {...config, options: [
+    {...config.options[0], id: 'ga', pieceIds: ['a','b'], pieceDeltas: {a: 100, b: 200}},
+    {...config.options[0], id: 'gb', materialId: 'alt2', material: {id: 'alt2', name: 'Segunda alternativa'}, pieceIds: ['a','b'], pieceDeltas: {a: 50, b: 50}},
+    {...config.options[0], id: 'gc', principalMaterialId: 'main2', materialId: 'alt2', material: {id: 'alt2', name: 'Segunda alternativa'}, pieceIds: ['c'], pieceDeltas: {c: -50}},
+  ]};
+  const publishGroup = async (id: string) => {
+    await db.query(`insert into public.quotes(id,empresa_id,total_price,pieces,material_alternatives) values ($1,'tenant',10000,$2,$3)`,
+      [id, JSON.stringify([{id:'a',materialId:'main',quantity:3,presentationValue:5000}, {id:'b',materialId:'main',quantity:1,presentationValue:3000},
+        {id:'c',materialId:'main2',quantity:2,presentationValue:2000}]), JSON.stringify(groupConfig)]);
+    const ids = (await db.query(`select gen_random_uuid() as pid, gen_random_uuid() as vid`)).rows[0];
+    const token = `test-group-material-token-${id}`;
+    await db.query(`insert into public.quote_presentations(id,empresa_id,quote_id) values ($1,'tenant',$2)`,[ids.pid,id]);
+    await db.query(`insert into public.quote_presentation_versions(id,presentation_id,empresa_id,quote_id,version_number,proposal_code,public_token,snapshot,valid_until)
+      select $1,$2,'tenant',id,1,'GROUP-1',$3,app_private.build_quote_presentation_snapshot(q,null::public.clients,null::public.materials,null::public.settings,1),now()+interval '1 day'
+      from public.quotes q where id=$4`,[ids.vid,ids.pid,token,id]);
+    await db.query(`update public.quote_presentations set current_version_id=$1 where id=$2`,[ids.vid,ids.pid]);
+    return {token, ...ids};
+  };
+  const legacyGroup = await publishGroup('legacy-group');
+  const legacyAcceptance = await db.query(confirm,[legacyGroup.token,legacyGroup.vid,'{"a":"ga"}',10100]);
+  await db.exec(migration('20261009025512_quote_material_group_selection.sql'));
+  await db.exec(readFileSync('supabase/tests/quote_material_group_selection.sql', 'utf8')); assertions++;
+  const legacyRetry = await db.query(confirm,[legacyGroup.token,legacyGroup.vid,'{"a":"ga"}',10100]);
+  assert.deepEqual(legacyRetry.rows[0].result,legacyAcceptance.rows[0].result); assertions++;
+  const group = await publishGroup('full-group');
+  const beforeGroup = (await db.query(`select to_jsonb(q) as quote from public.quotes q where id='full-group'`)).rows[0].quote;
+  await rejects(confirm,[group.token,group.vid,'{"a":"ga"}',10100],/Troca parcial/);
+  await rejects(confirm,[group.token,group.vid,'{"a":"ga","b":"gb"}',10150],/mesmo material/);
+  await rejects(confirm,[group.token,group.vid,'{"a":"ga","b":"ga","c":"gc"}',1],/Valor divergente/);
+  const groupChoices = {a:'ga',b:'ga',c:'gc'};
+  const fullAccepted = await db.query(confirm,[group.token,group.vid,JSON.stringify(groupChoices),10250]);
+  assert.equal(fullAccepted.rows[0].result.accepted,true); assertions++;
+  assert.deepEqual((await db.query(confirm,[group.token,group.vid,JSON.stringify(groupChoices),10250])).rows[0].result,fullAccepted.rows[0].result); assertions++;
+  const groupView = (await db.query(`select public.get_public_quote_presentation($1) as payload`,[group.token])).rows[0].payload;
+  assert.deepEqual(groupView.snapshot.materialSelection.selections,groupChoices); assertions++;
+  const groupEvidence = (await db.query(`select accepted_snapshot from public.quote_presentation_acceptances where version_id=$1`,[group.vid])).rows[0].accepted_snapshot;
+  assert.equal(groupEvidence.materialSelection.affectedPieces.length,3); assertions++;
+  assert.equal(groupEvidence.materialSelection.affectedPieces[0].piece.quantity,3); assertions++;
+  assert.equal(groupEvidence.materialSelection.versionId,group.vid); assertions++;
+  assert.ok(groupEvidence.materialSelection.confirmedAt); assertions++;
+  assert.deepEqual((await db.query(`select to_jsonb(q) as quote from public.quotes q where id='full-group'`)).rows[0].quote,beforeGroup); assertions++;
   // Deterministic cross-language cents parity, including negative adjustments and entry crossing.
   for (let index = 0; index < 200; index++) {
     const base = index * 103.17 + 0.005;

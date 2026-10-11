@@ -154,7 +154,7 @@ export function OperationalPage() {
   };
   const card = detail?.card;
   const deadlinePreview = card && action === 'deadline_save' ? calculateStructuredDeadlines({
-    contract_signed_on: payload.contract_signed_on || null,
+    measurement_date: payload.measurement_date || null,
     executive_budget_days: payload.executive_budget_days || null,
     executive_signed_on: payload.executive_signed_on || null,
     production_budget_days: payload.production_budget_days || null,
@@ -216,16 +216,16 @@ export function OperationalPage() {
             {action === 'deadline_save' && <div className="space-y-4 rounded-xl bg-white p-3 text-sm text-slate-600">
               <div className="grid gap-3 sm:grid-cols-2">
                 <p><span className="block text-xs text-slate-400">Data do contrato</span>{card.contract_date ? displayDate(card.contract_date) : 'Não informada'}</p>
-                <label>Contrato assinado em<input type="date" value={payload.contract_signed_on || ''} onChange={event => patch('contract_signed_on', event.target.value)} className={cn(inputClass, 'mt-1')} /></label>
+                <label>Data da medição<input required={!!card.measurement_date} type="date" value={payload.measurement_date || ''} onChange={event => patch('measurement_date', event.target.value)} className={cn(inputClass, 'mt-1')} /></label>
               </div>
               <div className="grid gap-3 sm:grid-cols-3">
                 <label>Prazo executivo (dias úteis)<input type="number" min={1} max={365} value={payload.executive_budget_days || ''} onChange={event => patch('executive_budget_days', event.target.value)} className={cn(inputClass, 'mt-1')} /></label>
-                <p><span className="block text-xs text-slate-400">Vencimento executivo</span>{deadlinePreview?.executive_due_date ? displayDate(deadlinePreview.executive_due_date) : card.executive_due_date ? displayDate(card.executive_due_date) : 'Aguardando assinatura e prazo'}</p>
+                <p><span className="block text-xs text-slate-400">Vencimento executivo</span>{deadlinePreview?.executive_due_date ? displayDate(deadlinePreview.executive_due_date) : 'Aguardando data e prazo'}</p>
                 <label>Executivo assinado em<input type="date" value={payload.executive_signed_on || ''} onChange={event => patch('executive_signed_on', event.target.value)} className={cn(inputClass, 'mt-1')} /></label>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <label>Prazo produção (dias úteis)<input type="number" min={1} max={365} value={payload.production_budget_days || ''} onChange={event => patch('production_budget_days', event.target.value)} className={cn(inputClass, 'mt-1')} /></label>
-                <p><span className="block text-xs text-slate-400">Vencimento produção</span>{deadlinePreview?.production_due_date ? displayDate(deadlinePreview.production_due_date) : card.production_due_date ? displayDate(card.production_due_date) : 'Aguardando executivo assinado e prazo'}</p>
+                <p><span className="block text-xs text-slate-400">Vencimento produção</span>{deadlinePreview?.production_due_date ? displayDate(deadlinePreview.production_due_date) : 'Aguardando data e prazo'}</p>
               </div>
             </div>}
             {action === 'deadline_manual' && <div className="space-y-3 rounded-xl bg-white p-3 text-sm text-slate-600">
@@ -267,14 +267,15 @@ export function OperationalPage() {
                 <div className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
                   <p><span className="block text-xs text-slate-400">Data do contrato</span>{card.contract_date ? displayDate(card.contract_date) : 'Não informada'}</p>
                   <p><span className="block text-xs text-slate-400">Contrato assinado em</span>{card.contract_signed_on ? displayDate(card.contract_signed_on) : 'Não informado'}</p>
+                  <p><span className="block text-xs text-slate-400">Data da medição</span>{card.measurement_date ? displayDate(card.measurement_date) : 'Não informada'}</p>
                   <p><span className="block text-xs text-slate-400">Prazo executivo</span>{card.executive_budget_days ? `${card.executive_budget_days} dias úteis` : 'Não definido'}</p>
-                  <p><span className="block text-xs text-slate-400">Vencimento executivo</span>{card.executive_due_date ? displayDate(card.executive_due_date) : 'Aguardando assinatura e prazo'}</p>
+                  <p><span className="block text-xs text-slate-400">Vencimento executivo</span>{card.executive_due_date ? displayDate(card.executive_due_date) : 'Aguardando data e prazo'}</p>
                   <p><span className="block text-xs text-slate-400">Executivo assinado em</span>{card.executive_signed_on ? displayDate(card.executive_signed_on) : 'Não informado'}</p>
-                  <p><span className="block text-xs text-slate-400">Vencimento produção</span>{card.production_due_date ? `${displayDate(card.production_due_date)}${card.production_budget_days ? ` · ${card.production_budget_days} dias úteis` : ''}` : 'Aguardando executivo assinado e prazo'}</p>
+                  <p><span className="block text-xs text-slate-400">Vencimento produção</span>{card.production_due_date ? `${displayDate(card.production_due_date)}${card.production_budget_days ? ` · ${card.production_budget_days} dias úteis` : ''}` : 'Aguardando data e prazo'}</p>
                 </div>
                 {card.deadline_source === 'manual' && <p className="mt-3 text-sm text-slate-500">Prazo manual legado preservado: {card.manual_due_date ? displayDate(card.manual_due_date) : 'não definido'}{card.manual_due_reason ? ` · Motivo: ${card.manual_due_reason}` : ''}</p>}
                 {scheduleDelayText(card) && <p className="mt-3 rounded-xl bg-amber-50 p-3 text-sm text-amber-800">⚠ {scheduleDelayText(card)}</p>}
-                {canEdit && card.stage !== 'completed' && <div className="mt-4 flex flex-wrap gap-2"><button disabled={busy} className={buttonClass} onClick={() => begin('deadline_save', {contract_signed_on: card.contract_signed_on || '', executive_budget_days: card.executive_budget_days || '', executive_signed_on: card.executive_signed_on || '', production_budget_days: card.production_budget_days || ''})}>Editar prazos</button></div>}
+                {canEdit && card.stage !== 'completed' && <div className="mt-4 flex flex-wrap gap-2"><button disabled={busy} className={buttonClass} onClick={() => begin('deadline_save', {measurement_date: card.measurement_date || '', executive_budget_days: card.executive_budget_days || '', executive_signed_on: card.executive_signed_on || '', production_budget_days: card.production_budget_days || ''})}>Editar prazos</button></div>}
               </div>
               <div className="mt-3 grid gap-3 sm:grid-cols-2"><label className="text-sm text-slate-600">Etapa<select value={card.stage} disabled={busy || !canEdit && !hasPermission('projeto', 'aprovar')} className={inputClass} onChange={event => beginStageChange(detail, event.target.value as Stage)}>{stages.filter(([id]) => stageTargets(card.stage).includes(id)).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label><label className="text-sm text-slate-600">Prioridade<select value={card.priority} disabled={busy || !canEdit} className={inputClass} onChange={event => void submit(card, 'priority', {priority: event.target.value})}>{Object.entries(priorities).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select></label></div>
               {card.stage === 'installation' && <p className={cn('mt-3 text-sm', card.installed_count === card.piece_count ? 'text-emerald-700' : 'text-amber-700')}>{card.installed_count === card.piece_count ? 'Todas as peças instaladas. O contrato pode ser finalizado.' : `${card.piece_count - card.installed_count} peça(s) ainda precisam ser instaladas antes de finalizar.`}</p>}
@@ -317,7 +318,7 @@ function eventText(event: OperationalDetail['events'][number]) {
   if (event.kind === 'correct_installation') return `Instalação corrigida. Motivo: ${p.reason}`;
   if (event.kind === 'deadline_manual') return `Prazo alterado manualmente${p.previous_date ? `\nAnterior: ${displayDate(p.previous_date)}` : ''}\nNovo: ${displayDate(p.date)}\nPrazo calculado: ${p.automatic_date ? displayDate(p.automatic_date) : 'Não definido'}\nMotivo: ${p.reason}`;
   if (event.kind === 'deadline_auto') return `Prazo manual removido.\nAnterior: ${displayDate(p.previous_date)}\nPrazo automático: ${p.automatic_date ? displayDate(p.automatic_date) : 'Não definido'}`;
-  if (event.kind === 'deadline_save') return `Prazos atualizados.\nContrato assinado: ${displayDate(p.contract_signed_on)}\nExecutivo: ${p.executive_budget_days || 'sem prazo'} dias úteis · ${displayDate(p.executive_due_date)}\nExecutivo assinado: ${displayDate(p.executive_signed_on)}\nProdução: ${p.production_budget_days || 'sem prazo'} dias úteis · ${displayDate(p.production_due_date)}`;
+  if (event.kind === 'deadline_save') return `Prazos atualizados.\n${Object.prototype.hasOwnProperty.call(p, 'measurement_date') ? `Medição: ${displayDate(p.measurement_date)}` : `Contrato assinado: ${displayDate(p.contract_signed_on)}`}\nExecutivo: ${p.executive_budget_days || 'sem prazo'} dias úteis · ${displayDate(p.executive_due_date)}\nExecutivo assinado: ${displayDate(p.executive_signed_on)}\nProdução: ${p.production_budget_days || 'sem prazo'} dias úteis · ${displayDate(p.production_due_date)}`;
   if (event.kind === 'aftercare_open') return `Pós-Instalação aberta: ${p.reason}\n${p.note || ''}`;
   if (event.kind === 'aftercare_resolve') return `Pós-Instalação resolvida: ${p.reason}${p.to === 'completed' ? '\nContrato finalizado.' : ''}`;
   return event.kind;

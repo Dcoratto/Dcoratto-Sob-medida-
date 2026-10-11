@@ -20,9 +20,9 @@ test('remaining/overdue business days and configurable thresholds', () => {
   assert.equal(deadlineStatus(5, 5, 2), 'attention');
   assert.equal(deadlineStatus(6, 5, 2), 'normal');
 });
-test('structured deadlines use explicit signature dates as calculation bases', () => {
+test('structured deadlines use measurement and executive signature as calculation bases', () => {
   const deadlines = calculateStructuredDeadlines({
-    contract_signed_on: '2026-09-18',
+    measurement_date: '2026-09-18',
     executive_budget_days: 3,
     executive_signed_on: '2026-09-23',
     production_budget_days: 2,
@@ -30,6 +30,16 @@ test('structured deadlines use explicit signature dates as calculation bases', (
   assert.equal(deadlines.executive_due_date, '2026-09-23');
   assert.equal(deadlines.production_due_date, '2026-09-25');
   assert.deepEqual(calculateStructuredDeadlines({executive_budget_days: 10, production_budget_days: 5}), {executive_due_date: null, production_due_date: null});
+});
+test('structured deadlines reject absent or invalid bases and budgets without stale dates', () => {
+  for (const measurement_date of ['', '2026-02-30', 'invalid']) {
+    assert.equal(calculateStructuredDeadlines({measurement_date, executive_budget_days: 3}).executive_due_date, null);
+  }
+  for (const executive_budget_days of ['', 0, -1, 1.5, 366]) {
+    assert.equal(calculateStructuredDeadlines({measurement_date: '2026-09-04', executive_budget_days}).executive_due_date, null);
+  }
+  assert.deepEqual(calculateStructuredDeadlines({measurement_date: '2026-09-04', executive_budget_days: 1, executive_signed_on: '2026-04-02', production_budget_days: 1}, 'Itaquaquecetuba'), {executive_due_date: '2026-09-09', production_due_date: '2026-04-06'});
+  assert.equal(calculateStructuredDeadlines({executive_signed_on: '2026-02-30', production_budget_days: 1}).production_due_date, null);
 });
 test('Drive only accepts existing Google HTTPS links, never executable URLs', () => {
   assert.equal(safeDriveUrl('https://drive.google.com/drive/folders/example'), 'https://drive.google.com/drive/folders/example');

@@ -52,7 +52,7 @@ export function businessDaysBetween(from: string, to: string, city = '') {
 }
 export const deadlineStatus = (days: number | null, attention: number, urgent: number) => days === null ? 'none' : days < 0 ? 'late' : days <= urgent ? 'urgent' : days <= attention ? 'attention' : 'normal';
 export type StructuredDeadlineInput = {
-  contract_signed_on?: string | null;
+  measurement_date?: string | null;
   executive_budget_days?: number | string | null;
   executive_signed_on?: string | null;
   production_budget_days?: number | string | null;
@@ -60,14 +60,15 @@ export type StructuredDeadlineInput = {
 const toPositiveInteger = (value: number | string | null | undefined) => {
   if (value === null || value === undefined || value === '') return null;
   const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+  return Number.isInteger(parsed) && parsed > 0 && parsed <= 365 ? parsed : null;
 };
+const validDeadlineDay = (value?: string | null) => !!value && /^\d{4}-\d{2}-\d{2}$/.test(value) && Number.isFinite(parseDay(value).getTime()) && dateKey(parseDay(value)) === value;
 export function calculateStructuredDeadlines(input: StructuredDeadlineInput, city = '') {
   const executiveDays = toPositiveInteger(input.executive_budget_days);
   const productionDays = toPositiveInteger(input.production_budget_days);
   return {
-    executive_due_date: input.contract_signed_on && executiveDays ? addBusinessDays(input.contract_signed_on, executiveDays, city) : null,
-    production_due_date: input.executive_signed_on && productionDays ? addBusinessDays(input.executive_signed_on, productionDays, city) : null,
+    executive_due_date: validDeadlineDay(input.measurement_date) && executiveDays ? addBusinessDays(input.measurement_date!, executiveDays, city) : null,
+    production_due_date: validDeadlineDay(input.executive_signed_on) && productionDays ? addBusinessDays(input.executive_signed_on!, productionDays, city) : null,
   };
 }
 

@@ -34,6 +34,8 @@ export default defineConfig(({mode}) => {
           manualChunks(id) {
             if (!id.includes('node_modules')) return;
 
+            if (id.includes('/three/')) return 'editor3d-three';
+
             if (id.includes('react') || id.includes('scheduler')) return 'react-vendor';
             if (id.includes('react-router')) return 'router-vendor';
             if (id.includes('@supabase/supabase-js')) return 'supabase-vendor';

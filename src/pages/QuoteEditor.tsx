@@ -16,6 +16,8 @@ import {DEFAULT_QUOTE_COMPLEXITY_OPTIONS, resolveLaborAmount, resolveLocationAmo
 import { cn, formatArea, formatCentimeters, formatCurrency, formatMeasure, formatMeasureInput, formatPercentage, parseCurrencyInput, parseMeasureInput, roundNumber } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { DrawingCanvas } from '../components/DrawingCanvas';
+import Editor3DEntry from '../components/editor3d/Editor3DEntry';
+import {EDITOR3D_ENABLED, editor3dAccess} from '../lib/editor3dPersistence';
 import {applyQuoteInventoryByStatusTransition} from '../lib/inventoryReservations';
 import {logSystemEvent} from '../lib/systemEvents';
 import {normalizeQuoteStatus, QUOTE_STATUSES, quoteStatusColor} from '../lib/quoteStatus';
@@ -452,6 +454,16 @@ export const QuoteEditor: React.FC = () => {
   const [activePieceMeasureInput, setActivePieceMeasureInput] = useState<string | null>(null);
   const [cutouts, setCutouts] = useState<QuoteCutoutState>(EMPTY_QUOTE_CUTOUTS);
   const [showDrawing, setShowDrawing] = useState<string | null>(null);
+  const [betaPiece, setBetaPiece] = useState<{id: string; name: string} | null>(null);
+  const [betaAllowed, setBetaAllowed] = useState(false);
+  useEffect(() => {
+    let active = true;
+    setBetaAllowed(false);
+    if (EDITOR3D_ENABLED && user?.id) {
+      void editor3dAccess().then(allowed => {if (active) setBetaAllowed(allowed);}).catch(() => {});
+    }
+    return () => {active = false;};
+  }, [user?.id]);
   const [pieceEditorOpen, setPieceEditorOpen] = useState(false);
   const [pieceEditorPieceId, setPieceEditorPieceId] = useState<string | null>(null);
   const [pieceEditorMode, setPieceEditorMode] = useState<PieceEditorMode>(null);
@@ -3388,6 +3400,7 @@ export const QuoteEditor: React.FC = () => {
                           </div>
                         </div>
                         <PieceQuantityInput quantity={piece.quantity} onChange={(quantity) => updatePiece(piece.id, {quantity})} />
+                        {EDITOR3D_ENABLED && betaAllowed && <button type="button" onClick={() => setBetaPiece({id: piece.id, name: piece.name})} className="rounded-xl border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-normal text-amber-800">Editor 3D (Beta)</button>}
                       </div>
                       <button
                         type="button"
@@ -4093,6 +4106,7 @@ export const QuoteEditor: React.FC = () => {
       {alternativeDialog && <MaterialAlternativeDialog initial={alternativeDialog} options={materialAlternatives} catalog={materialVariantOptions} pieces={pieces} environment={environment} onClose={() => setAlternativeDialog(null)} onSave={(option) => {setMaterialAlternatives((current) => [...current.filter((item) => item.id !== option.id), option]); setAlternativeDialog(null);}} />}
       {materialApplication && <MaterialApplicationDialog selection={materialApplication} name={materials.find((material) => material.id === materialApplication.materialId)?.name || 'Material'} pieces={pieces} onChange={setMaterialApplication} onClose={() => setMaterialApplication(null)} onApply={applyMaterialSelection} />}
 
+      {betaPiece && <Editor3DEntry quoteId={id} pieceId={betaPiece.id} pieceName={betaPiece.name} userId={user?.id || ''} onClose={() => setBetaPiece(null)} />}
       {showDrawing && (
         <div className="fixed inset-0 z-[100] overflow-y-auto bg-slate-900/60 p-2 backdrop-blur-md overscroll-contain sm:flex sm:items-center sm:justify-center sm:p-4">
           <div className="flex min-h-[calc(100svh-16px)] w-full max-w-5xl flex-col rounded-[28px] bg-white shadow-2xl sm:h-[90vh] sm:min-h-0 sm:rounded-[40px]">
